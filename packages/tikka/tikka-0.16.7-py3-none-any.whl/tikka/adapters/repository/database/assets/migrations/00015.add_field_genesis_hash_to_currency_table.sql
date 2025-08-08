@@ -1,0 +1,1 @@
+ALTER TABLE currency ADD COLUMN genesis_hash VARCHAR DEFAULT NULL;
