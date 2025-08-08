@@ -1,0 +1,136 @@
+[project]
+name = "git-draft"
+description = "Version-controlled code assistant"
+authors = [{name="Matthieu Monsch", email="mtth@apache.org"}]
+license = "MIT"
+readme = "README.md"
+dynamic = ["version"]
+requires-python = ">=3.12"
+dependencies = [
+  "docopt-ng (>=0.9,<0.10)",
+  "jinja2 (>=3.1.5,<4)",
+  "prettytable (>=3.15.1,<4)",
+  "xdg-base-dirs (>=6.0.2,<7)",
+  "yaspin (>=3.1.0,<4)",
+]
+
+[project.optional-dependencies]
+openai = ["openai (>=1.64.0,<2)"]
+
+[project.scripts]
+git-draft = "git_draft.__main__:main"
+
+[project.urls]
+repository = "https://github.com/mtth/git-draft"
+documentation = "https://mtth.github.io/git-draft"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+# Poetry
+
+[tool.poetry]
+version = "0.44.4" # Set programmatically
+packages = [{include="git_draft", from="src"}]
+
+[tool.poetry.dependencies]
+python = ">=3.12,<4"
+
+[tool.poetry.group.dev.dependencies]
+coverage = "^7.4.4"
+mypy = "^1.2.1"
+poethepoet = "^0.25.0"
+pytest = "^8.2.0"
+pytest-asyncio = "^1.0.0"
+ruff = "^0.11.0"
+
+# Poe
+
+[tool.poe.tasks.fix]
+help = "format source code"
+sequence = [
+  {cmd="ruff format ${args}"},
+  {cmd="ruff check --fix ${args}"},
+]
+args = [
+  {name="args", help="target folders", positional=true, multiple=true, default="src tests"},
+]
+
+[tool.poe.tasks.lint]
+help = "lint configuration and source code"
+sequence = [
+  {cmd="poetry check"},
+  {cmd="ruff check ${args}"},
+  {cmd="mypy ${args}"},
+]
+args = [
+  {name="args", help="target folders", positional=true, multiple=true, default="src tests"},
+]
+
+[tool.poe.tasks.test]
+help = "run tests with coverage"
+sequence = [
+  {cmd="coverage run"},
+  {cmd="coverage report"},
+]
+
+# Other tools
+
+[tool.coverage.run]
+branch = true
+command_line = "-m pytest"
+relative_files = true
+
+[tool.coverage.report]
+include = ["src/**/*.py"]
+show_missing = true
+
+[tool.mypy]
+disable_error_code = "import-untyped"
+
+[tool.pytest.ini_options]
+log_level = "DEBUG"
+
+[tool.ruff]
+line-length = 79
+
+[tool.ruff.lint]
+select = [
+  "A",
+  "ANN",
+  "ARG",
+  "D",
+  "E",
+  "ERA",
+  "F",
+  "I",
+  "INP",
+  "LOG",
+  "N",
+  "PL",
+  "RUF",
+  "SIM",
+  "SLF",
+  "T20",
+  "TD",
+  "UP",
+  "W"
+]
+ignore = [
+  "ANN003", "ANN401",
+  "D102", "D103", "D105", "D107", "D415",
+  "PLR2004",
+  "TD002", "TD003",
+]
+
+[tool.ruff.lint.isort]
+force-sort-within-sections = true
+lines-after-imports = 2
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"__main__.py" = ["T20"]
+"tests/**" = ["ANN", "D", "SLF"]
