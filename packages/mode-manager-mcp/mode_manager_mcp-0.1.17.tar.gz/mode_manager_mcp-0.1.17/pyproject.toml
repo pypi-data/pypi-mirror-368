@@ -1,0 +1,121 @@
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mode-manager-mcp"
+dynamic = ["version"]
+description = "Mode Manager MCP: Server for managing VS Code .chatmode.md and .instructions.md files (GitHub Copilot prompts)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Niclas Olofsson", email = "nicke.olofsson@gmail.com" }]
+keywords = [
+    "mcp",
+    "vscode",
+    "chatmode",
+    "instruction",
+    "github-copilot",
+    "prompts",
+    "mode-manager",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "mcp>=1.12.0",
+    "fastmcp>=2.11.0",
+    "pydantic>=2.0.0",
+    "typing-extensions",
+    "psutil>=7.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "mypy>=1.0.0",
+    "pre-commit>=3.0.0",
+    "types-psutil",
+    "types-requests",
+    "pydocstringformatter>=0.4.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/NiclasOlofsson/mode-manager-mcp"
+Repository = "https://github.com/NiclasOlofsson/mode-manager-mcp"
+Issues = "https://github.com/NiclasOlofsson/mode-manager-mcp/issues"
+Documentation = "https://github.com/NiclasOlofsson/mode-manager-mcp#readme"
+
+[project.scripts]
+mode-manager-mcp = "mode_manager_mcp.__main__:main"
+
+
+[tool.hatch.build.targets.sdist]
+include = ["src/**", "README.md", "LICENSE", "library/**", "test_basic.py"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mode_manager_mcp"]
+
+
+[tool.hatch.envs.default]
+type = "virtual"
+path = ".venv"
+dependencies = [
+    "pytest",
+    "pytest-asyncio",
+    "black",
+    "mypy",
+    "pre-commit",
+    "types-psutil",
+    "pydocstringformatter",
+]
+[tool.hatch.envs.default.scripts]
+test = "pytest"
+lint = "black --check src tests"
+typecheck = "mypy src tests"
+format = "pydocstringformatter src tests && black src tests"
+precommit = "pre-commit run --all-files"
+
+[tool.black]
+line-length = 250
+target-version = ['py38']
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.hatch.version]
+path = "src/mode_manager_mcp/__init__.py"
+
+[tool.pydocstringformatter]
+write = true
+style = "pep257"
+strip-whitespaces = true
