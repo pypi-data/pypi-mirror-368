@@ -1,0 +1,86 @@
+# SkopeDataReader
+Python reader to load data acquired with skope-fx
+
+
+## CONSTRUCTOR
+scan = DataReader(folder, scanNr)
+
+*IN  
+    folder:     path of the folder containing the scan data files  
+    scanNr:     scan number*
+    
+*OUT  
+    obj         scan object holding scan definition*
+
+## FUNCTIONS
+### getData(self, datatype, samples=[], channels=[], interleaves=[], dynamics=[])
+
+*IN  
+    datatype:     string (Type names are defined by the Acq System output file extensions: 'raw', 'phase', 'k', 'kspha', 'kcoco', 'Bfit', 'Gfit')  
+    samples:      numpy array of requested samples.  
+    channels:     numpy array of requested channels. Relative to acquired channels!   
+    interleaves:  numpy array of requested interleaves.  
+    dynamics:     numpy array of requested dynamics.*
+
+for samples, channels, interleaves, and dynamics: If not present or empty all acquired data is returned
+
+*OUT  
+    data:         size = [samples, channels, interleaves, dynamics]*
+
+### getTriggerTimeData(self)
+
+*OUT  
+    trigTimes:     for versions <= 2022: np array with trigger times   
+                   for versions >= 2023: dict with 'triggerTimes' and 'flags'*
+	
+### filterData(self, data, frequencyKHz=50)
+
+Note: this is a preliminary implementation for phase and k data only!
+
+*IN  
+	data: 		data obtained by getData that will be filtered  
+	frequencyKHz:	cut off frequency for low pass filtering*
+
+*OUT  
+data:       filtered data*
+	
+
+## EXAMPLE USAGE
+
+```python
+import SkopeDataReader
+import numpy as np
+from matplotlib import pyplot as plt
+
+# set scan path & nr
+dataPath = 'My\Data\Path'
+scanNr   = 1
+
+# Initialize DataReader
+scan = SkopeDataReader.DataReader(dataPath, scanNr)
+
+# Load and print trigger times
+triggerTime = scan.getTriggerTimeData()
+print(triggerTime)
+
+# Load and plot raw data
+rawData = scan.getData('raw')
+fig, ax = plt.subplots()
+ax.plot(abs(rawData[:,:,0,0]))
+plt.show()
+
+# Load, filter and plot kspha data
+kData = scan.getData('kspha', samples=np.arange(10000))
+kData = scan.filterData(kData, frequencyKHz=50)
+fig, ax = plt.subplots()
+ax.plot(kData[:,:,0,0])
+plt.show()
+
+# Load and plot Bfit data
+BData = scan.getData('Bfit')
+fig, ax = plt.subplots()
+ax.plot(BData[0,:,0,:].transpose(), '.-')
+plt.show()
+```
+
+
