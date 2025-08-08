@@ -1,0 +1,79 @@
+# =======================================================================
+#
+#  This file is part of WebWidgets, a Python package for designing web
+#  UIs.
+#
+#  You should have received a copy of the MIT License along with
+#  WebWidgets. If not, see <https://opensource.org/license/mit>.
+#
+#  Copyright(C) 2025, mlaasri
+#
+# =======================================================================
+
+name: "Full CI: Python 3.9-13 on all OSes"
+
+on:
+  push:
+    branches: main
+  pull_request:
+    branches: main
+
+permissions:
+  contents: read
+
+jobs:
+  lint_source:
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    name: Lint source on ${{ matrix.os }} Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install flake8
+      run: |
+        python -c "import platform; print('OS', platform.system())"
+        python -c "import sys; print('Python version', sys.version)"
+        python -m pip install --upgrade pip
+        pip install flake8
+    - name: Lint with flake8
+      run: |
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+  
+  test_build:
+    needs: lint_source
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    name: Test build on ${{ matrix.os }} Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Upgrading pip
+      run: |
+        python -c "import platform; print('OS', platform.system())"
+        python -c "import sys; print('Python version', sys.version)"
+        python -m pip install --upgrade pip
+    - name: Build and install
+      run: |
+        pip install .[dev]
+        # Removing webwidgets directory so imports come from build
+        rm -r webwidgets
+    - name: Test with pytest
+      run: |
+        pytest tests

@@ -1,0 +1,77 @@
+# =======================================================================
+#
+#  This file is part of WebWidgets, a Python package for designing web
+#  UIs.
+#
+#  You should have received a copy of the MIT License along with
+#  WebWidgets. If not, see <https://opensource.org/license/mit>.
+#
+#  Copyright(C) 2025, mlaasri
+#
+# =======================================================================
+
+name: "Quick CI: Python 3.9-11 on Ubuntu"
+
+on:
+  push:
+    branches: '*'
+
+permissions:
+  contents: read
+
+jobs:
+  lint_source:
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11"]
+    name: Lint source on Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install flake8
+      run: |
+        python -c "import sys; print('Python version', sys.version)"
+        python -m pip install --upgrade pip
+        pip install flake8
+    - name: Lint with flake8
+      run: |
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+  
+  test_build:
+    needs: lint_source
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11"]
+    name: Test build on Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Upgrading pip
+      run: |
+        python -c "import sys; print('Python version', sys.version)"
+        python -m pip install --upgrade pip
+    - name: Build and install
+      run: |
+        echo "Current directory:"
+        ls -la
+        pip install .[dev]
+        # Removing webwidgets directory so imports come from build
+        rm -r webwidgets
+        echo "Removed webwidgets directory. New content:"
+        ls -la
+    - name: Test with pytest
+      run: |
+        pytest tests
