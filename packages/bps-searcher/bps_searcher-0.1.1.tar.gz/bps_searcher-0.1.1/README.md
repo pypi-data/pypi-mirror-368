@@ -1,0 +1,447 @@
+# BPS搜索MCP工具
+
+## 项目概述
+
+本项目利用BPS的WEB-API能力，将其封装为一个MCP工具，方便其他大模型调用来查询印尼相关数据。
+
+## 功能特性
+
+- 支持19种不同的数据模型查询
+- 提供完整的错误处理和异常情况处理
+- 基于FastMCP框架实现的MCP服务器
+- 支持日志记录和调试
+- 内置数据缓存机制，提高查询性能
+- 增强的分页功能，方便处理大量数据
+- 完整的单元测试和集成测试覆盖
+- 支持异步测试和网络错误模拟测试
+
+## 安装和使用
+
+### 安装依赖
+
+```bash
+uv sync
+```
+
+### 运行MCP服务器
+
+```bash
+uv run fastmcp run src/bps_searcher/bps_mcp_server.py
+```
+
+### 在Claude Code中配置
+
+```bash
+claude mcp add bps --scope local --env BPS_APP_ID=xxxx \
+  --  uv --directory /$PWD/bps-searcher run -m src.bps_searcher
+```
+
+### 运行测试
+
+```bash
+uv run pytest
+```
+
+运行特定测试文件：
+
+```bash
+uv run pytest tests/test_bps_api_client.py
+```
+
+运行测试并显示详细结果：
+
+```bash
+uv run pytest -v
+```
+
+## 支持的数据模型
+
+- subject: 主题
+- subcat: 子主题
+- data: 动态数据
+- truth: 衍生周期
+- turvar: 派生变量
+- th: 周期
+- unit: 单位
+- var: 变量
+- vervar: 垂直变量
+- statictable: 静态表格
+- subcatcsa: 统计活动分类
+- pressrelease: 新闻稿
+- publication: 出版物
+- indicators: 指标
+- infographic: 信息图标
+- glosarium: 词汇表
+- sdgs: 可持续发展
+- sdds: 特殊数据发布标准
+- news: 新闻
+
+## 使用示例
+
+### 搜索新闻数据
+
+```python
+from src.bps_searcher.bps_api_client import BPSAPIInterface
+
+# 创建API客户端，设置缓存时间为600秒（10分钟）
+client = BPSAPIInterface("your_app_id", cache_ttl=600)
+result = client.search_news(domain="0000", page=1)
+print(result)
+```
+
+### 使用分页功能搜索数据
+
+```python
+from src.bps_searcher.bps_api_client import BPSAPIInterface
+
+client = BPSAPIInterface("your_app_id")
+
+# 使用分页功能搜索新闻数据
+pagination_result = client.search_with_pagination(client.search_news, domain="0000", page=1)
+
+print(f"当前页: {pagination_result.pagination.page}")
+print(f"总页数: {pagination_result.pagination.pages}")
+print(f"是否有下一页: {pagination_result.has_next}")
+print(f"数据记录数: {len(pagination_result.data)}")
+
+# 如果有下一页，获取下一页数据
+if pagination_result.has_next:
+    next_page = pagination_result.get_next_page()
+    pagination_result2 = client.search_with_pagination(client.search_news, domain="0000", page=next_page)
+    print(f"第二页数据记录数: {len(pagination_result2.data)}")
+```
+
+### 搜索主题数据
+
+```python
+from src.bps_searcher.bps_api_client import BPSAPIInterface
+
+client = BPSAPIInterface("your_app_id")
+result = client.search_subjects(domain="0000", page=1)
+print(result)
+```
+
+### 搜索子主题数据
+
+```python
+from src.bps_searcher.bps_api_client import BPSAPIInterface
+
+client = BPSAPIInterface("your_app_id")
+result = client.search_subcat(domain="0000", page=1)
+print(result)
+```
+
+### 搜索动态数据
+
+```python
+from src.bps_searcher.bps_api_client import BPSAPIInterface
+
+client = BPSAPIInterface("your_app_id")
+result = client.search_data(domain="0000", page=1)
+print(result)
+```
+
+### 搜索衍生周期数据
+
+```python
+from src.bps_searcher.bps_api_client import BPSAPIInterface
+
+client = BPSAPIInterface("your_app_id")
+result = client.search_truth(domain="0000", page=1)
+print(result)
+```
+
+### 搜索派生变量数据
+
+```python
+from src.bps_searcher.bps_api_client import BPSAPIInterface
+
+client = BPSAPIInterface("your_app_id")
+result = client.search_turvar(domain="0000", page=1)
+print(result)
+```
+
+### 搜索周期数据
+
+```python
+from src.bps_searcher.bps_api_client import BPSAPIInterface
+
+client = BPSAPIInterface("your_app_id")
+result = client.search_periods(domain="0000", page=1)
+print(result)
+```
+
+### 搜索单位数据
+
+```python
+from src.bps_searcher.bps_api_client import BPSAPIInterface
+
+client = BPSAPIInterface("your_app_id")
+result = client.search_units(domain="0000", page=1)
+print(result)
+```
+
+### 搜索变量数据
+
+```python
+from src.bps_searcher.bps_api_client import BPSAPIInterface
+
+client = BPSAPIInterface("your_app_id")
+result = client.search_variables(domain="0000", page=1)
+print(result)
+```
+
+### 搜索区域变量数据
+
+```python
+from src.bps_searcher.bps_api_client import BPSAPIInterface
+
+client = BPSAPIInterface("your_app_id")
+result = client.search_regions(domain="0000", page=1)
+print(result)
+```
+
+### 搜索静态表格数据
+
+```python
+from src.bps_searcher.bps_api_client import BPSAPIInterface
+
+client = BPSAPIInterface("your_app_id")
+result = client.search_statictable(domain="0000", page=1)
+print(result)
+```
+
+### 搜索统计活动分类数据
+
+```python
+from src.bps_searcher.bps_api_client import BPSAPIInterface
+
+client = BPSAPIInterface("your_app_id")
+result = client.search_subcatcsa(domain="0000", page=1)
+print(result)
+```
+
+### 搜索新闻稿数据
+
+```python
+from src.bps_searcher.bps_api_client import BPSAPIInterface
+
+client = BPSAPIInterface("your_app_id")
+result = client.search_pressrelease(domain="0000", page=1)
+print(result)
+```
+
+### 搜索出版物数据
+
+```python
+from src.bps_searcher.bps_api_client import BPSAPIInterface
+
+client = BPSAPIInterface("your_app_id")
+result = client.search_publications(domain="0000", page=1)
+print(result)
+```
+
+### 搜索指标数据
+
+```python
+from src.bps_searcher.bps_api_client import BPSAPIInterface
+
+client = BPSAPIInterface("your_app_id")
+result = client.search_indicators(domain="0000", page=1)
+print(result)
+```
+
+### 搜索信息图标数据
+
+```python
+from src.bps_searcher.bps_api_client import BPSAPIInterface
+
+client = BPSAPIInterface("your_app_id")
+result = client.search_infographic(domain="0000", page=1)
+print(result)
+```
+
+### 搜索词汇表数据
+
+```python
+from src.bps_searcher.bps_api_client import BPSAPIInterface
+
+client = BPSAPIInterface("your_app_id")
+result = client.search_glosarium(domain="0000", page=1)
+print(result)
+```
+
+### 搜索可持续发展数据
+
+```python
+from src.bps_searcher.bps_api_client import BPSAPIInterface
+
+client = BPSAPIInterface("your_app_id")
+result = client.search_sdgs(domain="0000", page=1)
+print(result)
+```
+
+### 搜索特殊数据发布标准数据
+
+```python
+from src.bps_searcher.bps_api_client import BPSAPIInterface
+
+client = BPSAPIInterface("your_app_id")
+result = client.search_sdds(domain="0000", page=1)
+print(result)
+```
+
+### 使用MCP工具搜索主题数据
+
+```python
+# 通过MCP客户端调用search_subjects工具
+result = mcp_client.call_tool("search_subjects", {"domain": "0000", "page": 1})
+```
+
+### 使用MCP工具进行高级搜索
+
+```python
+# 通过MCP客户端调用advanced_search工具
+result = mcp_client.call_tool("advanced_search", {
+    "query": "经济",
+    "model": "news",
+    "domain": "0000",
+    "page": 1
+})
+```
+
+### 指定领域ID进行搜索
+
+```python
+from src.bps_searcher.bps_api_client import BPSAPIInterface
+
+client = BPSAPIInterface("your_app_id")
+# 搜索Aceh省的新闻数据
+result = client.search_news(domain="1100", page=1)
+print(result)
+```
+
+## API调用错误处理示例
+
+### API客户端调用错误处理
+
+```python
+from src.bps_searcher.bps_api_client import BPSAPIInterface
+
+client = BPSAPIInterface("your_app_id")
+
+try:
+    result = client.search_news(domain="0000", page=1)
+    if result.status == "OK":
+        print(f"成功获取数据，共{len(result.data)}条记录")
+    else:
+        print(f"API返回错误: {result.status}")
+except Exception as e:
+    print(f"网络请求失败: {str(e)}")
+```
+
+### MCP工具调用错误处理
+
+```python
+try:
+    # 通过MCP客户端调用search_subjects工具
+    result = mcp_client.call_tool("search_subjects", {"domain": "0000", "page": 1})
+    if result["status"] == "OK":
+        print(f"成功获取数据，共{len(result['data'])}条记录")
+    else:
+        print(f"工具调用失败: {result['message']}")
+except Exception as e:
+    print(f"MCP工具调用失败: {str(e)}")
+```
+
+## 项目结构
+
+```
+bps-searcher/
+├── pyproject.toml         # 项目依赖配置
+├── README.md              # 项目说明文档
+├── PLAN.md                # 项目计划
+├── SUMMARY.md             # 项目总结
+├── src/                   # 源代码目录
+│   └── bps_searcher/      # BPS搜索器包
+│       ├── __init__.py    # 包初始化文件
+│       ├── bps_api_client.py  # BPS API客户端实现
+│       ├── bps_mcp_server.py  # MCP服务器实现
+│       └── main.py        # 主程序入口
+├── tests/                 # 测试目录
+│   ├── test_bps_api.py    # API基础测试脚本
+│   ├── test_bps_api_client.py # API客户端增强测试
+│   ├── test_bps_api_enhanced.py # API增强功能测试
+│   └── test_bps_mcp.py    # MCP测试脚本
+├── docs/                  # 文档目录
+|   ├── archive/               # 归档文档，已过期文档
+│   ├── API_DOCUMENTATION.md   # API数据模型说明
+│   └── BPS_WEB_API_DOC.md     # BPS WEB API文档
+│   └── CHANGELOG.md           # CHANGELOG文档
+├── examples/              # 示例目录
+│   ├── data/              # 示例数据文件
+│   ├── resources/         # 资源文件
+│   └── get_examples.py    # 示例获取脚本
+└── uv.lock                # 依赖锁定文件
+```
+
+## 配置
+
+- APP_ID: BPS API的鉴权KEY，必须通过环境变量BPS_APP_ID进行配置
+- 缓存: API客户端内置数据缓存机制，默认缓存时间为300秒（5分钟）
+
+### 安全性改进
+
+为了提高安全性，我们移除了默认的APP_ID值，强制用户自己设置环境变量。如果未设置BPS_APP_ID环境变量，MCP服务器将拒绝启动并显示明确的错误信息。
+
+请按照以下步骤设置环境变量：
+
+```bash
+export BPS_APP_ID=your_app_id_here
+```
+
+或者在Windows系统中：
+
+```cmd
+set BPS_APP_ID=your_app_id_here
+```
+
+注意：请将`your_app_id_here`替换为您从BPS官方网站获取的实际APP_ID。
+
+## 领域ID说明
+
+领域ID用于指定搜索的数据范围：
+
+- "0000": 全国数据（默认值）
+- "1100": Aceh省
+- "1200": Sumatera Utara省
+- "1300": Sumatera Barat省
+- ...
+- 完整的领域ID列表请参考 `examples/resources/resource/domain-all.json` 文件
+
+## API文档
+
+详细的API数据模型说明请参考 [docs/API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md) 文件。
+
+## 测试
+
+本项目包含完整的测试套件，涵盖了：
+
+- 单元测试：测试各个API客户端方法
+- 集成测试：测试MCP服务器功能
+- 网络错误模拟测试：测试网络异常情况处理
+- 异步测试：测试异步功能
+
+运行测试：
+
+```bash
+uv run pytest
+```
+
+## 更新日志
+
+详细的项目变更历史请参考 [docs/CHANGELOG.md](docs/CHANGELOG.md) 文件。
+
+## 后续开发计划
+
+1. 进一步完善文档和使用示例
