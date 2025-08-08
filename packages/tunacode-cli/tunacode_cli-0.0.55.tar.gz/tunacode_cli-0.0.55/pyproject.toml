@@ -1,0 +1,148 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tunacode-cli"
+
+version = "0.0.55"
+description = "Your agentic CLI developer."
+keywords = ["cli", "agent", "development", "automation"]
+readme = "README.md"
+requires-python = ">=3.10,<3.14"
+license = {text = "MIT"}
+authors = [
+    { name = "larock22", email = "noreply@github.com" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development",
+    "Topic :: Utilities",
+]
+dependencies = [
+    "typer==0.15.3",
+    "prompt_toolkit==3.0.51",
+    "pydantic-ai[logfire]==0.2.6",
+    "pygments==2.19.1",
+    "rich==14.0.0",
+    "tiktoken>=0.5.2",
+]
+
+[project.scripts]
+tunacode = "tunacode.cli.main:app"
+
+[project.optional-dependencies]
+dev = [
+    "build",
+    "ruff",
+    "pytest",
+    "pytest-cov",
+    "pytest-asyncio",
+    "textual-dev",
+    "pre-commit",
+    "vulture>=2.7",
+    "unimport>=1.0.0",
+    "autoflake>=2.0.0",
+    "dead>=1.5.0",
+]
+
+[project.urls]
+Homepage = "https://tunacode.xyz/"
+Repository = "https://github.com/alchemiststudiosDOTai/tunacode"
+Issues = "https://github.com/alchemiststudiosDOTai/tunacode/issues"
+Documentation = "https://github.com/alchemiststudiosDOTai/tunacode#readme"
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+extend-select = ["I"]
+ignore = ["E203", "E501"]
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "build",
+    "dist",
+    "venv",
+    "vulture_whitelist.py",
+]
+
+[tool.vulture]
+min_confidence = 80
+paths = ["src", "tests"]
+exclude = ["venv/", "build/", "dist/", ".git/", "__pycache__/", "*.egg-info/"]
+# Whitelist of false positives
+ignore_names = [
+    # TYPE_CHECKING imports
+    "ReadStream",
+    "WriteStream",
+    "StateManager",
+    "ModelRequest",
+    "CommandRegistry",
+    # Pytest fixtures
+    "caplog",
+    "temp_workspace",
+    "setup_test_environment",
+    "excinfo",
+    # Common patterns
+    "_complete_event",  # prompt_toolkit API requirement
+    "kw",  # **kw pattern
+    "kwargs",  # **kwargs pattern
+    "message",  # exception handling
+    "response_obj",  # API responses
+    # Test parameters and mock arguments
+    "should_restart",  # test parameter
+    "exc",  # exception handling in __aexit__
+    "exc_type",  # exception handling in __aexit__
+    "tb",  # traceback in __aexit__
+    "style_dict",  # Style.from_dict parameter
+    "style_str",  # get_attrs_for_style_str parameter
+]
+
+[tool.bandit]
+# Skip low-severity warnings for subprocess and assert statements
+skips = ["B404", "B603", "B101", "B607", "B110", "B324", "B103", "B604", "B602", "B108"]
+# B404: import subprocess
+# B603: subprocess without shell=True
+# B101: assert statements
+# B607: start process with partial path
+# B110: try/except/pass
+# B324: hashlib (SHA1 for non-security fingerprinting)
+# B103: chmod permissions (needed for template dirs)
+# B604: shell=True (validated usage in REPL)
+# B602: subprocess with shell=True (security utils)
+# B108: hardcoded tmp paths (test fixtures)
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+warn_return_any = false
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = false
+disallow_untyped_decorators = false
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = false
+warn_no_return = true
+follow_imports = "silent"
+# Allow CLAUDE_ANCHOR comments in docstrings
+disable_error_code = ["annotation-unchecked"]
