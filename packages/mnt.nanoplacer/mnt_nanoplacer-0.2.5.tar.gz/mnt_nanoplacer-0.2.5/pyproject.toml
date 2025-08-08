@@ -1,0 +1,147 @@
+[build-system]
+requires = [
+    "setuptools>=65.5.1",
+    "setuptools_scm[toml]>=7"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mnt.nanoplacer"
+description = "NanoPlaceR - An open-source framework for placement and routing of Field-coupled Nanotechnologies based on reinforcement learning."
+readme = "README.md"
+authors = [
+    { name = "Simon Hofmann", email = "simon.t.hofmann@tum.de" },
+]
+keywords = ["FCN",  "physical design"]
+license = { file = "LICENSE" }
+requires-python =  "<3.13"
+dynamic = ["version"]
+
+dependencies = [
+    "networkx>=3.2.1",
+    "numpy>=1.26.3",
+    "pre-commit>=3.6.0",
+    "setuptools>=68.2.0",
+    "sb3_contrib>=2.2.1",
+    "tensorboard>=2.15.1",
+    "wheel>=0.38.0",
+    "mnt.pyfiction>=0.6.1"
+]
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Intended Audience :: Science/Research",
+    "Natural Language :: English",
+    "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8.2.1"]
+coverage = ["mnt.nanoplacer[test]", "pytest-cov[toml]"]
+
+[project.scripts]
+"mnt.nanoplacer" = "mnt.nanoplacer.main:start"
+
+[project.urls]
+Homepage = "https://github.com/cda-tum/NanoPlaceR"
+"Bug Tracker" = "https://github.com/cda-tum/NanoPlaceR/issues"
+Discussions = "https://github.com/cda-tum/NanoPlaceR/discussions"
+Research = "https://www.cda.cit.tum.de/research/fcn/"
+
+[tool.setuptools_scm]
+
+[tool.black]
+line-length = 120
+
+[tool.ruff]
+select = [
+    "E", "F", "W", # flake8
+    "A",           # flake8-builtins
+    "B",  "B904",  # flake8-bugbear
+    "I",           # isort
+    "ARG",         # flake8-unused-arguments
+    "C4",          # flake8-comprehensions
+    "EM",          # flake8-errmsg
+    "EXE",         # flake8-executable
+    "ICN",         # flake8-import-conventions
+    "ISC",         # flake8-implicit-str-concat
+    "PGH",         # pygrep-hooks
+    "PIE",         # flake8-pie
+    "PL",          # pylint
+    "PT",          # flake8-pytest-style
+    "PTH",         # flake8-use-pathlib
+    "Q",           # flake8-quotes
+    "RET",         # flake8-return
+    "RUF",         # Ruff-specific
+    "SIM",         # flake8-simplify
+    "TCH",         # flake8-type-checking
+    "UP",          # pyupgrade
+    "YTT",         # flake8-2020
+]
+ignore = [
+    "ANN101",  # Missing type annotation for self in method
+    "ANN102",  # Missing type annotation for cls in classmethod
+    "E501",    # Line too long (Black is enough)
+    "PLR2004", # Magic values
+    "PLR0912", # Too many branches
+    "PLR0913", # Too many arguments
+    "PLR0915", # Too many statements
+    "PTH118", # `os.path.join()` should be replaced by `Path` with `/` operator
+]
+
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    "__init__.py",
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+    ".svg"
+]
+
+line-length = 120
+
+[tool.mypy]
+mypy_path = "$MYPY_CONFIG_FILE_DIR/src"
+files = ["src", "tests", "setup.py"]
+python_version = "3.9"
+strict = true
+show_error_codes = true
+enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
+warn_unreachable = true
+explicit_package_bases = true
+pretty = true
+
+[[tool.mypy.overrides]]
+module = ["networkx.*",  "numpy.*", "matplotlib.*", "gym.*", "tensorboard.*", "torch.*", "stable_baselines3"]
+ignore_missing_imports = true
+
+[tool.codespell]
+skip = 'README.md,*svg'
+quiet-level = 3
