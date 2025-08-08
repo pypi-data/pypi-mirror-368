@@ -1,0 +1,31 @@
+êB404"NConsider possible security implications associated with the subprocess module.˜¢import subprocessªéimport os
+import tempfile
+import subprocess
+from rich.syntax import Syntax
+from rich.console import Console
+
+console = Console()
+
+
+def beautify_diff(diff_output: str) -> None:
+    syntax = Syntax(
+        diff_output,
+        "diff",À2Êbanditê
+ai_git_utils/utils.py ò_https://bandit.readthedocs.io/en/1.7.9/blacklists/blacklist_imports.html#b404-import-subprocessËB603"9subprocess call - check for execution of untrusted input.˜¢&    subprocess.call([editor, tf_name])ªÊ    console.print(syntax)
+
+
+def edit_commit_message(initial_message: str) -> str:
+    with tempfile.NamedTemporaryFile(mode="w+", suffix=".tmp", delete=False) as tf:
+        tf.write(initial_message)
+        tf.flush()
+        tf_name = tf.name
+
+    editor = os.environ.get("EDITOR", "vim")
+    subprocess.call([editor, tf_name])
+
+    with open(tf_name, "r") as tf:
+        edited_message = tf.read().strip()
+
+    os.unlink(tf_name)
+    return edited_messageÀ2Êbanditê!
+ai_git_utils/utils.py &ò]https://bandit.readthedocs.io/en/1.7.9/plugins/b603_subprocess_without_shell_equals_true.html

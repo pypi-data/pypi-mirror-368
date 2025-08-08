@@ -1,0 +1,36 @@
+�B404"NConsider possible security implications associated with the subprocess module.��import subprocess��import os
+import tempfile
+import subprocess
+import shutil
+from rich.syntax import Syntax
+from rich.console import Console
+
+console = Console()
+
+ALLOWED_EDITORS = ["vim", "vi", "nano", "emacs", "code", "subl"]
+
+def beautify_diff(diff_output: str) -> None:
+    syntax = Syntax(�2�bandit�
+ai_git_utils/utils.py �_https://bandit.readthedocs.io/en/1.7.9/blacklists/blacklist_imports.html#b404-import-subprocess�B603"9subprocess call - check for execution of untrusted input.��<        subprocess.run([editor_to_use, tf_name], check=True)��
+            # 如果连 vim 都没有，则需要处理错误情况
+            console.print("[red]Error:[/red] Default editor 'vim' not found. Please install it or set a valid EDITOR environment variable from the allowed list.")
+            os.unlink(tf_name) # 清理临时文件
+            # 根据你的应用逻辑，这里可以抛出异常或返回原始消息
+            # raise RuntimeError("No valid editor found.")
+            return initial_message # 或者简单返回未编辑的消息
+
+    try:
+        # 推荐使用 subprocess.run 替代 subprocess.call
+        # check=True 会在命令返回非零退出码时抛出 CalledProcessError 异常
+        subprocess.run([editor_to_use, tf_name], check=True)
+    except FileNotFoundError:
+        console.print(f"[red]Error:[/red] Editor command '{editor_to_use}' not found. Please check your installation and PATH.")
+        os.unlink(tf_name)
+        return initial_message # 返回未编辑的消息
+    except subprocess.CalledProcessError as e:
+        console.print(f"[red]Error:[/red] Editor '{editor_to_use}' exited with status {e.returncode}.")
+        # 即使编辑器出错，文件可能已被部分修改，但我们通常认为编辑失败
+        os.unlink(tf_name)
+        return initial_message # 返回未编辑的消息
+    except Exception as e:�2�bandit�!
+ai_git_utils/utils.py:: <�]https://bandit.readthedocs.io/en/1.7.9/plugins/b603_subprocess_without_shell_equals_true.html
