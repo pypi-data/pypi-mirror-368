@@ -1,0 +1,79 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "melodic"
+version = "2.0.0"
+description = "A Python client for fetching artist lyrical discographies."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+license = {file = "LICENSE"}
+authors = [
+    {name = "Filming"}
+]
+keywords = ["python", "async", "web-scraping", "lyrics", "music", "azlyrics", "database", "discography", "artist-data"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+[project.urls]
+Homepage = "https://github.com/filming/melodic"
+Repository = "https://github.com/filming/melodic"
+Issues = "https://github.com/filming/melodic/issues"
+Changelog = "https://github.com/filming/melodic/blob/master/CHANGELOG.md"
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "PL", "B", "SIM", "C90", "D"]
+ignore = ["D203", "D213"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.isort]
+known-first-party = ["melodic"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+strict = true
+files = ["src"]
+python_version = "3.10"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/melodic"]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+tag_format = "v$version"
+version_scheme = "pep440"
+version_provider = "uv"
+changelog_message_builder_hook = "commitizen.hooks.conventional_commits_message_builder_hook"
+changelog_file = "CHANGELOG.md"
+changelog_incremental = true
+update_changelog_on_bump = true
+change_type_map = { "feat" = "Added", "fix" = "Fixed", "perf" = "Changed", "refactor" = "Changed", "build" = "Changed", "ci" = "Changed", "docs" = "Documentation", "style" = "Changed", "test" = "Tests", "chore" = "Chores" }
+
+[project.optional-dependencies]
+
+dev = [
+    "commitizen>=4.8.3",
+    "mypy>=1.16.1",
+    "pre-commit>=4.2.0",
+    "ruff>=0.12.1",
+    "twine>=6.1.0"
+]
