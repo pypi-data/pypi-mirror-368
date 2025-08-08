@@ -1,0 +1,66 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  Lint:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: true
+      matrix:
+        python-version: ["3.8"]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install tox
+        run: pip install tox
+      - name: pep8
+        run: |
+          tox -e pep8
+  tests:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: true
+      matrix:
+        python-version: ["3.8", "3.10", "3.12", "3.13"]
+    services:
+      etcd:
+        image: quay.io/coreos/etcd:v3.5.8
+        ports:
+          - 2379:2379
+          - 2380:2380
+        env:
+          ETCD_ADVERTISE_CLIENT_URLS: http://127.0.0.1:2379
+          ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+          ETCD_INITIAL_ADVERTISE_PEER_URLS: http://127.0.0.1:2380
+          ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+          ETCD_NAME: etcd-test-instance
+          ETCD_ENDPOINT: http://127.0.0.1:2379
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install required packages
+        run: |
+          sudo apt update
+          sudo apt install libev-dev -y
+      - name: Install tox
+        run: pip install tox
+      - name: Unit tests
+        run: |
+          tox -e ${{ matrix.python-version }}
+      - name: Wait for etcd to be ready
+        run: |
+          for i in $(seq 1 10); do
+            nc -z 127.0.0.1 2379 && echo "etcd is ready!" && break
+            echo "Waiting for etcd..."
+            sleep 1
+          done
+      - name: Functional tests
+        run: |
+          tox -e ${{ matrix.python-version }}-functional
