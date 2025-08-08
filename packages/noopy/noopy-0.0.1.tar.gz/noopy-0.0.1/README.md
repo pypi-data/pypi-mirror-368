@@ -1,0 +1,300 @@
+# noopy
+
+For singleton dimension(same flatten) simple tiny list and array(array.array) library. This module could be `str` transpose and flip on like 2D singleton dims as result of list extends. This module useful if limited ext modules(numpy, torch, and others) and also passes values to those modules.
+
+
+## lispy
+
+Based on list `lispy` therefore this class suite for `str` treat.
+
+## arrpy (appendix)
+
+Based on array.array `arrpypy` therefore few memory cost and process speed more than lispy. On the other hand, this library is not suite for `str` treat.
+
+---
+
+## Features
+
+  * **Processing on Basic Module**: Only!
+  * **Splitter**:Array splitter have get of best split position function and others.
+  * **Transpose**: Transposer is  equivalent 2D free transpose on 1D it's make as possible for `str` array too.
+  * **Flip**: Flipper is  equivalent 2D free Flip on 1D it's make as possible for `str` array too.
+
+---
+
+## Installation
+
+You can install `noopy` directly from PyPI:
+
+```bash
+pip install noopy
+````
+
+-----
+
+## Quick Start
+
+Get started with `lispy` in just a few lines of code:
+
+```python
+import noopy as nop
+from noopy import lispy, arrpy # Example for array disassembly
+
+my_lst = nop.lispy([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+my_arr = nop.arrpy([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+```
+
+-----
+
+## Basic Usage
+
+Impremented Features.
+
+## API Reference
+
+### `noopy` Modules Methods
+
+  * **is_spl(arr:list, n:int)** Check could be split specified value count.
+      * `arr`: (list) Wanted list.
+      * `n`:    (int) This value specified for check availability of split count.
+  * **splpos(arr:list)** Get could can be split positions as list(e.g. [2 ,4 ,6 ,8...]).
+      * `arr`: (list) Wanted list.
+  * **splmax(arr:list, n:int)** Get first upper split positions from `splpos` function resusts list.
+      * `arr`: (list) Wanted list.
+      * `n`:    (int) Search start index.
+  * **splmin(arr:list, n:int)** Get first under split positions from `splpos` function resusts list.
+      * `arr`: (list) Wanted list.
+      * `n`:    (int) Search start index.
+  * **splist(arr:list, n:int, r:bool)**
+      * `arr`: (list) Wanted list.
+      * `n`:    (int) between separation of array split, raise error not match like dimensions.
+      * `r`:   (bool) Reverse split elements, default is `False`.
+  * **transpose(arr:list, x:int, y:int)** Get Split Positions.
+      * `arr`: (list) Wanted list.
+      * `x`:    (int) strict of X direction, raise error not match like dimensions.
+      * `y`:    (int) strict of Y direction, raise error not match like dimensions.
+  * **flip(arr:list=None, x:int, y:int, z:str)** Get Split Positions.
+      * `arr`: (list) Wanted list.
+      * `x`:    (int) strict of X direction, raise error not match like dimensions.
+      * `y`:    (int) strict of Y direction, raise error not match like dimensions.
+      * `z`:    (str) specified direction `x` or `y` or `z`(full flip).
+
+### `lispy` Class Methods
+
+Still not feature as similar torch functions, wanna be,,, not be self update (self) values yet.
+
+  `e.g.` xyz = xyz.flip(x, y, z)
+
+  * **is_spl(n:int)** Check could be split specified value count.
+      * `n`:    (int) This value specified for check availability of split count.
+  * **splpos()** Get could can be split positions as list(e.g. [2 ,4 ,6 ,8...]).
+  * **splmax(n:int)** Get first upper split positions from `splpos` function resusts list.
+      * `n`:    (int) Search start index.
+  * **splmin(arr:list, n:int)** Get first under split positions from `splpos` function resusts list.
+      * `arr`: (list) Wanted list.
+      * `n`:    (int) Search start index.
+  * **splist(n:int, r:bool)**
+      * `n`:    (int) between separation of array split, raise error not match like dimensions.
+      * `r`:   (bool) Reverse split elements, default is `False`.
+  * **transpose(x:int, y:int)** Get Split Positions.
+      * `x`:    (int) strict of X direction, raise error not match like dimensions.
+      * `y`:    (int) strict of Y direction, raise error not match like dimensions.
+  * **flip(x:int, y:int, z:str)** Get Split Positions.
+      * `x`:    (int) strict of X direction, raise error not match like dimensions.
+      * `y`:    (int) strict of Y direction, raise error not match like dimensions.
+      * `z`:    (str) specified direction `x` or `y` or `z`(full flip).
+
+### `arrpy` Class Methods
+
+Same above(listpy), still not feature as similar torch functions, wanna be,,, not be self update (self) values yet.
+
+  `e.g.` xyz = xyz.flip(x, y, z)
+
+  * **is_spl(n:int)** Check could be split specified value count.
+      * `n`:    (int) This value specified for check availability of split count.
+  * **splpos()** Get could can be split positions as list(e.g. [2 ,4 ,6 ,8...]).
+  * **splmax(n:int)** Get first upper split positions from `splpos` function resusts list.
+      * `n`:    (int) Search start index.
+  * **splmin(arr:list, n:int)** Get first under split positions from `splpos` function resusts list.
+      * `arr`: (list) Wanted list.
+      * `n`:    (int) Search start index.
+  * **splist(n:int, r:bool)**
+      * `n`:    (int) between separation of array split, raise error not match like dimensions.
+      * `r`:   (bool) Reverse split elements, default is `False`.
+  * **transpose(x:int, y:int)** Get Split Positions.
+      * `x`:    (int) strict of X direction, raise error not match like dimensions.
+      * `y`:    (int) strict of Y direction, raise error not match like dimensions.
+  * **flip(x:int, y:int, z:str)** Get Split Positions.
+      * `x`:    (int) strict of X direction, raise error not match like dimensions.
+      * `y`:    (int) strict of Y direction, raise error not match like dimensions.
+      * `z`:    (str) specified direction `x` or `y` or `z`(full flip).
+
+#### See Officials:
+[array — Efficient arrays of numeric values](https://docs.python.org/3.13/library/array.html)
+[(JP)](https://docs.python.org/ja/3.13/library/array.html)
+
+| Type code | C Type             | Python Type       | Minimum size in bytes | Notes | numpy,torch  |
+| ---       | ---                | ---               | ---                   | ---   | ---          |
+| 'b'       | signed char        | int               | 1                     |       | int8         |
+| 'B'       | unsigned char      | int               | 1                     |       | uint8        |
+| 'u'       | wchar_t            | Unicode character | 2                     | (1)   | str          |
+| 'w'       | Py_UCS4            | Unicode character | 4                     | (2)   | ucs          |
+| 'h'       | signed short       | int               | 2                     |       | short8, fp16 |
+| 'H'       | unsigned short     | int               | 2                     |       | ushort16     |
+| 'i'       | signed int         | int               | 2                     |       | int16        |
+| 'I'       | unsigned int       | int               | 2                     |       | uint16       |
+| 'l'       | signed long        | int               | 4                     |       | int32        |
+| 'L'       | unsigned long      | int               | 4                     |       | uint32       |
+| 'q'       | signed long long   | int               | 8                     |       | int64        |
+| 'Q'       | unsigned long long | int               | 8                     |       | uint64       |
+| 'f'       | float              | float             | 4                     |       | float32      |
+| 'd'       | double             | float             | 8                     |       | loat64       |
+
+-----
+
+## Command Line Usage
+
+`noopy` includes a simple command-line interface for testing its console output capabilities.
+
+To run the test, simply execute:
+
+```bash
+python -m noopy
+By the first, this is original array.
+
+0, 1, 2, 3, 4, 5, 
+6, 7, 8, 9, a, b, 
+c, d, e, f, g, h, 
+i, j, k, l, m, n, 
+o, p, q, r, s, t, 
+u, v, w, x, y, z, 
+
+Available split positions.
+
+2, 3, 6, 
+9, 18, 
+
+Available split to 9(9x4)?
+
+True
+
+Split to 9(9x4).
+
+['0', '1', '2', '3', '4', '5', '6', '7', '8'], ['9', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'], ['i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q'], 
+['r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'], 
+
+[ Transpose ]
+
+0, 6, c, i, o, u, 
+1, 7, d, j, p, v, 
+2, 8, e, k, q, w, 
+3, 9, f, l, r, x, 
+4, a, g, m, s, y, 
+5, b, h, n, t, z, 
+
+[ Flip LR ]
+
+5, 4, 3, 2, 1, 0, 
+b, a, 9, 8, 7, 6, 
+h, g, f, e, d, c, 
+n, m, l, k, j, i, 
+t, s, r, q, p, o, 
+z, y, x, w, v, u, 
+
+[ Flip UD ]
+
+u, v, w, x, y, z, 
+o, p, q, r, s, t, 
+i, j, k, l, m, n, 
+c, d, e, f, g, h, 
+6, 7, 8, 9, a, b, 
+0, 1, 2, 3, 4, 5, 
+
+[ Flip XX ]
+
+z, y, x, w, v, u, 
+t, s, r, q, p, o, 
+n, m, l, k, j, i, 
+h, g, f, e, d, c, 
+b, a, 9, 8, 7, 6, 
+5, 4, 3, 2, 1, 0, 
+
+These are 2D Array Simulation from on there.
+
+Split to 9(9x4).
+
+['0', '1', '2', '3', '4', '5', '6', '7', '8'], ['9', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'], ['i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q'], 
+['r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'], 
+
+[ Transpose ]
+
+0, 3, 6, 
+1, 4, 7, 
+2, 5, 8, 
+9, c, f, 
+a, d, g, 
+b, e, h, 
+i, l, o, 
+j, m, p, 
+k, n, q, 
+r, u, x, 
+s, v, y, 
+t, w, z, 
+
+[ Flip LR ]
+
+2, 1, 0, 
+5, 4, 3, 
+8, 7, 6, 
+b, a, 9, 
+e, d, c, 
+h, g, f, 
+k, j, i, 
+n, m, l, 
+q, p, o, 
+t, s, r, 
+w, v, u, 
+z, y, x, 
+
+[ Flip UD ]
+
+6, 7, 8, 
+3, 4, 5, 
+0, 1, 2, 
+f, g, h, 
+c, d, e, 
+9, a, b, 
+o, p, q, 
+l, m, n, 
+i, j, k, 
+x, y, z, 
+u, v, w, 
+r, s, t, 
+
+[ Flip XX ]
+
+8, 7, 6, 
+5, 4, 3, 
+2, 1, 0, 
+h, g, f, 
+e, d, c, 
+b, a, 9, 
+q, p, o, 
+n, m, l, 
+k, j, i, 
+z, y, x, 
+w, v, u, 
+t, s, r, 
+```
+
+-----
+
+## Contributing
+
+We welcome contributions to `noopy`\! If you find a bug, have a feature request, or would like to contribute code, please check out our GitHub repository and open an issue or pull request.
+
+-----
+
+## License
+
+`noopy` is licensed under the GPLv3 AND LicenseRef-RPTv1.
