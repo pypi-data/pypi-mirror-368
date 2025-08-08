@@ -1,0 +1,41 @@
+# https://setuptools.pypa.io/en/latest/userguide/quickstart.html
+[build-system]
+requires = ["setuptools>=78.1.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "liminal-cli"
+description = "Liminal CLI and tools"
+authors = [{ name = "Dev", email = "devs@liminalbios.com" }]
+requires-python = ">=3.10"
+dynamic = ["version"]
+dependencies = [
+    "requests==2.32.*",
+    "psutil==7.0.*",
+    "tomlkit==0.13.3",
+    # TODO: future maintainability: liminal sync server python api package
+    "typer==0.16.0",
+    "pexpect==4.9.0",
+]
+[tool.setuptools.dynamic]
+version = {attr = "liminal.__version__"} 
+
+
+[tool.setuptools.packages.find]
+where = [""]
+include = ["liminal*"]
+
+[tool.setuptools.package-data]
+liminal = ["*.sh", "*.txt"]
+
+[project.scripts]
+liminal_cl = "liminal.cli:app"
+
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true
+
+
+
