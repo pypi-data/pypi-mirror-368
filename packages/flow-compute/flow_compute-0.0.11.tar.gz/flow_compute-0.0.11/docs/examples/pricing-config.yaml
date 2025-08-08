@@ -1,0 +1,82 @@
+# Example: Custom Pricing Configuration for Flow SDK
+# 
+# This file demonstrates how to override default pricing limits for GPU instances.
+# Place this configuration in your ~/.flow/config.yaml under the 'limit_prices' key,
+# or create a separate ~/.flow/pricing.yaml file.
+#
+# The pricing system uses a three-tier model:
+#   - low:  Best price, higher preemption risk
+#   - med:  Balanced price/stability (default)
+#   - high: Premium pricing, lowest preemption risk
+#
+# Default prices (per GPU per hour in USD):
+#   H100: low=$4, med=$8, high=$16
+#   A100: low=$3, med=$6, high=$12
+#   A10:  low=$1, med=$2, high=$4
+#   T4:   low=$0.5, med=$1, high=$2
+
+# Option 1: Include in main config file (~/.flow/config.yaml)
+provider: mithril
+api_key: your_key_here
+project: my-project
+region: us-west-2
+ssh_keys: ["_auto_"]  # Platform auto-generates SSH keys
+
+# Custom pricing limits (optional)
+limit_prices:
+  # Override H100 pricing for your organization
+  h100:
+    low: 5.0   # Increase from default $4
+    med: 10.0  # Increase from default $8
+    high: 20.0 # Increase from default $16
+  
+  # Override A100 pricing
+  a100:
+    low: 4.0   # Increase from default $3
+    med: 8.0   # Increase from default $6
+    high: 15.0 # Increase from default $12
+  
+  # Add custom GPU type not in defaults
+  h200:
+    low: 8.0
+    med: 16.0
+    high: 32.0
+  
+  # Partial overrides are supported - unspecified tiers use defaults
+  a10:
+    high: 6.0  # Only override high tier, low/med use defaults
+
+# Option 2: Separate pricing file (~/.flow/pricing.yaml)
+# If you prefer to keep pricing separate from main config:
+#
+# limit_prices:
+#   h100:
+#     low: 5.0
+#     med: 10.0
+#     high: 20.0
+
+# How pricing is applied:
+# 1. When using priority tiers (flow run -p high):
+#    - System looks up GPU type and tier in limit_prices
+#    - Calculates total: per_gpu_price × gpu_count
+#    - Example: 8xh100 with high priority = $20 × 8 = $160/hr
+#
+# 2. When using explicit max_price (flow run --max-price 100):
+#    - Explicit price overrides tier-based pricing
+#    - Used directly as limit price for bidding
+#
+# 3. Order of precedence:
+#    a. Command-line --max-price flag (highest priority)
+#    b. Config file max_price_per_hour setting
+#    c. Priority tier lookup from limit_prices
+#    d. Built-in defaults (lowest priority)
+
+# Testing your configuration:
+# 1. Dry run to see calculated prices:
+#    flow run -i 8xh100 -p high --dry-run
+#
+# 2. Check effective configuration:
+#    flow config show
+#
+# 3. Validate pricing for specific instance:
+#    python -c "from flow._internal import pricing; print(pricing.calculate_instance_price('8xh100', 'high'))"
