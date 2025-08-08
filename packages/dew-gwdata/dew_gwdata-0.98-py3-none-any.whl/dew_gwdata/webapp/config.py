@@ -1,0 +1,2 @@
+WEB_APP_HOST = "bunyip"
+WEB_APP_PORT = "8191"
