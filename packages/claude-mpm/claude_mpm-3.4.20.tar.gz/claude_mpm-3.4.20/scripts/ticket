@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# Simple wrapper that delegates to aitrackdown for ticket management
+
+# Ensure we're in the virtual environment if it exists
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+VENV_DIR="$SCRIPT_DIR/../venv"
+
+if [ -d "$VENV_DIR" ]; then
+    source "$VENV_DIR/bin/activate"
+fi
+
+# Map common ticket commands to aitrackdown equivalents
+case "$1" in
+    create)
+        shift
+        # Default to task creation unless specified
+        if [[ "$*" == *"-t epic"* ]] || [[ "$*" == *"--type epic"* ]]; then
+            exec aitrackdown epic create "$@"
+        elif [[ "$*" == *"-t issue"* ]] || [[ "$*" == *"--type issue"* ]]; then
+            exec aitrackdown issue create "$@"
+        else
+            # Default to task
+            exec aitrackdown task create "$@"
+        fi
+        ;;
+    list)
+        shift
+        exec aitrackdown task list "$@"
+        ;;
+    view|show)
+        shift
+        exec aitrackdown task show "$@"
+        ;;
+    update)
+        shift
+        exec aitrackdown task update "$@"
+        ;;
+    close)
+        shift
+        task_id="$1"
+        shift
+        exec aitrackdown task complete "$task_id" "$@"
+        ;;
+    help|--help|-h)
+        echo "Ticket Management Wrapper for AI Trackdown"
+        echo ""
+        echo "Usage:"
+        echo "  ticket create <title> [options]    Create a new ticket (task by default)"
+        echo "  ticket list [options]              List tickets"
+        echo "  ticket view <id>                   View ticket details"
+        echo "  ticket update <id> [options]       Update a ticket"
+        echo "  ticket close <id>                  Close/complete a ticket"
+        echo ""
+        echo "Examples:"
+        echo "  ticket create \"Fix login bug\" -p high"
+        echo "  ticket create \"New feature\" -t issue -d \"Description here\""
+        echo "  ticket create \"Project roadmap\" -t epic"
+        echo "  ticket list"
+        echo "  ticket view TSK-0001"
+        echo "  ticket update TSK-0001 -p critical"
+        echo "  ticket close TSK-0001"
+        echo ""
+        echo "For more options, use: aitrackdown --help"
+        ;;
+    *)
+        # Pass through to aitrackdown
+        exec aitrackdown "$@"
+        ;;
+esac
