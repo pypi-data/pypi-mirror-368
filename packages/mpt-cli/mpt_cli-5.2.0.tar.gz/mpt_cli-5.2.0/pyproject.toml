@@ -1,0 +1,146 @@
+[project]
+name = "mpt-cli"
+version = "5.2.0"
+description = "Command line utility for SoftwareOne Marketplace Platform"
+authors = [{ name = "SoftwareOne AG" }]
+requires-python = ">=3.12,<4"
+readme = "README.md"
+license = {text = "Apache-2.0 license"}
+keywords = [
+    "fulfillment",
+    "command",
+    "line",
+    "interface",
+    "utility",
+    "cli",
+    "softwareone",
+    "marketplace",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Utilities",
+]
+dependencies = [
+    "dependency-injector==4.48.*",
+    "openpyxl==3.1.*",
+    "pydantic==2.11.*",
+    "pyfiglet==1.0.*",
+    "python-dateutil==2.9.*",
+    "requests==2.32.*",
+    "requests-toolbelt==1.0.*",
+    "typer==0.15.*",
+]
+
+[project.scripts]
+mpt-cli = "cli.swocli:app"
+
+[project.entry-points."cli.plugins"]
+audit = "cli.plugins.audit_plugin.app:app"
+
+[dependency-groups]
+dev = [
+    "freezegun==1.5.*",
+    "ipdb==0.13.*",
+    "ipython==9.*",
+    "mypy==1.15.*",
+    "pre-commit==4.2.*",
+    "pytest==8.3.*",
+    "pytest-cov==6.1.*",
+    "pytest-deadfixtures==2.2.*",
+    "pytest-mock==3.14.*",
+    "pytest-randomly==3.16.*",
+    "pytest-xdist==3.6.*",
+    "responses==0.25.*",
+    "ruff==0.12.*",
+    "types-openpyxl==3.1.*",
+    "types-python-dateutil==2.9.*",
+    "types-requests==2.31.*",
+    "typing-extensions==4.13.*",
+]
+
+[tool.hatch.build.targets.sdist]
+include = ["cli"]
+
+[tool.hatch.build.targets.wheel]
+include = ["cli"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = "tests"
+pythonpath = "."
+addopts = "--cov=cli --cov-report=term-missing --cov-report=html --cov-report=xml"
+log_cli = false
+filterwarnings = [
+    "ignore:Support for class-based `config` is deprecated:DeprecationWarning",
+    "ignore:pkg_resources is deprecated as an API:DeprecationWarning",
+]
+markers = [
+  "integration: marks test as integration tests",
+]
+
+[tool.coverage.run]
+branch = true
+relative_files = true
+source = ["cli"]
+
+[tool.coverage.report]
+exclude_also = [
+    "if __name__ == \"__main__\":",
+]
+include = [
+    "cli/**",
+    "cli/plugins/audit_plugin/**",
+]
+omit = [
+    "*/__init__.py"
+]
+
+[tool.ruff]
+extend-exclude = [".vscode", ".devcontainer"]
+output-format = "full"
+line-length = 100
+
+[tool.ruff.lint]
+
+select = [
+    "E",   # w errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "PT",  # flake8-pytest-style
+    "T10", # flake8-debugger
+]
+ignore = [
+    "PT011", # pytest.raises({exception}) is too broad, set the match parameter or use a more specific exception
+    "B904",  # Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling
+    "UP046", # Doesn't properly work with ParamSpec and python 3.12
+    "UP047", # Doesn't properly work with ParamSpec and python 3.12
+]
+
+[tool.ruff.lint.isort]
+known-third-party = ["cli"]
+
+[tool.ruff.lint.pycodestyle]
+max-line-length = 100
+
+[tool.mypy]
+warn_no_return = false
+exclude = ["tests"]
+plugins = ["pydantic.mypy"]
+explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+module = [
+  "gunicorn.*",
+  "pyfiglet.*",
+]
+ignore_missing_imports = true
