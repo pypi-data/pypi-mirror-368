@@ -1,0 +1,92 @@
+Metadata-Version: 2.4
+Name: jupiter-nacos-client
+Version: 1.0.0
+Summary: Simple nacos client package
+Home-page: https://github.com/JupiterData-AI/jupiter-nacos-python
+Author: tkiyer
+Author-email: jiyidexin@yeah.net
+License: Apache License
+Platform: all
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: requests
+Requires-Dist: fastapi
+Requires-Dist: uvicorn
+Requires-Dist: nacos-sdk-python
+Requires-Dist: python-dotenv
+Requires-Dist: circuitbreaker
+Requires-Dist: pydantic
+Dynamic: author
+Dynamic: author-email
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: license
+Dynamic: license-file
+Dynamic: platform
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+# jupiter-nacos-client
+A Simple Nacos client encapsulated based on nacos-sdk-python
+
+# Supported Python version
+Python 3.7+
+
+# Supported Nacos version
+Supported Nacos version over 2.x
+
+# Installation
+```
+pip install jupiter-nacos-client
+```
+
+# Register Service
+```python
+from jupiter_nacos_client import nacos_client
+
+service_name="......"
+ip="......"
+port=8888
+version="1.0.0"
+
+nacos_client.register_service(
+    service_name=service_name,
+    ip=ip,
+    port=port,
+    ephemeral=False,
+    metadata=f"version={version},type=python"
+)
+```
+
+# Deregister Service
+```python
+from jupiter_nacos_client import nacos_client
+
+service_name="......"
+ip="......"
+port=8888
+
+nacos_client.deregister_service(
+    service_name=service_name,
+    ip=ip,
+    port=port,
+    ephemeral=False
+)
+```
+
+# Get Config From Nacos Server
+```python
+from jupiter_nacos_client import nacos_client
+
+service_name="......"
+
+APP_CONFIG = nacos_client.get_config(service_name) or {
+    "app": {
+        "name": "pynacos-fastapi-examples",
+        "version": "1.0.0"
+    }
+}
+```
