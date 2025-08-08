@@ -1,0 +1,59 @@
+# MCP-Server-DongJunQAQ
+## 可用工具：
+
+- get_platform_info - 获取平台的相关信息（如操作系统版本、CPU类型、总内存容量等等）；
+
+- get_env - 获取系统中指定环境变量的值；
+
+  必填参数：
+
+  - key：环境变量的键
+
+- get_compress_format - 获取该MCP Server所支持的压缩格式；
+
+- make_archive - 打包并压缩指定目录或是单个文件；
+
+  必填参数：
+
+  - src：需要打包的文件或目录
+
+  - compress_format：压缩格式
+
+- decompress - 解压缩指定的压缩文件，返回解压后存放文件的目录；
+  
+  必填参数：
+
+  - src: 需要解压缩的压缩文件路径
+
+- download_video - 下载指定URL的视频至用户的家目录的Downloads文件夹中；
+  
+  必填参数：
+  
+  - url：需要下载视频的URL地址
+  
+  **注意：使用该工具时需提前在系统中安装ffmpeg**（音视频处理工具库可以操作音视频的分离与合并），否则会导致视频下载失败或是视频无声音；
+  
+  - Windows下载地址：https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-full.7z
+  （推荐使用迅雷下载）下载完成之后解压并进入bin目录将ffmpeg.exe、ffprobe.exe文件拷贝至C:\Windows\System32\目录下或是环境变量的任一目录下，使得可以在命令行中执行这两个命令；
+  
+  - Linux下载安装（CentOS、Rocky Linux）：`dnf install ffmpeg-free ffmpeg-free-devel`
+  
+  ​    
+
+## 配置：
+
+为`Cherry Studio`进行配置，添加以下内容到你的Cherry Studio设置中，使用`uvx`（推荐）进行配置：
+
+```json
+{
+  "mcpServers": {
+    "MCP-Server-DongJunQAQ": {
+      "registryUrl": "http://mirrors.aliyun.com/pypi/simple/",
+      "command": "uvx",
+      "args": ["mcp-server-dongjunqaq"]
+    }
+  }
+}
+```
+
+当使用 `uv` 时无需进行特定安装，我们将使用 `uvx` 直接运行MCP-Server-DongJunQAQ。
