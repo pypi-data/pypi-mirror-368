@@ -1,0 +1,56 @@
+from _typeshed import Incomplete
+from pydantic import BaseModel, ValidationInfo as ValidationInfo
+from radkit_common.access.claims.types import ServiceIDPrefix as ServiceIDPrefix
+from radkit_common.access.helpers import match_domains as match_domains, validate_domains as validate_domains
+from radkit_common.identities import ClientID as ClientID, ServiceID as ServiceID
+
+class ClientIDs(BaseModel):
+    client_ids: list[ClientID]
+    def authorize_client_id(self, client_id: ClientID) -> bool: ...
+
+class ServiceIDs(BaseModel):
+    service_ids: list[ServiceID]
+    allow_new_service_ids: bool
+    def authorize_service_id(self, service_id: ServiceID) -> bool: ...
+    service_serial_number: ServiceID | None
+    def load_service_serial_number(cls, v: ServiceID | str | None, info: ValidationInfo) -> str | None: ...
+
+class CertificateSerialNumbers(BaseModel):
+    certificate_serial_numbers: list[str]
+    model_config: Incomplete
+    def authorize_certificate_serial_number(self, certificate_serial_number: str) -> bool: ...
+
+class ClientIDDomains(BaseModel):
+    client_id_domains: list[str]
+    def validate_client_id_domains(cls, v: list[str]) -> list[str]: ...
+    def authorize_client_id_domain(self, client_id_domain: str) -> bool: ...
+
+class ServiceIDPrefixes(BaseModel):
+    service_id_prefixes: list[ServiceIDPrefix]
+    match_any_prefix: bool
+    def authorize_service_id_prefix(self, service_id_prefix: str) -> bool: ...
+
+class EndpointOwnerDomains(BaseModel):
+    owner_domains: list[str]
+    def validate_owner_domains(cls, v: list[str]) -> list[str]: ...
+    def authorize_endpoint_owner_domain(self, owner_domain: str) -> bool: ...
+
+class EndpointRequesterDomains(BaseModel):
+    requester_domains: list[str]
+    def validate_requester_domains(cls, v: list[str]) -> list[str]: ...
+    def authorize_endpoint_requester_domain(self, requester_domain: str) -> bool: ...
+
+class AdminDomains(BaseModel):
+    admin_domains: list[str]
+    def validate_admin_domains(cls, v: list[str]) -> list[str]: ...
+    def authorize_admin_domain(self, admin_domain: str) -> bool: ...
+
+class UserDomains(BaseModel):
+    user_domains: list[str]
+    def validate_user_domains(cls, v: list[str]) -> list[str]: ...
+    def authorize_user_domain(self, user_domain: str) -> bool: ...
+
+class EndpointDomains(BaseModel):
+    endpoint_domains: list[str]
+    def validate_endpoint_domains(cls, v: list[str]) -> list[str]: ...
+    def authorize_endpoint_domain(self, endpoint_domain: str) -> bool: ...
