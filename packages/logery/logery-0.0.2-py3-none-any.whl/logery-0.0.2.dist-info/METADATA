@@ -1,0 +1,99 @@
+Metadata-Version: 2.4
+Name: logery
+Version: 0.0.2
+Summary: A highly customizable logging library for Python.
+Author-email: Miguel Tenório <deepydev42@gmail.com>
+Project-URL: Homepage, https://github.com/pypa/sampleproject
+Project-URL: Bug Tracker, https://github.com/pypa/sampleproject/issues
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+Requires-Dist: rich
+Requires-Dist: python-dotenv
+
+# Logery
+
+A highly customizable logging library for Python.
+
+## Installation
+
+Install the package using pip:
+
+```bash
+pip install logery
+```
+
+## Quick Start
+
+To get started, you need to generate the configuration files. You can do this by running the following command in your terminal:
+
+```bash
+logery --dotenv .env --json logging.conf.json
+```
+
+This will create two files:
+
+-   `.env`: Contains environment variables for configuring the logger.
+-   `logging.conf.json`: A JSON file with the detailed logging configuration.
+
+Now you can start using the logger in your Python code:
+
+```python
+from logery import get_logger
+
+logger = get_logger("my_app")
+
+logger.info("This is an informational message.")
+logger.warning("This is a warning message.")
+logger.error("This is an error message.")
+```
+
+## Customization
+
+You can customize the logging configuration by editing the `logging.conf.json` file. This file allows you to change formatters, handlers, filters, and more.
+
+For example, you can add a new handler to send logs to a different file:
+
+```json
+{
+    ...
+    "handlers": {
+        ...
+        "my_new_handler": {
+            "class": "logging.FileHandler",
+            "formatter": "file",
+            "filename": "logs/my_app.log"
+        }
+    },
+    "root": {
+        "handlers": ["console", "queue", "my_new_handler"]
+    }
+}
+```
+
+You can also adjust the log levels in the `.env` file:
+
+```
+# .env
+DEFAULT_LOGGER_LEVEL='INFO'
+```
+
+## Advanced Usage
+
+For more advanced customization, you can directly interact with the underlying `logging` library components provided by `logery`.
+
+### Formatters
+
+-   `JSONLogFormatter`: Formats log records as JSON.
+
+### Filters
+
+-   `MaxLevelFilter`: Filters log records based on a maximum log level.
+
+### Handlers
+
+-   `MyRichHandler`: A `rich`-based handler for beautiful console output.
+
+You can find more details on how to use these components in the `logging.conf.json` file.
