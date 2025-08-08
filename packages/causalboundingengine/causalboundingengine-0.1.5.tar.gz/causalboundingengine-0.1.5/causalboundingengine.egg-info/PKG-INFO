@@ -1,0 +1,461 @@
+Metadata-Version: 2.4
+Name: causalboundingengine
+Version: 0.1.5
+Summary: A framework for causal bounding algorithms
+Author-email: Tobias Maringgele <tobias.maringgele@tum.de>
+License: MIT License
+        
+        Copyright (c) 2025 Tobias Maringgele
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE.
+        
+        ---
+        
+        Third-Party Components
+        
+        This software integrates with the following third-party libraries, which are not
+        distributed with this package but may be required for specific functionality:
+        
+        - CREDICI – https://github.com/IDSIA/credici
+        - CREMA – https://github.com/IDSIA/crema
+        
+        These libraries are:
+        
+        - Copyright (c) IDSIA
+        - Licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0)
+        
+        These components are accessed dynamically via Java (JVM) through `jpype`, and retain
+        their original licenses. Users of this software must comply with the licensing terms
+        of these components when using functionality that depends on them.
+        
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: pandas
+Requires-Dist: numpy
+Requires-Dist: cvxpy
+Requires-Dist: pulp
+Requires-Dist: statsmodels
+Requires-Dist: highspy
+Requires-Dist: pyomo
+Provides-Extra: r
+Requires-Dist: rpy2; extra == "r"
+Provides-Extra: java
+Requires-Dist: jpype1; extra == "java"
+Provides-Extra: full
+Requires-Dist: rpy2; extra == "full"
+Requires-Dist: jpype1; extra == "full"
+Provides-Extra: docs
+Requires-Dist: sphinx; extra == "docs"
+Requires-Dist: sphinx_rtd_theme; extra == "docs"
+Dynamic: license-file
+
+# CausalBoundingEngine
+
+<div align="center">
+
+![CBE Logo](https://raw.githubusercontent.com/tmaringgele/CausalBoundingEngine/main/cbe_logo.png)
+
+**A unified Python framework for causal effect bounding algorithms**
+
+[![PyPI version](https://img.shields.io/pypi/v/causalboundingengine.svg)](https://pypi.org/project/causalboundingengine/) [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B%20recommended-blue.svg)](https://www.python.org/downloads/) [![Documentation](https://img.shields.io/badge/docs-readthedocs-brightgreen.svg)](https://causalboundingengine.readthedocs.io/) [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](https://raw.githubusercontent.com/tmaringgele/CausalBoundingEngine/main/LICENSE) [![GitHub](https://img.shields.io/badge/GitHub-Repository-blue?logo=github)](https://github.com/tmaringgele/CausalBoundingEngine)
+
+[**Documentation**](https://causalboundingengine.readthedocs.io/) | 
+[**Quick Start**](https://github.com/tmaringgele/CausalBoundingEngine#quick-start) | 
+[**Examples**](https://github.com/tmaringgele/CausalBoundingEngine#examples) | 
+[**Contributing**](https://github.com/tmaringgele/CausalBoundingEngine#contributing)
+
+</div>
+
+
+## Overview
+
+CausalBoundingEngine is a modular Python package that provides a **unified interface** for comparing and applying state-of-the-art causal bounding algorithms. It enables researchers and practitioners to compute bounds on causal effects when unmeasured confounding is present.
+
+### Key Features
+
+🔧 **Unified Interface** - Consistent API across all algorithms and scenarios  
+📊 **Multiple Algorithms** - Manski, Tian-Pearl, Autobound, Causaloptim, Zaffalonbounds, and more  
+🎯 **Flexible Scenarios** - Support for confounded and instrumental variable settings  
+🔗 **External Engines** - Integration with R (rpy2) and Java (jpype1) backends  
+🚀 **Easy Extension** - Simple framework for adding new algorithms and scenarios  
+📚 **Comprehensive Docs** - Detailed documentation with examples and API reference  
+
+### Supported Algorithms
+
+| Algorithm | ATE | PNS | Scenarios | Dependencies | Reference |
+|-----------|-----|-----|-----------|--------------|-----------|
+| **Manski** | ✓ | ✗ | BinaryConf | Core | Manski (1990) |
+| **Tian-Pearl** | ✗ | ✓ | BinaryConf | Core | Tian & Pearl (2000) |
+| **Autobound** | ✓ | ✓ | BinaryConf, BinaryIV | Core | Duarte et al. (2023) |
+| **Entropybounds** | ✓ | ✓ | BinaryConf | Core | Jiang et al. (2023) |
+| **Causaloptim** | ✓ | ✓ | BinaryConf, BinaryIV | R | Sachs et al. (2022) |
+| **Zaffalonbounds** | ✓ | ✓ | BinaryConf, BinaryIV | Java | Zaffalon et al. (2022) |
+| **ZhangBareinboim** | ✓ | ✗ | ContIV | Core | Zhang & Bareinboim (2021) |
+
+## Installation
+
+> **🐍 For smooth sailing, Python 3.12 or greater is recommended.**  
+> While CausalBoundingEngine supports Python 3.8+, you may encounter issues in some specific situations with older versions.
+
+### Core Package
+
+```bash
+pip install causalboundingengine
+```
+
+### Optional Dependencies
+
+For extended functionality, install with optional dependencies:
+
+```bash
+# R integration (Causaloptim algorithm)
+pip install causalboundingengine[r]
+
+# Java integration (Zaffalonbounds algorithm)  
+pip install causalboundingengine[java]
+
+# All optional features
+pip install causalboundingengine[full]
+
+# Documentation building
+pip install causalboundingengine[docs]
+```
+
+### System Dependencies
+
+For algorithms requiring external engines:
+
+**R Support** (for Causaloptim):
+```bash
+# Ubuntu/Debian
+sudo apt install r-base
+
+# macOS
+brew install r
+
+# Windows: Download from https://cran.r-project.org/
+```
+
+**Java Support** (for Zaffalonbounds):
+```bash
+# Ubuntu/Debian
+sudo apt install default-jre
+
+# macOS  
+brew install openjdk
+
+# Windows: Download from https://adoptium.net/
+```
+
+## Quick Start
+<sup>Note: numeric results in the examples are for illustrative porpuses and not necessarily correct.<sup>
+
+### Basic Usage
+
+```python
+import numpy as np
+from causalboundingengine.scenarios import BinaryConf
+
+# Your observational data
+X = np.array([0, 1, 1, 0, 1, 0, 1, 0])  # Treatment
+Y = np.array([1, 0, 1, 0, 1, 1, 0, 1])  # Outcome
+
+# Create scenario and compute bounds
+scenario = BinaryConf(X, Y)
+
+# Compute ATE bounds with different algorithms
+manski_bounds = scenario.ATE.manski()           # (-1.0, 1.0) - Most conservative
+autobound_bounds = scenario.ATE.autobound()     # (-0.5, 0.5) - LP optimization
+
+print(f"Manski bounds:    {manski_bounds}")
+print(f"Autobound bounds:  {autobound_bounds}")
+```
+
+### Instrumental Variable Analysis
+
+```python
+from causalboundingengine.scenarios import BinaryIV
+
+# IV data (e.g., randomized trial with non-compliance)
+Z = np.array([0, 1, 1, 0, 1, 0, 1, 0])  # Instrument (randomization)
+X = np.array([0, 1, 0, 0, 1, 0, 1, 0])  # Treatment (actual uptake)  
+Y = np.array([1, 0, 1, 0, 1, 1, 0, 1])  # Outcome
+
+# Create IV scenario
+scenario = BinaryIV(X, Y, Z)
+
+# Compute bounds leveraging IV assumptions
+iv_bounds = scenario.ATE.autobound()
+print(f"IV-based bounds: {iv_bounds}")  # Often tighter than confounded case
+```
+
+### Continuous Outcomes
+
+```python
+from causalboundingengine.scenarios import ContIV
+
+# Binary instrument/treatment with continuous outcome
+Z = np.array([0, 1, 1, 0, 1])           # Binary instrument
+X = np.array([0, 1, 1, 0, 1])           # Binary treatment  
+Y = np.array([0.2, 0.8, 0.6, 0.1, 0.9]) # Continuous outcome [0,1]
+
+scenario = ContIV(X, Y, Z)
+bounds = scenario.ATE.zhangbareinboim()
+print(f"Continuous outcome bounds: {bounds}")
+```
+
+## Examples
+
+### Algorithm Comparison
+
+```python
+import numpy as np
+from causalboundingengine.scenarios import BinaryConf
+
+# Generate example data
+np.random.seed(42)
+n = 1000
+X = np.random.binomial(1, 0.3, n)
+Y = np.random.binomial(1, 0.6, n)
+
+scenario = BinaryConf(X, Y)
+
+# Compare multiple algorithms
+algorithms = ['manski', 'autobound', 'entropybounds']
+results = {}
+
+for alg in algorithms:
+    if alg == 'entropybounds':
+        bounds = getattr(scenario.ATE, alg)(theta=0.5)
+    else:
+        bounds = getattr(scenario.ATE, alg)()
+    results[alg] = bounds
+    print(f"{alg:15} ATE bounds: {bounds}")
+
+# Output:
+# manski          ATE bounds: (-0.7, 0.7)
+# autobound       ATE bounds: (-0.3, 0.3)
+# entropybounds   ATE bounds: (-0.2, 0.2)
+```
+
+### Sensitivity Analysis
+
+```python
+# Sensitivity analysis with Entropybounds
+thetas = [0.1, 0.3, 0.6, 0.8]
+for theta in thetas:
+    bounds = scenario.ATE.entropybounds(theta=theta)
+    width = bounds[1] - bounds[0]
+    print(f"θ={theta}: bounds={bounds}, width={width:.3f}")
+
+# Output shows how bounds widen as assumptions weaken:
+# θ=0.1: bounds=(-0.15, 0.15), width=0.735
+# θ=0.3: bounds=(-0.25, 0.25), width=0.995  
+# θ=0.6: bounds=(-0.35, 0.35), width=1.000
+# θ=0.8: bounds=(-0.45, 0.45), width=1.000
+```
+
+### Robust Analysis Workflow
+
+```python
+def robust_analysis(X, Y, Z=None):
+    """Run multiple algorithms for robustness."""
+    if Z is None:
+        scenario = BinaryConf(X, Y)
+        algorithms = ['manski', 'autobound']
+    else:
+        scenario = BinaryIV(X, Y, Z)  
+        algorithms = ['autobound']  # Add 'causaloptim', 'zaffalonbounds' if available
+    
+    results = {}
+    for alg in algorithms:
+        try:
+            results[alg] = getattr(scenario.ATE, alg)()
+            print(f"✓ {alg}: {results[alg]}")
+        except Exception as e:
+            print(f"✗ {alg}: {e}")
+    
+    return results
+
+# Run robust analysis
+bounds_dict = robust_analysis(X, Y)
+```
+
+## Scenarios
+
+CausalBoundingEngine organizes algorithms by causal scenario:
+
+### BinaryConf
+- **Use case**: Observational studies with binary treatment/outcome
+- **Assumptions**: Potential unmeasured confounding
+- **Algorithms**: Manski, Autobound, Entropybounds, Causaloptim, Zaffalonbounds
+
+### BinaryIV  
+- **Use case**: Instrumental variable analysis with binary variables
+- **Assumptions**: Valid instrument (relevance, exclusion, exogeneity)
+- **Algorithms**: Autobound, Causaloptim, Zaffalonbounds
+
+### ContIV
+- **Use case**: Binary instrument/treatment with continuous outcome [0,1]
+- **Assumptions**: Valid instrument, bounded outcome
+- **Algorithms**: ZhangBareinboim
+
+## Advanced Features
+
+### Custom Algorithm Parameters
+
+```python
+# Entropybounds with custom confounding strength
+bounds = scenario.ATE.entropybounds(theta=0.2)
+
+# Causaloptim with custom R path
+bounds = scenario.ATE.causaloptim(r_path="/usr/local/bin/R")
+```
+
+### Algorithm Availability
+
+```python
+# Check available algorithms
+print("ATE algorithms:", scenario.get_algorithms('ATE'))
+print("PNS algorithms:", scenario.get_algorithms('PNS'))
+
+# Dynamic algorithm access
+algorithm_name = 'manski'
+if algorithm_name in scenario.get_algorithms('ATE'):
+    bounds = getattr(scenario.ATE, algorithm_name)()
+```
+
+### Error Handling
+
+```python
+import logging
+logging.basicConfig(level=logging.WARNING)
+
+# Algorithms return trivial bounds on failure
+bounds = scenario.ATE.some_algorithm()
+if bounds == (-1.0, 1.0):  # ATE trivial bounds
+    print("Algorithm failed, returned trivial bounds")
+```
+
+## Documentation
+
+📖 **Full Documentation**: https://causalboundingengine.readthedocs.io/
+
+The documentation includes:
+
+- **[Installation Guide](https://causalboundingengine.readthedocs.io/en/latest/installation.html)** - Detailed setup instructions
+- **[Quick Start](https://causalboundingengine.readthedocs.io/en/latest/quickstart.html)** - Get up and running quickly  
+- **[User Guide](https://causalboundingengine.readthedocs.io/en/latest/user_guide.html)** - Concepts and best practices
+- **[Algorithm Reference](https://causalboundingengine.readthedocs.io/en/latest/algorithms.html)** - Detailed algorithm documentation
+- **[Scenario Guide](https://causalboundingengine.readthedocs.io/en/latest/scenarios.html)** - When to use which scenario
+- **[API Reference](https://causalboundingengine.readthedocs.io/en/latest/api_reference.html)** - Complete API documentation
+- **[Examples](https://causalboundingengine.readthedocs.io/en/latest/examples.html)** - Real-world usage examples
+- **[References](https://causalboundingengine.readthedocs.io/en/latest/references.html)** - Citations and credits
+
+## Testing
+
+CausalBoundingEngine includes a comprehensive test suite to ensure reliability. 
+
+### Quick Test Run
+
+```bash
+# Run basic tests (minimal dependencies)
+python -m pytest tests/test_dummy.py tests/test_scenarios.py::TestDataClass -v
+
+# Run core algorithm tests  
+python -m pytest tests/test_core_algorithms.py -v
+
+# Run all tests
+python -m pytest tests/ -v
+```
+
+### Test Coverage
+
+✅ **Core functionality** - Data structures, basic algorithms  
+✅ **Algorithm interfaces** - Manski, Tian-Pearl bounds  
+✅ **Scenario framework** - Data handling, dispatching  
+✅ **Integration tests** - End-to-end workflows  
+⚠️ **Optional components** - Require additional dependencies  
+
+See [`TESTING.md`](https://github.com/tmaringgele/CausalBoundingEngine/blob/main/TESTING.md) for detailed testing documentation.
+
+## Contributing
+
+We welcome contributions! The process is simple:
+
+1. **Fork** the repository on GitHub
+2. **Clone** your fork and install: `pip install -e .`
+3. **Make** your changes and add tests
+4. **Submit** a Pull Request
+
+See our [Contributing Guide](https://causalboundingengine.readthedocs.io/en/latest/contributing.html) for details.
+
+### Areas for Contribution
+
+- 🔧 New algorithm implementations
+- 📊 Additional causal scenarios  
+- 🐛 Bug fixes and improvements
+- 📚 Documentation and examples
+- 🚀 Performance optimizations
+
+## Citation
+
+If you use CausalBoundingEngine in your research, please cite the relevant algorithm papers. See the [References](https://causalboundingengine.readthedocs.io/en/latest/references.html) section for complete citations.
+
+### BibTeX Template
+
+```bibtex
+@software{causalboundingengine,
+  title={CausalBoundingEngine: A Unified Framework for Causal Effect Bounding},
+  author={[Tobias Maringgele]},
+  year={2025},
+  url={https://github.com/tmaringgele/CausalBoundingEngine},
+  note={Python package for causal effect bounding algorithms}
+}
+```
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/tmaringgele/CausalBoundingEngine/blob/main/LICENSE) file for details.
+
+## Acknowledgments
+
+CausalBoundingEngine integrates algorithms from multiple research papers. We gratefully acknowledge:
+
+- **Manski (1990)** - Nonparametric bounds foundation
+- **Tian & Pearl (2000)** - Probability of causation bounds  
+- **Duarte et al. (2023)** - Autobound optimization approach
+- **Jiang et al. (2023)** - Entropy-based weak confounding
+- **Sachs et al. (2022)** - Causaloptim R library
+- **Zaffalon et al. (2022)** - Causal expectation maximisation approach
+- **Zhang & Bareinboim (2021)** - Continuous outcome bounding
+
+See the [References](https://causalboundingengine.readthedocs.io/en/latest/references.html) page for complete citations and attributions.
+
+---
+
+<div align="center">
+
+**Built with 💙 for causal inference**
+
+[Documentation](https://causalboundingengine.readthedocs.io/) • [PyPI](https://pypi.org/project/causalboundingengine/) • [GitHub](https://github.com/tmaringgele/CausalBoundingEngine)
+
+</div>
+
