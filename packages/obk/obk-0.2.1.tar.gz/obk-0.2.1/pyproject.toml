@@ -1,0 +1,40 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "obk"
+version = "0.2.1"
+description = "A scalable hello-world CLI starter. This is a pre-release/alpha version for initial feedback and CI testing. Not for production use."
+authors = [{ email = "hello@evenflow.dev" }]
+readme = "README.md"
+requires-python = ">=3.9"
+
+dependencies = [
+    "typer>=0.12",
+    "dependency-injector>=4.41",
+    "xmlschema>=3.2",
+    "tzdata>=2024.1",
+]
+
+[project.scripts]
+obk = "obk.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/obk"]
+include = ["src/obk/xsd/*.xsd"]
+
+[tool.hatch.envs.default]
+dependencies = [
+  "pytest",
+  "ruff",
+  "black",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest >=7.0.0",
+    "pytest-cov >=4.0.0",
+    "pytest-mock >=3.10.0",
+    "python-dotenv >=1.0.0",
+]

@@ -1,0 +1,82 @@
+name: CI-CD Pipeline
+
+on:
+  push:
+    branches: main
+    
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: self-hosted
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clean workspace
+        run: git clean -fdx
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run tests
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install --upgrade pip
+          .venv/bin/pip install -e .[test]
+          .venv/bin/pytest -q
+
+  build:
+    needs: test
+    if: success()
+    runs-on: self-hosted
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build package
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install build
+          .venv/bin/python -m build
+
+  deploy:
+    needs: build
+    if: >
+      success() &&
+      (contains(github.event.head_commit.message, '[minor]') ||
+       contains(github.event.head_commit.message, '[patch]'))
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+    
+      - name: Set GITHUB_COMMIT_MESSAGE env
+        run: |
+          {
+            echo 'GITHUB_COMMIT_MESSAGE<<EOF'
+            git log -1 --pretty=%B
+            echo 'EOF'
+          } >> $GITHUB_ENV
+        
+    
+      - name: Set up venv, bump version, and deploy
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install --upgrade pip build twine
+          .venv/bin/python .github/scripts/bump_version.py
+          .venv/bin/python -m build
+          .venv/bin/twine upload dist/*
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+      - name: Tag release
+        if: success()
+        run: |
+          VERSION=$(python3 -c "import toml; print(toml.load(open('pyproject.toml'))['project']['version'])")
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag v$VERSION
+          git push origin v$VERSION
+    
