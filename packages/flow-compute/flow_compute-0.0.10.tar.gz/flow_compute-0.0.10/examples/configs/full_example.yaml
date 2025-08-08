@@ -1,0 +1,181 @@
+# Full Flow SDK configuration example with all available options
+# Most fields are optional - see basic.yaml for minimal config
+#
+# This comprehensive example demonstrates all available configuration options.
+# Use this as a reference when creating your own configurations.
+#
+# Prerequisites:
+# - Flow SDK installed and configured (`flow init`)
+# - Docker image access (if using custom images)
+# - SSH keys configured (if using SSH access)
+#
+# How to run:
+#   # Review and customize the configuration first!
+#   flow run examples/configs/full_example.yaml
+#
+# Expected behavior:
+# - Creates an 8x H100 GPU instance
+# - Runs in a PyTorch container
+# - Mounts storage volumes for data and checkpoints
+# - Executes the command
+# - Provides SSH access with configured keys
+#
+# Important notes:
+# - This file shows ALL options - you only need a few for most tasks
+# - Commented sections show alternative configurations
+# - Adjust prices, regions, and resources to your needs
+
+# -------------------------------------------------------------------------
+# Basic Identification
+# -------------------------------------------------------------------------
+# Task name - required
+name: flow-example-task
+unique_name: true  # Appends random suffix to avoid name conflicts
+
+# -------------------------------------------------------------------------
+# Compute Resources
+# -------------------------------------------------------------------------
+# Instance type using simple naming
+instance_type: h100-80gb.sxm.8x  # 8x H100 80GB GPUs
+
+# Alternative instance types:
+# instance_type: h100-80gb.sxm.8x   # 8x H100 80GB (default)
+# instance_type: a100-80gb.sxm.1x   # 1x A100 80GB
+# instance_type: a100-80gb.sxm.4x   # 4x A100 80GB
+
+# For capability-based selection (instead of instance_type):
+# min_gpu_memory_gb: 80    # Minimum GPU memory
+# min_gpu_count: 8         # Minimum number of GPUs
+
+# Number of instances for distributed workloads
+num_instances: 1
+
+# -------------------------------------------------------------------------
+# Location and Pricing
+# -------------------------------------------------------------------------
+# Region preference (optional)
+region: us-central1-b
+
+# Available regions:
+# - us-central1-a, us-central1-b, us-central1-f
+# - us-east1-b
+# - us-west1-a, us-west1-b
+# - us-west4-b
+
+# Maximum price per hour in dollars (optional)
+max_price_per_hour: 25.0  # Budget limit
+
+# -------------------------------------------------------------------------
+# Execution Environment
+# -------------------------------------------------------------------------
+# Docker image to run
+image: pytorch/pytorch:2.1.0-cuda11.8-cudnn8-runtime
+
+# Command to execute - runs after container starts
+command: |
+  #!/bin/bash
+  echo "Setting up environment..."
+  pip install -r requirements.txt || echo "No requirements.txt found"
+  
+  echo "Running training..."
+  python train.py --epochs 100 --batch-size 128 || echo "No train.py found"
+  
+  echo "Task completed!"
+
+# Environment variables
+env:
+  WANDB_API_KEY: "your-api-key"
+  EXPERIMENT_NAME: "resnet50-imagenet"
+  CUDA_VISIBLE_DEVICES: "0,1,2,3,4,5,6,7"
+
+# -------------------------------------------------------------------------
+# Storage Volumes
+# -------------------------------------------------------------------------
+# Volumes provide persistent storage
+volumes:
+  # Create a new volume for data
+  - name: training-data
+    size_gb: 500
+  
+  # Create a volume for checkpoints
+  - name: checkpoints
+    size_gb: 100
+
+  # Volumes are automatically mounted at /volumes/<name>
+  # So the above volumes will be at:
+  # - /volumes/training-data
+  # - /volumes/checkpoints
+
+# -------------------------------------------------------------------------
+# Access Configuration
+# -------------------------------------------------------------------------
+# SSH key names for accessing instances (optional)
+ssh_keys:
+  - my-gpu-key  # SSH key name from Mithril
+
+# -------------------------------------------------------------------------
+# Lifecycle Management
+# -------------------------------------------------------------------------
+# Maximum runtime before automatic termination (optional)
+# max_run_time_hours: 24.0
+
+# -------------------------------------------------------------------------
+# Advanced Examples
+# -------------------------------------------------------------------------
+
+# Example 1: Multi-GPU distributed training
+# name: distributed-training
+# instance_type: h100-80gb.sxm.8x
+# num_instances: 4
+# image: nvcr.io/nvidia/pytorch:23.10-py3
+# env:
+#   NCCL_DEBUG: INFO
+# command: |
+#   torchrun --nproc_per_node=8 \
+#     --nnodes=${FLOW_NUM_NODES} \
+#     --node_rank=${FLOW_NODE_RANK} \
+#     --master_addr=${FLOW_MAIN_IP} \
+#     --master_port=29500 \
+#     train_distributed.py
+
+# Example 2: Long-running Jupyter server
+# name: jupyter-workspace
+# instance_type: h100-80gb.sxm.8x
+# max_price_per_hour: 5.00
+# image: jupyter/tensorflow-notebook:latest
+# max_run_time_hours: 8.0        # Safety limit
+# command: |
+#   jupyter lab --ip=0.0.0.0 --port=8888 --no-browser
+# # Access via SSH tunnel: ssh -L 8888:localhost:8888 ubuntu@<instance-ip>
+
+# Example 3: Batch processing with large data
+# name: batch-processing
+# instance_type: h100-80gb.sxm.8x
+# max_price_per_hour: 10.00
+# image: python:3.11
+# volumes:
+#   - name: input-data
+#     size_gb: 1000
+#   - name: output-data
+#     size_gb: 500
+# command: |
+#   python batch_process.py \
+#     --input=/volumes/input-data \
+#     --output=/volumes/output-data
+
+# Example 4: Model training with checkpointing
+# name: model-training
+# instance_type: h100-80gb.sxm.8x
+# image: pytorch/pytorch:2.1.0-cuda11.8-cudnn8-runtime
+# volumes:
+#   - name: dataset
+#     size_gb: 200
+#   - name: checkpoints
+#     size_gb: 100
+# env:
+#   WANDB_API_KEY: ${WANDB_API_KEY}  # From your environment
+# command: |
+#   python train.py \
+#     --data /volumes/dataset \
+#     --checkpoint-dir /volumes/checkpoints \
+#     --resume latest
