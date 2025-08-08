@@ -1,0 +1,615 @@
+@use 'sass:color';
+@use 'sass:string';
+
+// Custom lists
+$sizes: (
+  "massive": 250%,
+  "huge": 200%,
+  "biggest": 160%,
+  "bigger": 140%,
+  "big": 110%,
+  "small": 90%,
+  "smaller": 80%,
+  "smallest": 70%,
+  "tiny": 65%
+);
+
+
+// SASS commons
+.no-margin {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+@mixin fill-view($scale, $height, $ss){
+  height: calc(#{$height} * #{$scale} * #{$ss});
+  width: 100%;
+}
+
+// unused but leave for reference
+@function bg-gradient($color) {
+  $aStart: change-color($color,$alpha: 0);
+  $bStart: change-color($color,$alpha: 0.7);
+  $cStart: change-color($color,$alpha: 1);
+  @return $aStart,$bStart,$cStart;
+}
+
+@mixin get-grad($color){
+  background-image: linear-gradient(to right,#{bg-gradient($color)});
+}
+
+@mixin alert-text($color) {
+	background-color: $color;
+	color: white; 
+	font-variant: small-caps;
+}
+
+@function invert-channel($channel, $upper, $lower) {
+    @return 255 - round($lower + $channel*($upper - $lower)/255);
+}
+
+@function _invert($original, $percentage) {
+    $upper: ($percentage/100%)*255;
+    $lower: 255 - $upper;
+    $alpha: alpha($original);
+
+    $inverted-channels: ();
+
+    @each $channel-name in 'red' 'green' 'blue' {
+        $channel: call(get-function($channel-name), $original);
+        $inverted-channel: invert-channel($channel, $upper, $lower);
+        $inverted-channels: append($inverted-channels, $inverted-channel);
+    }
+
+    $inverted-channels: append($inverted-channels, $alpha);
+
+    @return rgba($inverted-channels...);
+}
+
+@mixin background-opacity($color, $opacity: 0.3) {
+    background: $color; /* The Fallback */
+    background: rgba($color, $opacity);
+}
+
+// STYLES
+.reveal {
+  /*
+  .title-slide
+  - Grid layout for title slides with 4 rows, 5 columns
+  - fill-view mixin scales to fit view
+
+  .image
+  - Covers full grid, background image settings, z-index 1
+
+  .headline
+  - Top right, spans 2 columns, z-index 3
+  - fill-view mixin, bold h2
+
+  .sub-header
+  - Middle right, spans 2 columns, z-index 3
+  - .by paragraph with specific font and styling
+
+  .byline
+  - Bottom right, spans 2 columns, z-index 3
+  - .byinfo paragraph with specific font and styling
+
+  .background
+  - Partial cover, spans 2 columns, z-index 2
+  - Gradient background, border-radius, margin adjustment
+  */
+  .title-slide {
+    margin: 0;
+    padding: 0;
+    @include fill-view($scale: 0.99,$height: var(--slide-height), $ss: var(--slide-scale));
+    display: grid;
+    grid-template-rows: 1fr 1fr 1fr 1fr;
+    grid-template-columns: 10vw 1fr 1fr 1fr 1fr;
+    
+    .image {
+      grid-row: 1 / 5;
+      grid-column: 1 / 6;
+      z-index: 1;
+      background-repeat: no-repeat !important;
+      background-position: center center !important;
+      background-size: contain;
+    }
+
+    .headline {
+      grid-row: 1 / 2;
+      grid-column: 4 / 6;
+      z-index: 3;
+      display: block;
+      justify-self: right;
+      align-self: center;
+      align-content: start;
+      @include fill-view($scale: 0.15,$height: var(--slide-height), $ss: var(--slide-scale));
+      h2 {
+        font-weight: bold;
+      }
+    }
+
+    .sub-header {
+      grid-row: 2 / 4;
+      grid-column: 4 / 6;
+      z-index: 3;
+      align-self: end;
+      
+      p.by {
+        margin: 0;
+        padding: 0;
+        font-family: 'Playfair Display', serif;
+        font-weight: normal;
+        // color: #333;
+        text-align: end;
+      }
+    }
+
+    .byline {
+      grid-row: 4 / 6;
+      grid-column: 4 / 6;
+      align-self: start;
+      z-index: 3;
+      
+      p.byinfo {
+        margin: 0;
+        padding: 0;
+        font-family: 'PT Sans', sans-serif;
+        font-style: italic;
+        // color: #666;
+        text-align: end;
+      }
+    }
+
+    .background {
+      grid-row: 1 / 5;
+      grid-column: 3 / 6;
+      z-index: 2;
+      border-radius: 2rem;
+      // @include get-grad($backgroundColor);
+      margin-right: -4vmin;
+    }
+  } 
+
+  // Style for main presentation footer element
+  footer.main-footer {
+    position:absolute;
+    width:calc(100% - 1em);
+    bottom:0;
+    font-size:30%;
+    z-index:1;
+    display:flex;
+    justify-content:space-between;
+    padding:0.5em
+  }
+
+
+
+  // Provide a generic grid element class. Defaults to 1fr 1fr, but may be overwritten with inline style. Child p and div are treated for spacing.
+  .grid-generic {
+    align-self: start;
+    justify-self: center;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    justify-items: center;
+    align-items: start;
+    justify-content: center;
+    align-content: start;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+
+   & > div {
+    display:grid;
+    width: 100%;
+    & p {
+      margin-top: 3px;
+      margin-bottom: 0;
+      padding: 0;
+    }
+   }
+   & > p {
+    width: 100%;
+    margin-top: 5px;
+    margin-bottom: 0;
+    padding: 0;
+   }
+  } //.grid-generic
+
+  /*
+  Provide a generic slide layout using grid css. This is used for 
+  section title content.
+  .grid-wrapper
+  - Responsive grid layout for slides: header, content, footer
+  - fill-view mixin scales to fit view
+  - 3 rows: auto (header), 1fr (content), min-content (footer)
+  - 3 columns: 1fr each
+
+  .header, h2
+  - Centered in header area
+
+  .content
+  - Centered flexbox in content area
+  - Child divs take full width
+
+  .foot-left, .foot-center, .foot-right
+  - Footer areas with respective text alignment, smaller font
+
+  .section-title-content
+  - Specific grid layout for section titles
+  - Areas: section-number, headlines, gap
+  - .section-number: Large, bold, stylized number
+  - .headlines: Column flexbox, custom fonts, colors
+  */
+  .grid-wrapper {
+    margin: 0;
+    padding: 0;
+    @include fill-view($scale: 0.95, $height: var(--slide-height), $ss: var(--slide-scale));
+    box-sizing: border-box;
+    display: grid;
+    grid-template-areas:
+      "header header header"
+      "content content content"
+      "foot-left foot-center foot-right";
+    grid-template-rows: auto 1fr min-content; // Header, content, footer
+    grid-template-columns: 1fr 1fr 1fr; // 3 columns
+    grid-column-gap: 1vmin;
+    
+    .header {
+      grid-area: header;
+      align-self: center;
+      align-content: center;
+      padding-top: 0;
+      padding-bottom: 0;
+      margin-top: 0;
+      margin-bottom: 0;
+      > * {
+        margin-top: 0;
+        margin-bottom: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+      }
+    
+      // Target specifically the MathJax_Display class within the 'no-hang' context
+      .MathJax_Display {
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+      }
+    }
+    > h2 {
+      grid-area: header;
+      align-self: center;
+      align-content: center;
+    }
+    
+    .content {
+      grid-area: content;
+      display: flex;
+      flex-wrap: wrap;
+      flex-direction: column;
+      justify-content: center;
+      justify-items: center;
+      align-items: center;
+      align-content: center;
+      height: 100%;
+      & > div {
+        width:100%;
+      }
+    }
+    .foot-left {
+      grid-area: foot-left;
+      text-align: left;
+      font-size:40%;
+    }
+
+    .foot-center {
+      grid-area: foot-center;
+      text-align: center;
+      font-size:40%;
+    }
+
+    .foot-right {
+      grid-area: foot-right;
+      text-align: right;
+      font-size:40%;
+    }
+    // STYLE FOR SECTION TITLE
+    .section-title-content {
+      grid-area: content;
+      display: grid;
+      grid-template-areas: "section-number headlines gap";
+      grid-template-columns: min-content 20fr 1fr; // 100px for section-number, rest for headlines
+      align-items: center;
+      grid-column-gap: 6vmin;
+      height: 100%;
+      width: 100%;
+  
+      .section-number {
+        grid-area: section-number;
+        display: flex;
+        place-self: start center;
+        align-items: start;
+        margin: 0;
+        padding: 0;
+        transform: translateY(-6vmin);
+        
+        .large-number {
+          // font-family: $flourishFont;
+          font-size: 8em;
+          font-weight: bold;
+          // color: #333;
+          margin: 0;
+          padding: 0;
+          text-align: top;
+          line-height: 1;
+        }
+
+        h2 {
+          overflow-wrap: break-word;
+        }
+      }
+  
+      .headlines {
+        grid-area: headlines;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+
+        h2 {
+          align-self: center;
+        }
+        // h3 {
+        //   font-family: $accentFont;
+        //   color: lighten($mainColor,10%);
+        // }
+        // h4 {
+        //   font-family: $accentFont;
+        //   color: lighten($mainColor,20%);
+        // }
+      }
+    }
+  }
+} // .reveal
+
+// Generic Styles
+@each $name, $size in $sizes {
+  .#{$name} {
+    font-size: $size !important;
+  }
+}
+.strong { font-weight: bold !important;}
+.bold { font-weight: bold !important; }
+.em { font-style: italic !important; }
+.u { text-decoration: underline; }
+.strike { text-decoration: line-through !important; }
+.tt { font-family: monospace !important; }
+.sf { font-family: sans-serif !important; }
+.full-width { width:100% !important; }
+.q3-width { width: 75% !important; }
+.half-width { width:50% !important; }
+.q1-width { width:25% !important; }
+.box-width { width:80% !important; }
+
+.left-justify { &, & p, & div {text-align: left; } }
+.right-justify { &, & p, & div { text-align: right; } }
+.just-justify { &, & p, & div { 
+  text-align: justify; 
+  text-justify: inter-word;
+  padding-right: 5px;
+  padding-left: 5px;
+} }
+
+.no-hang {
+  // Apply styles to all direct children of an element with the 'no-hang' class
+  > * {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    line-height: 1.2 !important;
+  }
+
+  // Target specifically the MathJax_Display class within the 'no-hang' context
+  .MathJax_Display {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+  }
+}
+
+.pdf-page {
+  .grid-wrapper {
+    .section-title-content {
+      .headlines {
+        max-width: 100% !important;
+        max-height: 80vh !important;
+
+        h2 {
+          display: block !important;
+          font-size: clamp(1.5rem, 4vw, 4.5rem) !important;
+          overflow-wrap: break-word !important;
+        }
+      }
+    }
+  }
+
+  .title-slide {
+    max-width: 100vw;
+    max-height: 90vh;
+  }
+
+  .print-invisible {
+    visibility: hidden !important;
+  }
+}
+
+
+/*********************************************
+* EMOJIS
+*********************************************/
+$emojiFont: 'Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', 'Android Emoji', 'EmojiSymbols', sans-serif;
+
+$emojis: (
+  alien: "\1F47D",
+  angry: "\1F621",
+  angry_face: "\1F92C",
+  arrowl: "\2190",
+  arrowr: "\2192",
+  atom: "\269B",
+  beaker: "\1F9EA",
+  books: "\1F4DA",
+  brain: "\1f9e0",
+  bulb: "\1F4A1",
+  calculator: "\1f5a9",
+  calendar: "\1F5D3",
+  chart: "\1F4C8",
+  chart-up: "\1F4C8",
+  chart-down: "\1F4C9",
+  check: "\2714\FE0E",
+  check-empty: "\2610\FE0F",
+  checklist: "\2611\FE0F",
+  clock: "\1F557",
+  compass: "\1F9ED",
+  construction: "\1F6A7",
+  cool: "\1F60E",
+  crying: "\1F62D",
+  dice: "\1F3B2",
+  dna: "\1F9EC",
+  dna_double: "\1F9EC",
+  double_exclamation: "\203C",
+  exclamation: "\2757",
+  exclamation_question: "\2049",
+  exploding_head: "\1F92F",
+  fire: "\1F525",
+  floppy_disk: "\1F4BE",
+  footprint: "\1F463",
+  gem_stone: "\1F48E",
+  goggles: "\1F97D",
+  graduation_cap: "\1F393",
+  graph: "\1F4C9",
+  grid: "\1F5DE",
+  happy: "\1F642",
+  key: "\1F5DD",
+  lightbulb: "\1F4A1",
+  lightning: "\26A1",
+  locked: "\1F512",
+  loudspeaker: "\1F4E2",
+  magic_wand: "\1FA84",
+  magnifying_glass: "\1F50D",
+  medal: "\1F947",
+  memo: "\1F4DD",
+  microscope: "\1F52C",
+  mirror: "\1FA9E",
+  muscle: "\1F4AA",
+  nerd_face: "\1F913",
+  notebook: "\1F4D3",
+  no-entry: "\26D4",
+  no_entry: "\1F6AB",
+  party_popper: "\1F389",
+  pin: "\1F4CC",
+  questionmark: "\2753",
+  report: "\1F4DD",
+  ribbon: "\1F397",
+  robot: "\1F916",
+  rocket: "\1F680",
+  sad: "\1F61E",
+  scream: "\1F631",
+  shrug: "\1F937",
+  sigh: "\1F614",
+  skull_and_crossbones: "\2620",
+  smiley: "\1F604",
+  sparkles: "\2728",
+  speech_balloon: "\1F5E8",
+  star: "\1F31F",
+  star-struck: "\1F929",
+  stop_sign: "\1F6D1",
+  student: "\1F9D1\200D\1F393",
+  superhero: "\1F9B8",
+  target: "\1F3AF",
+  teacher: "\1F9D1\200D\1F3EB",
+  telescope: "\1F52D",
+  test_tube: "\1F9EA",
+  thinking: "\1F914",
+  thought_balloon: "\1F4AD",
+  trophy: "\1F3C6",
+  unlocked: "\1F513",
+  vending_machine: "\1F3E7",
+  warning_icon: "\1F6A8",
+  wrench: "\1F527"
+);
+
+
+// Build icon for most used emoji list
+i {
+  @each $name, $emoji in $emojis {
+    &.#{$name}::before {
+      content: $emoji;
+      font-family: $emojiFont;
+      speak: none;
+      font-style: normal;
+      font-weight: normal;
+      font-variant: normal;
+      text-transform: none;
+      line-height: 1;
+      -webkit-font-smoothing: antialiased;
+      font-size: 75%;
+    }
+  }
+}
+
+// Icon for any unicode character emoji
+i[role="emoji"] {
+  font-family: $emojiFont;
+  speak: none;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  &::before {
+    content: attr(data-emoji);
+    font-size: 105%;
+  }
+}
+
+// Build <li> emojis
+@each $name, $emoji in $emojis {
+  li.emoji-#{$name} {
+    list-style-type: none;
+    position: relative;
+    padding-left: 1.5em;
+
+    &::before {
+      content: $emoji;
+      position: absolute;
+      left: 0;
+      top: 0;
+      font-family: $emojiFont;
+      font-style: normal;
+      font-size: 80%;
+    }
+  }
+}
+
+// Font Awesome capable <li> tags
+li[role="fa"] {
+  list-style: none; /* Remove default list bullet */
+  position: relative;
+  &::before {
+    content: attr(data-icon); /* Insert the icon from data-icon attribute */
+    font-family: "Font Awesome 6 Free"; /* Ensure you use the correct font family */
+    margin-right: 8px; /* Add some space between the icon and text */
+    font-weight: 900;  
+  }
+}
+
+// Build <span> for any emoji
+span.emoji {
+  font-family: $emojiFont !important;
+  font-style: normal;
+  display: inline-block;
+  vertical-align: middle;
+}
+
