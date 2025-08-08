@@ -1,0 +1,68 @@
+[build-system]
+requires = [
+    "setuptools",
+    "wheel",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "casm-project"
+version = "2.0a1"
+authors = [
+  { name="CASM developers", email="casm-developers@lists.engr.ucsb.edu" },
+]
+description = "CASM project interface"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "LGPL2.1+"}
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU Lesser General Public License v2 or later (LGPLv2+)",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = [
+    "bokeh",
+    "darkdetect",
+    "flask",
+    "flask_cors",
+    "gunicorn",
+    "latex2mathml",
+    "numpy",
+    "scipy",
+    "libcasm-mapping>=2.3.0",
+    "libcasm-clexmonte>=2.2.0",
+    "casm-bset>=2.1.0",
+    "casm-tools>=2.0a2",
+]
+
+[project.urls]
+Homepage = "https://prisms-center.github.io/CASMcode_docs/"
+Repository = "https://github.com/prisms-center/casm_project"
+
+[build_sphinx]
+source-dir = "doc"
+build-dir  = "doc/build"
+all_files  = 1
+
+[project.scripts]
+casm-api-server = "casm.vis._api_server:main"
+casm-bokeh-server = "casm.vis._bokeh_server:main"
+casm-vis-server = "casm.vis._vis_server:main"
+casm-vis = "casm.vis._casm_vis:main"
+
+[tool.ruff.lint]
+select = ["NPY201", "E", "F", "I"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["libcasm", "casm"]
+
+[tool.pytest.ini_options]
+markers = [
+    "requires_ase: marks tests requiring ase (deselect with '-m \"not requires_ase\"')",
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "very_slow: marks tests as very slow (deselect with '-m \"not very_slow\"')",
+]
