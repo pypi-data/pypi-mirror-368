@@ -1,0 +1,132 @@
+before_script:
+  - git lfs pull
+
+
+stages:
+  - test
+  - deploy
+  - cleanup
+
+
+test_py_tools_ds:
+  stage: test
+  coverage: '/TOTAL\s+\d+\s+\d+\s+(\d+%)/'
+  script:
+    - source activate ci_env
+
+    # run tests
+    - make pytest
+
+    # create the docs
+    - make docs
+  artifacts:
+    expose_as: 'Test and coverage report'
+    paths:
+    - htmlcov/
+    - report.html
+    - docs/_build/html/
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+      junit: report.xml
+
+    expire_in: 30 days
+    when: always
+
+
+test_styles:
+  stage: test
+  script:
+    - source activate ci_env
+    - make lint
+  artifacts:
+    paths:
+    - tests/linting/flake8.log
+    - tests/linting/pycodestyle.log
+    - tests/linting/pydocstyle.log
+    when: always
+
+
+test_urls:
+  stage: test
+  script:
+    - source activate ci_env
+    - pip install -U urlchecker
+    - make urlcheck
+  when: always
+
+
+test_py_tools_ds_install:
+  stage: test
+  script:
+    - source activate
+    - mamba update -n base mamba conda
+
+    # create py_tools_ds environment from environment_py_tools_ds.yml
+    - mamba env create --name py_tools_ds_test -f tests/CI_docker/context/environment_py_tools_ds.yml
+    - conda activate py_tools_ds_test
+
+    # install py_tools_ds
+    - pip install -e .
+
+      # test if its importable
+    - cd ../..
+    - python -c "import py_tools_ds; print(py_tools_ds)"
+    - python -c "from py_tools_ds.geo.vector.geometry import boxObj"
+
+    # check if dependencies are properly installed
+    - pip check || exit
+  only:
+    - main
+    - maintenance/modernize_setup
+
+
+pages:  # this job must be called 'pages' to advise GitLab to upload content to GitLab Pages
+  stage: deploy
+  dependencies:
+    - test_py_tools_ds
+  script:
+      # Create the public directory
+    - rm -rf public
+    - mkdir public
+    - mkdir -p public/doc
+    - mkdir -p public/coverage
+    - mkdir -p public/test_reports
+
+    # Copy over the docs
+    - cp -r docs/_build/html/* public/doc/
+
+    # Copy over the coverage reports
+    - cp -r htmlcov/* public/coverage/
+
+    # Copy over the test reports
+    - cp report.html public/test_reports/
+
+    # Check if everything is working great
+    - ls -al public
+    - ls -al public/doc
+    - ls -al public/coverage
+    - ls -al public/test_reports
+  artifacts:
+    paths:
+      - public
+    expire_in: 30 days
+  only:
+    - main
+
+
+deploy_pypi:
+  stage: deploy
+  dependencies:
+    - test_py_tools_ds
+  script:
+    - source activate ci_env
+    - pip install -U twine build
+    - python -m build --sdist
+    - twine check dist/*
+    - twine upload dist/*  # requires creds as environment variables
+  only:
+    - /^v\d+\.\d+\.\d+([abc]\d*)?$/  # PEP-440 compliant version (tags)
+  except:
+    - dev
