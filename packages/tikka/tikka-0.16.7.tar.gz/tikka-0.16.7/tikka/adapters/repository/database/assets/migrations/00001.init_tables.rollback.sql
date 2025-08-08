@@ -1,0 +1,11 @@
+drop table if exists currency;
+drop table if exists accounts;
+drop table if exists wallets;
+drop table if exists tabs;
+drop table if exists preferences;
+drop table if exists nodes;
+drop table if exists identities;
+drop table if exists categories;
+drop table if exists passwords;
+drop table if exists smiths;
+drop table if exists authorities;
