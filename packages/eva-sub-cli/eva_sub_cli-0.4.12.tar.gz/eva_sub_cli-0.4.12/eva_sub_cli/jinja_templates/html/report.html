@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+{% from 'project_details.html' import project_details_report %}
+{% from 'file_validation.html' import file_validation_report %}
+{% from 'sample_name_check.html' import sample_name_check_report %}
+{% from 'fasta_check.html' import fasta_check_report %}
+{% from 'metadata_validation.html' import metadata_validation_report %}
+{% from 'shallow_validation.html' import optional_shallow_validation_report %}
+
+<html lang="EN">
+<head>
+    <meta charset="UTF-8">
+    <title>Validation Report</title>
+    <style>
+        body { font-family: Verdana, sans-serif; }
+
+        .logo { float: left; padding: 20px; }
+        .title { padding: 8px; }
+        header { overflow: auto; }
+        header::after { clear: both; }
+
+        section { padding: 20px 20px 10px 40px; }
+        .description { padding-bottom: 10px}
+        .error-description { padding: 10px 0px 10px}
+
+        .report-section { padding: 12px; border: 1px solid white; margin-bottom: 5px}
+        .active, .collapsible:hover.fail { background-color: #e6a3ae; }
+        .active, .collapsible:hover.info { background-color: #c0c0c0; }
+
+        table { border-collapse: collapse; padding: 10px; margin-bottom: 20px}
+        th, td { border: 1px solid black;  padding: 8px;  text-align: left; }
+        th {  background-color: lightgrey;  }
+        .fail { background-color: #FFB6C1; }
+        .pass { background-color: #90EE90; }
+        .info { background-color: #dadada; }
+        .error-list, .no-show { display: none; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">
+    <img src="data:image/png;base64,{{ logo_data }}" width="100" height="100" alt="EVA logo">
+        </div>
+    <div class="title">
+        <h1>Validation Report</h1>
+        <h6>eva-sub-cli v{{cli_version}}</h6>
+    </div>
+</header>
+
+{{ optional_shallow_validation_report(validation_results) }}
+
+<section>
+    <h2>Project Summary</h2>
+    <div class="description">
+        General details about the project
+    </div>
+    {{ project_details_report(validation_results, project_title, validation_date, submission_dir, consent_statement_required, vcf_fasta_analysis_mapping) }}
+</section>
+
+<section>
+    <h2>Metadata validation results</h2>
+    <div class="description">
+        Ensures that required fields are present and values are formatted correctly.
+        For requirements, please refer to the <a href="https://www.ebi.ac.uk/eva/?Submit-Data" target=”_blank”>EVA website</a>.
+    </div>
+    {{ metadata_validation_report(validation_results) }}
+</section>
+
+<section>
+    <h2>VCF validation results</h2>
+    <div class="description">
+        Checks whether each file is compliant with the <a href="http://samtools.github.io/hts-specs/VCFv4.4.pdf" target=”_blank”>VCF specification</a>.
+        Also checks whether the variants' reference alleles match against the reference assembly.
+    </div>
+    {% for file_name in vcf_files %}
+        {% if file_name != "pass"%}
+        <h3>{{ file_name }}</h3>
+        {{ file_validation_report(validation_results, file_name) }}
+        {% endif %}
+    {% endfor %}
+</section>
+
+<section>
+    <h2>Sample name concordance check</h2>
+    <div class="description">
+        Checks whether information in the metadata is concordant with that contained in the VCF files, in particular sample names.
+    </div>
+    {{ sample_name_check_report(validation_results)}}
+</section>
+
+<section>
+    <h2>Reference genome INSDC check</h2>
+    <div class="description">
+        Checks that the reference sequences in the FASTA file used to call the variants are accessioned in INSDC.
+        Also checks if the reference assembly accession in the metadata matches the one determined from the FASTA file.
+    </div>
+    {% for file_name in fasta_files %}
+        {% if file_name != "pass"%}
+        <h3>{{ file_name }}</h3>
+        {{ fasta_check_report(validation_results, file_name) }}
+        {% endif %}
+    {% endfor %}
+</section>
+
+<script>
+    let collapsibles = document.querySelectorAll('.collapsible');
+    for (let collapsible of collapsibles) {
+        collapsible.addEventListener('click', function() {
+            this.classList.toggle('active');
+
+             let icon = this.querySelector('.expand_icon');
+             if (this.classList.contains('active')) {
+                 icon.innerHTML = '&#9660;';
+             } else {
+                 icon.innerHTML = '&#9654;';
+             }
+
+            let content = this.nextElementSibling;
+            if (content.style.display === 'block') {
+                content.style.display = 'none';
+            }
+            else {
+                content.style.display = 'block';
+                content.scrollIntoView({block: 'nearest'});
+            }
+        });
+    }
+
+    function toggleSampleAllErrorsList(id) {
+        var element = document.getElementById(id);
+        var link = document.querySelector(`a[onclick="toggleSampleAllErrorsList('${id}'); return false;"]`);
+        if (element.style.display === "none" || element.style.display === "") {
+            element.style.display = "block";
+            link.innerHTML = "Hide All Errors for Category";
+        } else {
+            element.style.display = "none";
+            link.innerHTML = "Show All Errors for Category";
+        }
+    }
+</script>
+</body>
+</html>
