@@ -1,0 +1,4 @@
+from maleo_soma.managers.db import create_base
+
+
+MaleoMetadataBase = create_base()
