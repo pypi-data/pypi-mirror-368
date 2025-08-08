@@ -1,0 +1,1 @@
+function r(t,e){let o=t.split("; ");if(o.length===0)return"";for(let n of o)if(n.startsWith(e))return n.replace(`${e}=`,"");return""}function c(t){const e=document.createElement("textarea");document.body.appendChild(e),e.value=t,e.select(),document.execCommand("copy"),document.body.removeChild(e)}async function a(t){return new Promise(e=>setTimeout(e,t))}export{a,c,r as g};
