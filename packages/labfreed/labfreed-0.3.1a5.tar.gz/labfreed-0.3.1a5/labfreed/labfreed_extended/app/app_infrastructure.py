@@ -1,0 +1,106 @@
+
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+import requests
+
+from labfreed.labfreed_extended.app.pac_info import PacInfo
+from labfreed.pac_attributes.client.attribute_cache import MemoryAttributeCache
+from labfreed.pac_attributes.client.client import AttributeClient, attribute_request_default_callback_factory
+from labfreed.pac_attributes.well_knonw_attribute_keys import MetaAttributeKeys
+from labfreed.well_known_extensions.display_name_extension import DisplayNameExtension
+
+
+from labfreed.pac_id.pac_id import PAC_ID
+from labfreed.pac_id_resolver.resolver import PAC_ID_Resolver, cit_from_str
+from labfreed.pac_id_resolver.services import ServiceGroup
+
+        
+
+
+
+class Labfreed_App_Infrastructure():
+    def __init__(self, markup = 'rich', language_preferences:list[str]|str='en', http_client:requests.Session|None=None):
+        if isinstance(language_preferences, str):
+            language_preferences = [language_preferences]
+        self._language_preferences = language_preferences
+        
+        self._resolver = PAC_ID_Resolver()
+        
+        if not http_client:
+            http_client = requests.Session()
+        self._http_client= http_client
+        callback = attribute_request_default_callback_factory(http_client)
+            
+        self._attribute_client = AttributeClient(http_post_callback=callback, cache_store=MemoryAttributeCache())
+
+
+    def add_cit(self, cit:str):
+        cit = cit_from_str(cit)
+        if not cit:
+            raise ValueError('the cit could not be parsed. Neither as v1 or v2')
+        self._resolver._cits.append(cit)
+        
+        
+    def process_pac(self, pac_url, markup=None):
+        if not isinstance(pac_url, PAC_ID):
+            pac = PAC_ID.from_url(pac_url)
+        else:
+            pac = pac_url
+        service_groups = self._resolver.resolve(pac, check_service_status=False)
+        
+        pac_info = PacInfo(pac_id=pac)
+                       
+        # update service states
+        (sg.update_states() for sg in service_groups)
+               
+        # Services
+        sg_user_handovers = []
+        for sg in service_groups:
+            user_handovers = [s  for s in sg.services if s.service_type == 'userhandover-generic']
+            
+            if user_handovers:
+                sg_user_handovers.append(ServiceGroup(origin=sg.origin, services=user_handovers))
+        pac_info.user_handovers = sg_user_handovers
+        
+        # Attributes
+        attribute_groups = []
+        for sg in service_groups:  
+            attributes_urls = [s.url  for s in sg.services if s.service_type == 'attributes-generic']
+            for url in attributes_urls:
+                ags = self._attribute_client.get_attributes(url, pac_id=pac.to_url(include_extensions=False), language_preferences=self._language_preferences)
+                if ags:
+                    attribute_groups.extend(ags)
+        pac_info.attributes = attribute_groups
+        
+        if dn := pac.get_extension('N'):
+            dn = DisplayNameExtension.from_extension(dn)
+            pac_info.display_name = dn.display_name or ""
+        # there can be a display name in attributes, too
+        if meta := [ag for ag in pac_info.attributes if ag.key == MetaAttributeKeys.GROUPKEY.value]:
+            dn_attr = [a for a in meta[0].attributes if a.key == MetaAttributeKeys.DISPLAYNAME.value]
+            if dn_attr: 
+                dn = dn_attr[0].value
+                pac_info.display_name += f'  ( aka {dn} )'
+              
+        return pac_info
+    
+    
+    
+    def update_user_handover_states(self, services, session:requests.Session = None):
+        '''Triggers each service to check if the url can be reached'''
+        if not _has_internet_connection():
+            raise ConnectionError("No Internet Connection")
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = [executor.submit(s.check_service_status, session=session) for s in services]
+            for _ in as_completed(futures):
+                pass  # just wait for all to finish
+            
+            
+def _has_internet_connection():
+    try:
+        requests.head("https://1.1.1.1", timeout=3)
+        return True
+    except requests.RequestException:
+        return False
+                
+                
