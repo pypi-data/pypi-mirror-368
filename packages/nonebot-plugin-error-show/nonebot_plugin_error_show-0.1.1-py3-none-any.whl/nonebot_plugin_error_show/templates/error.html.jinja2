@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <link href="./output.css" rel="stylesheet" />
+    <title>异常追踪</title>
+  </head>
+  <body class="bg-slate-50">
+    <div class="flex items-center justify-center p-4 md:p-8">
+      <div class="w-full max-w-5xl rounded-xl border border-slate-200 bg-white p-6 shadow-lg">
+        <!-- 头部信息 -->
+        <div class="mb-6 border-b border-slate-200 pb-4">
+          <h1 class="text-2xl font-bold text-orange-500">糟糕！看起来出了点什么问题</h1>
+          <div class="mt-2 flex items-center justify-between">
+            <p class="text-slate-500">{{ time }}</p>
+            <p class="text-slate-500">Trace ID: <span class="font-mono">{{ trace_id }}</span></p>
+          </div>
+        </div>
+
+        <!-- 异常信息部分 -->
+        <div class="space-y-6">
+          <!-- 异常总结 -->
+          <div class="rounded-lg border-l-4 border-orange-500 bg-red-50 p-5">
+            <h2 class="text-lg font-bold text-orange-700">异常内容</h2>
+            <p class="mt-2 font-medium text-orange-600">{{ e }}</p>
+          </div>
+
+          <!-- 事件追踪 -->
+          <div class="rounded-lg border-l-4 border-teal-500 bg-indigo-50 p-5">
+            <h2 class="text-lg font-bold text-teal-700">事件追踪</h2>
+            <p class="mt-2 text-teal-600">{{ event }}</p>
+          </div>
+
+          <!-- 异常详情 -->
+          <div class="rounded-lg border border-slate-200 bg-slate-50 p-5">
+            <h2 class="text-lg font-bold text-slate-700">异常追踪</h2>
+            <pre class="mt-3 overflow-auto rounded-md bg-slate-800 p-4 font-mono text-sm whitespace-pre-wrap text-slate-100">{{ traceback | e }}</pre>
+          </div>
+        </div>
+
+        <!-- 底部信息 -->
+        <div class="mt-8 flex flex-col items-center justify-between border-t border-slate-200 pt-6 md:flex-row">
+          <!-- 左侧文字 -->
+          <div class="mb-4 text-center md:mb-0 md:text-left">
+            <p class="text-slate-500">由 nonebot-plugin-error-show 插件生成</p>
+            {% if nickname %}
+            <p class="font-medium text-slate-600">{{ nickname }} {% if bot_id %}({{ bot_id }}){% endif %}</p>
+            {% endif %}
+            <p class="text-slate-500">请将此页面截图并发送给开发者</p>
+          </div>
+
+          <!-- 右侧二维码 -->
+          {% if bot_link or group_link %}
+          <div class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+            <div class="flex justify-between gap-4">
+              {% if bot_link %}
+              <div class="flex flex-col items-center">
+                <img src="{{ bot_link }}" alt="机器人二维码" class="h-28 w-28 rounded-md" />
+                <p class="mt-2 text-center text-sm text-slate-500">添加机器人</p>
+              </div>
+              {% endif %} {% if group_link %}
+              <div class="flex flex-col items-center">
+                <img src="{{ group_link }}" alt="用户群二维码" class="h-28 w-28 rounded-md" />
+                <p class="mt-2 text-center text-sm text-slate-500">加入用户群</p>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
