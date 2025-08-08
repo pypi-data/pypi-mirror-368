@@ -1,0 +1,120 @@
+[project]
+name = "FastAPI-fastkit"
+dynamic = []
+description = "Fast, easy-to-use starter kit for new users of Python and FastAPI"
+authors = [
+    { name = "bnbong", email = "bbbong9@gmail.com" },
+]
+dependencies = [
+    "click>=8.1.7",
+    "rich>=13.9.2",
+]
+requires-python = ">=3.12"
+readme = "README.md"
+version = "1.1.0"
+
+[project.license]
+text = "MIT"
+
+[project.urls]
+Homepage = "https://github.com/bnbong/FastAPI-kit"
+Repository = "https://github.com/bnbong/FastAPI-kit"
+Documentation = "https://bnbong.github.io/FastAPI-fastkit/"
+Changelog = "https://bnbong.github.io/FastAPI-fastkit/changelog/"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.3",
+    "pytest-cov>=6.2.1",
+    "black>=24.10.0",
+    "pre-commit>=4.0.1",
+    "mypy>=1.12.0",
+    "isort>=5.13.2",
+]
+
+[project.scripts]
+fastkit = "fastapi_fastkit.cli:fastkit_cli"
+
+[build-system]
+requires = [
+    "pdm-backend",
+]
+build-backend = "pdm.backend"
+
+[tool.pdm]
+distribution = true
+
+[tool.pdm.version]
+source = "file"
+path = "src/fastapi_fastkit/__init__.py"
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+]
+python_files = "test_*.py"
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--disable-warnings",
+]
+
+[tool.isort]
+profile = "black"
+
+[tool.mypy]
+strict = true
+
+[[tool.mypy.overrides]]
+module = "fastapi_fastkit.cli"
+disable_error_code = [
+    "func-returns-value",
+]
+
+[[tool.mypy.overrides]]
+module = "fastapi_fastkit.core"
+ignore_missing_imports = true
+check_untyped_defs = false
+
+[tool.coverage.run]
+source = [
+    "src/fastapi_fastkit",
+]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__pycache__/*",
+    "*/.*",
+    "*/venv/*",
+    "*/.venv/*",
+    "*/site-packages/*",
+    "*/fastapi_project_template/*",
+    "*/__main__.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+show_missing = true
+precision = 2
+fail_under = 70
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[dependency-groups]
+docs = [
+    "mkdocs>=1.6.1",
+    "mkdocs-material>=9.6.15",
+    "mdx-include>=1.4.2",
+]

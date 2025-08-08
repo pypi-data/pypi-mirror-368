@@ -1,0 +1,30 @@
+# --------------------------------------------------------------------------
+# pytest runtime configuration module
+# --------------------------------------------------------------------------
+from collections.abc import Generator
+
+import os
+import json
+import pytest
+from fastapi.testclient import TestClient
+
+from src.main import app
+
+MOCK_FILE = os.path.join(os.path.dirname(__file__), "../src/mocks/mock_items.json")
+
+
+@pytest.fixture(autouse=True)
+def reset_mock_data():
+    initial_data = [
+        {"id": 1, "name": "Test Item 1", "price": 10.5, "category": "test"},
+        {"id": 2, "name": "Test Item 2", "price": 20.0, "category": "test"},
+    ]
+    with open(MOCK_FILE, "w") as file:
+        json.dump(initial_data, file)
+    yield
+
+
+@pytest.fixture(scope="module")
+def client() -> Generator[TestClient, None, None]:
+    with TestClient(app) as c:
+        yield c
