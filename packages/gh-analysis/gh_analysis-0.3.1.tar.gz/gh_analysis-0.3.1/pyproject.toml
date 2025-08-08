@@ -1,0 +1,83 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "gh-analysis"
+version = "0.3.1"
+description = "GitHub issue collection and AI-powered analysis"
+requires-python = ">=3.13"
+dependencies = [
+    "anthropic>=0.7.0",
+    "httpx>=0.24.0",
+    "mcp", # Model Context Protocol support
+    "openai>=1.0.0",
+    "pydantic>=2.5.0",
+    "pydantic-ai>=0.4.0",
+    "pygithub>=2.6.1",
+    "python-dotenv>=1.0.0",
+    "rich>=13.0.0",
+    "troubleshoot-mcp-server>=1.11.0",
+    "typer>=0.9.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.4.1",
+    "pytest-asyncio>=1.0.0", 
+    "pytest-mock>=3.14.1",
+    "ruff>=0.12.1",
+    "mypy>=1.16.1",
+    "pre-commit>=3.0.0",
+]
+export = [
+    "pyyaml>=6.0.0",
+]
+
+[project.scripts]
+gh-analysis = "gh_analysis.cli.main:app"
+
+[tool.hatchling.build.targets.wheel]
+packages = ["gh_analysis"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+exclude = ["github_issue_analysis/ai/prompts.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.ruff.format]
+# Ruff's formatter (replaces Black)
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+norecursedirs = ["trees"]
+markers = [
+    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+exclude = ["trees/"]
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+check_untyped_defs = true
+
+[dependency-groups]
+dev = [
+    "types-pyyaml>=6.0.12.20250516",
+]
+
+
