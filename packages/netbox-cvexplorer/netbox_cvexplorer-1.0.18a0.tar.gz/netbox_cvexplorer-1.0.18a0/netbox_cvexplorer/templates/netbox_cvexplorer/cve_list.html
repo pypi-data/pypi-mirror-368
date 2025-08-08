@@ -1,0 +1,70 @@
+{% extends 'base/layout.html' %}
+{% load helpers cvexplorer_extras %}
+{% load helpers %}
+
+{% block content %}
+<div class="container">
+  <h1>CVE Übersicht</h1>
+
+  <form method="get" class="mb-3">
+    <div class="input-group">
+      <input type="text" class="form-control" name="q" placeholder="Suche nach CVE oder Titel" value="{{ search_query }}">
+      <button class="btn btn-primary" type="submit">
+        <i class="mdi mdi-magnify"></i> Suchen
+      </button>
+    </div>
+  </form>
+
+  <div class="htmx-container table-responsive">
+    <table class="table table-hover object-list" hx-disinherit="hx-target hx-select" hx-swap="outerHTML">
+      <thead hx-target="closest .htmx-container" hx-push-url="true">
+        <tr>
+          <th class="w-1" aria-label="Alles auswählen">
+            <input type="checkbox" class="toggle form-check-input" title="Alles umschalten">
+          </th>
+          <th class="orderable">
+            <a href="?sort=cve_number">CVE</a>
+          </th>
+          <th class="orderable">
+            <a href="?sort=title">Titel</a>
+          </th>
+          <th class="orderable">
+            <a href="?sort=score">CVSS</a>
+          </th>
+          <th class="orderable">
+            <a href="?sort=status">Status</a>
+          </th>
+          <th class="orderable">
+            <a href="?sort=date_updated">Aktualisiert</a>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if table.page.object_list %}
+          {% for record in table.page.object_list %}
+            <tr>
+              <td><input type="checkbox" name="pk" value="{{ record.pk }}"></td>
+              <td><a href="{{ record.get_absolute_url }}">{{ record.cve_number }}</a></td>
+              <td>{{ record.title }}</td>
+              <td>{{ record.score|cvss_badge|safe }}</td>
+              <td>
+                {% if record.status == 1 %}
+                  <span class="badge bg-success">Erledigt</span>
+                {% else %}
+                  <span class="badge bg-warning text-dark">Offen</span>
+                {% endif %}
+              </td>
+              <td>{{ record.date_updated|date:"Y-m-d H:i" }}</td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="6" class="text-center text-muted">— Keine CVEs gefunden —</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+{% endblock %}
