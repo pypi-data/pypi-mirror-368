@@ -1,0 +1,1236 @@
+"""
+独立用户认证系统 - 后端核心库
+
+功能特性:
+- 基于JWT的双令牌认证机制
+- MySQL数据库支持
+- 多设备会话管理
+- IP限流和安全防护
+- 用户注册和权限管理
+- 密码加密和设备指纹验证
+- 连接池和性能优化
+
+依赖说明:
+- 核心功能: 无需Flask，可独立使用
+- 装饰器功能: 需要Flask (pip install flask)
+- 其他依赖: pymysql, PyJWT, cryptography, dbutils
+
+使用方法:
+
+1. 基础认证功能（无需Flask）:
+```python
+# 初始化认证管理器
+auth_manager = StandaloneAuthManager({
+    'host': 'localhost',
+    'port': 3306,
+    'user': 'root',
+    'password': 'password',
+    'database': 'auth_db'
+})
+
+# 用户认证
+result = auth_manager.authenticate_user('username', 'password', '192.168.1.1', 'Mozilla/5.0...')
+
+# 生成tokens
+if result['success']:
+    device_session_id, device_id, device_name = auth_manager.create_or_update_device_session(
+        result['user_id'], '192.168.1.1', 'Mozilla/5.0...'
+    )
+    access_token = auth_manager.generate_access_token(result)
+    refresh_token = auth_manager.generate_refresh_token(result, device_session_id)
+```
+
+2. Flask装饰器使用（需要Flask）:
+```python
+from flask import Flask, request
+app = Flask(__name__)
+
+@app.route('/api/protected')
+@require_auth(auth_manager)
+def protected_route():
+    return {'user': request.current_user['username']}
+```
+
+3. 框架无关的中间件使用:
+```python
+# 创建认证中间件
+auth_middleware = create_auth_middleware(auth_manager)
+
+# 在任何框架中使用
+def your_route_handler(request_headers):
+    user = auth_middleware(request_headers.get('Authorization'))
+    if user:
+        return {'message': f'Hello {user["username"]}'}
+    else:
+        return {'error': 'Unauthorized'}, 401
+```
+"""
+
+import os
+import jwt # type: ignore
+import pymysql
+import hashlib
+import secrets
+import json
+import time
+import base64
+import requests
+from datetime import datetime, timedelta, timezone
+from functools import wraps
+from dbutils.pooled_db import PooledDB  # type: ignore
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.backends import default_backend
+
+# Flask相关导入 - 用于装饰器功能
+try:
+    from flask import request
+    FLASK_AVAILABLE = True
+except ImportError:
+    FLASK_AVAILABLE = False
+    request = None
+
+
+class StandaloneAuthManager:
+    """独立的身份验证管理器"""
+    
+    def __init__(self, db_config, auth_config=None):
+        """
+        初始化认证管理器
+        
+        Args:
+            db_config (dict): 数据库配置
+                {
+                    'host': 'localhost',
+                    'port': 3306,
+                    'user': 'root',
+                    'password': 'password',
+                    'database': 'auth_db'
+                }
+            auth_config (dict): 认证配置，可选
+        """
+        self.db_config = db_config
+        self.db_name = db_config.get('database', 'standalone_auth')
+        
+        # 默认认证配置
+        self.auth_config = {
+            'secret_key': auth_config.get('secret_key', secrets.token_hex(32)) if auth_config else secrets.token_hex(32),
+            'algorithm': 'HS256',
+            'access_token_expires': 30 * 60,  # 30分钟
+            'refresh_token_expires': 7 * 24 * 60 * 60,  # 7天
+            'absolute_refresh_expires_days': 30,  # 30天绝对过期
+            'max_refresh_rotations': 100,  # 最大轮换次数
+            'session_expires_hours': 24,  # 会话过期时间
+            'max_login_attempts': 5,  # 最大登录尝试次数
+            'lockout_duration': 15 * 60,  # 锁定时长
+            'max_concurrent_devices': 10,  # 最大并发设备数
+            'device_session_expires_days': 30,  # 设备会话过期时间
+            'ip_max_attempts': 10,  # IP最大尝试次数
+            'ip_window_minutes': 30,  # IP限制时间窗口
+            'ip_lockout_duration': 60 * 60,  # IP锁定时长
+            **(auth_config or {})
+        }
+        
+        self._init_mysql_pool()
+        self.init_database()
+    
+    def _init_mysql_pool(self):
+        """初始化MySQL连接池"""
+        try:
+            # 先创建数据库（如果不存在）
+            self._create_database_if_not_exists()
+            
+            self.pool = PooledDB(
+                creator=pymysql,
+                maxconnections=20,  # 最大连接数
+                mincached=5,  # 初始化空闲连接数
+                maxcached=10,  # 空闲连接最大缓存数
+                blocking=True,
+                host=self.db_config['host'],
+                port=int(self.db_config['port']),
+                user=self.db_config['user'],
+                password=self.db_config['password'],
+                database=self.db_name,
+                ping=1,
+                charset='utf8mb4',
+                cursorclass=pymysql.cursors.DictCursor,
+                autocommit=True,  # 启用自动提交，避免锁冲突
+                init_command="SET time_zone = '+00:00'"
+            )
+            
+        except Exception as e:
+            print(f"MySQL连接池初始化失败: {e}")
+            raise
+    
+    def _create_database_if_not_exists(self):
+        """创建数据库（如果不存在）"""
+        try:
+            # 不指定数据库的连接
+            conn = pymysql.connect(
+                host=self.db_config['host'],
+                port=int(self.db_config['port']),
+                user=self.db_config['user'],
+                password=self.db_config['password'],
+                charset='utf8mb4'
+            )
+            cursor = conn.cursor()
+            
+            # 创建数据库
+            cursor.execute(f"CREATE DATABASE IF NOT EXISTS {self.db_name} CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci")
+            
+            cursor.close()
+            conn.close()
+            
+        except Exception as e:
+            print(f"创建数据库失败: {e}")
+            raise
+    
+    def init_database(self):
+        """初始化数据库表"""
+        conn = self.pool.connection()
+        cursor = conn.cursor()
+        
+        try:
+            # 用户表
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS users (
+                    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                    username VARCHAR(50) NOT NULL,
+                    password_hash VARCHAR(128) NOT NULL,
+                    salt VARCHAR(64) NOT NULL,
+                    role ENUM('admin', 'user', 'manager') NOT NULL DEFAULT 'user',
+                    permissions JSON DEFAULT (JSON_ARRAY()),
+                    is_active TINYINT(1) NOT NULL DEFAULT 1,
+                    created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+                    last_login TIMESTAMP(3) NULL DEFAULT NULL,
+                    login_attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
+                    locked_until TIMESTAMP(3) NULL DEFAULT NULL,
+                    
+                    UNIQUE KEY uk_users_username (username),
+                    KEY idx_users_role (role),
+                    KEY idx_users_created_at (created_at),
+                    KEY idx_users_is_active (is_active),
+                    KEY idx_users_locked_until (locked_until)
+                ) ENGINE=InnoDB 
+                  DEFAULT CHARSET=utf8mb4 
+                  COLLATE=utf8mb4_0900_ai_ci
+            ''')
+            
+            # 设备会话表
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS device_sessions (
+                    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                    user_id BIGINT UNSIGNED NOT NULL,
+                    device_id VARCHAR(64) CHARACTER SET ascii NOT NULL,
+                    device_fingerprint VARCHAR(128) CHARACTER SET ascii NOT NULL,
+                    device_name VARCHAR(100) NOT NULL DEFAULT 'Unknown Device',
+                    device_type ENUM('mobile', 'desktop', 'tablet', 'unknown') NOT NULL DEFAULT 'unknown',
+                    platform VARCHAR(50) DEFAULT NULL,
+                    browser VARCHAR(50) DEFAULT NULL,
+                    ip_address VARCHAR(45) NOT NULL,
+                    user_agent TEXT NOT NULL,
+                    last_activity TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+                    created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+                    is_active TINYINT(1) NOT NULL DEFAULT 1,
+                    
+                    UNIQUE KEY uk_device_sessions_device_id (device_id),
+                    KEY idx_device_sessions_user_id (user_id),
+                    KEY idx_device_sessions_user_device (user_id, device_id),
+                    KEY idx_device_sessions_last_activity (last_activity),
+                    KEY idx_device_sessions_is_active (is_active),
+                    KEY idx_device_sessions_fingerprint (device_fingerprint),
+                    
+                    CONSTRAINT fk_device_sessions_user_id 
+                        FOREIGN KEY (user_id) 
+                        REFERENCES users (id) 
+                        ON DELETE CASCADE 
+                        ON UPDATE CASCADE
+                ) ENGINE=InnoDB 
+                  DEFAULT CHARSET=utf8mb4 
+                  COLLATE=utf8mb4_0900_ai_ci
+            ''')
+            
+            # 刷新令牌表
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS refresh_tokens (
+                    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                    token_hash VARCHAR(64) CHARACTER SET ascii NOT NULL,
+                    token_original TEXT NOT NULL,
+                    user_id BIGINT UNSIGNED NOT NULL,
+                    device_session_id BIGINT UNSIGNED NOT NULL,
+                    expires_at TIMESTAMP(3) NOT NULL,
+                    absolute_expires_at TIMESTAMP(3) NOT NULL,
+                    rotation_count INT UNSIGNED NOT NULL DEFAULT 0,
+                    max_rotations INT UNSIGNED NOT NULL DEFAULT 30,
+                    is_revoked TINYINT(1) NOT NULL DEFAULT 0,
+                    revoked_at TIMESTAMP(3) NULL DEFAULT NULL,
+                    revoked_reason VARCHAR(50) NULL DEFAULT NULL,
+                    created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+                    last_used_at TIMESTAMP(3) NULL DEFAULT NULL,
+                    
+                    UNIQUE KEY uk_refresh_tokens_token_hash (token_hash),
+                    UNIQUE KEY uk_refresh_tokens_device_session (device_session_id),
+                    KEY idx_refresh_tokens_user_id (user_id),
+                    KEY idx_refresh_tokens_expires_at (expires_at),
+                    KEY idx_refresh_tokens_absolute_expires_at (absolute_expires_at),
+                    KEY idx_refresh_tokens_is_revoked (is_revoked),
+                    
+                    CONSTRAINT fk_refresh_tokens_user_id 
+                        FOREIGN KEY (user_id) 
+                        REFERENCES users (id) 
+                        ON DELETE CASCADE 
+                        ON UPDATE CASCADE,
+                    CONSTRAINT fk_refresh_tokens_device_session_id 
+                        FOREIGN KEY (device_session_id) 
+                        REFERENCES device_sessions (id) 
+                        ON DELETE CASCADE 
+                        ON UPDATE CASCADE
+                ) ENGINE=InnoDB 
+                  DEFAULT CHARSET=utf8mb4 
+                  COLLATE=utf8mb4_0900_ai_ci
+            ''')
+            
+            # 登录日志表
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS login_logs (
+                    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                    user_id BIGINT UNSIGNED DEFAULT NULL,
+                    username VARCHAR(50) DEFAULT NULL,
+                    ip_address VARCHAR(45) CHARACTER SET ascii DEFAULT NULL,
+                    user_agent TEXT DEFAULT NULL,
+                    login_time TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+                    login_result ENUM('success', 'failure') NOT NULL,
+                    failure_reason VARCHAR(100) DEFAULT NULL,
+                    
+                    KEY idx_login_logs_user_id (user_id),
+                    KEY idx_login_logs_username (username),
+                    KEY idx_login_logs_login_time (login_time),
+                    KEY idx_login_logs_login_result (login_result),
+                    KEY idx_login_logs_ip_address (ip_address),
+                    
+                    CONSTRAINT fk_login_logs_user_id 
+                        FOREIGN KEY (user_id) 
+                        REFERENCES users (id) 
+                        ON DELETE SET NULL 
+                        ON UPDATE CASCADE
+                ) ENGINE=InnoDB 
+                  DEFAULT CHARSET=utf8mb4 
+                  COLLATE=utf8mb4_0900_ai_ci
+            ''')
+            
+            # IP限流表
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS ip_rate_limits (
+                    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                    ip_address VARCHAR(45) CHARACTER SET ascii NOT NULL,
+                    action_type ENUM('login', 'register', 'password_reset') NOT NULL,
+                    failure_count SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+                    last_failure TIMESTAMP(3) NULL DEFAULT NULL,
+                    first_failure TIMESTAMP(3) NULL DEFAULT NULL,
+                    locked_until TIMESTAMP(3) NULL DEFAULT NULL,
+                    lockout_count SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+                    created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+                    updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+                    
+                    UNIQUE KEY uk_ip_rate_limits_ip_action (ip_address, action_type),
+                    KEY idx_ip_rate_limits_locked_until (locked_until),
+                    KEY idx_ip_rate_limits_last_failure (last_failure),
+                    KEY idx_ip_rate_limits_created_at (created_at)
+                ) ENGINE=InnoDB 
+                  DEFAULT CHARSET=utf8mb4 
+                  COLLATE=utf8mb4_0900_ai_ci
+            ''')
+            
+            print("数据库表初始化完成")
+            
+        except Exception as e:
+            print(f"数据库表创建失败: {e}")
+            raise
+        finally:
+            cursor.close()
+            conn.close()
+    
+    def _hash_password(self, password, salt):
+        """密码哈希"""
+        return hashlib.pbkdf2_hmac('sha256', password.encode(), salt.encode(), 100000).hex()
+    
+    def _verify_password(self, password, password_hash, salt):
+        """验证密码"""
+        return self._hash_password(password, salt) == password_hash
+    
+    def _log_login_attempt(self, username, ip_address, user_agent, result, failure_reason=None, user_id=None):
+        """记录登录尝试"""
+        conn = self.pool.connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute('''
+                INSERT INTO login_logs (user_id, username, ip_address, user_agent, login_result, failure_reason)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            ''', (user_id, username, ip_address, user_agent, result, failure_reason))
+        except Exception as e:
+            print(f"记录登录日志失败: {e}")
+        finally:
+            cursor.close()
+            conn.close()
+    
+    def register_user(self, username, password, role='user', permissions=None):
+        """用户注册"""
+        conn = self.pool.connection()
+        cursor = conn.cursor()
+        
+        try:
+            # 验证输入
+            if not username or not password:
+                return {'success': False, 'message': '用户名和密码不能为空'}
+            
+            if len(username.strip()) < 3:
+                return {'success': False, 'message': '用户名至少需要3个字符'}
+                
+            if len(password) < 6:
+                return {'success': False, 'message': '密码至少需要6个字符'}
+            
+            username = username.strip()
+            
+            # 检查用户名是否已存在
+            cursor.execute('SELECT id FROM users WHERE username = %s', (username,))
+            if cursor.fetchone():
+                return {'success': False, 'message': '用户名已被占用'}
+            
+            # 生成盐值和密码哈希
+            salt = secrets.token_hex(32)
+            password_hash = self._hash_password(password, salt)
+            
+            # 设置默认权限
+            if permissions is None:
+                permissions = ['read'] if role == 'user' else ['read', 'write']
+            permissions_json = json.dumps(permissions)
+            
+            # 创建新用户
+            cursor.execute('''
+                INSERT INTO users (username, password_hash, salt, role, permissions, is_active)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            ''', (username, password_hash, salt, role, permissions_json, True))
+            
+            user_id = cursor.lastrowid
+            
+            return {
+                'success': True,
+                'message': '注册成功',
+                'user': {
+                    'id': user_id,
+                    'username': username,
+                    'role': role,
+                    'permissions': permissions
+                }
+            }
+            
+        except Exception as e:
+            return {'success': False, 'message': f'注册失败: {str(e)}'}
+        finally:
+            cursor.close()
+            conn.close()
+    
+    def authenticate_user(self, username, password, ip_address=None, user_agent=None):
+        """用户身份验证"""
+        
+        # 检查IP是否被限流
+        ip_check = self._check_ip_rate_limit(ip_address, 'login')
+        if ip_check['blocked']:
+            self._log_login_attempt(username, ip_address, user_agent, 'failure', f'ip_blocked_{ip_check["remaining_time"]}s')
+            return {
+                'success': False,
+                'error': 'ip_blocked',
+                'message': ip_check['reason'],
+                'remaining_time': ip_check['remaining_time']
+            }
+        
+        conn = self.pool.connection()
+        cursor = conn.cursor()
+        
+        try:
+            # 获取用户信息
+            cursor.execute('''
+                SELECT id, username, password_hash, salt, role, permissions, 
+                       is_active, login_attempts, locked_until
+                FROM users WHERE username = %s
+            ''', (username,))
+            
+            user = cursor.fetchone()
+            if not user:
+                self._log_login_attempt(username, ip_address, user_agent, 'failure', 'user_not_found')
+                self._record_ip_failure(ip_address, 'login')
+                return {
+                    'success': False,
+                    'error': 'invalid_credentials',
+                    'message': '用户名或密码错误'
+                }
+            
+            user_id = user['id']
+            password_hash = user['password_hash']
+            salt = user['salt']
+            role = user['role']
+            permissions = user['permissions']
+            is_active = user['is_active']
+            login_attempts = user['login_attempts']
+            locked_until = user['locked_until']
+            
+            # 检查账户状态
+            if not is_active:
+                self._log_login_attempt(username, ip_address, user_agent, 'failure', 'account_disabled', user_id)
+                self._record_ip_failure(ip_address, 'login')
+                return {
+                    'success': False,
+                    'error': 'account_disabled',
+                    'message': '账户已被禁用'
+                }
+            
+            # 检查账户锁定状态
+            current_time_utc = datetime.now(timezone.utc)
+            if locked_until:
+                if locked_until.tzinfo is None:
+                    locked_until = locked_until.replace(tzinfo=timezone.utc)
+                elif locked_until.tzinfo != timezone.utc:
+                    locked_until = locked_until.astimezone(timezone.utc)
+                
+                if locked_until > current_time_utc:
+                    remaining_seconds = int((locked_until - current_time_utc).total_seconds())
+                    self._log_login_attempt(username, ip_address, user_agent, 'failure', 'account_locked', user_id)
+                    self._record_ip_failure(ip_address, 'login')
+                    return {
+                        'success': False,
+                        'error': 'account_locked',
+                        'message': f'账户已被锁定，请在 {remaining_seconds} 秒后重试',
+                        'remaining_time': remaining_seconds
+                    }
+            
+            # 验证密码
+            if not self._verify_password(password, password_hash, salt):
+                # 记录失败尝试
+                login_attempts += 1
+                
+                if login_attempts >= self.auth_config['max_login_attempts']:
+                    lockout_duration = self.auth_config['lockout_duration']
+                    locked_until = current_time_utc + timedelta(seconds=lockout_duration)
+                    cursor.execute('''
+                        UPDATE users SET login_attempts = %s, locked_until = %s WHERE id = %s
+                    ''', (login_attempts, locked_until, user_id))
+                    
+                    self._log_login_attempt(username, ip_address, user_agent, 'failure', f'password_incorrect_locked_{lockout_duration}s', user_id)
+                    self._record_ip_failure(ip_address, 'login')
+                    
+                    return {
+                        'success': False,
+                        'error': 'account_locked',
+                        'message': f'密码错误次数过多，账户已被锁定 {lockout_duration} 秒',
+                        'remaining_time': lockout_duration
+                    }
+                else:
+                    cursor.execute('''
+                        UPDATE users SET login_attempts = %s WHERE id = %s
+                    ''', (login_attempts, user_id))
+                    
+                    self._log_login_attempt(username, ip_address, user_agent, 'failure', f'password_incorrect_attempt_{login_attempts}', user_id)
+                    self._record_ip_failure(ip_address, 'login')
+                    
+                    remaining_attempts = self.auth_config['max_login_attempts'] - login_attempts
+                    return {
+                        'success': False,
+                        'error': 'invalid_credentials',
+                        'message': f'用户名或密码错误，还可以尝试 {remaining_attempts} 次',
+                        'remaining_attempts': remaining_attempts
+                    }
+            
+            # 登录成功，重置尝试次数
+            cursor.execute('''
+                UPDATE users SET login_attempts = 0, locked_until = NULL, last_login = %s WHERE id = %s
+            ''', (current_time_utc, user_id))
+            
+            # 记录成功登录
+            self._log_login_attempt(username, ip_address, user_agent, 'success', None, user_id)
+            self._reset_ip_failures(ip_address, 'login')
+            
+            return {
+                'success': True,
+                'user_id': user_id,
+                'username': user['username'],
+                'role': role,
+                'permissions': self._safe_json_parse(permissions),
+                'last_login': current_time_utc.isoformat()
+            }
+            
+        finally:
+            cursor.close()
+            conn.close()
+    
+    def generate_access_token(self, user_info):
+        """生成访问令牌"""
+        now_utc = datetime.now(timezone.utc)
+        exp_utc = now_utc + timedelta(seconds=self.auth_config['access_token_expires'])
+        
+        payload = {
+            'user_id': user_info['user_id'],
+            'username': user_info['username'],
+            'role': user_info['role'],
+            'permissions': user_info['permissions'],
+            'iat': int(now_utc.timestamp()),
+            'exp': int(exp_utc.timestamp()),
+            'type': 'access'
+        }
+        
+        return jwt.encode(payload, self.auth_config['secret_key'], algorithm=self.auth_config['algorithm'])
+    
+    def verify_access_token(self, token):
+        """验证访问令牌"""
+        try:
+            payload = jwt.decode(token, self.auth_config['secret_key'], algorithms=[self.auth_config['algorithm']])
+            
+            if payload.get('type') != 'access':
+                return None
+            
+            return payload
+            
+        except jwt.ExpiredSignatureError:
+            return None
+        except jwt.InvalidTokenError:
+            return None
+    
+    def create_or_update_device_session(self, user_id, ip_address, user_agent):
+        """创建或更新设备会话"""
+        device_fingerprint = self._generate_device_fingerprint(user_agent, ip_address)
+        device_info = self._parse_user_agent(user_agent)
+        device_id = secrets.token_urlsafe(32)
+        
+        conn = self.pool.connection()
+        cursor = conn.cursor()
+        
+        try:
+            current_time_utc = datetime.now(timezone.utc)
+            
+            # 检查设备是否已存在
+            cursor.execute('''
+                SELECT id, device_id FROM device_sessions 
+                WHERE user_id = %s AND device_fingerprint = %s AND is_active = 1
+            ''', (user_id, device_fingerprint))
+            
+            existing_session = cursor.fetchone()
+            
+            if existing_session:
+                # 更新现有设备会话
+                device_session_id = existing_session['id']
+                device_id = existing_session['device_id']
+                
+                cursor.execute('''
+                    UPDATE device_sessions 
+                    SET ip_address = %s, user_agent = %s, last_activity = %s,
+                        device_name = %s, device_type = %s, platform = %s, browser = %s
+                    WHERE id = %s
+                ''', (ip_address, user_agent, current_time_utc,
+                      device_info['device_name'], device_info['device_type'],
+                      device_info['platform'], device_info['browser'], device_session_id))
+            else:
+                # 检查设备数量限制
+                cursor.execute('''
+                    SELECT COUNT(*) as active_count FROM device_sessions 
+                    WHERE user_id = %s AND is_active = 1
+                ''', (user_id,))
+                
+                active_count = cursor.fetchone()['active_count']
+                
+                if active_count >= self.auth_config['max_concurrent_devices']:
+                    # 踢出最旧的设备
+                    cursor.execute('''
+                        SELECT id FROM device_sessions 
+                        WHERE user_id = %s AND is_active = 1 
+                        ORDER BY last_activity ASC 
+                        LIMIT %s
+                    ''', (user_id, active_count - self.auth_config['max_concurrent_devices'] + 1))
+                    
+                    old_sessions = cursor.fetchall()
+                    for old_session in old_sessions:
+                        self._revoke_device_session(cursor, old_session['id'], 'device_limit')
+                
+                # 创建新设备会话
+                cursor.execute('''
+                    INSERT INTO device_sessions (
+                        user_id, device_id, device_fingerprint, device_name, device_type,
+                        platform, browser, ip_address, user_agent, last_activity
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ''', (user_id, device_id, device_fingerprint, device_info['device_name'],
+                      device_info['device_type'], device_info['platform'], device_info['browser'],
+                      ip_address, user_agent, current_time_utc))
+                
+                device_session_id = cursor.lastrowid
+            
+            return device_session_id, device_id, device_info['device_name']
+            
+        finally:
+            cursor.close()
+            conn.close()
+    
+    def generate_refresh_token(self, user_info, device_session_id):
+        """生成刷新令牌"""
+        token = secrets.token_urlsafe(64)
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+        current_time_utc = datetime.now(timezone.utc)
+        expires_at = current_time_utc + timedelta(seconds=self.auth_config['refresh_token_expires'])
+        absolute_expires_at = current_time_utc + timedelta(days=self.auth_config['absolute_refresh_expires_days'])
+        
+        conn = self.pool.connection()
+        cursor = conn.cursor()
+        
+        try:
+            # 清理该设备的旧token
+            cursor.execute('''
+                DELETE FROM refresh_tokens 
+                WHERE device_session_id = %s
+            ''', (device_session_id,))
+            
+            # 插入新token
+            cursor.execute('''
+                INSERT INTO refresh_tokens (
+                    token_hash, token_original, user_id, device_session_id, expires_at, absolute_expires_at,
+                    rotation_count, max_rotations, created_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ''', (token_hash, token, user_info['user_id'], device_session_id, expires_at,
+                  absolute_expires_at, 0, self.auth_config['max_refresh_rotations'], current_time_utc))
+            
+            return token
+            
+        finally:
+            cursor.close()
+            conn.close()
+    
+    def refresh_access_token(self, refresh_token, ip_address=None, user_agent=None):
+        """刷新访问令牌"""
+        try:
+            if not refresh_token:
+                return None
+            
+            token_hash = hashlib.sha256(refresh_token.encode()).hexdigest()
+            
+            conn = self.pool.connection()
+            cursor = conn.cursor()
+            
+            try:
+                # 验证刷新令牌
+                current_time_utc = datetime.now(timezone.utc)
+                current_time_naive = current_time_utc.replace(tzinfo=None)
+                
+                cursor.execute('''
+                    SELECT rt.user_id, rt.device_session_id, rt.expires_at, rt.absolute_expires_at,
+                           rt.rotation_count, rt.max_rotations, 
+                           u.username, u.role, u.permissions,
+                           ds.device_id, ds.device_name, ds.is_active as device_active
+                    FROM refresh_tokens rt
+                    JOIN users u ON rt.user_id = u.id
+                    JOIN device_sessions ds ON rt.device_session_id = ds.id
+                    WHERE rt.token_hash = %s 
+                      AND rt.expires_at > %s 
+                      AND rt.absolute_expires_at > %s 
+                      AND rt.rotation_count < rt.max_rotations
+                      AND rt.is_revoked = 0
+                      AND ds.is_active = 1
+                ''', (token_hash, current_time_naive, current_time_naive))
+                
+                result = cursor.fetchone()
+                
+                if not result:
+                    return None
+                
+                # 更新设备活动时间
+                cursor.execute('''
+                    UPDATE device_sessions 
+                    SET last_activity = %s 
+                    WHERE id = %s
+                ''', (current_time_utc, result['device_session_id']))
+                
+                # 生成新的tokens
+                user_info = {
+                    'user_id': result['user_id'],
+                    'username': result['username'],
+                    'role': result['role'],
+                    'permissions': self._safe_json_parse(result['permissions'])
+                }
+                
+                # 生成新的access token
+                access_token = self.generate_access_token(user_info)
+                
+                # 生成新的refresh token（轮换）
+                new_token = secrets.token_urlsafe(64)
+                new_token_hash = hashlib.sha256(new_token.encode()).hexdigest()
+                token_expires_at = current_time_utc + timedelta(seconds=self.auth_config['refresh_token_expires'])
+                
+                # 删除旧token并插入新token
+                cursor.execute('''
+                    DELETE FROM refresh_tokens 
+                    WHERE device_session_id = %s
+                ''', (result['device_session_id'],))
+                
+                cursor.execute('''
+                    INSERT INTO refresh_tokens (
+                        token_hash, token_original, user_id, device_session_id, expires_at, absolute_expires_at,
+                        rotation_count, max_rotations, created_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ''', (new_token_hash, new_token, result['user_id'], result['device_session_id'], 
+                      token_expires_at, result['absolute_expires_at'],
+                      result['rotation_count'] + 1, result['max_rotations'], current_time_utc))
+                
+                return {
+                    'access_token': access_token,
+                    'refresh_token': new_token,
+                    'user_id': result['user_id'],
+                    'username': result['username'],
+                    'device_info': {
+                        'device_id': result['device_id'],
+                        'device_name': result['device_name']
+                    },
+                    'rotation_info': {
+                        'current_rotation': result['rotation_count'] + 1,
+                        'max_rotations': result['max_rotations'],
+                        'absolute_expires_at': result['absolute_expires_at'].isoformat()
+                    }
+                }
+                
+            finally:
+                cursor.close()
+                conn.close()
+                
+        except Exception as e:
+            print(f"刷新访问令牌失败: {str(e)}")
+            return None
+    
+    def logout_user(self, user_id, ip_address=None, user_agent=None):
+        """用户登出（所有设备）"""
+        conn = self.pool.connection()
+        cursor = conn.cursor()
+        
+        try:
+            current_time_utc = datetime.now(timezone.utc)
+            
+            # 撤销用户的所有刷新令牌
+            cursor.execute('''
+                UPDATE refresh_tokens 
+                SET is_revoked = 1, revoked_at = %s, revoked_reason = 'logout' 
+                WHERE user_id = %s AND is_revoked = 0
+            ''', (current_time_utc, user_id))
+            
+            # 停用用户的所有设备会话
+            cursor.execute('''
+                UPDATE device_sessions 
+                SET is_active = 0 
+                WHERE user_id = %s AND is_active = 1
+            ''', (user_id,))
+            
+            return {'success': True, 'message': '已成功登出所有设备'}
+            
+        except Exception as e:
+            return {'success': False, 'message': f'登出失败: {str(e)}'}
+        finally:
+            cursor.close()
+            conn.close()
+    
+    # ==================== 辅助方法 ====================
+    
+    def _check_ip_rate_limit(self, ip_address, action_type='login'):
+        """检查IP是否被限流"""
+        if not ip_address:
+            return {'blocked': False, 'remaining_time': 0, 'reason': ''}
+            
+        conn = self.pool.connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute('''
+                SELECT failure_count, locked_until, lockout_count, last_failure, first_failure
+                FROM ip_rate_limits 
+                WHERE ip_address = %s AND action_type = %s
+            ''', (ip_address, action_type))
+            
+            record = cursor.fetchone()
+            
+            if not record:
+                return {'blocked': False, 'remaining_time': 0, 'reason': ''}
+            
+            locked_until = record['locked_until']
+            
+            current_time_utc = datetime.now(timezone.utc)
+            if locked_until:
+                if locked_until.tzinfo is None:
+                    locked_until = locked_until.replace(tzinfo=timezone.utc)
+                elif locked_until.tzinfo != timezone.utc:
+                    locked_until = locked_until.astimezone(timezone.utc)
+                
+                if locked_until > current_time_utc:
+                    remaining_seconds = int((locked_until - current_time_utc).total_seconds())
+                    return {
+                        'blocked': True, 
+                        'remaining_time': remaining_seconds,
+                        'reason': f'IP被锁定，剩余时间: {remaining_seconds}秒'
+                    }
+            
+            return {'blocked': False, 'remaining_time': 0, 'reason': ''}
+            
+        finally:
+            cursor.close()
+            conn.close()
+    
+    def _record_ip_failure(self, ip_address, action_type='login'):
+        """记录IP级别的失败尝试"""
+        if not ip_address:
+            return
+            
+        conn = self.pool.connection()
+        cursor = conn.cursor()
+        
+        try:
+            now = datetime.now(timezone.utc)
+            
+            cursor.execute('''
+                SELECT failure_count, first_failure, lockout_count
+                FROM ip_rate_limits 
+                WHERE ip_address = %s AND action_type = %s
+                FOR UPDATE
+            ''', (ip_address, action_type))
+            
+            record = cursor.fetchone()
+            
+            if record:
+                window_minutes = self.auth_config['ip_window_minutes']
+                window_start = now - timedelta(minutes=window_minutes)
+                first_failure = record['first_failure']
+                
+                if first_failure and first_failure.replace(tzinfo=timezone.utc) <= window_start:
+                    # 重置计数器
+                    cursor.execute('''
+                        UPDATE ip_rate_limits 
+                        SET failure_count = 1, first_failure = %s, last_failure = %s
+                        WHERE ip_address = %s AND action_type = %s
+                    ''', (now, now, ip_address, action_type))
+                else:
+                    # 增加失败计数
+                    new_count = record['failure_count'] + 1
+                    cursor.execute('''
+                        UPDATE ip_rate_limits 
+                        SET failure_count = %s, last_failure = %s
+                        WHERE ip_address = %s AND action_type = %s
+                    ''', (new_count, now, ip_address, action_type))
+            else:
+                # 创建新记录
+                cursor.execute('''
+                    INSERT INTO ip_rate_limits 
+                    (ip_address, action_type, failure_count, first_failure, last_failure)
+                    VALUES (%s, %s, 1, %s, %s)
+                ''', (ip_address, action_type, now, now))
+            
+        finally:
+            cursor.close()
+            conn.close()
+    
+    def _reset_ip_failures(self, ip_address, action_type='login'):
+        """重置IP失败计数"""
+        if not ip_address:
+            return
+            
+        conn = self.pool.connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute('''
+                DELETE FROM ip_rate_limits 
+                WHERE ip_address = %s AND action_type = %s
+            ''', (ip_address, action_type))
+        finally:
+            cursor.close()
+            conn.close()
+    
+    def _revoke_device_session(self, cursor, device_session_id, reason='manual'):
+        """撤销设备会话"""
+        current_time_utc = datetime.now(timezone.utc)
+        
+        # 撤销设备相关的refresh token
+        cursor.execute('''
+            UPDATE refresh_tokens 
+            SET is_revoked = 1, revoked_at = %s, revoked_reason = %s 
+            WHERE device_session_id = %s AND is_revoked = 0
+        ''', (current_time_utc, reason, device_session_id))
+        
+        # 停用设备会话
+        cursor.execute('''
+            UPDATE device_sessions 
+            SET is_active = 0 
+            WHERE id = %s
+        ''', (device_session_id,))
+    
+    def _generate_device_fingerprint(self, user_agent, ip_address):
+        """生成设备指纹"""
+        fingerprint_data = f"{user_agent}:{ip_address}:{datetime.now().strftime('%Y%m%d')}"
+        return hashlib.sha256(fingerprint_data.encode()).hexdigest()[:32]
+    
+    def _parse_user_agent(self, user_agent):
+        """解析User-Agent获取设备信息"""
+        if not user_agent:
+            return {
+                'device_type': 'unknown',
+                'platform': None,
+                'browser': None,
+                'device_name': 'Unknown Device'
+            }
+        
+        user_agent_lower = user_agent.lower()
+        
+        # 设备类型判断
+        if any(mobile in user_agent_lower for mobile in ['mobile', 'android', 'iphone', 'ipad']):
+            device_type = 'tablet' if 'ipad' in user_agent_lower else 'mobile'
+        elif 'tablet' in user_agent_lower:
+            device_type = 'tablet'
+        else:
+            device_type = 'desktop'
+        
+        # 平台识别
+        platform = None
+        if 'windows' in user_agent_lower:
+            platform = 'Windows'
+        elif 'mac' in user_agent_lower:
+            platform = 'macOS'
+        elif 'linux' in user_agent_lower:
+            platform = 'Linux'
+        elif 'android' in user_agent_lower:
+            platform = 'Android'
+        elif 'iphone' in user_agent_lower or 'ipad' in user_agent_lower:
+            platform = 'iOS'
+        
+        # 浏览器识别
+        browser = None
+        if 'chrome' in user_agent_lower:
+            browser = 'Chrome'
+        elif 'firefox' in user_agent_lower:
+            browser = 'Firefox'
+        elif 'safari' in user_agent_lower:
+            browser = 'Safari'
+        elif 'edge' in user_agent_lower:
+            browser = 'Edge'
+        
+        # 生成设备名称
+        device_name = f"{platform or 'Unknown'}"
+        if browser:
+            device_name += f" - {browser}"
+        if device_type != 'desktop':
+            device_name += f" ({device_type.title()})"
+        
+        return {
+            'device_type': device_type,
+            'platform': platform,
+            'browser': browser,
+            'device_name': device_name
+        }
+    
+    def _safe_json_parse(self, json_str):
+        """安全解析JSON"""
+        if isinstance(json_str, str):
+            try:
+                return json.loads(json_str)
+            except:
+                return []
+        return json_str or []
+
+
+# Flask集成装饰器
+def require_auth(auth_manager):
+    """
+    认证装饰器 - 需要Flask环境
+    
+    使用方法:
+    @require_auth(auth_manager)
+    def protected_route():
+        return {'user': request.current_user['username']}
+    """
+    if not FLASK_AVAILABLE:
+        raise ImportError("Flask未安装，无法使用require_auth装饰器。请安装Flask: pip install flask")
+    
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            auth_header = request.headers.get('Authorization')
+            if not auth_header or not auth_header.startswith('Bearer '):
+                return {'status': 'error', 'message': '未提供认证令牌'}, 401
+            
+            token = auth_header[7:]  # 移除 "Bearer " 前缀
+            payload = auth_manager.verify_access_token(token)
+            
+            if not payload:
+                return {'status': 'error', 'message': '无效或过期的令牌'}, 401
+            
+            # 将用户信息添加到请求上下文
+            request.current_user = payload
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+
+def require_permissions(auth_manager, required_permissions):
+    """
+    权限检查装饰器 - 需要Flask环境
+    
+    使用方法:
+    @require_permissions(auth_manager, ['admin', 'write'])
+    def admin_route():
+        return {'message': 'Admin only'}
+    """
+    if not FLASK_AVAILABLE:
+        raise ImportError("Flask未安装，无法使用require_permissions装饰器。请安装Flask: pip install flask")
+    
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            auth_header = request.headers.get('Authorization')
+            if not auth_header or not auth_header.startswith('Bearer '):
+                return {'status': 'error', 'message': '未提供认证令牌'}, 401
+            
+            token = auth_header[7:]
+            payload = auth_manager.verify_access_token(token)
+            
+            if not payload:
+                return {'status': 'error', 'message': '无效或过期的令牌'}, 401
+            
+            user_permissions = payload.get('permissions', [])
+            
+            # 检查是否拥有所需权限
+            if not any(perm in user_permissions for perm in required_permissions):
+                return {'status': 'error', 'message': '权限不足'}, 403
+            
+            request.current_user = payload
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+
+def create_auth_middleware(auth_manager):
+    """
+    创建通用的认证中间件函数 - 框架无关
+    
+    使用方法:
+    auth_middleware = create_auth_middleware(auth_manager)
+    
+    # 在你的框架中使用
+    def your_route_handler(request_headers):
+        user = auth_middleware(request_headers.get('Authorization'))
+        if user:
+            return {'message': f'Hello {user["username"]}'}
+        else:
+            return {'error': 'Unauthorized'}, 401
+    """
+    def middleware(auth_header):
+        """
+        认证中间件函数
+        
+        Args:
+            auth_header (str): Authorization头部值
+            
+        Returns:
+            dict: 用户信息，如果认证失败返回None
+        """
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return None
+        
+        token = auth_header[7:]  # 移除 "Bearer " 前缀
+        payload = auth_manager.verify_access_token(token)
+        
+        return payload
+    
+    return middleware
+
+
+def create_permission_checker(auth_manager, required_permissions):
+    """
+    创建权限检查函数 - 框架无关
+    
+    使用方法:
+    check_admin = create_permission_checker(auth_manager, ['admin'])
+    
+    def your_admin_route(request_headers):
+        user = check_admin(request_headers.get('Authorization'))
+        if user:
+            return {'message': 'Admin access granted'}
+        else:
+            return {'error': 'Permission denied'}, 403
+    """
+    def permission_checker(auth_header):
+        """
+        权限检查函数
+        
+        Args:
+            auth_header (str): Authorization头部值
+            
+        Returns:
+            dict: 用户信息，如果权限不足返回None
+        """
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return None
+        
+        token = auth_header[7:]
+        payload = auth_manager.verify_access_token(token)
+        
+        if not payload:
+            return None
+        
+        user_permissions = payload.get('permissions', [])
+        
+        # 检查是否拥有所需权限
+        if not any(perm in user_permissions for perm in required_permissions):
+            return None
+        
+        return payload
+    
+    return permission_checker
+
+
+# 使用示例
+if __name__ == "__main__":
+    # 数据库配置
+    db_config = {
+        'host': 'localhost',
+        'port': 3306,
+        'user': 'root',
+        'password': 'password',
+        'database': 'standalone_auth'
+    }
+    
+    # 认证配置
+    auth_config = {
+        'secret_key': 'your-secret-key',
+        'access_token_expires': 30 * 60,  # 30分钟
+        'refresh_token_expires': 7 * 24 * 60 * 60,  # 7天
+    }
+    
+    # 初始化认证管理器
+    auth_manager = StandaloneAuthManager(db_config, auth_config)
+    
+    # 注册用户
+    result = auth_manager.register_user('admin', 'password123', 'admin', ['read', 'write', 'admin'])
+    print("注册结果:", result)
+    
+    # 用户认证
+    auth_result = auth_manager.authenticate_user('admin', 'password123', '127.0.0.1', 'Mozilla/5.0...')
+    print("认证结果:", auth_result)
+    
+    if auth_result['success']:
+        # 创建设备会话
+        device_session_id, device_id, device_name = auth_manager.create_or_update_device_session(
+            auth_result['user_id'], '127.0.0.1', 'Mozilla/5.0...'
+        )
+        
+        # 生成tokens
+        access_token = auth_manager.generate_access_token(auth_result)
+        refresh_token = auth_manager.generate_refresh_token(auth_result, device_session_id)
+        
+        print("Access Token:", access_token)
+        print("Refresh Token:", refresh_token)
+        
+        # 验证token
+        payload = auth_manager.verify_access_token(access_token)
+        print("Token验证结果:", payload)
+        
+        # 刷新token
+        refresh_result = auth_manager.refresh_access_token(refresh_token, '127.0.0.1', 'Mozilla/5.0...')
+        print("Token刷新结果:", refresh_result) 
