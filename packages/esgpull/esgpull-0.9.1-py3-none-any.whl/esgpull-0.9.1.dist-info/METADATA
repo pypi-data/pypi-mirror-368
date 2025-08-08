@@ -1,0 +1,125 @@
+Metadata-Version: 2.4
+Name: esgpull
+Version: 0.9.1
+Summary: ESGF data discovery, download, replication tool
+Project-URL: Repository, https://github.com/ESGF/esgf-download
+Project-URL: Documentation, https://esgf.github.io/esgf-download/
+Author-email: Sven Rodriguez <srodriguez@ipsl.fr>
+License: BSD-3-Clause
+License-File: LICENSE
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Requires-Python: >=3.10
+Requires-Dist: aiofiles>=22.1.0
+Requires-Dist: aiostream>=0.4.5
+Requires-Dist: alembic>=1.8.1
+Requires-Dist: attrs>=22.1.0
+Requires-Dist: cattrs>=22.2.0
+Requires-Dist: click-params>=0.4.0
+Requires-Dist: click>=8.1.3
+Requires-Dist: httpx>=0.23.0
+Requires-Dist: myproxyclient>=2.1.0
+Requires-Dist: nest-asyncio>=1.5.6
+Requires-Dist: packaging>=25.0
+Requires-Dist: platformdirs>=2.6.2
+Requires-Dist: pyopenssl>=22.1.0
+Requires-Dist: pyparsing>=3.0.9
+Requires-Dist: pyyaml>=6.0
+Requires-Dist: rich>=12.6.0
+Requires-Dist: setuptools>=65.4.1
+Requires-Dist: sqlalchemy>=2.0.0b2
+Requires-Dist: tomlkit>=0.11.5
+Description-Content-Type: text/markdown
+
+# esgpull - ESGF data management utility
+
+[![Rye](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/rye/main/artwork/badge.json)](https://rye.astral.sh)
+
+`esgpull` is a tool that simplifies usage of the [ESGF Search API](https://esgf.github.io/esg-search/ESGF_Search_RESTful_API.html) for data discovery, and manages procedures related to downloading and storing files from ESGF.
+
+```py
+from esgpull import Esgpull, Query
+
+query = Query()
+query.selection.project = "CMIP6"
+query.options.distrib = True  # default=False
+esg = Esgpull()
+nb_datasets = esg.context.hits(query, file=False)[0]
+nb_files = esg.context.hits(query, file=True)[0]
+datasets = esg.context.datasets(query, max_hits=5)
+print(f"Number of CMIP6 datasets: {nb_datasets}")
+print(f"Number of CMIP6 files: {nb_files}")
+for dataset in datasets:
+    print(dataset)
+```
+
+## Features
+
+- Command-line interface
+- HTTP download (async multi-file)
+
+## Installation
+
+`esgpull` is distributed via PyPI:
+
+```shell
+pip install esgpull
+esgpull --help
+```
+
+For isolated installation, [`uv`](https://github.com/astral-sh/uv) or
+[`pipx`](https://github.com/pypa/pipx) are recommended:
+
+```shell
+# with uv
+uv tool install esgpull
+esgpull --help
+
+# alternatively, uvx enables running without explicit installation (comes with uv)
+uvx esgpull --help
+```
+
+```shell
+# with pipx
+pipx install esgpull
+esgpull --help
+```
+
+## Usage
+
+```console
+Usage: esgpull [OPTIONS] COMMAND [ARGS]...
+
+  esgpull is a management utility for files and datasets from ESGF.
+
+Options:
+  -V, --version  Show the version and exit.
+  -h, --help     Show this message and exit.
+
+Commands:
+  add       Add queries to the database
+  config    View/modify config
+  convert   Convert synda selection files to esgpull queries
+  download  Asynchronously download files linked to queries
+  login     OpenID authentication and certificates renewal
+  remove    Remove queries from the database
+  retry     Re-queue failed and cancelled downloads
+  search    Search datasets and files on ESGF
+  self      Manage esgpull installations / import synda database
+  show      View query tree
+  status    View file queue status
+  track     Track queries
+  untrack   Untrack queries
+  update    Fetch files, link files <-> queries, send files to download...
+```
+
+## Useful links
+* [ESGF Webinar: An Introduction to esgpull, A Replacement for Synda](https://www.youtube.com/watch?v=xv2RVMd1iCA)
+
+
+## Contributions
+
+You can use the common github workflow (through pull requests and issues) to contribute.
