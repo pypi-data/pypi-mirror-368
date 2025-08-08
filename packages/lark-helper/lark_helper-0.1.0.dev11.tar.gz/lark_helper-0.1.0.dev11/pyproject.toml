@@ -1,0 +1,125 @@
+[project]
+name = "lark-helper"
+version = "0.1.0.dev11"
+description = "A Python library for interacting with Lark APIs, providing both synchronous and asynchronous interfaces"
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "MIT"}
+authors = [
+    {name = "philo-veritas", email = "edison.gee.lan@gmail.com"}
+]
+maintainers = [
+    {name = "philo-veritas", email = "edison.gee.lan@gmail.com"}
+]
+# Added long description content type for PyPI rendering
+keywords = [
+    "lark", 
+    "api", 
+    "feishu", 
+    "bytedance", 
+    "collaboration", 
+    "bitable", 
+    "messaging",
+    "async",
+    "sync",
+    "enterprise",
+    "communication"
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Communications",
+    "Topic :: Office/Business",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "Topic :: Software Development :: Libraries",
+    "Framework :: AsyncIO",
+    "Typing :: Typed",
+]
+dependencies = [
+    "aiohttp>=3.12.14",
+    "lark-oapi>=1.4.19",
+    "pydantic>=2.11.7",
+    "requests>=2.32.4",
+    "requests-toolbelt>=1.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/philo-veritas/lark-helper"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project.optional-dependencies]
+dev = [
+    "build>=1.2.2.post1",
+    "pytest>=8.4.1",
+    "pytest-asyncio>=1.1.0",
+    "pytest-cov>=5.0.0",
+    "ruff>=0.12.3",
+    "twine>=6.1.0",
+    "mypy>=1.9.0",
+]
+
+test = [
+    "pytest>=8.4.1",
+    "pytest-asyncio>=1.1.0",
+    "pytest-cov>=5.0.0",
+]
+
+docs = [
+    "sphinx>=7.3.7",
+    "sphinx-rtd-theme>=2.0.0",
+]
+
+[tool.ruff]                # 核心设置
+line-length   = 100        # 与 Black 一致，提升可读性
+target-version = "py312"   # 主流生产环境
+exclude = [
+  ".git", ".venv", ".ruff_cache",  ".pytest_cache", ".mypy_cache",# 常见缓存/虚拟目录
+  "dist", "build", "node_modules", 
+]
+src = ["src"]              # 明确源码根，提高扫描速度
+
+[tool.ruff.lint]           # 启用的规则组
+select = [
+  "E",   # pycodestyle 基础风格
+  "F",   # pyflakes 语义错误
+  "B",   # bugbear：潜在 bug、性能陷阱
+  "A",   # builtins：避免覆盖内建名
+  "C4",  # comprehensions：推导式改进
+  "ISC", # 隐式字符串拼接
+  "UP",  # pyupgrade：自动语法升级
+  "I",   # isort-style import 排序
+  "SIM", # simplify：复杂度压缩
+]
+ignore   = ["E501", "SIM117"]   # 行宽由 Black 控制
+fixable  = ["ALL"]         # 允许 `ruff --fix` 自动修复
+unfixable = []             # 如需保留某些问题，可在此列出
+
+# 针对特定文件夹做局部豁免
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*"     = ["S101"]  # 测试用 assert
+"__init__.py"    = ["F401"]  # 包级导入未使用
+
+[tool.ruff.format]          # 可选择把 Ruff 当格式化器用
+quote-style = "double"
+docstring-code-format = true
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore::DeprecationWarning:lark_oapi.*",
+    "ignore::DeprecationWarning:pkg_resources.*",
+    "ignore:There is no current event loop:DeprecationWarning:lark_oapi.*",
+    "ignore:datetime.datetime.utcfromtimestamp.*:DeprecationWarning",
+    "ignore:pkg_resources is deprecated.*:DeprecationWarning",
+    "ignore:Deprecated call to.*:DeprecationWarning",
+]
