@@ -1,0 +1,89 @@
+Metadata-Version: 2.4
+Name: ailoy-py
+Version: 0.0.6
+Summary: Python binding for Ailoy runtime APIs
+Author-Email: "Brekkylab Inc." <contact@brekkylab.com>
+License-Expression: Apache-2.0
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Requires-Python: >=3.10
+Requires-Dist: anyio>=4.9.0
+Requires-Dist: jmespath>=1.0.1
+Requires-Dist: mcp>=1.8.0
+Requires-Dist: numpy>=2.0.2
+Requires-Dist: pillow>=11.2.1
+Requires-Dist: pydantic>=2.11.4
+Requires-Dist: rich>=14.0.0
+Requires-Dist: typer>=0.15.4
+Description-Content-Type: text/markdown
+
+# ailoy-py
+
+Python binding for Ailoy runtime APIs.
+
+See our [documentation](https://brekkylab.github.io/ailoy) for more details.
+
+## Install
+
+```bash
+pip install ailoy-py
+```
+
+## Quickstart
+
+```python
+from ailoy import Runtime, Agent, LocalModel
+
+# The runtime must be started to use Ailoy
+rt = Runtime()
+
+# Defines an agent
+# During this step, the model parameters are downloaded and the LLM is set up for execution
+with Agent(rt, LocalModel("Qwen/Qwen3-0.6B")) as agent:
+    # This is where the actual LLM call happens
+    for resp in agent.query("Please give me a short poem about AI"):
+        agent.print(resp)
+
+# Stop the runtime
+rt.stop()
+```
+
+## Building from source
+
+### Prerequisites
+
+- Python 3.10 or higher
+- C/C++ compiler
+  (recommended versions are below)
+  - GCC >= 13
+  - LLVM Clang >= 17
+  - Apple Clang >= 15
+  - MSVC >= 19.29
+- CMake >= 3.28.0
+- Git
+- OpenSSL
+- Rust & Cargo >= 1.82.0
+- OpenMP
+- BLAS
+- LAPACK
+- Vulkan SDK (if you are using vulkan)
+
+
+### Setup development environment
+
+```bash
+pip install -e .
+```
+
+### Generate wheel
+
+```bash
+python -m build -w
+```
