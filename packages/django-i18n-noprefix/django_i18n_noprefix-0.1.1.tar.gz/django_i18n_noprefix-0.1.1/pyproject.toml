@@ -1,0 +1,228 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "django-i18n-noprefix"
+dynamic = ["version"]
+description = "Django internationalization without URL prefixes"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "jinto", email = ""},
+]
+keywords = [
+    "django",
+    "i18n",
+    "internationalization",
+    "localization",
+    "l10n",
+    "translation",
+    "no-prefix",
+    "url",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Web Environment",
+    "Framework :: Django",
+    "Framework :: Django :: 4.2",
+    "Framework :: Django :: 5.0",
+    "Framework :: Django :: 5.1",
+    "Framework :: Django :: 5.2",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Internationalization",
+]
+
+dependencies = [
+    "Django>=4.2",
+    "twine>=6.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+    "django-stubs>=4.2.0",
+    "pytest>=7.0.0",
+    "pytest-django>=4.5.0",
+    "pytest-cov>=4.0.0",
+    "tox>=4.0.0",
+    "pre-commit>=3.5.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/jinto/django-i18n-noprefix"
+Documentation = "https://github.com/jinto/django-i18n-noprefix#readme"
+Repository = "https://github.com/jinto/django-i18n-noprefix.git"
+Issues = "https://github.com/jinto/django-i18n-noprefix/issues"
+Changelog = "https://github.com/jinto/django-i18n-noprefix/blob/main/CHANGELOG.md"
+
+[tool.hatch.version]
+path = "django_i18n_noprefix/__version__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["django_i18n_noprefix"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "django_i18n_noprefix",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py38", "py39", "py310", "py311", "py312"]
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+    migrations
+    | .venv
+    | venv
+    | build
+    | dist
+)/
+'''
+
+[tool.ruff]
+line-length = 88
+target-version = "py38"
+exclude = [
+    "migrations",
+    ".venv",
+    "venv",
+    "build",
+    "dist",
+    ".git",
+    "__pycache__",
+    ".tox",
+    ".eggs",
+    "*.egg",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+    "DJ", # flake8-django
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/*" = ["F403", "F405"]
+
+[tool.ruff.lint.isort]
+known-third-party = ["django"]
+
+[tool.mypy]
+python_version = "3.8"
+check_untyped_defs = true
+ignore_missing_imports = true
+warn_return_any = true
+warn_unused_configs = true
+plugins = ["mypy_django_plugin.main"]
+
+[tool.django-stubs]
+django_settings_module = "tests.test_project.settings"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "tests.test_project.settings"
+python_files = ["test_*.py", "*_test.py", "tests.py"]
+addopts = [
+    "--strict-markers",
+    "--tb=short",
+    "--cov=django_i18n_noprefix",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+]
+testpaths = ["tests"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+]
+
+[tool.coverage.run]
+source = ["django_i18n_noprefix"]
+omit = [
+    "*/migrations/*",
+    "*/tests/*",
+    "*/__init__.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if __name__ == .__main__.:",
+    "raise AssertionError",
+    "raise NotImplementedError",
+]
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+envlist =
+    py{38,39,310,311}-django42
+    py{310,311,312}-django{50,51,52}
+    black
+    ruff
+    mypy
+
+[testenv]
+deps =
+    django42: Django>=4.2,<5.0
+    django50: Django>=5.0,<5.1
+    django51: Django>=5.1,<5.2
+    django52: Django>=5.2,<5.3
+    pytest
+    pytest-django
+    pytest-cov
+commands =
+    pytest {posargs}
+
+[testenv:black]
+deps = black
+commands = black --check .
+
+[testenv:ruff]
+deps = ruff
+commands = ruff check .
+
+[testenv:mypy]
+deps =
+    mypy
+    django-stubs
+commands = mypy django_i18n_noprefix
+"""
+
+[dependency-groups]
+dev = [
+    "build>=1.2.2.post1",
+    "pre-commit>=3.5.0",
+    "twine>=6.1.0",
+]

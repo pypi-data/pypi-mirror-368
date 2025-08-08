@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Django i18n No-Prefix - Tailwind CSS Example</title>
+    
+    <!-- Tailwind CSS via CDN (for demo) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Our Tailwind styles -->
+    {% load static %}
+    <link href="{% static 'i18n_noprefix/css/tailwind.css' %}" rel="stylesheet">
+</head>
+<body class="h-full bg-gray-50">
+    {% load i18n %}
+    {% load i18n_noprefix %}
+    
+    <!-- Navigation Example -->
+    <nav class="bg-white shadow">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div class="flex h-16 justify-between items-center">
+                <div class="flex-shrink-0">
+                    <h1 class="text-xl font-semibold">{% trans "My Site" %}</h1>
+                </div>
+                
+                <!-- Dropdown in navbar -->
+                <div class="i18n-noprefix-selector i18n-noprefix-selector--dropdown tw">
+                    <select class="block w-full px-3 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                            onchange="window.location.href=this.options[this.selectedIndex].dataset.url"
+                            aria-label="{% trans 'Language selection' %}">
+                        {% get_available_languages as LANGUAGES %}
+                        {% get_current_language as LANGUAGE_CODE %}
+                        {% for lang_code, lang_name in LANGUAGES %}
+                            <option value="{{ lang_code }}" 
+                                    data-url="{% switch_language_url lang_code %}"
+                                    {% if lang_code == LANGUAGE_CODE %}selected{% endif %}>
+                                {{ lang_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">{% trans "Tailwind CSS Language Selector Examples" %}</h1>
+        
+        <!-- Dropdown Style -->
+        <div class="bg-white overflow-hidden shadow rounded-lg mb-6">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">{% trans "Dropdown Style" %}</h3>
+                <p class="text-sm text-gray-500 mb-4">{% trans "Select element with Tailwind styling" %}</p>
+                
+                <!-- Basic dropdown with tw class -->
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">{% trans "Choose Language" %}</label>
+                        <div class="i18n-noprefix-selector i18n-noprefix-selector--dropdown tw">
+                            {% language_selector style='dropdown' %}
+                        </div>
+                    </div>
+                    
+                    <!-- Custom styled select -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">{% trans "Custom Style" %}</label>
+                        <select class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                            <option>English</option>
+                            <option>한국어</option>
+                            <option>日本語</option>
+                        </select>
+                    </div>
+                    
+                    <!-- With icon -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">{% trans "With Icon" %}</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M7 2a2 2 0 00-2 2v12a2 2 0 002 2h6a2 2 0 002-2V4a2 2 0 00-2-2H7zm3 14a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                            <select class="pl-10 block w-full py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                                <option>English</option>
+                                <option>한국어</option>
+                                <option>日本語</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- List Style -->
+        <div class="bg-white overflow-hidden shadow rounded-lg mb-6">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">{% trans "List Style" %}</h3>
+                <p class="text-sm text-gray-500 mb-4">{% trans "Vertical list with hover effects" %}</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Using template tag with tw class -->
+                    <div class="i18n-noprefix-selector i18n-noprefix-selector--list tw">
+                        {% language_selector style='list' %}
+                    </div>
+                    
+                    <!-- Custom Tailwind list -->
+                    <div class="border border-gray-200 rounded-lg divide-y divide-gray-200">
+                        {% get_available_languages as LANGUAGES %}
+                        {% get_current_language as LANGUAGE_CODE %}
+                        {% for lang_code, lang_name in LANGUAGES %}
+                            {% if lang_code == LANGUAGE_CODE %}
+                                <div class="px-4 py-3 bg-indigo-50 border-l-4 border-indigo-500">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-indigo-700 font-medium">{{ lang_name }}</span>
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                            {% trans "Active" %}
+                                        </span>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <a href="{% switch_language_url lang_code %}" class="block px-4 py-3 hover:bg-gray-50 transition-colors">
+                                    <span class="text-gray-700">{{ lang_name }}</span>
+                                </a>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inline Style -->
+        <div class="bg-white overflow-hidden shadow rounded-lg mb-6">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">{% trans "Inline Style" %}</h3>
+                <p class="text-sm text-gray-500 mb-4">{% trans "Horizontal pills for navigation bars" %}</p>
+                
+                <!-- Using template tag with tw class -->
+                <div class="mb-4">
+                    <div class="i18n-noprefix-selector i18n-noprefix-selector--inline tw">
+                        {% language_selector style='inline' %}
+                    </div>
+                </div>
+                
+                <!-- Custom pill buttons -->
+                <div class="mb-4">
+                    <nav class="flex space-x-2">
+                        {% get_available_languages as LANGUAGES %}
+                        {% get_current_language as LANGUAGE_CODE %}
+                        {% for lang_code, lang_name in LANGUAGES %}
+                            {% if lang_code == LANGUAGE_CODE %}
+                                <span class="px-3 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md">
+                                    {{ lang_code|upper }}
+                                </span>
+                            {% else %}
+                                <a href="{% switch_language_url lang_code %}" 
+                                   class="px-3 py-2 text-sm font-medium text-gray-700 bg-white rounded-md hover:bg-gray-100">
+                                    {{ lang_code|upper }}
+                                </a>
+                            {% endif %}
+                        {% endfor %}
+                    </nav>
+                </div>
+                
+                <!-- Segmented control style -->
+                <div class="inline-flex rounded-lg shadow-sm">
+                    {% for lang_code, lang_name in LANGUAGES %}
+                        {% if lang_code == LANGUAGE_CODE %}
+                            <span class="relative inline-flex items-center px-4 py-2 {% if forloop.first %}rounded-l-lg{% elif forloop.last %}rounded-r-lg{% endif %} border border-indigo-500 bg-indigo-500 text-sm font-medium text-white">
+                                {{ lang_name }}
+                            </span>
+                        {% else %}
+                            <a href="{% switch_language_url lang_code %}" 
+                               class="relative inline-flex items-center px-4 py-2 {% if forloop.first %}rounded-l-lg{% elif forloop.last %}rounded-r-lg -ml-px{% else %}-ml-px{% endif %} border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                {{ lang_name }}
+                            </a>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Dark Mode Example -->
+        <div class="bg-gray-900 overflow-hidden shadow rounded-lg mb-6">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="text-lg font-medium leading-6 text-white mb-4">{% trans "Dark Mode Support" %}</h3>
+                <p class="text-sm text-gray-400 mb-4">{% trans "All components work with Tailwind's dark mode" %}</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">{% trans "Dropdown" %}</label>
+                        <select class="block w-full px-3 py-2 bg-gray-800 border border-gray-600 text-gray-100 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                            <option>English</option>
+                            <option>한국어</option>
+                            <option>日本語</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">{% trans "Pills" %}</label>
+                        <div class="flex space-x-2">
+                            <span class="px-3 py-1 text-sm bg-indigo-600 text-white rounded">EN</span>
+                            <a href="#" class="px-3 py-1 text-sm bg-gray-700 text-gray-300 rounded hover:bg-gray-600">KO</a>
+                            <a href="#" class="px-3 py-1 text-sm bg-gray-700 text-gray-300 rounded hover:bg-gray-600">JA</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Integration Examples -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">{% trans "Real-world Examples" %}</h3>
+                
+                <!-- In a settings form -->
+                <form class="space-y-6 mb-6">
+                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">{% trans "Display Name" %}</label>
+                            <input type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">{% trans "Language" %}</label>
+                            <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                <option>English</option>
+                                <option>한국어</option>
+                                <option>日本語</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+                
+                <!-- In a card footer -->
+                <div class="border-t border-gray-200 pt-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex space-x-2">
+                            {% language_selector style='inline' %}
+                        </div>
+                        <div class="flex space-x-3">
+                            <button class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                {% trans "Cancel" %}
+                            </button>
+                            <button class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                                {% trans "Save Changes" %}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
