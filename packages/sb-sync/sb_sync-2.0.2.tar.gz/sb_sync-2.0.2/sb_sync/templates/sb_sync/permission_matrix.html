@@ -1,0 +1,315 @@
+{% extends "sb_sync/base.html" %}
+{% load sb_sync_extras %}
+
+{% block title %}Permission Matrix - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-shield-alt"></i> Permission Matrix</h2>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-primary" id="saveBtn">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" id="exportBtn">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                </div>
+            </div>
+
+            <!-- Organization Selector -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <label for="organizationSelect" class="form-label">Select Organization:</label>
+                            <select class="form-select" id="organizationSelect">
+                                {% for organization in organizations %}
+                                <option value="{{ organization.id }}" {% if organization.id == organization.id %}selected{% endif %}>
+                                    {{ organization.name }} ({{ organization.domain }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Current Organization:</label>
+                            <div>
+                                <span class="badge bg-primary fs-6">{{ organization.name }}</span>
+                                <span class="badge bg-light text-dark ms-2">{{ organization.domain }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Permission Matrix -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover" id="permissionMatrix">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th style="min-width: 200px;">Model</th>
+                                    {% for group in groups %}
+                                    <th class="text-center" style="min-width: 120px;">
+                                        <div class="d-flex flex-column align-items-center">
+                                            <span class="fw-bold">{{ group.name }}</span>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input column-select-all" 
+                                                       type="checkbox" 
+                                                       data-permission="push" 
+                                                       data-group="{{ group.id }}"
+                                                       id="push-all-{{ group.id }}">
+                                                <label class="form-check-label small" for="push-all-{{ group.id }}">Push</label>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input column-select-all" 
+                                                       type="checkbox" 
+                                                       data-permission="pull" 
+                                                       data-group="{{ group.id }}"
+                                                       id="pull-all-{{ group.id }}">
+                                                <label class="form-check-label small" for="pull-all-{{ group.id }}">Pull</label>
+                                            </div>
+                                        </div>
+                                    </th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for model in available_models %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold">{{ model.verbose_name }}</div>
+                                        <small class="text-muted">{{ model.full_name }}</small>
+                                    </td>
+                                    {% for group in groups %}
+                                    <td class="text-center">
+                                        <div class="d-flex justify-content-center gap-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input permission-checkbox" 
+                                                       type="checkbox" 
+                                                       data-model="{{ model.full_name }}" 
+                                                       data-group="{{ group.id }}" 
+                                                       data-permission="push"
+                                                       id="push-{{ model.full_name|slugify }}-{{ group.id }}"
+                                                       {% if model.full_name in existing_permissions|get_permission:group.id:'push' %}checked{% endif %}>
+                                                <label class="form-check-label small" for="push-{{ model.full_name|slugify }}-{{ group.id }}">Push</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input permission-checkbox" 
+                                                       type="checkbox" 
+                                                       data-model="{{ model.full_name }}" 
+                                                       data-group="{{ group.id }}" 
+                                                       data-permission="pull"
+                                                       id="pull-{{ model.full_name|slugify }}-{{ group.id }}"
+                                                       {% if model.full_name in existing_permissions|get_permission:group.id:'pull' %}checked{% endif %}>
+                                                <label class="form-check-label small" for="pull-{{ model.full_name|slugify }}-{{ group.id }}">Pull</label>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Save Feedback Modal -->
+<div class="modal fade" id="saveFeedbackModal" tabindex="-1" aria-labelledby="saveFeedbackModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="saveFeedbackModalLabel">Save Results</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="saveFeedbackContent">
+                <!-- Content will be populated dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    let saveTimeout;
+    const saveDelay = 1000; // 1 second delay
+    
+    // Organization selector
+    $('#organizationSelect').change(function() {
+        const organizationId = $(this).val();
+        window.location.href = `/api/sync/config/permissions/${organizationId}/`;
+    });
+    
+    // Column select all functionality
+    $('.column-select-all').change(function() {
+        const groupId = $(this).data('group');
+        const permission = $(this).data('permission');
+        const isChecked = $(this).is(':checked');
+        
+        // Update all checkboxes in this column for this permission
+        $(`.permission-checkbox[data-group="${groupId}"][data-permission="${permission}"]`)
+            .prop('checked', isChecked)
+            .trigger('change');
+        
+        updateColumnHeaderState(groupId, permission);
+    });
+    
+    // Individual permission checkbox
+    $('.permission-checkbox').change(function() {
+        const groupId = $(this).data('group');
+        const permission = $(this).data('permission');
+        
+        updateColumnHeaderState(groupId, permission);
+        debounceSave();
+    });
+    
+    function updateColumnHeaderState(groupId, permission) {
+        const totalCheckboxes = $(`.permission-checkbox[data-group="${groupId}"][data-permission="${permission}"]`).length;
+        const checkedCheckboxes = $(`.permission-checkbox[data-group="${groupId}"][data-permission="${permission}"]:checked`).length;
+        
+        const headerCheckbox = $(`.column-select-all[data-group="${groupId}"][data-permission="${permission}"]`);
+        
+        if (checkedCheckboxes === 0) {
+            headerCheckbox.prop('indeterminate', false).prop('checked', false);
+        } else if (checkedCheckboxes === totalCheckboxes) {
+            headerCheckbox.prop('indeterminate', false).prop('checked', true);
+        } else {
+            headerCheckbox.prop('indeterminate', true);
+        }
+    }
+    
+    // Debounced save function
+    function debounceSave() {
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(savePermissions, saveDelay);
+    }
+    
+    // Save permissions
+    function savePermissions() {
+        const organizationId = $('#organizationSelect').val();
+        const permissions = [];
+        
+        $('.permission-checkbox:checked').each(function() {
+            permissions.push({
+                organization_id: organizationId,
+                group_id: $(this).data('group'),
+                model_name: $(this).data('model'),
+                permission_type: $(this).data('permission'),
+                value: true
+            });
+        });
+        
+        // Also include unchecked permissions to clear them
+        $('.permission-checkbox:not(:checked)').each(function() {
+            permissions.push({
+                organization_id: organizationId,
+                group_id: $(this).data('group'),
+                model_name: $(this).data('model'),
+                permission_type: $(this).data('permission'),
+                value: false
+            });
+        });
+        
+        $.ajax({
+            url: '/api/sync/config/permissions/bulk-save/',
+            method: 'POST',
+            data: JSON.stringify({
+                organization_id: organizationId,
+                permissions: permissions
+            }),
+            contentType: 'application/json',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            success: function(response) {
+                if (response.success) {
+                    showSaveFeedback(response, true);
+                } else {
+                    showSaveFeedback(response, false);
+                }
+            },
+            error: function(xhr, status, error) {
+                showSaveFeedback({
+                    success: false,
+                    error: 'Network error: ' + error
+                }, false);
+            }
+        });
+    }
+    
+    function showSaveFeedback(response, isSuccess) {
+        const modal = $('#saveFeedbackModal');
+        const content = $('#saveFeedbackContent');
+        
+        let icon, title, message, summary;
+        
+        if (isSuccess) {
+            icon = '<i class="fas fa-check-circle text-success me-2"></i>';
+            title = 'Save Successful';
+            message = 'Permissions have been saved successfully.';
+            summary = `Updated ${response.updated_count || 0} permissions, created ${response.created_count || 0} new permissions.`;
+        } else {
+            icon = '<i class="fas fa-exclamation-triangle text-warning me-2"></i>';
+            title = 'Save Failed';
+            message = response.error || 'An error occurred while saving permissions.';
+            summary = 'Please check the error details and try again.';
+        }
+        
+        content.html(`
+            <div class="d-flex align-items-start">
+                ${icon}
+                <div>
+                    <h6 class="mb-2">${title}</h6>
+                    <p class="mb-2">${message}</p>
+                    <small class="text-muted">${summary}</small>
+                </div>
+            </div>
+        `);
+        
+        modal.modal('show');
+        
+        // Auto-dismiss after 3 seconds
+        setTimeout(function() {
+            modal.modal('hide');
+        }, 3000);
+    }
+    
+    // Export functionality
+    $('#exportBtn').click(function() {
+        const organizationId = $('#organizationSelect').val();
+        window.location.href = `/api/sync/config/permissions/export/${organizationId}/`;
+    });
+    
+    // Manual save button
+    $('#saveBtn').click(function() {
+        savePermissions();
+    });
+    
+    // Helper function to get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+{% endblock %} 
