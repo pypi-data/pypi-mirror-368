@@ -1,0 +1,155 @@
+Metadata-Version: 2.4
+Name: tsst
+Version: 0.8.5
+Summary: TSST is an integration platform for Taiwan brokerage Python APIs, enabling quick switching between different brokerage APIs using a unified trading logic.
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: blinker>=1.9.0
+Requires-Dist: click>=8.1.7
+Requires-Dist: comtypes>=1.4.8
+Requires-Dist: pandas>=2.2.3
+Requires-Dist: polars-talib>=0.1.4
+Requires-Dist: polars>=1.15.0
+Requires-Dist: pyarrow>=20.0.0
+Requires-Dist: pydantic>=2.9.2
+Requires-Dist: pytest>=8.3.4
+Requires-Dist: python-dotenv>=1.0.1
+Requires-Dist: pywin32>=308; sys_platform == "win32"
+Requires-Dist: rich>=13.9.4
+Requires-Dist: setuptools>=75.6.0
+Requires-Dist: shioaji>=1.2.5
+Requires-Dist: tabulate>=0.9.0
+Requires-Dist: tsst-sino-backtest-v2>=0.2.0
+Requires-Dist: tornado>=6.1
+
+# TSST Module
+
+TSST 模組 是一款基於 Python 的金融交易工具，專為需要高效執行交易與策略開發的用戶設計。該套件解決了多券商 API 整合的痛點，提供統一的介面支持股票、期貨等資產的交易操作與數據處理，無需重複學習各家券商的 API 使用方法。
+
+1. 多券商無縫切換
+通過統一的介面支持多家券商的即時行情與下單功能，無論是永豐還是群益，均可輕鬆整合並切換，降低多 API 接入的學習成本。
+
+2. 回測與實戰輕鬆切換
+提供真實交易高度相符的回測模組，幫助快速驗證交易策略，並實現回測到實戰的無縫過渡，讓策略開發更高效。
+
+3. Python 開發，簡單易用
+使用業界廣泛採用的 Python 作為開發語言，結合清晰的 API 設計，降低入門門檻，助力初學者和資深交易者快速上手。
+
+## 環境要求
+* Python >= 3.9
+* 建議使用 Windows OS，MAC/Linux 目前尚無法確認支援程度
+* 建議使用 uv 做為開發環境管理，有提供 pyproject.toml 可快速安裝所需 Python 套件
+
+## 前置作業
+1. 必須開立對應券商的證券戶及 API 下單功能，詳細情洽各券商相關部門。
+
+## 目前支援券商及功能一覽
+
+
+| 主功能/券商    | 永豐 | 群益<br/>(即將推出) |
+| :------------: |:----:|:-------------------:|
+| 證券即時行情 |  O   |          O          |
+| 期貨即時行情 |  O   |          O          |
+| 證券下單 |  O   |          O          |
+| 期貨下單 |  O   |          O          |
+| 回測 |  O   |          (待開發)          |
+
+回測模組需另外下載「TSST - 回測模組」才能使用。
+
+## 安裝說明
+
+```uv add tsst``` 或 ```pip install tsst```
+
+## 使用範例
+#### 初始化
+```python
+from tsst.main import Tsst
+
+class MyTsst(Tsst):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+    
+    def on_stock_tick(self, sender: str, response: Any, **kwarg):
+        # 接收股票 Tick, 在這裡撰寫你的策略
+        pass
+    
+    def on_future_tick(self, sender: str, response: ANy, **kwarg):
+        # 接收期貨 Tick, 在這裡撰寫你的策略
+        pass
+    
+    def on_order(self, sender, response, **kwargs):
+        # 接收委託回報
+        pass
+    
+    def on_deal(self, sender, response, **kwargs):
+        # 接收成交回報
+        pass
+
+# 初始化
+tsst = MyTsst(
+    is_simulation=True,
+    use_broker="Sino", #使用永豐 API, 群益為 Capital
+    is_backtest=False
+)
+```
+
+登入(永豐)
+```python
+tsst.login({
+    "tsst_token": "TSST Token",
+    "api_key": "你的永豐API KEY",
+    "secret_key": "你的永豐API SECRET KEY",
+    "ca_path": "永豐憑證存放路徑",
+    "ca_password": "永豐憑證密碼",
+})
+
+# 訂閱永豐台指期近月、台積電即時行情報價
+tsst.subscribe({
+    "codes": [
+        { "code": "TXFR1", "market": "Future" },
+        { "code": "2330", "market": "Stock" }
+    ]
+})
+```
+
+登入(群益)
+```python
+tsst.login({
+    "tsst_token": "TSST Token",
+    "account": "你的群益帳號",
+    "password": "你的群益密碼",
+})
+
+# 訂閱群益台指期近月、台積電即時行情報價
+tsst.subscribe({
+    "codes": [
+        { "code": "TX00", "market": "Future" },
+        { "code": "2330", "market": "Stock" }
+    ]
+})
+```
+
+下單
+```python
+tsst.create_order(
+    code = "2330",
+    product_type = "Stock",
+    params = {
+        "price": 990,
+        "quantity": 2,
+        "action": "Buy",
+        "price_type": "LMT",
+        "order_type": "ROD",
+        "order_cond": "Cash",
+        "order_lot": "Common"
+    }
+)
+```
+
+## 其它
+[開發文件](https://tsst.fhfgft.com)
+[永豐回測模組](https://tsst.fhfgft.com)
+[聯絡我們](https://tsst.aiaristos.com/)
+
+## 免責聲明
+本套件提供統一的介面，用於快速切換不同券商 API 進行下單操作，並支持回測功能以驗證交易策略。需特別注意，所有數據來源及交易執行均由對應的券商 API 提供與處理。由於交易量巨大，券商提供的數據可能存在遺漏或錯誤，因此，本套件對因數據問題或交易執行偏差而導致的財產損失概不負責。請使用者自行評估並承擔相關風險。
