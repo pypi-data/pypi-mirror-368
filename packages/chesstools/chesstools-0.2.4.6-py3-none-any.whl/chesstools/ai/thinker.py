@@ -1,0 +1,68 @@
+from fyg.util import Loggy
+
+INFINITY = float('inf')
+PROFILER = None # cProfile or pyinstrument
+
+class Thinker(Loggy):
+	def __init__(self, table, timer, depth, stepper, mover, brancher, reporter, rofflim=3, dbuntil=20, rushbelow=240):
+		self.table = table
+		self.timer = timer
+		self.depth = depth
+		self.mover = mover
+		self.rofflim = rofflim
+		self.dbuntil = dbuntil
+		self.stepper = stepper
+		self.brancher = brancher
+		self.reporter = reporter
+		self.rushbelow = rushbelow
+
+	def setBoard(self, board, color):
+		self.board = board
+		movenum = board.fullmove
+		timeleft = self.timer.get_player(color)
+		self.withdb = timeleft > self.rushbelow and movenum <= self.dbuntil
+		self.log("setBoard with color", color, "move",
+			movenum, "time", timeleft, "and withdb", self.withdb)
+		self.branches = self.brancher(board, self.withdb)
+
+	def runoff(self):
+		self.branches = self.branches[:self.rofflim]
+		self.log("runoff initials:", " vs ".join([b.sig() for b in self.branches]))
+		self.depth += 1
+		self.evaluate()
+		self.depth -= 1
+		self.log("runoff rescores:", " vs ".join([b.sig() for b in self.branches]))
+
+	def evaluate(self):
+		i = 0
+		allhits = True
+		blen = len(self.branches)
+		self.reporter('scoring %s moves'%(blen,), True)
+		for branch in self.branches:
+			i += 1
+			allhits = self.stepper(branch, self.depth, -INFINITY, INFINITY, self.withdb)
+			self.reporter('%s:%s (%s/%s)'%(branch.move, branch.score, i, blen), True)
+			self.table.flush()
+		self.branches.sort()
+		return allhits
+
+	def think(self):
+		if not self.branches:
+			return self.reporter('i lose!', True)
+		if self.evaluate() and len(self.branches) > 1:
+			self.log("all hits! calling runoff()")
+			self.runoff()
+		self.mover([branch.move_info() for branch in self.branches])
+
+	def __call__(self):
+		if PROFILER == "cProfile":
+			import cProfile
+			cProfile.runctx("self.think()", None,
+				locals(), "pro/move%s.pro"%(self.board.fullmove,))
+		elif PROFILER == "pyinstrument":
+			from pyinstrument import Profiler
+			with Profiler(interval=0.1) as profiler:
+				self.think()
+			profiler.print()
+		else:
+			self.think()
