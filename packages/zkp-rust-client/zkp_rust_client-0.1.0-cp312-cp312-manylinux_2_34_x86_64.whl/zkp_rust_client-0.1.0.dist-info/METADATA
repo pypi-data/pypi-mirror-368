@@ -1,0 +1,465 @@
+Metadata-Version: 2.4
+Name: zkp-rust-client
+Version: 0.1.0
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Security :: Cryptography
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Scientific/Engineering :: Mathematics
+Requires-Dist: pytest>=6.0 ; extra == 'dev'
+Requires-Dist: pytest-cov>=2.0 ; extra == 'dev'
+Requires-Dist: black>=21.0 ; extra == 'dev'
+Requires-Dist: isort>=5.0 ; extra == 'dev'
+Requires-Dist: mypy>=0.800 ; extra == 'dev'
+Provides-Extra: dev
+Summary: A Rust implementation of Zero-Knowledge Proofs (ZKP) using the Groth16 proving system
+Keywords: zkp,zero-knowledge-proofs,groth16,cryptography,blockchain
+Author-email: Your Name <your.email@example.com>
+Maintainer-email: Your Name <your.email@example.com>
+License: MIT
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown; charset=UTF-8; variant=GFM
+Project-URL: Homepage, https://github.com/Metaway-Holdings/ark-zkp
+Project-URL: Repository, https://github.com/Metaway-Holdings/ark-zkp
+Project-URL: Documentation, https://github.com/Metaway-Holdings/ark-zkp#readme
+Project-URL: Bug Tracker, https://github.com/Metaway-Holdings/ark-zkp/issues
+
+# ZKP Rust Client
+
+A Rust implementation of Zero-Knowledge Proofs (ZKP) using the Groth16 proving system and the Arkworks cryptographic library. This project demonstrates how to create, verify, and benchmark zero-knowledge proofs for simple arithmetic operations.
+
+## 🚀 Features
+
+- **Groth16 Proving System**: Implements the Groth16 zk-SNARK protocol
+- **Simple Addition Circuit**: Demonstrates ZKP for basic arithmetic operations
+- **WebAssembly Support**: Cross-platform WASM compilation for web and Node.js
+- **Python Bindings**: Native Python integration with PyO3
+- **Comprehensive Benchmarking**: Performance testing and analysis tools
+- **Memory Usage Analysis**: Proof size and memory consumption metrics
+- **Stress Testing**: Rapid-fire proof generation and verification
+- **Modular Architecture**: Clean separation of concerns with library and binary components
+
+## 📋 Prerequisites
+
+- Rust 1.70+ (stable channel)
+- Cargo package manager
+- [wasm-pack](https://rustwasm.github.io/wasm-pack/) (for WASM builds, installed automatically)
+- [maturin](https://github.com/PyO3/maturin) (for Python builds, installed automatically)
+- Modern web browser with WebAssembly support (for web usage)
+- Node.js (for Node.js WASM usage)
+- Python 3.7+ (for Python bindings)
+
+## 🛠️ Installation
+
+1. Clone the repository:
+
+```bash
+git clone <repository-url>
+cd zkp-rust-client
+```
+
+2. Build the project:
+
+```bash
+cargo build --release
+```
+
+## 🌐 WebAssembly (WASM) Build
+
+This project supports WebAssembly compilation for use in web browsers and Node.js environments.
+
+### Prerequisites for WASM
+
+- [wasm-pack](https://rustwasm.github.io/wasm-pack/) (will be installed automatically if missing)
+- Modern web browser with WebAssembly support (for web usage)
+- Node.js (for Node.js usage)
+
+### Building WASM Packages
+
+Run the build script to generate both web and Node.js WASM packages:
+
+```bash
+./build-wasm.sh
+```
+
+This will:
+
+- Install `wasm-pack` if not already installed
+- Build a web-compatible WASM package in `pkg-web/`
+- Build a Node.js-compatible WASM package in `pkg-node/`
+- Optimize the WASM binaries for performance
+
+### Manual WASM Build
+
+Alternatively, you can build WASM packages manually:
+
+```bash
+# Build for web browsers
+wasm-pack build --target web --out-dir pkg-web
+
+# Build for Node.js
+wasm-pack build --target nodejs --out-dir pkg-node
+```
+
+### Using WASM in Web Applications
+
+The generated `pkg-web/` package can be used in web applications:
+
+```javascript
+import init, { WasmCompatibleProver } from './pkg-web/zkp_rust_client.js';
+
+async function runZKP() {
+    await init();
+    const prover = new WasmCompatibleProver();
+    // Use the prover for ZKP operations
+}
+```
+
+### Using WASM in Node.js
+
+The generated `pkg-node/` package can be used in Node.js applications:
+
+```javascript
+const { WasmCompatibleProver } = require('./pkg-node/zkp_rust_client.js');
+
+const prover = new WasmCompatibleProver();
+// Use the prover for ZKP operations
+```
+
+## 🐍 Python Bindings
+
+This project supports native Python integration using PyO3 for high-performance ZKP operations.
+
+### 📦 PyPI Installation
+
+The package is available on PyPI:
+
+```bash
+pip install zkp-rust-client
+```
+
+```python
+import zkp_rust_client
+
+# Create a prover
+prover = zkp_rust_client.PyZKProver()
+
+# Generate a proof
+result = prover.generate_proof_only(42, 13)
+print(f"Proof generated in {result.generation_time_ms()}ms")
+```
+
+### Prerequisites for Python
+
+- Python 3.7+
+- [maturin](https://github.com/PyO3/maturin) (will be installed automatically if missing)
+- Rust toolchain (for compilation)
+
+### Building Python Package
+
+Run the build script to generate the Python wheel:
+
+```bash
+./build-python.sh
+```
+
+This will:
+
+- Install `maturin` if not already installed
+- Build a Python wheel in `target/wheels/`
+- Optimize the binary for performance
+
+### Manual Python Build
+
+Alternatively, you can build the Python package manually:
+
+```bash
+# Install maturin
+pip install maturin
+
+# Build wheel
+maturin build --release
+
+# Or develop mode (for development)
+maturin develop --release
+```
+
+### Installing the Python Package
+
+After building, install the wheel:
+
+```bash
+pip install target/wheels/zkp_rust_client-*.whl
+```
+
+### Using Python Bindings
+
+The Python package provides the same functionality as the WASM version:
+
+```python
+import zkp_rust_client
+
+# Create a prover
+prover = zkp_rust_client.PyZKProver()
+
+# Generate a proof
+result = prover.generate_proof_only(42, 13)
+print(f"Proof generated in {result.generation_time_ms()}ms")
+print(f"Public inputs: start={result.public_input_start()}, result={result.public_input_result()}")
+
+# Verify the proof
+verification = prover.verify_proof_only(result.proof_data(), 42, 55)
+print(f"Proof valid: {verification.is_valid()}")
+
+# Run benchmarks
+benchmark = prover.benchmark_generation_only(100)
+print(f"Generated {benchmark.successful_proofs()}/{benchmark.total_proofs()} proofs")
+print(f"Average time: {benchmark.average_proof_time_ms()}ms per proof")
+```
+
+### Standalone Functions
+
+You can also use standalone functions:
+
+```python
+import zkp_rust_client
+
+# Generate proof
+result = zkp_rust_client.generate_zkp_proof_only(10, 5)
+
+# Verify computation
+is_valid = zkp_rust_client.verify_computation(10, 5, 15)
+
+# Run benchmark
+benchmark = zkp_rust_client.run_generation_benchmark(50)
+
+# Get library info
+info = zkp_rust_client.get_library_info()
+```
+
+### Python Example
+
+Run the complete Python example:
+
+```bash
+python examples/python_example.py
+```
+
+## 🎯 Usage
+
+### Basic Example
+
+Run the main demo to see a simple ZKP in action:
+
+```bash
+cargo run --bin main --release
+```
+
+This will:
+
+- Set up the Groth16 proving system
+- Generate a proof for `42 + 13 = 55`
+- Verify the proof without revealing the secret increment value
+- Display proof size and timing information
+
+### Benchmarking
+
+Run comprehensive benchmarks to test performance:
+
+```bash
+cargo run --release --bin benchmark
+```
+
+### Testing
+
+```bash
+cargo test --release
+```
+
+The benchmark suite includes:
+
+- **Basic Benchmark**: Single proof generation and verification
+- **Scale Benchmark**: Multiple proofs with timing analysis
+- **Complexity Benchmark**: Different input sizes and complexity levels
+- **Stress Test**: Rapid-fire proof generation
+- **Memory Benchmark**: Proof size and memory usage analysis
+
+### Library Usage
+
+Use the library in your own projects:
+
+```rust
+use zkp_rust_client::SimpleAddProver;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Initialize the prover
+    let prover = SimpleAddProver::new()?;
+    
+    // Generate a proof
+    let proof_result = prover.generate_proof(10, 5)?;
+    
+    // Verify the proof
+    let verification_result = prover.verify_proof(
+        &proof_result.proof, 
+        &proof_result.public_inputs
+    )?;
+    
+    if verification_result.is_valid {
+        println!("Proof is valid!");
+    }
+    
+    Ok(())
+}
+```
+
+## 🏗️ Architecture
+
+### Core Components
+
+- **`AdditionCircuit`**: R1CS constraint system for addition operations
+- **`SimpleAddProver`**: Main prover struct with setup, proof generation, and verification
+- **`ProofResult`**: Contains proof, public inputs, and timing information
+- **`VerificationResult`**: Contains validity status and verification timing
+- **`ProofStats`**: Statistical analysis for benchmarking
+
+### Circuit Design
+
+The addition circuit implements the constraint:
+
+```
+start + increments = result
+```
+
+Where:
+
+- **Public inputs**: `start` and `result`
+- **Private witness**: `increments`
+- **Zero-knowledge property**: The verifier learns the computation was correct without learning the secret `increments` value
+
+## 📊 Performance
+
+Typical performance metrics (on modern hardware):
+
+- **Setup time**: ~2-5 seconds (one-time trusted setup)
+- **Proof generation**: ~50-200ms per proof
+- **Proof verification**: ~1-10ms per proof
+- **Proof size**: ~200-300 bytes
+- **Memory usage**: ~1-2MB per proof
+
+## 🧪 Testing
+
+Run the test suite:
+
+```bash
+cargo test
+```
+
+Tests include:
+
+- Basic proof generation and verification
+- Edge cases (zero increments, large numbers)
+- Performance regression tests
+
+## 📁 Project Structure
+
+```
+zkp-rust-client/
+├── src/
+│   ├── lib.rs          # Core library implementation
+│   ├── main.rs          # Demo binary
+│   ├── benchmark.rs     # Benchmarking suite
+│   ├── wasm.rs          # WASM-compatible interface
+│   ├── python.rs        # Python-compatible interface
+│   └── main_backup.rs   # Backup of original implementation
+├── examples/
+│   └── python_example.py # Python usage example
+├── pkg-web/            # WebAssembly package for browsers
+├── pkg-node/           # WebAssembly package for Node.js
+├── build-wasm.sh       # WASM build script
+├── build-python.sh     # Python build script
+├── Cargo.toml          # Project dependencies
+├── Cargo.lock          # Dependency lock file
+├── .gitignore          # Git ignore rules
+└── README.md           # This file
+```
+
+## 🔧 Dependencies
+
+- **ark-bls12-381**: BLS12-381 elliptic curve implementation
+- **ark-groth16**: Groth16 zk-SNARK implementation
+- **ark-relations**: R1CS constraint system
+- **ark-snark**: SNARK trait definitions
+- **ark-ff**: Finite field arithmetic
+- **ark-std**: Standard library extensions
+- **rand**: Random number generation
+- **pyo3**: Python bindings (for Python builds)
+- **serde**: Serialization support
+- **wasm-bindgen**: WebAssembly bindings (for WASM builds)
+
+## 🔐 Security Considerations
+
+- **Trusted Setup**: The current implementation uses a circuit-specific trusted setup. In production, you would use a universal trusted setup or a trusted setup ceremony.
+- **Cryptographic Assumptions**: Relies on the security of the BLS12-381 curve and Groth16 protocol.
+- **Random Number Generation**: Uses cryptographically secure random number generation.
+- **Proof Verification**: Always verify proofs before accepting them as valid.
+
+## 🚧 Limitations
+
+- **Simple Circuit**: Currently only implements addition. More complex circuits would require additional development.
+- **No Recursion**: Does not support recursive proof composition.
+- **Single Curve**: Only supports BLS12-381. Other curves would require modifications.
+- **No Optimizations**: Basic implementation without advanced optimizations like batch verification.
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- [Arkworks](https://github.com/arkworks-rs) for the excellent cryptographic library
+- The ZKP community for educational resources and examples
+- Rust ecosystem for providing excellent tooling and documentation
+
+## 📚 Further Reading
+
+- [Groth16 Paper](https://eprint.iacr.org/2016/260)
+- [Arkworks Documentation](https://docs.rs/arkworks)
+- [Zero-Knowledge Proofs: A Primer](https://zkproof.org/)
+- [Rust Book](https://doc.rust-lang.org/book/)
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+1. **Compilation Errors**: Ensure you're using Rust 1.70+ and have all dependencies installed
+2. **Memory Issues**: Large proofs may require more memory. Try running with `--release` flag
+3. **Performance Issues**: Use `--release` for optimal performance
+4. **Dependency Conflicts**: Try `cargo clean` and `cargo update`
+
+### Getting Help
+
+- Check the [Issues](../../issues) page for known problems
+- Create a new issue for bugs or feature requests
+- Review the test cases for usage examples
+
+---
+
+**Note**: This is a demonstration project for educational purposes. For production use, additional security audits and optimizations would be required.
+
