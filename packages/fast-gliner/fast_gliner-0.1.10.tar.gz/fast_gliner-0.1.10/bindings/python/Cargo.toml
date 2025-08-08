@@ -1,0 +1,46 @@
+[package]
+name = "fast_gliner"
+version = "0.1.10"
+authors = ["Tal Almagor <almagoric@gmail.com>"]
+readme = "README.md"
+edition = "2021"
+
+[lib]
+name = "fast_gliner"
+crate-type = ["cdylib"]
+
+[dependencies]
+composable = "0.9.0"
+orp = { version = "0.9.2", default-features = false, features = [] }
+ort = { version="=2.0.0-rc.9" }
+ort-sys = { version = "=2.0.0-rc.9", default-features = false } # see https://github.com/pykeio/ort/issues/399
+serde = { version = "1.0", features = ["rc", "derive"] }
+serde_json = "1.0"
+gline-rs = { path = "../../gline-rs", default-features = false, features = [] }
+pyo3 = { version = "0.21", features = ["extension-module"] }
+numpy = "0.21"
+
+[features]
+default = ["pyo3/extension-module"]
+cuda = ["ort/cuda", "gline-rs/cuda"]
+load-dynamic = ["ort/load-dynamic", "gline-rs/load-dynamic"]
+tensorrt = ["ort/tensorrt", "gline-rs/tensorrt"]
+directml = ["ort/directml", "gline-rs/directml"]
+coreml = ["ort/coreml", "gline-rs/coreml"]
+rocm = ["ort/rocm", "gline-rs/rocm"]
+openvino = ["ort/openvino", "gline-rs/openvino"]
+onednn = ["ort/onednn", "gline-rs/onednn"]
+xnnpack = ["ort/xnnpack", "gline-rs/xnnpack"]
+qnn = ["ort/qnn", "gline-rs/qnn"]
+cann = ["ort/cann", "gline-rs/cann"]
+nnapi = ["ort/nnapi", "gline-rs/nnapi"]
+tvm = ["ort/tvm", "gline-rs/tvm"]
+acl = ["ort/acl", "gline-rs/acl"]
+armnn = ["ort/armnn", "gline-rs/armnn"]
+migraphx = ["ort/migraphx", "gline-rs/migraphx"]
+vitis = ["ort/vitis", "gline-rs/vitis"]
+rknpu = ["ort/rknpu", "gline-rs/rknpu"]
+
+[tool.maturin]
+bindings = "pyo3"
+python-source = "py_src/fast_gliner"
