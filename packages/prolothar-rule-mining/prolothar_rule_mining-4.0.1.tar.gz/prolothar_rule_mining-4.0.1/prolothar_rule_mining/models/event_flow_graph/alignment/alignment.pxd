@@ -1,0 +1,34 @@
+'''
+    This file is part of Prolothar-Rule-Mining (More Info: https://github.com/shs-it/prolothar-rule-mining).
+
+    Prolothar-Rule-Mining is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Prolothar-Rule-Mining is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Prolothar-Rule-Mining. If not, see <https://www.gnu.org/licenses/>.
+'''
+from prolothar_rule_mining.models.event_flow_graph cimport Node
+
+cdef class Move:
+    cdef public node
+    cdef public event_index
+
+    cpdef bint is_model_move(self)
+    cpdef bint is_log_move(self)
+    cpdef bint is_sync_move(self)
+
+cdef class Alignment:
+    cdef list moves
+
+    cpdef Alignment copy(self)
+    cpdef append_log_move(self, int event_index)
+    cpdef append_model_move(self, Node node)
+    cpdef append_sync_move(self, Node node, int event_index)
+    cpdef Move get_last_move(self)
