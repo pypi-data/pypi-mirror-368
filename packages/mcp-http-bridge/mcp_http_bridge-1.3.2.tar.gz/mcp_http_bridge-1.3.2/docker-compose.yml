@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  mcp-http-bridge:
+    image: ghcr.io/mludvig/mcp-http-bridge:latest
+    # build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount custom config to /app/config.json
+      - ./config-example.json:/app/config.json:ro
+    command:
+      - --config
+      - config.json
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+    restart: unless-stopped
+
+  # Example service using an inline command instead of a JSON config file.
+  # Uses the --command flag to specify the MCP server command directly.
+  mcp-http-bridge-inline:
+    image: ghcr.io/mludvig/mcp-http-bridge:latest
+    ports:
+      - "8001:8000"  # Map to a different host port to avoid collision
+    # No config volume needed here
+    command:
+      - --command
+      - uvx mcp-server-time --local-timezone=UTC
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+    restart: unless-stopped
