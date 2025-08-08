@@ -1,0 +1,26 @@
+{% extends 'base/layout.html' %}
+{% block content %}
+<div class="container">
+  <h1>{{ cve.cve_number }} — {{ cve.title }}</h1>
+
+  <div class="card mb-3">
+    <div class="card-body">
+      <dl class="row">
+        <dt class="col-sm-3">CVE</dt><dd class="col-sm-9">{{ cve.cve_number }}</dd>
+        <dt class="col-sm-3">Titel</dt><dd class="col-sm-9">{{ cve.title }}</dd>
+        <dt class="col-sm-3">Beschreibung</dt><dd class="col-sm-9">{{ cve.description|linebreaksbr }}</dd>
+        <dt class="col-sm-3">CVSS</dt><dd class="col-sm-9">{{ cve.score|floatformat:1 }}</dd>
+        <dt class="col-sm-3">Status</dt>
+        <dd class="col-sm-9">
+          {% if cve.status == 1 %}<span class="badge bg-success">Erledigt</span>
+          {% else %}<span class="badge bg-warning text-dark">Offen</span>{% endif %}
+        </dd>
+        <dt class="col-sm-3">Aktualisiert</dt><dd class="col-sm-9">{{ cve.date_updated|date:"Y-m-d H:i" }}</dd>
+      </dl>
+    </div>
+  </div>
+
+  <a href="{% url 'plugins:netbox_cvexplorer:cve_list' %}" class="btn btn-secondary">Zurück</a>
+  <a class="btn btn-primary" href="{% url 'plugins:netbox_cvexplorer:cve_edit' cve.pk %}"> <i class="mdi mdi-pencil"></i> Bearbeiten</a>
+</div>
+{% endblock %}
