@@ -1,0 +1,70 @@
+Metadata-Version: 2.4
+Name: simt-emlite
+Version: 0.23.7
+Summary: API and CLI for communicating with the Emlite meters via EMOP
+Author-email: Chris Hatch <chris@cepro.energy>
+Requires-Python: <4.0,>=3.13
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: grpcio==1.73.1
+Requires-Dist: tenacity==8.5.0
+Requires-Dist: supabase==2.15.2
+Requires-Dist: crcmod==1.7
+Requires-Dist: structlog==24.4.0
+Requires-Dist: docker==7.1.0
+Requires-Dist: protobuf==6.31.1
+Requires-Dist: python-dotenv==1.0.1
+Requires-Dist: python-socks==2.5.0
+Requires-Dist: rich==13.7.1
+Requires-Dist: dnspython==2.6.1
+Requires-Dist: httpx==0.27.0
+Requires-Dist: argcomplete>=3.4.0
+Requires-Dist: types-requests==2.32.4.20250611
+Requires-Dist: emop-frame-protocol==0.4.8
+Requires-Dist: simt-fly-machines==0.2.3
+Dynamic: license-file
+
+# Simtricity Emlite Python APIs and CLI
+
+This repository contains:
+
+- API to connect to and send EMOP messages to Emlite meters
+- a CLI (emop) for sending messages to the meters
+- a CLI (mediators) for managing mediator servers
+
+# Configure
+
+Configuration steps: 
+- create file ~/.simt/emlite.prod.env from Lastpass secret 'emop-cli-env-file (prod)'
+- create file ~/.simt/emlite.qa.env from Lastpass secret 'emop-cli-env-file (qa)'
+- ln -s ~/.simt/emlite.<qa|prod|custom>.env ~/.simt/emlite.env
+
+NOTE:
+- FLY_DNS_SERVER needs the DNS that wireguard uses (on Linux look under `resolvectl status` for the interface and DNS)
+
+see also https://www.notion.so/Emop-and-mediators-CLI-setup-834d32be5c794add8716399ab186abe8
+
+# Use
+
+## emop
+```sh 
+emop env_show
+emop env_set prod
+
+emop --help
+
+emop prepay_balance EML2137555666 
+emop csq EML2137555666
+emop profile_log_1 --timestamp 2024-07-19T00:00 EML2137555666
+```
+
+## mediators
+```sh
+mediators list
+mediators list --esco wlce      # show only mediators from the Waterlilies esco
+mediators list --exists False   # show all meters that don't yet have a mediator 
+
+mediators create EML2137555666
+mediators destroy EML2137555666
+mediators start EML2137555666
+```
