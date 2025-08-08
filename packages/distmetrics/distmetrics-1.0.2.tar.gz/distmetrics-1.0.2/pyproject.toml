@@ -1,0 +1,127 @@
+[build-system]
+requires = ["setuptools>=61.0", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = 'distmetrics'
+requires-python = '>=3.12'
+authors = [
+    {name ='Jungkyo Jung, Charlie Marshak, Talib Oliver-Cabrera, Richard West and OPERA Team', email ='opera-pst-dev@jpl.nasa.gov'}
+]
+description = 'Measure Disturbances in OPERA RTC-S1 Stacks'
+license = {text = 'Apache-2.0'}
+classifiers = [
+    'Intended Audience :: Science/Research',
+    'Natural Language :: English',
+    'Operating System :: OS Independent',
+    'Natural Language :: English',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.12',
+    'Programming Language :: Python :: 3.13',
+]
+
+dynamic = ['version', 'readme']
+
+dependencies = [
+        'affine',
+        'asf_search',
+        'astropy',
+        'backoff',
+        'einops',
+        'geopandas',
+        'matplotlib',
+        'numpy',
+        'pandas',
+        'pydantic',
+        'torch',
+        'rasterio',
+        'scikit-image',
+        'scipy',
+        'shapely',
+        'tqdm',
+]
+
+[project.optional-dependencies]
+develop = [
+    "pytest",
+    "pytest-cov",
+    "flake8",
+    "flake8-import-order",
+    "flake8-blind-except",
+    "flake8-builtins",
+    "jupyterlab",
+]
+
+[project.urls]
+Homepage = "https://github.com/opera-adt/distmetrics"
+"Bug Tracker" = "https://github.com/opera-adt/distmetrics/issues"
+
+[tool.setuptools]
+include-package-data = true
+zip-safe = true
+
+[tool.setuptools.packages.find]
+where = ['src']
+exclude = ['notebooks*', 'tests*']
+
+[tool.setuptools.dynamic]
+readme = { file = ['README.md'], content-type = 'text/markdown' }
+
+[tool.setuptools_scm]
+
+[tool.ruff]
+line-length = 120
+src = ["src", "tests"]
+exclude = [
+    ".eggs",
+    ".git",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "build",
+    "dist",
+    "site-packages",
+    "notebooks/*",
+    "tests/data/*",
+]
+indent-width = 4
+
+[tool.ruff.format]
+quote-style = "single"
+indent-style = "space"
+
+[tool.ruff.lint]
+select = [
+    "F",   # flake8: https://docs.astral.sh/ruff/rules/#flake8-f
+    "E",   # flake8: https://docs.astral.sh/ruff/rules/#flake8-e
+    "I",   # isort: https://docs.astral.sh/ruff/rules/#isort-i
+    "UP",  # pyupgrade: https://docs.astral.sh/ruff/rules/#pyupgrade-up
+    "D",   # pydocstyle: https://docs.astral.sh/ruff/rules/#pydocstyle-d
+    "ANN", # annotations: https://docs.astral.sh/ruff/rules/#flake8-annotations-ann
+    "PTH", # use-pathlib-pth: https://docs.astral.sh/ruff/rules/#flake8-use-pathlib-pth
+    "TRY", # tryceratops
+]
+
+ignore = [
+  "D100",   # Missing docstring in public module
+  "D101",   # Missing docstring in public class
+  "D102",   # Missing docstring in public method
+  "D103",   # Missing docstring in public function
+  "D104",   # Missing docstring in public package
+  "D105",   # Missing docstring in magic method
+  "D106",   # Missing docstring in nested class
+  "D203",   # 1 blank line required before class docstring
+  "D213",   # Multi-line docstring summary should start at the second line
+  "TRY003", # Avoid specifying long messages outside the exception
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.isort]
+case-sensitive = true
+lines-after-imports = 2
