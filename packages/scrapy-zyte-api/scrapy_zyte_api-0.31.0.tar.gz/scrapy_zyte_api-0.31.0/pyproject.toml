@@ -1,0 +1,94 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "scrapy-zyte-api"
+version = "0.31.0"
+description = "Client library to process URLs through Zyte API"
+authors = [{name = "Zyte Group Ltd", email = "info@zyte.com"}]
+license = "BSD-3-Clause"
+readme = "README.rst"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+requires-python = ">=3.9"
+# Sync with [pinned] @ tox.ini
+dependencies = [
+    "packaging>=20.0",
+    "scrapy>=2.0.1",
+    "zyte-api>=0.6.0",
+]
+
+[project.optional-dependencies]
+# Sync with [testenv:pinned-provider] @ tox.ini
+provider = [
+    "andi>=0.6.0",
+    "scrapy-poet>=0.22.3",
+    "web-poet>=0.17.0",
+    "zyte-common-items>=0.27.0",
+]
+x402 = [
+    "zyte-api[x402]>=0.8.0",
+]
+
+[project.urls]
+source = "https://github.com/scrapy-plugins/scrapy-zyte-api"
+docs = "https://scrapy-zyte-api.readthedocs.io/en/latest/"
+
+[tool.bumpversion]
+current_version = "0.31.0"
+commit = true
+tag = true
+tag_name = "{new_version}"
+
+[[tool.bumpversion.files]]
+filename = 'CHANGES.rst'
+search = "\\(unreleased\\)$"
+replace = "({now:%Y-%m-%d})"
+regex = true
+
+[[tool.bumpversion.files]]
+filename = "docs/conf.py"
+
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
+parse = "version\\s*=\\s*['\"](?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
+
+[[tool.bumpversion.files]]
+filename = "scrapy_zyte_api/__version__.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "scrapy_zyte_api/*.py",
+]
+
+[tool.mypy]
+check_untyped_defs = true
+ignore_missing_imports = true
+no_warn_no_return = true
+files = [
+    "scrapy_zyte_api",
+    "tests"
+]
+
+[tool.pytest.ini_options]
+junit_family = "xunit2"
+testpaths = [
+    "scrapy_zyte_api/",
+    "tests/"
+]
+minversion = "6.0"
+filterwarnings = [
+    "ignore::DeprecationWarning:twisted.web.http",
+]
