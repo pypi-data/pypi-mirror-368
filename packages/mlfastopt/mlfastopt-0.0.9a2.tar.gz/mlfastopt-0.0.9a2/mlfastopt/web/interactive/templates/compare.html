@@ -1,0 +1,592 @@
+{% extends "base.html" %}
+
+{% block title %}Compare Runs - Interactive AE Visualizer{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">Compare Optimization Runs</h2>
+        
+        <!-- Comparison Controls -->
+        <div class="plot-container">
+            <div class="row">
+                <div class="col-md-8">
+                    <h5>Selected Runs for Comparison</h5>
+                    <div id="selected-runs">
+                        <div class="alert alert-info">
+                            No runs selected for comparison. Select runs from the sidebar or click "Load from Storage" to restore previous selection.
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <h6>Actions</h6>
+                    <button class="btn btn-primary btn-sm w-100 mb-2" onclick="loadFromStorage()">
+                        📂 Load from Storage
+                    </button>
+                    <button class="btn btn-success btn-sm w-100 mb-2" onclick="compareRuns()" disabled id="compare-btn">
+                        📊 Generate Comparison
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm w-100" onclick="clearSelection()">
+                        🗑️ Clear Selection
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Comparison Results -->
+        <div id="comparison-results" style="display: none;">
+            <!-- Performance Comparison Chart -->
+            <div class="plot-container">
+                <h4>Performance Comparison</h4>
+                <div id="comparison-plot"></div>
+            </div>
+            
+            <!-- Detailed Comparison Table -->
+            <div class="plot-container">
+                <h4>Detailed Metrics Comparison</h4>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="comparison-table">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Run ID</th>
+                                <th>Timestamp</th>
+                                <th>Soft F1</th>
+                                <th>Soft Recall</th>
+                                <th>Soft Precision</th>
+                                <th>Trials</th>
+                                <th>Ensemble Size</th>
+                                <th>Training Mode</th>
+                                <th>Avg Trial Time</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Comparison data will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Statistical Summary -->
+            <div class="plot-container">
+                <h4>Statistical Summary</h4>
+                <div class="row" id="stats-summary">
+                    <!-- Statistical summary will be inserted here -->
+                </div>
+            </div>
+            
+            <!-- Export Options -->
+            <div class="plot-container">
+                <h4>Export Comparison</h4>
+                <div class="row">
+                    <div class="col-md-6">
+                        <button class="btn btn-outline-primary w-100" onclick="exportToCSV()">
+                            📁 Export to CSV
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button class="btn btn-outline-secondary w-100" onclick="exportToJSON()">
+                            📋 Export to JSON
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Advanced Comparison -->
+        <div id="advanced-comparison" style="display: none;">
+            <div class="plot-container">
+                <h4>Advanced Analysis</h4>
+                
+                <!-- Parameter Comparison -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Parameter Variance Analysis</h6>
+                        <div id="parameter-variance-plot"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Performance vs Time Trade-off</h6>
+                        <div id="tradeoff-plot"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let comparisonRuns = [];
+    let comparisonData = [];
+    
+    // Load comparison runs from storage on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadFromStorage();
+    });
+    
+    function onRunSelected(runId) {
+        // Add to comparison selection
+        if (!comparisonRuns.includes(runId)) {
+            comparisonRuns.push(runId);
+            updateSelectedRuns();
+            saveToStorage();
+        }
+    }
+    
+    function loadFromStorage() {
+        comparisonRuns = JSON.parse(localStorage.getItem('comparisonRuns') || '[]');
+        updateSelectedRuns();
+    }
+    
+    function saveToStorage() {
+        localStorage.setItem('comparisonRuns', JSON.stringify(comparisonRuns));
+    }
+    
+    function updateSelectedRuns() {
+        const container = document.getElementById('selected-runs');
+        const compareBtn = document.getElementById('compare-btn');
+        
+        if (comparisonRuns.length === 0) {
+            container.innerHTML = '<div class="alert alert-info">No runs selected for comparison. Select runs from the sidebar.</div>';
+            compareBtn.disabled = true;
+        } else {
+            const runsHtml = comparisonRuns.map(runId => `
+                <span class="badge bg-primary me-2 mb-2 p-2">
+                    ${runId}
+                    <button type="button" class="btn-close btn-close-white ms-2" 
+                            onclick="removeFromComparison('${runId}')" 
+                            style="font-size: 0.6em;"></button>
+                </span>
+            `).join('');
+            
+            container.innerHTML = `
+                <div class="mb-2">
+                    ${runsHtml}
+                </div>
+                <small class="text-muted">${comparisonRuns.length} runs selected</small>
+            `;
+            compareBtn.disabled = comparisonRuns.length < 2;
+        }
+    }
+    
+    function removeFromComparison(runId) {
+        comparisonRuns = comparisonRuns.filter(id => id !== runId);
+        updateSelectedRuns();
+        saveToStorage();
+    }
+    
+    function clearSelection() {
+        comparisonRuns = [];
+        updateSelectedRuns();
+        saveToStorage();
+        
+        // Hide comparison results
+        document.getElementById('comparison-results').style.display = 'none';
+        document.getElementById('advanced-comparison').style.display = 'none';
+    }
+    
+    async function compareRuns() {
+        if (comparisonRuns.length < 2) {
+            alert('Please select at least 2 runs for comparison');
+            return;
+        }
+        
+        try {
+            // Show comparison results container first
+            const resultsContainer = document.getElementById('comparison-results');
+            resultsContainer.style.display = 'block';
+            showLoading('comparison-plot');
+            
+            const response = await fetch('/api/compare', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ run_ids: comparisonRuns })
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            comparisonData = data.comparison_data;
+            
+            // Ensure the plot container is visible and ready
+            const plotContainer = document.getElementById('comparison-plot');
+            if (!plotContainer) {
+                throw new Error('Comparison plot container not found');
+            }
+            
+            // Clear loading spinner and create the plot immediately
+            try {
+                const plotData = JSON.parse(data.plot);
+                // Clear the loading spinner and create the plot
+                const plotContainer = document.getElementById('comparison-plot');
+                plotContainer.innerHTML = ''; // Clear loading spinner completely
+                
+                // Create the plot
+                Plotly.newPlot('comparison-plot', plotData.data, plotData.layout).then(() => {
+                    console.log('Comparison plot created successfully');
+                }).catch((plotError) => {
+                    console.error('Error in Plotly.newPlot:', plotError);
+                    plotContainer.innerHTML = `
+                        <div class="alert alert-warning">
+                            <h6>Error creating interactive plot:</h6>
+                            <p>${plotError.message}</p>
+                        </div>
+                    `;
+                });
+            } catch (plotError) {
+                console.error('Error parsing plot data:', plotError);
+                document.getElementById('comparison-plot').innerHTML = `
+                    <div class="alert alert-warning">
+                        <h6>Error creating interactive plot:</h6>
+                        <p>${plotError.message}</p>
+                    </div>
+                `;
+            }
+            
+            // Update comparison table
+            updateComparisonTable(comparisonData);
+            
+            // Update statistical summary
+            updateStatisticalSummary(comparisonData);
+            
+            // Show advanced comparison
+            document.getElementById('advanced-comparison').style.display = 'block';
+            createAdvancedPlots(comparisonData);
+            
+        } catch (error) {
+            console.error('Error comparing runs:', error);
+            
+            // Make sure the results container is visible to show the error
+            const resultsContainer = document.getElementById('comparison-results');
+            resultsContainer.style.display = 'block';
+            
+            // Clear loading spinner and show error in the comparison plot area
+            const plotContainer = document.getElementById('comparison-plot');
+            if (plotContainer) {
+                plotContainer.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h6>Error generating comparison:</h6>
+                        <p>${error.message || 'Unknown error occurred'}</p>
+                    </div>
+                `;
+            } else {
+                showError('comparison-results', error.message || 'Error generating comparison');
+            }
+        }
+    }
+    
+    function updateComparisonTable(data) {
+        const tbody = document.querySelector('#comparison-table tbody');
+        
+        // Find best values for highlighting
+        const bestF1 = Math.max(...data.map(r => r.soft_f1));
+        const bestRecall = Math.max(...data.map(r => r.soft_recall));
+        const bestPrecision = Math.max(...data.map(r => r.soft_precision));
+        const bestTime = Math.min(...data.map(r => r.avg_trial_time));
+        
+        tbody.innerHTML = data.map(run => `
+            <tr>
+                <td><strong>${run.run_id}</strong></td>
+                <td><small>${run.timestamp}</small></td>
+                <td ${run.soft_f1 === bestF1 ? 'class="table-success"' : ''}><strong>${run.soft_f1}</strong></td>
+                <td ${run.soft_recall === bestRecall ? 'class="table-success"' : ''}>${run.soft_recall}</td>
+                <td ${run.soft_precision === bestPrecision ? 'class="table-success"' : ''}>${run.soft_precision}</td>
+                <td>${run.num_trials}</td>
+                <td>${run.ensemble_size}</td>
+                <td>
+                    <span class="badge ${run.training_mode === 'Parallel' ? 'bg-warning' : 'bg-info'}">
+                        ${run.training_mode}
+                    </span>
+                </td>
+                <td ${run.avg_trial_time === bestTime ? 'class="table-success"' : ''}>${run.avg_trial_time}s</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="viewRun('${run.run_id}')">
+                        👁️ View
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+    
+    function updateStatisticalSummary(data) {
+        const f1Stats = calculateStats(data.map(r => r.soft_f1));
+        const recallStats = calculateStats(data.map(r => r.soft_recall));
+        const precisionStats = calculateStats(data.map(r => r.soft_precision));
+        const timeStats = calculateStats(data.map(r => r.avg_trial_time));
+        
+        document.getElementById('stats-summary').innerHTML = `
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">Soft F1 Score</h6>
+                        <p class="card-text">
+                            <strong>Mean:</strong> ${f1Stats.mean.toFixed(4)}<br>
+                            <strong>Std:</strong> ${f1Stats.std.toFixed(4)}<br>
+                            <strong>Range:</strong> ${f1Stats.min.toFixed(4)} - ${f1Stats.max.toFixed(4)}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">Soft Recall</h6>
+                        <p class="card-text">
+                            <strong>Mean:</strong> ${recallStats.mean.toFixed(4)}<br>
+                            <strong>Std:</strong> ${recallStats.std.toFixed(4)}<br>
+                            <strong>Range:</strong> ${recallStats.min.toFixed(4)} - ${recallStats.max.toFixed(4)}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">Soft Precision</h6>
+                        <p class="card-text">
+                            <strong>Mean:</strong> ${precisionStats.mean.toFixed(4)}<br>
+                            <strong>Std:</strong> ${precisionStats.std.toFixed(4)}<br>
+                            <strong>Range:</strong> ${precisionStats.min.toFixed(4)} - ${precisionStats.max.toFixed(4)}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">Trial Time</h6>
+                        <p class="card-text">
+                            <strong>Mean:</strong> ${timeStats.mean.toFixed(1)}s<br>
+                            <strong>Std:</strong> ${timeStats.std.toFixed(1)}s<br>
+                            <strong>Range:</strong> ${timeStats.min.toFixed(1)}s - ${timeStats.max.toFixed(1)}s
+                        </p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    function createAdvancedPlots(data) {
+        // Create Parameter Variance Analysis
+        createParameterVariancePlot(data);
+        
+        // Performance vs Time trade-off plot
+        const tradeoffFig = {
+            data: [{
+                x: data.map(r => r.avg_trial_time),
+                y: data.map(r => r.soft_f1),
+                mode: 'markers+text',
+                type: 'scatter',
+                text: data.map(r => r.run_id.split('_').pop()),
+                textposition: 'top center',
+                marker: {
+                    size: data.map(r => r.ensemble_size),
+                    sizemode: 'diameter',
+                    sizeref: 0.5,
+                    color: data.map(r => r.training_mode === 'Parallel' ? 'orange' : 'blue'),
+                    colorscale: 'Viridis',
+                    showscale: false
+                }
+            }],
+            layout: {
+                title: 'F1 Score vs Trial Time',
+                xaxis: { title: 'Average Trial Time (seconds)' },
+                yaxis: { title: 'Soft F1 Score' },
+                height: 300,
+                margin: { l: 50, r: 20, t: 40, b: 40 }
+            }
+        };
+        
+        Plotly.newPlot('tradeoff-plot', tradeoffFig.data, tradeoffFig.layout);
+    }
+    
+    async function createParameterVariancePlot(data) {
+        try {
+            // Get parameter data for all runs in comparison
+            const parameterData = [];
+            
+            for (const runSummary of data) {
+                try {
+                    const response = await fetch(`/api/run/${runSummary.run_id}`);
+                    if (response.ok) {
+                        const runData = await response.json();
+                        const params = runData.parameters || {};
+                        
+                        // Key parameters to analyze
+                        const keyParams = ['learning_rate', 'num_leaves', 'max_depth', 'n_estimators', 
+                                         'subsample', 'colsample_bytree', 'reg_alpha', 'reg_lambda'];
+                        
+                        const paramValues = {};
+                        keyParams.forEach(param => {
+                            if (params[param] !== undefined) {
+                                paramValues[param] = params[param];
+                            }
+                        });
+                        
+                        parameterData.push({
+                            run_id: runSummary.run_id,
+                            parameters: paramValues,
+                            soft_f1: runSummary.soft_f1
+                        });
+                    }
+                } catch (error) {
+                    console.error(`Error fetching parameters for ${runSummary.run_id}:`, error);
+                }
+            }
+            
+            if (parameterData.length > 0) {
+                // Create parameter variance visualization
+                const paramNames = Object.keys(parameterData[0].parameters);
+                
+                if (paramNames.length > 0) {
+                    // Calculate coefficient of variation for each parameter
+                    const varianceData = paramNames.map(paramName => {
+                        const values = parameterData.map(d => d.parameters[paramName]).filter(v => v !== undefined);
+                        
+                        if (values.length > 1) {
+                            const mean = values.reduce((a, b) => a + b, 0) / values.length;
+                            const variance = values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / values.length;
+                            const std = Math.sqrt(variance);
+                            const cv = mean !== 0 ? (std / Math.abs(mean)) : 0; // Coefficient of variation
+                            
+                            return {
+                                parameter: paramName.replace('_', ' ').toUpperCase(),
+                                cv: cv,
+                                mean: mean,
+                                std: std,
+                                count: values.length
+                            };
+                        }
+                        return null;
+                    }).filter(d => d !== null);
+                    
+                    // Create bar chart showing parameter variance
+                    const varianceFig = {
+                        data: [{
+                            x: varianceData.map(d => d.parameter),
+                            y: varianceData.map(d => d.cv),
+                            type: 'bar',
+                            marker: {
+                                color: varianceData.map(d => d.cv),
+                                colorscale: 'Viridis',
+                                showscale: true,
+                                colorbar: {
+                                    title: 'Coefficient of Variation'
+                                }
+                            },
+                            text: varianceData.map(d => `CV: ${d.cv.toFixed(3)}<br>Mean: ${d.mean.toFixed(3)}`),
+                            textposition: 'outside',
+                            hovertemplate: '<b>%{x}</b><br>' +
+                                         'Coefficient of Variation: %{y:.3f}<br>' +
+                                         'Mean: %{customdata[0]:.3f}<br>' +
+                                         'Std Dev: %{customdata[1]:.3f}<br>' +
+                                         'Runs: %{customdata[2]}<extra></extra>',
+                            customdata: varianceData.map(d => [d.mean, d.std, d.count])
+                        }],
+                        layout: {
+                            title: 'Parameter Variance Across Runs',
+                            xaxis: { 
+                                title: 'Parameters',
+                                tickangle: 45
+                            },
+                            yaxis: { title: 'Coefficient of Variation' },
+                            height: 300,
+                            margin: { l: 50, r: 20, t: 40, b: 80 }
+                        }
+                    };
+                    
+                    Plotly.newPlot('parameter-variance-plot', varianceFig.data, varianceFig.layout);
+                } else {
+                    // No parameters found
+                    document.getElementById('parameter-variance-plot').innerHTML = `
+                        <div class="alert alert-info">
+                            <p>No parameter data available for variance analysis.</p>
+                        </div>
+                    `;
+                }
+            } else {
+                // No data loaded
+                document.getElementById('parameter-variance-plot').innerHTML = `
+                    <div class="alert alert-warning">
+                        <p>Could not load parameter data for comparison runs.</p>
+                    </div>
+                `;
+            }
+            
+        } catch (error) {
+            console.error('Error creating parameter variance plot:', error);
+            document.getElementById('parameter-variance-plot').innerHTML = `
+                <div class="alert alert-danger">
+                    <p>Error creating parameter variance analysis: ${error.message}</p>
+                </div>
+            `;
+        }
+    }
+    
+    function calculateStats(values) {
+        const mean = values.reduce((a, b) => a + b, 0) / values.length;
+        const variance = values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / values.length;
+        const std = Math.sqrt(variance);
+        
+        return {
+            mean: mean,
+            std: std,
+            min: Math.min(...values),
+            max: Math.max(...values)
+        };
+    }
+    
+    function viewRun(runId) {
+        // Navigate to main dashboard with this run selected
+        window.location.href = `/?run=${runId}`;
+    }
+    
+    function exportToCSV() {
+        if (comparisonData.length === 0) return;
+        
+        const headers = ['Run ID', 'Timestamp', 'Soft F1', 'Soft Recall', 'Soft Precision', 
+                        'Trials', 'Ensemble Size', 'Training Mode', 'Avg Trial Time'];
+        
+        const csvContent = [
+            headers.join(','),
+            ...comparisonData.map(row => [
+                row.run_id,
+                row.timestamp,
+                row.soft_f1,
+                row.soft_recall,
+                row.soft_precision,
+                row.num_trials,
+                row.ensemble_size,
+                row.training_mode,
+                row.avg_trial_time
+            ].join(','))
+        ].join('\\n');
+        
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'ae_comparison_results.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+    
+    function exportToJSON() {
+        if (comparisonData.length === 0) return;
+        
+        const blob = new Blob([JSON.stringify(comparisonData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'ae_comparison_results.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+</script>
+{% endblock %}

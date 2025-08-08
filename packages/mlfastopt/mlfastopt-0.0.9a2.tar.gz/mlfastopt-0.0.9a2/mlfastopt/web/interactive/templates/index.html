@@ -1,0 +1,424 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Interactive AE Visualizer{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">Run Details Dashboard</h2>
+        
+        <!-- Welcome message when no run selected -->
+        <div id="welcome-message" class="text-center py-5">
+            <div class="alert alert-info">
+                <h4>👈 Select a run from the sidebar to view detailed visualizations</h4>
+                <p class="mb-0">Choose any optimization run to see performance metrics, parameters, timing analysis, and generated plots.</p>
+            </div>
+        </div>
+        
+        <!-- Run details container -->
+        <div id="run-details" style="display: none;">
+            <!-- Run Header -->
+            <div id="run-header" class="plot-container">
+                <div class="row">
+                    <div class="col-md-8">
+                        <h3 id="run-title">Run Details</h3>
+                        <p id="run-timestamp" class="text-muted"></p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <button class="btn btn-outline-primary btn-sm" onclick="downloadRunData()">
+                            📥 Download Data
+                        </button>
+                        <button class="btn btn-outline-success btn-sm" onclick="addToComparison()">
+                            📊 Add to Compare
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Quick metrics -->
+                <div class="row mt-3">
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body text-center">
+                                <h5 id="metric-f1">-</h5>
+                                <small>Soft F1 Score</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h5 id="metric-recall">-</h5>
+                                <small>Soft Recall</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body text-center">
+                                <h5 id="metric-precision">-</h5>
+                                <small>Soft Precision</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-info text-white">
+                            <div class="card-body text-center">
+                                <h5 id="metric-time">-</h5>
+                                <small>Avg Trial Time</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Performance Gauges -->
+            <div class="plot-container">
+                <h4>Performance Metrics</h4>
+                <div id="performance-plot"></div>
+            </div>
+            
+            <!-- Parameters Visualization -->
+            <div class="plot-container">
+                <h4>Key Parameters</h4>
+                <div id="parameters-plot"></div>
+            </div>
+            
+            <!-- Timing Analysis -->
+            <div class="plot-container">
+                <h4>Timing Analysis</h4>
+                <div id="timing-plot"></div>
+            </div>
+            
+            <!-- Qualifying Trials Analysis -->
+            <div id="qualifying-trials-container" class="plot-container" style="display: none;">
+                <h4>Qualifying Trials Analysis</h4>
+                <div class="alert alert-info" id="selection-mode-info">
+                    <!-- Selection mode info will be inserted here -->
+                </div>
+                <div id="qualifying-trials-plot"></div>
+                <div class="mt-3">
+                    <h6>Qualifying Trials Details</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped" id="qualifying-trials-table">
+                            <thead>
+                                <tr>
+                                    <th>Trial #</th>
+                                    <th>Soft Recall</th>
+                                    <th>Soft F1</th>
+                                    <th>Soft Precision</th>
+                                    <th>Duration</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Qualifying trials details will be inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Generated Plots -->
+            <div id="generated-plots-container" style="display: none;">
+                <div class="plot-container">
+                    <h4>Generated Optimization Plots</h4>
+                    <div class="row" id="generated-plots">
+                        <!-- Generated plots will be inserted here -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Configuration Details -->
+            <div class="plot-container">
+                <h4>Configuration Details</h4>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Optimization Settings</h6>
+                        <table class="table table-sm" id="config-table">
+                            <tbody>
+                                <!-- Config details will be inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Timing Statistics</h6>
+                        <table class="table table-sm" id="timing-table">
+                            <tbody>
+                                <!-- Timing details will be inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Raw Parameters -->
+            <div class="plot-container">
+                <h4>All Parameters</h4>
+                <div class="row">
+                    <div class="col-12">
+                        <pre id="raw-parameters" class="bg-light p-3" style="max-height: 300px; overflow-y: auto;"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let comparisonRuns = JSON.parse(localStorage.getItem('comparisonRuns') || '[]');
+    
+    function onRunSelected(runId) {
+        loadRunDetails(runId);
+    }
+    
+    async function loadRunDetails(runId) {
+        // Show run details container and hide welcome message
+        document.getElementById('welcome-message').style.display = 'none';
+        document.getElementById('run-details').style.display = 'block';
+        
+        try {
+            // Load run details
+            const folderPath = getCurrentFolder();
+            const response = await fetch(`/api/run/${runId}?folder=${encodeURIComponent(folderPath)}`);
+            const runData = await response.json();
+            
+            // Update header
+            document.getElementById('run-title').textContent = `Run: ${runData.run_id}`;
+            document.getElementById('run-timestamp').textContent = runData.timestamp_formatted;
+            
+            // Update quick metrics
+            const metrics = runData.metrics;
+            document.getElementById('metric-f1').textContent = (metrics.soft_f1_score?.[0] || 0).toFixed(4);
+            document.getElementById('metric-recall').textContent = (metrics.soft_recall?.[0] || 0).toFixed(4);
+            document.getElementById('metric-precision').textContent = (metrics.soft_precision?.[0] || 0).toFixed(4);
+            document.getElementById('metric-time').textContent = (runData.timing_stats.average_trial_time_seconds || 0).toFixed(1) + 's';
+            
+            // Load interactive plots
+            loadPerformancePlot(runId);
+            loadParametersPlot(runId);
+            loadTimingPlot(runId);
+            loadQualifyingTrialsSection(runId, runData);
+            
+            // Load generated plots
+            loadGeneratedPlots(runData);
+            
+            // Update configuration tables
+            updateConfigTable(runData.config);
+            updateTimingTable(runData.timing_stats);
+            
+            // Update raw parameters
+            document.getElementById('raw-parameters').textContent = JSON.stringify(runData.parameters, null, 2);
+            
+        } catch (error) {
+            console.error('Error loading run details:', error);
+            showError('run-details', 'Error loading run details');
+        }
+    }
+    
+    async function loadPerformancePlot(runId) {
+        try {
+            const folderPath = getCurrentFolder();
+            const response = await fetch(`/api/plot/performance/${runId}?folder=${encodeURIComponent(folderPath)}`);
+            const data = await response.json();
+            Plotly.newPlot('performance-plot', JSON.parse(data.plot).data, JSON.parse(data.plot).layout);
+        } catch (error) {
+            console.error('Error loading performance plot:', error);
+            document.getElementById('performance-plot').innerHTML = '<div class="alert alert-warning">Error loading performance plot</div>';
+        }
+    }
+    
+    async function loadParametersPlot(runId) {
+        try {
+            const folderPath = getCurrentFolder();
+            const response = await fetch(`/api/plot/parameters/${runId}?folder=${encodeURIComponent(folderPath)}`);
+            const data = await response.json();
+            Plotly.newPlot('parameters-plot', JSON.parse(data.plot).data, JSON.parse(data.plot).layout);
+        } catch (error) {
+            console.error('Error loading parameters plot:', error);
+            document.getElementById('parameters-plot').innerHTML = '<div class="alert alert-warning">Error loading parameters plot</div>';
+        }
+    }
+    
+    async function loadTimingPlot(runId) {
+        try {
+            const folderPath = getCurrentFolder();
+            const response = await fetch(`/api/plot/timing/${runId}?folder=${encodeURIComponent(folderPath)}`);
+            const data = await response.json();
+            Plotly.newPlot('timing-plot', JSON.parse(data.plot).data, JSON.parse(data.plot).layout);
+        } catch (error) {
+            console.error('Error loading timing plot:', error);
+            document.getElementById('timing-plot').innerHTML = '<div class="alert alert-warning">Error loading timing plot</div>';
+        }
+    }
+    
+    async function loadQualifyingTrialsSection(runId, runData) {
+        const container = document.getElementById('qualifying-trials-container');
+        
+        // Check if qualifying trials data exists
+        if (runData.qualifying_trials) {
+            container.style.display = 'block';
+            
+            // Update selection mode info
+            const selectionMode = runData.selection_mode || 'Legacy (Best Trial)';
+            const numTrials = runData.num_qualifying_trials || 1;
+            document.getElementById('selection-mode-info').innerHTML = `
+                <strong>Selection Mode:</strong> ${selectionMode} 
+                <br><strong>Trials Saved:</strong> ${numTrials}
+            `;
+            
+            // Load qualifying trials plot
+            try {
+                const folderPath = getCurrentFolder();
+                const response = await fetch(`/api/plot/qualifying-trials/${runId}?folder=${encodeURIComponent(folderPath)}`);
+                const data = await response.json();
+                if (data.plot) {
+                    Plotly.newPlot('qualifying-trials-plot', JSON.parse(data.plot).data, JSON.parse(data.plot).layout);
+                }
+            } catch (error) {
+                console.error('Error loading qualifying trials plot:', error);
+                document.getElementById('qualifying-trials-plot').innerHTML = '<div class="alert alert-warning">Error loading qualifying trials plot</div>';
+            }
+            
+            // Load qualifying trials data table
+            try {
+                const folderPath = getCurrentFolder();
+                const response = await fetch(`/api/qualifying-trials/${runId}?folder=${encodeURIComponent(folderPath)}`);
+                const qualifyingData = await response.json();
+                updateQualifyingTrialsTable(qualifyingData.qualifying_trials);
+            } catch (error) {
+                console.error('Error loading qualifying trials data:', error);
+            }
+        } else {
+            container.style.display = 'none';
+        }
+    }
+    
+    function updateQualifyingTrialsTable(qualifyingTrials) {
+        const tbody = document.querySelector('#qualifying-trials-table tbody');
+        
+        const rows = qualifyingTrials.map(trial => `
+            <tr>
+                <td><strong>#${trial.trial_number}</strong></td>
+                <td>${trial.metrics_summary.soft_recall.toFixed(4)}</td>
+                <td>${trial.metrics_summary.soft_f1_score.toFixed(4)}</td>
+                <td>${trial.metrics_summary.soft_precision.toFixed(4)}</td>
+                <td>${trial.trial_duration_seconds.toFixed(1)}s</td>
+            </tr>
+        `).join('');
+        
+        tbody.innerHTML = rows;
+    }
+    
+    function loadGeneratedPlots(runData) {
+        const plotsContainer = document.getElementById('generated-plots');
+        const containerDiv = document.getElementById('generated-plots-container');
+        
+        if (runData.plots_available && runData.plots_available.length > 0) {
+            containerDiv.style.display = 'block';
+            
+            const plotsHtml = runData.plots_available.map(plotFile => `
+                <div class="col-12 mb-4">
+                    <div class="plot-image-container">
+                        <div class="card-header bg-light border-0">
+                            <h6 class="mb-0 text-center">${plotFile.replace('.png', '').replace('_', ' ').toUpperCase()}</h6>
+                        </div>
+                        <div class="text-center p-0">
+                            <img src="/api/image/${runData.run_id}/${plotFile}?folder=${encodeURIComponent(getCurrentFolder())}" 
+                                 class="img-fluid" 
+                                 alt="${plotFile}"
+                                 style="max-height: 600px; width: auto; max-width: 100%; display: block; margin: 0 auto;">
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            plotsContainer.innerHTML = plotsHtml;
+        } else {
+            containerDiv.style.display = 'none';
+        }
+    }
+    
+    function updateConfigTable(config) {
+        const table = document.getElementById('config-table');
+        const rows = [
+            ['Trials', config.AE_NUM_TRIALS || 'N/A'],
+            ['Ensemble Size', config.N_ENSEMBLE_GROUP_NUMBER || 'N/A'],
+            ['Min Recall Threshold', config.MIN_RECALL_THRESHOLD || 'N/A'],
+            ['Training Mode', config.PARALLEL_TRAINING ? 'Parallel' : 'Sequential'],
+            ['Prediction Threshold', config.SOFT_PREDICTION_THRESHOLD || 'N/A'],
+            ['F1 Threshold', config.F1_THRESHOLD || 'N/A']
+        ];
+        
+        table.innerHTML = rows.map(([key, value]) => `
+            <tr>
+                <td><strong>${key}</strong></td>
+                <td>${value}</td>
+            </tr>
+        `).join('');
+    }
+    
+    function updateTimingTable(timingStats) {
+        const table = document.getElementById('timing-table');
+        const rows = [
+            ['Total Time', (timingStats.total_trial_time_seconds || 0).toFixed(1) + 's'],
+            ['Average Trial', (timingStats.average_trial_time_seconds || 0).toFixed(1) + 's'],
+            ['Fastest Trial', (timingStats.min_trial_time_seconds || 0).toFixed(1) + 's'],
+            ['Slowest Trial', (timingStats.max_trial_time_seconds || 0).toFixed(1) + 's']
+        ];
+        
+        table.innerHTML = rows.map(([key, value]) => `
+            <tr>
+                <td><strong>${key}</strong></td>
+                <td>${value}</td>
+            </tr>
+        `).join('');
+    }
+    
+    function downloadRunData() {
+        if (!currentRun) return;
+        
+        // Create downloadable JSON file
+        const folderPath = getCurrentFolder();
+        fetch(`/api/run/${currentRun}?folder=${encodeURIComponent(folderPath)}`)
+            .then(response => response.json())
+            .then(data => {
+                const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${currentRun}_data.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+    }
+    
+    function addToComparison() {
+        if (!currentRun) return;
+        
+        if (!comparisonRuns.includes(currentRun)) {
+            comparisonRuns.push(currentRun);
+            localStorage.setItem('comparisonRuns', JSON.stringify(comparisonRuns));
+            
+            // Show notification
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-success alert-dismissible fade show position-fixed';
+            alert.style.top = '80px';
+            alert.style.right = '20px';
+            alert.style.zIndex = '9999';
+            alert.innerHTML = `
+                ${currentRun} added to comparison! 
+                <a href="/compare" class="alert-link">View Comparison</a>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alert);
+            
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.parentNode.removeChild(alert);
+                }
+            }, 5000);
+        }
+    }
+</script>
+{% endblock %}

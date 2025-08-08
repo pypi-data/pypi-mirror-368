@@ -1,0 +1,92 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mlfastopt"
+version = "0.0.9a2"
+description = "ML Fast Opt - Advanced ensemble optimization system for LightGBM hyperparameter tuning"
+readme = "README.md"
+license = "MIT"
+authors = [
+    {name = "MLFastOpt Development Team", email = "mlfastopt-dev@example.com"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "ax-platform>=0.3.0",
+    "sqlalchemy<2.0.0",
+    "lightgbm>=3.3.0,<5.0.0",
+    "polars>=0.18.0",
+    "pandas>=1.5.0,<3.0.0",
+    "numpy>=1.21.0",
+    "scikit-learn>=1.1.0,<2.0.0",
+    "matplotlib>=3.5.0",
+    "joblib>=1.1.0",
+    "flask>=2.0.0,<4.0.0",
+    "plotly>=5.0.0,<7.0.0",
+    "seaborn>=0.11.0",
+    "pyarrow>=17.0.0",
+    "keyring>=25.5.0",
+    "build>=1.2.2.post1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=3.0.0",
+    "coverage>=6.0.0",
+    "black>=22.0.0",
+    "flake8>=5.0.0",
+    "mypy>=0.991",
+    "sphinx>=5.0.0",
+    "sphinx-rtd-theme>=1.0.0",
+    "jupyter>=1.0.0",
+    "ipython>=8.0.0",
+]
+
+[project.scripts]
+mlfastopt-optimize = "mlfastopt.cli.main:main"
+mlfastopt-web = "mlfastopt.web.interactive.app:main"
+mlfastopt-analyze = "mlfastopt.web.analysis.analyzer:main"
+
+[project.urls]
+Homepage = "https://github.com/example/mlfastopt"
+Documentation = "https://github.com/example/mlfastopt/docs"
+Repository = "https://github.com/example/mlfastopt"
+Issues = "https://github.com/example/mlfastopt/issues"
+
+[tool.black]
+line-length = 100
+target-version = ['py38']
+include = '\.pyi?$'
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["mlfastopt*"]
+exclude = ["tests*"]
+
+[tool.setuptools.package-data]
+"mlfastopt.web.interactive" = ["templates/*.html"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --cov=mlfastopt --cov-report=html --cov-report=term-missing"
