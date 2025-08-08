@@ -1,0 +1,64 @@
+[project]
+name = "eplatform"
+requires-python = ">=3.12"
+version = "0.19.0"
+description = "Operating System Library"
+authors = [
+    {name = "Erik Soma", email= "stillusingirc@gmail.com"}
+]
+
+[tool.poetry]
+include = [
+    {path = "src/eplatform/*.so", format = "wheel"},
+    {path = "src/eplatform/*.pyd", format = "wheel"},
+]
+
+[tool.poetry.build]
+generate-setup-file = false
+script = "buildscript.py"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+emath = "^0"
+eevent = "^0"
+egeometry = "^0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "7.4.3"
+pytest-cov = "4.1.0"
+pywin32 = {version = ">=311", markers = "sys_platform == 'win32'"}
+
+[build-system]
+requires = ["poetry-core", "setuptools==69.0.2"]
+build-backend = "poetry.core.masonry.api"
+
+[virtualenvs]
+in-project = true
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+
+[tool.cibuildwheel.linux]
+before-all = [
+    "yum install ninja-build -y",
+]
+repair-wheel-command = "auditwheel repair -w {dest_dir} --exclude 'libSDL3.so.0' {wheel}"
+
+[[tool.cibuildwheel.overrides]]
+select = "*-musllinux*"
+before-all = "apk add samurai"
+
+[tool.cibuildwheel.windows]
+before-all = [
+    "choco install ninja",
+]
+
+[tool.cibuildwheel.macos]
+before-all = [
+    "brew install ninja",
+]
+repair-wheel-command = ""
+
+[tool.cibuildwheel]
+enable = ["cpython-prerelease"]
