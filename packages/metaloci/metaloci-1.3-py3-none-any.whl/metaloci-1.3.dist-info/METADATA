@@ -1,0 +1,90 @@
+Metadata-Version: 2.1
+Name: metaloci
+Version: 1.3
+Summary: METALoci: spatially auto-correlated signals in 3D genomes
+Home-page: https://github.com/3DGenomes/METALoci/
+Author: Leo Zuber, Iago Maceda, Juan Antonio Rodríguez and Marc Martí-Renom
+Author-email: martirenom@cnag.eu
+Classifier: Programming Language :: Python :: 3.9
+Classifier: License :: OSI Approved :: GNU General Public License v3 (GPLv3)
+Classifier: Topic :: Scientific/Engineering :: Bio-Informatics
+Classifier: Operating System :: POSIX :: Linux
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: docutils <0.21
+Requires-Dist: adjustText ==1.1.1
+Requires-Dist: bioframe
+Requires-Dist: cooler ==0.9.2
+Requires-Dist: dill ==0.3.8
+Requires-Dist: esda ==2.7.0
+Requires-Dist: geopandas ==0.13.2
+Requires-Dist: h5py ==3.10.0
+Requires-Dist: hic-straw ==1.3.1
+Requires-Dist: imageio ==2.37.0
+Requires-Dist: imageio-ffmpeg ==0.6.0
+Requires-Dist: libpysal ==4.13.0
+Requires-Dist: matplotlib ==3.7.2
+Requires-Dist: networkx ==3.1
+Requires-Dist: numba ==0.61.2
+Requires-Dist: numpy ==1.26.4
+Requires-Dist: pandas ==2.0.3
+Requires-Dist: pillow ==10.3.0
+Requires-Dist: pybedtools ==0.9.1
+Requires-Dist: scipy ==1.16.1
+Requires-Dist: seaborn ==0.11.0
+Requires-Dist: setuptools <81,>78.1.1
+Requires-Dist: shapely ==2.1.1
+Requires-Dist: sphinx-rtd-theme ==2.0.0
+Requires-Dist: sphinx ==7.3.7
+Requires-Dist: tqdm ==4.66.3
+Requires-Dist: sphinx-argparse
+Requires-Dist: cppy >=1.2.0
+
+# METALoci
+
+#### Spatially auto-correlated signals in 3D genomes.
+
+METALoci relies on spatial autocorrelation analysis, classically employed in geostatistics, to describe how the variation of a variable depends on space at a global and local scales (e.g., identifying contamination hotspots within a city). METALoci repurposes this type of analysis to quantify spatial genome hubs of similar epigenetic properties. Briefly, the overall flowchart of METALoci consists of four steps:
+
+* First, a genome-wide Hi-C normalized matrix is taken as input and the top interactions selected.
+
+* Second, the selected interactions are used to build a graph layout (equivalent to a physical map) using the Kamada-Kawai algorithm with nodes representing bins in the Hi-C matrix and the 2D distance between the nodes being inversely proportional to their normalized Hi-C interaction frequency.
+
+* Third, epigenetic/genomic signals, measured as coverage per genomic bin (e.g., ChIP-Seq signal for H3K27ac), are next mapped into the nodes of the graph layout.
+
+* The fourth and final step involves the use of a measure of autocorrelation (specifically, the Local Moran’s I or LMI) to identify nodes and their neighborhoods with an enrichment of similar epigenetic/genomic signals.
+
+METALoci is compatible with .cool, .mcool and .hic Hi-C formats; and with .bed signal files. The signal used in METALoci
+may be any numerical signal (as long as it is in a .bed file, with the location of such signal).
+
+#### Have a look at the [documentation](https://metaloci.readthedocs.io)!
+
+## Install metaloci from PyPI:
+
+```bash
+conda create -n metaloci -c bioconda python==3.12 bedtools
+conda activate metaloci
+pip install metaloci
+```
+
+Do you have trouble compiling dependencies? Perhaps you need an upgraded version of libcurl.
+
+In Ubuntu, you can do this with:
+
+```bash
+sudo apt install -y libcurl4-openssl-dev
+```
+
+If you are experiencing any unexpected results with METALoci (e.g. your signal after binning is 0 for every bin), we 
+suggest to update the version of **awk** you are using. The recommended version is 5.1.0 or newer.
+
+In Ubuntu, you can install it with:
+
+```bash
+sudo apt install -y gawk
+```
+
+## Contributors
+
+METALoci is currently being developed at the [MarciusLab](http://www.marciuslab.org) by Leo Zuber, Iago Maceda and
+Marc A. Marti-Renom, with the original contribution of Juan Antonio Rodríguez as well as other members of the lab.
