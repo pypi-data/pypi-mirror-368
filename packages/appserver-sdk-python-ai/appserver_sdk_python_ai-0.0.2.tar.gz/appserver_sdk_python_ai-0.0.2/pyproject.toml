@@ -1,0 +1,135 @@
+[build-system]
+requires = ["poetry-core>=1.8.0"]
+build-backend = "poetry.core.masonry.api"
+
+[project]
+name = "appserver-sdk-python-ai"
+version = "0.0.2"
+description = "SDK Python para serviços de IA da AppServer com suporte a contagem de tokens"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "AppServer Team", email = "suporte@appserver.com.br"}
+]
+maintainers = [
+    {name = "AppServer Team", email = "suporte@appserver.com.br"}
+]
+keywords = ["ai", "tokens", "llm", "openai", "huggingface", "sdk", "tokenizer"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Text Processing :: Linguistic",
+    "Typing :: Typed"
+]
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+openai = ["tiktoken>=0.5.0,<1.0.0"]
+huggingface = [
+    "transformers>=4.30.0,<5.0.0",
+    "torch>=2.0.0,<3.0.0"
+]
+full = [
+    "tiktoken>=0.5.0,<1.0.0",
+    "transformers>=4.30.0,<5.0.0",
+    "torch>=2.0.0,<3.0.0"
+]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.23.0",
+    "mypy>=1.8.0",
+    "ruff>=0.12.7",
+    "pre-commit>=3.6.0",
+    "types-requests>=2.31.0"
+]
+
+[project.urls]
+Homepage = "https://appserver.com.br"
+Documentation = "https://appserver.com.br/docs"
+
+# Poetry configuration (necessária para build)
+[tool.poetry]
+name = "appserver-sdk-python-ai"
+version = "0.0.2"
+description = "SDK Python para serviços de IA da AppServer com suporte a contagem de tokens"
+authors = ["AppServer Team <suporte@appserver.com.br>"]
+packages = [{include = "appserver_sdk_python_ai", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+tiktoken = {version = ">=0.5.0,<1.0.0", optional = true}
+transformers = {version = ">=4.30.0,<5.0.0", optional = true}
+torch = {version = ">=2.0.0,<3.0.0", optional = true}
+
+[tool.poetry.extras]
+openai = ["tiktoken"]
+huggingface = ["transformers", "torch"]
+full = ["tiktoken", "transformers", "torch"]
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+pytest-cov = "^4.0.0"
+pytest-asyncio = "^0.23.0"
+mypy = "^1.8.0"
+ruff = "^0.12.7"
+pre-commit = "^3.6.0"
+types-requests = "^2.31.0"
+
+# Configuração do Ruff
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "UP",   # pyupgrade
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*" = ["S101"]
+"__init__.py" = ["F401"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+# MyPy
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = [
+    "tiktoken.*",
+    "transformers.*",
+    "torch.*",
+]
+ignore_missing_imports = true
+
+# Pytest
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
