@@ -1,0 +1,190 @@
+Metadata-Version: 2.4
+Name: podfeed-sdk
+Version: 0.3.0
+Summary: A Python SDK for the PodFeed API
+Home-page: https://github.com/smh-labs/podfeed-sdk-samples
+Author: PodFeed
+Author-email: PodFeed <api-support@podfeed.ai>
+License: MIT
+Project-URL: Homepage, https://podfeed.ai
+Project-URL: Repository, https://github.com/podfeed/podfeed-sdk-python
+Project-URL: Bug Reports, https://github.com/podfeed/podfeed-sdk-python/issues
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+Requires-Dist: requests>=2.25.0
+Requires-Dist: pydantic<3.0.0,>=1.10.0
+Provides-Extra: dev
+Requires-Dist: pytest>=6.0; extra == "dev"
+Requires-Dist: pytest-cov>=2.0; extra == "dev"
+Requires-Dist: black>=22.0; extra == "dev"
+Requires-Dist: flake8>=4.0; extra == "dev"
+Requires-Dist: mypy>=0.910; extra == "dev"
+Dynamic: author
+Dynamic: home-page
+Dynamic: requires-python
+
+# PodFeed SDK
+
+A Python SDK for the PodFeed API, enabling developers to generate high-quality Podcast-style audio content from various input sources using AI.
+
+## Features
+
+- **Multiple Input Types**: Support for text, URLs, files, topics, and bring-your-own-script
+- **Audio Generation Modes**: Monologue (single voice) and dialogue (two voices) modes
+- **Voice Customization**: Multiple voice options for different languages. Some voices support custom instructions
+- **Script Customization**: Adjustable complexity levels, lengths, and emphasis
+
+
+## Installation
+
+```bash
+pip install podfeed-sdk
+```
+
+
+## Authentication
+
+The SDK supports two ways to provide your API key:
+
+1. **Environment Variable**:
+   ```bash
+   export PODFEED_API_KEY="your-api-key-here"
+   ```
+
+2. **Direct initialization**:
+   ```python
+   from podfeed import PodfeedClient
+   
+   client = PodfeedClient(api_key="your-api-key-here")
+   ```
+
+## Quick Start
+
+
+### Get an API key
+Go to [https://podfeed.ai](https://podfeed.ai), log in, and get an API key.
+
+### Generate Audio (from Website)
+
+```python
+from podfeed import (
+    PodfeedClient,
+    PodfeedError,
+    AudioGenerationRequest,
+    InputContent,
+    VoiceConfig,
+    ContentConfig,
+)
+
+# Initialize client (uses PODFEED_API_KEY env var)
+client = PodfeedClient()
+
+# Example URL
+website_url = "https://podfeed.ai/faq"
+
+# Generate audio from website
+result = client.generate_audio(
+    request=AudioGenerationRequest(
+        input_type="url",
+        mode="dialogue",
+        input_content=InputContent(url=website_url),
+        voice_config=VoiceConfig(
+            host_voice="google-male-puck", cohost_voice="google-female-leda"
+        ),
+        content_config=ContentConfig(
+            level="intermediate",
+            length="medium",
+            language="en-US",
+        ),
+    )
+)
+
+task_id = response["task_id"]
+print(f"Task created: {task_id}")
+
+# Wait for completion
+result = client.wait_for_completion(task_id)
+print(f"Audio generated: {result['result']['audio_url']}")
+```
+
+### List Available Voices
+
+```python
+from podfeed import PodfeedClient
+
+api_key = os.getenv("PODFEED_API_KEY")
+if not api_key:
+    print("Error: PODFEED_API_KEY environment variable not set")
+    return 1
+
+client = PodfeedClient(api_key=api_key)
+
+voices_config = client.list_available_voices()
+print(voices_config)
+```
+
+## Usage Examples
+See the example in the examples repository: https://github.com/smh-labs/podfeed-sdk-samples
+
+## Error Handling
+
+```python
+from podfeed_sdk import PodfeedClient, PodfeedError, PodfeedAuthError, PodfeedAPIError
+
+try:
+    client = PodfeedClient()
+    response = client.generate_audio(
+        input_type="text",
+        text_content="Sample text"
+    )
+except PodFeedAuthError as e:
+    print(f"Authentication error: {e}")
+except PodFeedAPIError as e:
+    print(f"API error: {e.message} (Status: {e.status_code})")
+except PodFeedError as e:
+    print(f"General error: {e}")
+```
+
+## API Reference
+
+### Core Methods
+
+- `generate_audio(**kwargs)` - Generate audio from various input types
+- `wait_for_completion(task_id, timeout=1800)` - Wait for task completion
+- `get_task_progress(task_id)` - Check task progress
+- `get_audio_status(task_id)` - Get audio generation status
+
+### Audio Management
+
+- `list_audios(limit=20, offset=0, status=None)` - List audio files
+- `get_audio(audio_id)` - Get audio details
+- `delete_audio(audio_id)` - Delete audio file
+- `download_audio_with_metadata(audio_id)` - Download with metadata
+
+### File Operations
+
+- `get_upload_urls(files)` - Get signed upload URLs
+- `create_share_link(audio_id)` - Create shareable link
+
+
+## Requirements
+
+- Python 3.7+
+- requests >= 2.25.0
+
+## Rate Limits
+Details coming soon.
+
+## Support
+
+For API support, email support@podfeed.ai.
