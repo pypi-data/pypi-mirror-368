@@ -1,0 +1,169 @@
+# VRIN Hybrid RAG SDK v0.2.0
+
+Enterprise-grade Hybrid RAG SDK with optimized knowledge graph traversal and vector search.
+
+## 🚀 Features
+
+- ⚡ **Optimized Hybrid RAG** - Combines graph knowledge with vector similarity search
+- 🧠 **Intelligent Entity Extraction** - AI-powered entity recognition and graph traversal
+- 📊 **Advanced Fact Extraction** - High-confidence fact extraction with scoring
+- 🔍 **Sub-2s Query Response** - Lightning-fast hybrid retrieval performance  
+- 🎯 **AI-Powered Summaries** - Natural language answers with cited facts
+- 📈 **Enterprise-Ready** - User isolation, authentication, and production scaling
+
+## 📦 Installation
+
+```bash
+pip install vrin
+```
+
+## 🔧 Quick Start
+
+```python
+from vrin import VRINClient
+
+# Initialize with your API key
+client = VRINClient(api_key="your_vrin_api_key")
+
+# Insert knowledge with automatic fact extraction
+result = client.insert(
+    content="Python is a high-level programming language created by Guido van Rossum in 1991. It emphasizes code readability and supports multiple programming paradigms.",
+    title="Python Programming Language",
+    tags=["programming", "python", "language"]
+)
+
+print(f"✅ Extracted {result['facts_extracted']} facts")
+# Output: ✅ Extracted 7 facts
+
+# Query with intelligent hybrid search
+response = client.query("Who created Python and when?")
+print(f"📝 Answer: {response['summary']}")
+print(f"⚡ Performance: {response['total_facts']} facts in {response['search_time']}")
+
+# Output: 
+# 📝 Answer: Python was created by Guido van Rossum in 1991. It is a high-level programming language known for its simplicity and readability...
+# ⚡ Performance: 7 facts in 1.60s
+```
+
+## 🔍 Advanced Usage
+
+### Raw Results Access
+```python
+# Get detailed graph facts and vector results
+details = client.get_raw_results("Python programming language")
+
+print("📊 Graph Facts:")
+for fact in details['graph_facts']:
+    confidence = fact['confidence']
+    print(f"  • {fact['subject']} {fact['predicate']} {fact['object']} (confidence: {confidence:.2f})")
+
+print(f"\n🔎 Vector Chunks: {len(details['vector_results'])}")
+print(f"🧠 Entities Found: {details['entities_found']}")
+```
+
+### Knowledge Graph Visualization
+```python
+# Get knowledge graph data for visualization
+graph = client.get_knowledge_graph()
+print(f"📈 Graph: {len(graph['data']['nodes'])} nodes, {len(graph['data']['edges'])} edges")
+```
+
+### Batch Processing
+```python
+# Insert multiple documents efficiently
+documents = [
+    {"content": "Machine learning is a subset of AI...", "title": "ML Basics"},
+    {"content": "Neural networks consist of layers...", "title": "Neural Networks"},
+    {"content": "Deep learning uses multiple layers...", "title": "Deep Learning"}
+]
+
+for doc in documents:
+    result = client.insert(doc['content'], doc['title'])
+    print(f"Processed: {doc['title']} -> {result['facts_extracted']} facts")
+```
+
+## 🎯 API Reference
+
+### VRINClient
+
+#### `__init__(api_key: str)`
+Initialize the VRIN client with your API key.
+
+#### `insert(content: str, title: str = None, tags: List[str] = None) -> Dict`
+Insert knowledge into the system with automatic fact extraction.
+
+**Returns:**
+- `success`: Whether the operation succeeded
+- `facts_extracted`: Number of facts extracted
+- `chunk_id`: Unique identifier for the content
+- `message`: Status message
+
+#### `query(query: str, include_summary: bool = True, include_raw_results: bool = False) -> Dict`
+Query the knowledge base with optimized hybrid retrieval.
+
+**Parameters:**
+- `query`: Search query string
+- `include_summary`: Include AI-generated summary (default: True)  
+- `include_raw_results`: Include detailed graph facts and vector results
+
+**Returns:**
+- `success`: Whether the query succeeded
+- `summary`: AI-generated comprehensive answer
+- `search_time`: Query execution time
+- `entities_found`: Extracted entities from the query
+- `total_facts`: Number of graph facts found
+- `total_chunks`: Number of vector chunks found
+
+#### `get_raw_results(query: str) -> Dict`
+Get complete raw results including graph facts and vector chunks.
+
+#### `get_knowledge_graph() -> Dict`
+Get knowledge graph visualization data with nodes and edges.
+
+## 🔐 Authentication
+
+1. Sign up at [VRIN Console](https://console.vrin.ai)
+2. Create a new API key
+3. Use the API key to initialize your client
+
+```python
+client = VRINClient(api_key="vrin_your_api_key_here")
+```
+
+## 🏗️ Architecture
+
+VRIN uses a sophisticated Hybrid RAG architecture:
+
+1. **Fact Extraction** - LLM-powered extraction of structured facts
+2. **Graph Storage** - Facts stored as a knowledge graph in Neptune  
+3. **Vector Storage** - Semantic embeddings in OpenSearch
+4. **Hybrid Retrieval** - Combines graph traversal + vector similarity
+5. **Result Fusion** - Intelligent ranking and result combination
+6. **AI Summarization** - Natural language response generation
+
+## 📊 Performance
+
+- **Fact Extraction**: ~7-10 facts per 100 words
+- **Query Response**: Sub-2s for typical queries  
+- **Confidence Scoring**: 0.85-0.95 for high-quality facts
+- **Scalability**: Handles millions of facts per user
+
+## 🛠️ Requirements
+
+- Python 3.8+
+- Active internet connection
+- VRIN API key
+
+## 📄 License
+
+MIT License - see LICENSE file for details.
+
+## 🤝 Support
+
+- 📧 Email: support@vrin.ai
+- 📚 Documentation: https://docs.vrin.ai
+- 🐛 Issues: https://github.com/vrin-ai/vrin-sdk/issues
+
+---
+
+**Built with ❤️ by the VRIN Team**
