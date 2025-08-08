@@ -1,0 +1,54 @@
+feat: add instance_types parameter to QueryExecutor (#508)
+
+# Description
+
+In Atlas, we are facing the following issue: for views which are both
+nodes and edges, when faced with a prompt like "count the maintenance
+plans where createdBy is greater than 2024-01-01", we will create a
+query like
+
+```
+{'operation': 'aggregate',
+ 'dataModelView': {'space': 'gsk_montrose_model',
+  'externalId': 'GskMontroseModel',
+  'version': 'v1',
+  'view': 'GskMaintenancePlan'},
+ 'properties': ['name',
+  'externalId',
+  'createdTime',
+  'lastUpdatedTime',
+  'space'],
+ 'filter': {'and': [{'range': {'property': ['node', 'createdTime'],
+     'gte': '2024-01-01T00:00:00'}}]}, 
+ 'aggregate': {"properties": {"count":  "externalId"}}
+      }
+```
+which, when executed, will give the error 
+
+```
+Error: Unknown property: node.space | code: 400 | X-Request-ID: 66856ee8-2067-9a44-b94a-34b1c2852e8a | cluster: westeurope-1
+```
+
+The code which triggers this is
+https://github.com/cognitedata/pygen/blob/fee95de40d3dd317061d2187b78f9b52aeaaa827/cognite/pygen/_query/interface.py#L357-L369
+
+which will fail as we cannot filter on a node property when the instance
+type is `edge` (makes sense).
+
+This error pops up in a few different versions. In QKG we only query
+nodes, so the simplest fix for us is to be allowed to override the
+`instance_type` property to only include `node`. This PR makes that
+possible.
+
+
+## Bump
+
+- [x] Patch
+- [ ] Minor
+- [ ] Skip
+
+## Changelog
+### Added
+
+- [alpha] Pygen now allows you to override the `instance_types` property
+in the QueryExecutor class
