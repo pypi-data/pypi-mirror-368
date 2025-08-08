@@ -1,0 +1,106 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "autodoc-mcp"
+version = "0.1.7"
+description = "MCP server for automatic Python package documentation context"
+authors = [{name = "AutoDocs Team", email = "team@autodocs.dev"}]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastmcp>=2.0.0",
+    "httpx>=0.25.0",
+    "tomlkit>=0.12.0",
+    "pydantic>=2.0.0",
+    "structlog>=23.2.0",
+    "packaging>=23.0",  # For version constraint parsing
+    "requests>=2.28.0",  # NEW: Adding requests to test detection
+    "click>=8.0.0",  # NEW: Adding click
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-mock>=3.11.0",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.1.0",
+    "mypy>=1.6.0",
+    "pre-commit>=3.5.0",
+]
+
+[project.scripts]
+autodocs-mcp = "autodocs_mcp.main:main"
+
+[project.urls]
+Homepage = "https://github.com/bradleyfay/autodoc-mcp"
+Repository = "https://github.com/bradleyfay/autodoc-mcp.git"
+Issues = "https://github.com/bradleyfay/autodoc-mcp/issues"
+
+[tool.hatch.envs.default]
+dependencies = [
+    "pytest",
+    "pytest-asyncio",
+    "pytest-mock",
+    "pytest-cov",
+]
+
+[tool.hatch.envs.default.scripts]
+test = "pytest {args:tests}"
+test-cov = "pytest --cov=src/autodocs_mcp {args:tests}"
+lint = "ruff check {args:src tests}"
+format = "ruff format {args:src tests}"
+typecheck = "mypy {args:src}"
+dev = "python src/autodocs_mcp/main.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/autodocs_mcp"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/src",
+  "/tests",
+  "/README.md",
+  "/LICENSE",
+  "/CHANGELOG.md"
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM", "TCH"]
+ignore = ["E501", "N805"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+exclude = ["tests/"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --strict-markers"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["src/autodocs_mcp"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if TYPE_CHECKING:",
+    "raise AssertionError",
+    "raise NotImplementedError",
+]
