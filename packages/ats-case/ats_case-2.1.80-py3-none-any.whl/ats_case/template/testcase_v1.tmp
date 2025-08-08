@@ -1,0 +1,54 @@
+from testcase import *
+
+
+class Test_{script}(object):
+
+    @pytest.mark.run(order=1)
+    def test_before(self, CaseContext):
+        """
+        测试用例前置步骤
+        :return:
+        """
+        logger.info('~ @TCC-MSG-> TEST CASE[{}-{}] METER[{}] START...'.format(CaseContext.case.id,
+                                                                              CaseContext.case.name,
+                                                                              CaseContext.meter.no))
+        try:
+            msg = '==============================================================================================\r\n'
+            msg += '[{}]测试开始 - 测试用例[{}], 电表[{}]...\r\n'.format(
+                                  func.sys_current_time(), CaseContext.case.name, CaseContext.meter.no)
+            command.client().message(msg).show(CaseContext, types=0)
+        except APIError as ae:
+            logger.info(str(ae))
+            raise AssertionError(str(ae))
+
+    @pytest.mark.run(order=3)
+    def test_after(self, CaseContext):
+        """
+        测试用例后置步骤
+        :return:
+        """
+        try:
+            msg = '[{}]测试结束 - 测试用例[{}], 电表[{}].\r\n'.format(func.sys_current_time(),
+                                                              CaseContext.case.name,
+                                                              CaseContext.meter.no)
+            msg += '--------------------测试报告--------------------\r\n'
+            msg += base.test_report(CaseContext)
+            command.client().message(msg).show(CaseContext, types=1)
+        except APIError as ae:
+            logger.info(str(ae))
+            raise AssertionError(str(ae))
+
+        logger.info('~ @TCC-MSG-> TEST CASE[{}-{}] METER[{}] END.'.format(CaseContext.case.id,
+                                                                          CaseContext.case.name,
+                                                                          CaseContext.meter.no))
+
+    @pytest.mark.run(order=2)
+    def test_main(self, CaseContext):
+        """
+        测试用例主体步骤
+        :return:
+        """
+        logger.info('~ @TCC-MSG-> SCRIPT START -mode "{}" -client "{}"'.
+                    format(CaseContext.mode, CaseContext.tester.api))
+        executor.execute(CaseContext)
+
