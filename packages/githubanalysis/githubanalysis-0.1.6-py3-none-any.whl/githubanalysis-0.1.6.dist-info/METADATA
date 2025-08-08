@@ -1,0 +1,151 @@
+Metadata-Version: 2.1
+Name: githubanalysis
+Version: 0.1.6
+Summary: A powerful tool for analyzing Git repositories using LLM-powered insights
+Author: Rimon
+Author-email: info@rimon.com.au
+Keywords: git,analysis,repository,llm,openai,gpt,commit,log,analysis
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Software Development :: Version Control :: Git
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: gitpython >=3.1.42
+Requires-Dist: numpy >=1.23.0
+Requires-Dist: scikit-learn >=1.2.0
+Requires-Dist: nltk >=3.8.0
+Requires-Dist: requests >=2.28.0
+Requires-Dist: openai >=1.0.0
+Requires-Dist: tiktoken >=0.5.0
+Requires-Dist: python-dotenv >=1.0.0
+Requires-Dist: tqdm >=4.65.0
+Requires-Dist: markdown >=3.3.0
+Requires-Dist: pandas >=2.0.0
+Requires-Dist: matplotlib >=3.7.0
+Requires-Dist: seaborn >=0.12.0
+
+# GitHub Analysis Tool
+
+A powerful tool for analyzing Git repositories using LLM-powered insights. This tool provides detailed analysis of repository patterns, milestones, technical challenges, team dynamics, and more.
+
+## What's New
+
+- The report now always includes at least **three technical challenges** identified and described in detail.
+- **All commits** (hash, author, message) are exported to a separate Excel file (`.xlsx`) alongside the main report.
+- **Commit references** in the technical challenges section are now clickable URLs, allowing you to directly view the referenced commit on GitHub/GitLab.
+- The **default report format is now Markdown** (if `--format` is not specified).
+
+### Latest Version Improvements
+
+- **Chronological Order**: Technical challenges now follow chronological order - commits used in solution attempts are properly sequenced by date (earliest to latest).
+- **Enhanced Challenge Detection**: Report generation now considers major code changes (top 10 commits by insertions) to make technical challenge identification more robust and accurate.
+- **Numbered Issues**: Each technical challenge in the report is now numbered (Issue 1, Issue 2, Issue 3, etc.) for better organization and reference.
+- **Commit Reasons in Excel**: The Excel file now includes a "Reason" column that explains why specific commits were referenced in the technical challenges report. Commits not referenced in the report are left blank.
+- **Enhanced Excel Data**: The Excel file now includes additional columns for insertions, deletions, and number of files changed for each commit, providing comprehensive commit analytics.
+
+## Installation
+
+```bash
+pip install githubanalysis
+```
+
+## Usage
+
+### Basic Analysis
+
+```bash
+githubanalysis https://github.com/username/repo.git
+```
+
+### Analysis with Date Range
+
+```bash
+githubanalysis https://github.com/username/repo.git \
+    --start-date 2023-01-01 \
+    --end-date 2024-03-20
+```
+
+### OpenAI API Key Configuration
+
+You can provide your OpenAI API key in three ways:
+
+1. Command line argument:
+```bash
+githubanalysis https://github.com/username/repo.git --openai-key your-api-key
+```
+
+2. Environment variable:
+```bash
+export OPENAI_API_KEY=your-api-key
+githubanalysis https://github.com/username/repo.git
+```
+
+3. .env file:
+Create a `.env` file in your working directory:
+```
+OPENAI_API_KEY=your-api-key
+```
+
+### Custom Prompts
+
+You can customize the analysis prompts by providing a JSON file:
+
+```bash
+githubanalysis https://github.com/username/repo.git \
+    --custom-prompts path/to/prompts.json
+```
+
+### Advanced Options
+
+```bash
+githubanalysis https://github.com/username/repo.git \
+    --start-date 2023-01-01 \
+    --end-date 2024-03-20 \
+    --format markdown \
+    --output-dir custom_reports \
+    --openai-key your-api-key \
+    --model gpt-4 \
+    --custom-prompts path/to/prompts.json
+```
+
+## Output
+
+The tool generates:
+
+- A comprehensive report in Markdown (default) or JSON format, including:
+  - Key technical challenges (minimum three, with detailed analysis)
+  - Milestones
+  - Team and contributor analysis
+  - Code and commit statistics
+  - Clickable commit links for easy navigation
+- An **Excel file** with all commit hashes, authors, messages, insertions, deletions, files changed, and reasons for referenced commits.
+
+Reports and Excel files are saved in the specified output directory (default: `reports/`).
+
+## Requirements
+
+- Python 3.7+
+- Git
+- OpenAI API key (for LLM analysis)
+
+## Dependencies
+
+- gitpython
+- openai
+- python-dotenv
+- argparse
+- tqdm
+- markdown
+- pandas
+- openpyxl
+- matplotlib
+- seaborn
+- scikit-learn
+- numpy
+- nltk
+- requests
+- tiktoken
