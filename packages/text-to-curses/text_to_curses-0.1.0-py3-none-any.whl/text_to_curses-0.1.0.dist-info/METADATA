@@ -1,0 +1,117 @@
+Metadata-Version: 2.4
+Name: text-to-curses
+Version: 0.1.0
+Summary: A library for displaying documents in terminal with colors using curses
+Home-page: https://github.com/da4games/Text-to-Curses
+Author: da4games
+License: MIT
+Project-URL: Homepage, https://github.com/da4games/
+Project-URL: Repository, https://github.com/da4games/Text-to-Curses
+Project-URL: Issues, https://github.com/da4games/Text-to-Curses/issues
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Text Processing
+Classifier: Topic :: Terminals
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: PyMuPDF>=1.20.0
+Requires-Dist: python-docx>=0.8.11
+Requires-Dist: beautifulsoup4>=4.11.0
+Requires-Dist: webcolors>=1.12.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0.0; extra == "dev"
+Requires-Dist: black>=22.0.0; extra == "dev"
+Requires-Dist: flake8>=4.0.0; extra == "dev"
+Dynamic: home-page
+Dynamic: license-file
+Dynamic: requires-python
+
+# Text-to-Curses Print Library
+
+A Python library for extracting text and color information from various document formats and displaying them in a terminal using curses with proper color formatting.
+
+## Features
+
+- 🎨 **Color extraction** from documents (DOCX font colors, PDF text colors, HTML inline styles)
+- 📄 **Multi-format support**: DOCX, PDF, HTML, RTF, TXT, MD
+- 🖥️ **Terminal display** with proper curses color rendering
+- 🔄 **Reusable renderers** - load once, display multiple times
+- 📦 **Simple API** - just a few lines of code to get started
+
+## Installation
+
+```bash
+pip install text-to-curses
+```
+
+## Quick Start
+
+```python
+from text_to_curses import display_document
+
+# Simple one-liner
+display_document("document.docx")
+```
+
+## Advanced Usage
+
+```python
+from text_to_curses import TextRenderer
+import curses
+
+# Load document once, display multiple times
+renderer = TextRenderer("document.docx")
+
+def custom_display(stdscr):
+    renderer.display(stdscr)
+    stdscr.addstr(0, 0, "Press any key to exit", curses.A_REVERSE)
+    stdscr.refresh()
+    stdscr.getch()
+
+curses.wrapper(custom_display)
+```
+
+## Command Line Usage
+
+```bash
+text-to-curses document.docx
+```
+
+## Supported Formats
+
+| Format | Extension | Color Support | Notes |
+|--------|-----------|---------------|-------|
+| Word | `.docx` | ✅ Font colors, highlights | Best color support |
+| PDF | `.pdf` | ✅ Text colors | Limited background colors |
+| HTML | `.html`, `.htm` | ✅ Inline CSS | `color` and `background-color` |
+| RTF | `.rtf` | ❌ Plain text only | RTF codes stripped |
+| Text | `.txt` | ❌ Plain text only | Default colors |
+| Markdown | `.md` | ❌ Plain text only | Formatting stripped |
+
+## Examples
+
+See the `examples/` directory for more usage examples:
+- Basic document viewer
+- Multi-document slideshow
+- Custom display functions
+
+## Development
+
+```bash
+git clone https://github.com/yourusername/Text-to-Curses-print.git
+cd Text-to-Curses-print
+pip install -e .
+```
+
+## License
+
+MIT License - see LICENSE file for details.
