@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Django i18n No-Prefix - Bootstrap 5 Example</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Our Bootstrap 5 styles -->
+    {% load static %}
+    <link href="{% static 'i18n_noprefix/css/bootstrap5.css' %}" rel="stylesheet">
+</head>
+<body>
+    {% load i18n %}
+    {% load i18n_noprefix %}
+    
+    <!-- Navigation Example -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container">
+            <a class="navbar-brand" href="#">{% trans "My Site" %}</a>
+            
+            <div class="ms-auto">
+                <!-- Dropdown in navbar -->
+                <div class="i18n-noprefix-selector i18n-noprefix-selector--dropdown">
+                    <form method="get" action="#" class="i18n-noprefix-selector__form">
+                        <select class="form-select form-select-sm" 
+                                onchange="window.location.href=this.options[this.selectedIndex].dataset.url"
+                                aria-label="{% trans 'Language selection' %}">
+                            {% get_available_languages as LANGUAGES %}
+                            {% get_current_language as LANGUAGE_CODE %}
+                            {% for lang_code, lang_name in LANGUAGES %}
+                                <option value="{{ lang_code }}" 
+                                        data-url="{% switch_language_url lang_code %}"
+                                        {% if lang_code == LANGUAGE_CODE %}selected{% endif %}>
+                                    {{ lang_name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-5">
+        <h1 class="mb-4">{% trans "Bootstrap 5 Language Selector Examples" %}</h1>
+        
+        <!-- Dropdown Style -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">{% trans "Dropdown Style" %}</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">{% trans "Native select element with Bootstrap styling" %}</p>
+                
+                <!-- Basic dropdown -->
+                <div class="mb-3">
+                    <label class="form-label">{% trans "Choose Language" %}</label>
+                    {% language_selector style='dropdown' %}
+                </div>
+                
+                <!-- Small variant -->
+                <div class="mb-3">
+                    <label class="form-label">{% trans "Small Size" %}</label>
+                    <div class="i18n-noprefix-selector i18n-noprefix-selector--dropdown">
+                        <select class="form-select form-select-sm">
+                            <option>English</option>
+                            <option>한국어</option>
+                            <option>日本語</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Large variant -->
+                <div class="mb-3">
+                    <label class="form-label">{% trans "Large Size" %}</label>
+                    <div class="i18n-noprefix-selector i18n-noprefix-selector--dropdown">
+                        <select class="form-select form-select-lg">
+                            <option>English</option>
+                            <option>한국어</option>
+                            <option>日本語</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- List Style -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">{% trans "List Style" %}</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">{% trans "Vertical list with active state indicator" %}</p>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        {% language_selector style='list' %}
+                    </div>
+                    <div class="col-md-6">
+                        <!-- Using Bootstrap list-group classes directly -->
+                        <div class="list-group">
+                            {% get_available_languages as LANGUAGES %}
+                            {% get_current_language as LANGUAGE_CODE %}
+                            {% for lang_code, lang_name in LANGUAGES %}
+                                {% if lang_code == LANGUAGE_CODE %}
+                                    <span class="list-group-item active">
+                                        {{ lang_name }} <span class="badge bg-white text-primary ms-2">{% trans "Current" %}</span>
+                                    </span>
+                                {% else %}
+                                    <a href="{% switch_language_url lang_code %}" class="list-group-item list-group-item-action">
+                                        {{ lang_name }}
+                                    </a>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inline Style -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">{% trans "Inline Style" %}</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">{% trans "Horizontal pills for compact display" %}</p>
+                
+                <!-- Using template tag -->
+                <div class="mb-3">
+                    {% language_selector style='inline' %}
+                </div>
+                
+                <!-- Using Bootstrap nav-pills directly -->
+                <ul class="nav nav-pills">
+                    {% get_available_languages as LANGUAGES %}
+                    {% get_current_language as LANGUAGE_CODE %}
+                    {% for lang_code, lang_name in LANGUAGES %}
+                        <li class="nav-item">
+                            {% if lang_code == LANGUAGE_CODE %}
+                                <span class="nav-link active">{{ lang_code|upper }}</span>
+                            {% else %}
+                                <a class="nav-link" href="{% switch_language_url lang_code %}">{{ lang_code|upper }}</a>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- Dark Mode Example -->
+        <div class="card mb-4" data-bs-theme="dark">
+            <div class="card-header">
+                <h5 class="mb-0">{% trans "Dark Mode Support" %}</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">{% trans "All styles work with Bootstrap's dark mode" %}</p>
+                
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">{% trans "Dropdown" %}</label>
+                        {% language_selector style='dropdown' %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{% trans "Inline" %}</label>
+                        {% language_selector style='inline' %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Integration Examples -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">{% trans "Integration Examples" %}</h5>
+            </div>
+            <div class="card-body">
+                <!-- In a form -->
+                <form class="mb-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">{% trans "Name" %}</label>
+                            <input type="text" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{% trans "Language Preference" %}</label>
+                            {% language_selector style='dropdown' %}
+                        </div>
+                    </div>
+                </form>
+                
+                <!-- In a modal footer -->
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        {% language_selector style='inline' %}
+                    </div>
+                    <div>
+                        <button class="btn btn-secondary">{% trans "Cancel" %}</button>
+                        <button class="btn btn-primary">{% trans "Save" %}</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS (optional, for dropdown functionality) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
