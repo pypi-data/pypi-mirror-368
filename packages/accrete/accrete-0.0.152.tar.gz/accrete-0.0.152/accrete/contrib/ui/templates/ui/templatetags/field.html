@@ -1,0 +1,66 @@
+{% load ui %}
+{% load partials %}
+
+{#{% partialdef form_field %}#}
+{#    <label class="label mt-2 mb-5">#}
+{#        {{ field.label }}#}
+{#        {{ field }}#}
+{#        <span class="has-text-danger is-size-6">{{ field.errors }}</span>#}
+{#        <span class="helptext is-size-7">{{ field.help_text }}</span>#}
+{#        <span class="helptext is-size-7">{% if label %}{{ label }}{% else %}{{ field.help_text|default_if_falsy:field.label }}{% endif %}</span>#}
+{#    </label>#}
+{#{% endpartialdef %}#}
+
+{#{% partialdef form_field %}#}
+{#    <label class="label mt-2 mb-5" style="border: 1px solid; border-radius: var(--bulma-radius);">#}
+{#        <span style="justify-content: left" class="is-fullwidth button is-static helptext is-size-7 {% if field.field.required %}has-text-weight-bold{% endif %}">{% if label %}{{ label }}{% else %}{{ field.help_text|default_if_falsy:field.label }}{% endif %}</span>#}
+{#        {{ field }}#}
+{#        <span class="has-text-danger is-size-6">{{ field.errors }}Testmessage</span>#}
+{##}
+{#    </label>#}
+{#{% endpartialdef %}#}
+
+{% partialdef form_field %}
+    <div class="mb-5">
+        <label class="label mb-0 {% if field.field.required %}has-text-weight-medium{% endif %}" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        <div class="field has-addons mb-0">
+            {% if icon %}
+                <p class="control">
+                    <button tabindex="-1" type="button" class="button is-static"><span class="icon"><i class="{{ icon }}"></i></span></button>
+                </p>
+            {% endif %}
+            <div class="control is-expanded">{{ field }}</div>
+        </div>
+        <span class="has-text-danger is-size-6">{{ field.errors }}</span>
+        <span class="helptext is-size-7">{{ field.help_text|default_if_falsy:'' }}</span>
+    </div>
+{% endpartialdef %}
+
+{% partialdef textarea %}
+    <label class="label mt-2 mb-5">
+        <span class="{% if field.field.required %}has-text-weight-normal{% endif %}">{{ field.label }}</span>
+        <span class="has-text-danger is-size-6">{{ field.errors }}</span>
+        {{ field }}
+    </label>
+{% endpartialdef %}
+
+{% partialdef model_field %}
+{#    <label class="label mt-2 mb-5">#}
+{#        <span class="field has-addons mb-0">#}
+{#            <span class="control input has-text-weight-bold">{{ value|default_if_none:'' }}</span>#}
+{#        </span>#}
+{#        <span class="helptext">{{ label }}</span>#}
+{#    </label>#}
+    <div class="mb-5">
+        <label class="label mb-0 {% if field.field.required %}has-text-weight-bold{% endif %}" for="{{ field.id_for_label }}">{{ label }}</label>
+        <div class="field has-addons mb-0">
+            {% if icon %}
+                <p class="control">
+                    <button tabindex="-1" type="button" class="button is-static"><span class="icon"><i class="{{ icon }}"></i></span></button>
+                </p>
+            {% endif %}
+            <div class="control input is-expanded">{{ value|default_if_none:'' }}</div>
+        </div>
+        <span class="helptext is-size-7">{{ field.help_text|default_if_falsy:'' }}</span>
+    </div>
+{% endpartialdef %}
