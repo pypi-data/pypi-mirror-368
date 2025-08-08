@@ -1,0 +1,357 @@
+Metadata-Version: 2.4
+Name: modelbridge
+Version: 1.0.2
+Summary: Enterprise-Grade Multi-Provider LLM Gateway with Intelligent Routing
+Home-page: https://github.com/code-mohanprakash/modelbridge
+Author: Mohan Prakash
+Author-email: Mohan Prakash <mohanprkash462@gmail.com>
+License: MIT
+Project-URL: Homepage, https://github.com/code-mohanprakash/modelbridge
+Project-URL: Repository, https://github.com/code-mohanprakash/modelbridge
+Project-URL: Issues, https://github.com/code-mohanprakash/modelbridge/issues
+Keywords: llm,ai,gateway,routing,openai,anthropic,google,groq,multi-provider,load-balancing
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: aiohttp>=3.8.0
+Requires-Dist: pydantic>=2.0.0
+Requires-Dist: openai>=1.0.0
+Requires-Dist: anthropic>=0.5.0
+Requires-Dist: google-generativeai>=0.3.0
+Requires-Dist: groq>=0.4.0
+Requires-Dist: PyYAML>=6.0
+Requires-Dist: python-dotenv>=1.0.0
+Requires-Dist: typing-extensions>=4.5.0
+Requires-Dist: psutil>=5.9.0
+Requires-Dist: redis>=4.5.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0.0; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.21.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0.0; extra == "dev"
+Requires-Dist: black>=23.0.0; extra == "dev"
+Requires-Dist: isort>=5.12.0; extra == "dev"
+Requires-Dist: flake8>=6.0.0; extra == "dev"
+Requires-Dist: mypy>=1.0.0; extra == "dev"
+Provides-Extra: ml
+Requires-Dist: scikit-learn>=1.3.0; extra == "ml"
+Requires-Dist: numpy>=1.24.0; extra == "ml"
+Requires-Dist: pandas>=2.0.0; extra == "ml"
+Dynamic: author
+Dynamic: home-page
+Dynamic: license-file
+Dynamic: requires-python
+
+# ModelBridge
+
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PyPI version](https://badge.fury.io/py/modelbridge.svg)](https://badge.fury.io/py/modelbridge)
+
+Unified Python interface for multiple LLM providers with automatic failover, caching, and rate limiting.
+
+## Installation
+
+```bash
+pip install modelbridge
+```
+
+## Quick Start
+
+```python
+import asyncio
+from modelbridge import ModelBridge
+
+async def main():
+    # Initialize with API keys from environment variables
+    bridge = ModelBridge()
+    await bridge.initialize()
+    
+    # Generate text using automatic provider selection
+    response = await bridge.generate_text(
+        prompt="Explain the concept of recursion",
+        model="balanced"  # Uses optimal model based on availability
+    )
+    
+    print(response.content)
+
+asyncio.run(main())
+```
+
+## Features
+
+### Core Capabilities
+- **Multi-provider support**: OpenAI, Anthropic, Google Gemini, Groq
+- **Automatic failover**: Seamlessly switches providers on failure
+- **Response caching**: Redis and in-memory caching with configurable TTL
+- **Rate limiting**: Token bucket and sliding window algorithms
+- **Circuit breakers**: Prevents cascading failures with exponential backoff
+- **Cost tracking**: Per-request and cumulative cost calculation
+- **Performance monitoring**: Response time tracking and success rate metrics
+
+### Supported Models
+
+#### OpenAI (GPT-5 Family - August 2025)
+- `gpt-5`: Best for coding & agents, state-of-art reasoning
+- `gpt-5-mini`: Balanced performance and cost
+- `gpt-5-nano`: Ultra-fast, cheapest option ($0.05/1M input tokens)
+- `gpt-4.1`, `gpt-4.1-mini`: Better instruction following
+- `o3`, `o3-mini`, `o4-mini`: Advanced reasoning models
+
+#### Anthropic (Claude 4 Series)
+- `claude-opus-4-1`: Most capable, best for complex analysis
+- `claude-opus-4`: Previous Opus version
+- `claude-sonnet-4`: Balanced performance and cost
+- `claude-3-5-sonnet-20241022`: Legacy but excellent performance
+
+#### Google (Gemini 2.5 Series)
+- `gemini-2.5-pro`: 1M context, multimodal capabilities
+- `gemini-2.5-flash`: 250+ tokens/second, ultra-fast
+- `gemini-2.5-flash-lite`: $0.10/1M tokens, most cost-effective
+- `gemini-1.5-pro`, `gemini-1.5-flash`: Legacy models
+
+#### Groq (Ultra-Fast Inference)
+- `llama-3.3-70b-versatile`: 276 tokens/second, latest Meta model
+- `mixtral-8x7b-32768`: 500+ tokens/second, world's fastest
+- `llama-3.1-405b-reasoning`: Exceptional reasoning capability
+- `llama-3.1-8b-instant`: Lightning fast for simple tasks
+
+## Configuration
+
+### Environment Variables
+
+```bash
+# Required API Keys
+export OPENAI_API_KEY="sk-..."
+export ANTHROPIC_API_KEY="sk-ant-..."
+export GOOGLE_API_KEY="..."
+export GROQ_API_KEY="gsk_..."
+
+# Optional Configuration
+export REDIS_URL="redis://localhost:6379"
+export MODEL_BRIDGE_CACHE_TTL="3600"
+export MODEL_BRIDGE_MAX_RETRIES="3"
+```
+
+### Programmatic Configuration
+
+```python
+from modelbridge import ModelBridge
+
+bridge = ModelBridge()
+await bridge.initialize()
+
+# Custom configuration per request
+response = await bridge.generate_text(
+    prompt="Your prompt here",
+    model="gpt-5",
+    temperature=0.7,
+    max_tokens=1000,
+    system_message="You are a helpful assistant"
+)
+```
+
+## Model Aliases
+
+Pre-configured routing strategies for common use cases:
+
+```python
+# Quality-first routing
+response = await bridge.generate_text(prompt="...", model="best")
+# Routes: gpt-5 → claude-opus-4-1 → gpt-4.1
+
+# Speed-optimized routing  
+response = await bridge.generate_text(prompt="...", model="fastest")
+# Routes: mixtral-8x7b → llama-3.3-70b → gpt-5-nano
+
+# Cost-optimized routing
+response = await bridge.generate_text(prompt="...", model="cheapest")
+# Routes: gpt-5-nano → llama-3.1-8b → gemini-2.5-flash-lite
+
+# Balanced routing
+response = await bridge.generate_text(prompt="...", model="balanced")
+# Routes: gpt-5-mini → claude-sonnet-4 → llama-3.3-70b
+```
+
+## Advanced Usage
+
+### Structured Output
+
+```python
+schema = {
+    "type": "object",
+    "properties": {
+        "name": {"type": "string"},
+        "age": {"type": "integer"},
+        "skills": {"type": "array", "items": {"type": "string"}}
+    },
+    "required": ["name", "age"]
+}
+
+response = await bridge.generate_structured_output(
+    prompt="Extract person information from: John Doe, 30 years old, knows Python and JavaScript",
+    schema=schema,
+    model="gpt-5"
+)
+
+import json
+data = json.loads(response.content)
+# {"name": "John Doe", "age": 30, "skills": ["Python", "JavaScript"]}
+```
+
+### Caching
+
+```python
+from modelbridge.cache import CacheFactory
+
+# Configure Redis caching
+cache = CacheFactory.create("redis", {
+    "url": "redis://localhost:6379",
+    "ttl": 3600,
+    "namespace": "modelbridge"
+})
+
+bridge = ModelBridge(cache=cache)
+```
+
+### Rate Limiting
+
+```python
+from modelbridge.ratelimit import RateLimitFactory
+
+# Token bucket rate limiting
+rate_limiter = RateLimitFactory.create("token_bucket", {
+    "capacity": 1000,
+    "refill_rate": 100,
+    "refill_interval": 60
+})
+
+bridge = ModelBridge(rate_limiter=rate_limiter)
+```
+
+### Performance Monitoring
+
+```python
+# Get performance statistics
+stats = bridge.get_performance_stats()
+print(f"Average response time: {stats['openai:gpt-5']['avg_response_time']:.2f}s")
+print(f"Success rate: {stats['openai:gpt-5']['success_rate']:.2%}")
+
+# Health check all providers
+health = await bridge.health_check()
+for provider, status in health['providers'].items():
+    print(f"{provider}: {status['status']}")
+```
+
+## Architecture
+
+### Component Overview
+
+```
+ModelBridge
+├── Providers (OpenAI, Anthropic, Google, Groq)
+│   ├── Retry Logic (exponential backoff)
+│   ├── Circuit Breakers (failure detection)
+│   └── Response Validation
+├── Intelligent Router
+│   ├── Performance Tracking
+│   ├── Cost Optimization
+│   └── Capability Matching
+├── Cache Layer
+│   ├── Redis Cache (distributed)
+│   └── Memory Cache (local)
+├── Rate Limiter
+│   ├── Token Bucket
+│   └── Sliding Window
+└── Monitoring
+    ├── Metrics Collection
+    ├── Health Checks
+    └── Cost Tracking
+```
+
+### Request Flow
+
+1. **Request Reception**: Validate input parameters
+2. **Cache Check**: Return cached response if available
+3. **Rate Limit Check**: Ensure within rate limits
+4. **Provider Selection**: Choose optimal provider based on:
+   - Model availability
+   - Historical performance
+   - Cost constraints
+   - Current health status
+5. **Request Execution**: Send to provider with retry logic
+6. **Response Processing**: Validate and format response
+7. **Cache Storage**: Store successful responses
+8. **Metrics Update**: Track performance and costs
+
+## Testing
+
+```bash
+# Run test suite
+python -m pytest tests/
+
+# Run with coverage
+python -m pytest tests/ --cov=modelbridge --cov-report=html
+
+# Run specific test categories
+python -m pytest tests/test_providers.py
+python -m pytest tests/test_routing.py
+python -m pytest tests/test_cache.py
+```
+
+## Performance Benchmarks
+
+| Provider | Model | Avg Response Time | Tokens/Second | Cost per 1M Tokens |
+|----------|-------|------------------|---------------|-------------------|
+| Groq | mixtral-8x7b | 0.2s | 500+ | $0.27 |
+| Groq | llama-3.3-70b | 0.4s | 276 | $0.59 |
+| OpenAI | gpt-5-nano | 0.8s | 150 | $0.05 |
+| OpenAI | gpt-5 | 1.2s | 100 | $1.25 |
+| Anthropic | claude-opus-4-1 | 1.5s | 80 | $15.00 |
+
+## Error Handling
+
+```python
+response = await bridge.generate_text(
+    prompt="Your prompt",
+    model="gpt-5"
+)
+
+if response.error:
+    print(f"Error: {response.error}")
+    # Automatic fallback already attempted
+else:
+    print(f"Success: {response.content}")
+    print(f"Provider used: {response.provider_name}")
+    print(f"Fallback used: {response.metadata.get('fallback_used', False)}")
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/improvement`)
+3. Make your changes
+4. Add/update tests
+5. Run test suite (`python -m pytest`)
+6. Commit changes (`git commit -am 'Add feature'`)
+7. Push branch (`git push origin feature/improvement`)
+8. Create Pull Request
+
+## License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## Support
+
+- Issues: [GitHub Issues](https://github.com/code-mohanprakash/modelbridge/issues)
+- Documentation: [GitHub Wiki](https://github.com/code-mohanprakash/modelbridge/wiki)
+- PyPI: [modelbridge](https://pypi.org/project/modelbridge/)
