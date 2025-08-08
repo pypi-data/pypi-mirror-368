@@ -1,0 +1,1 @@
+from .base_import_job import GenericImporterModelAdmin

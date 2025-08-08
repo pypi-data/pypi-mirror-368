@@ -1,0 +1,190 @@
+{% load custom_filters %}
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      margin: 30px;
+      background-color: #f8f9fa;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    .filter-buttons {
+      margin-top: 15px;
+      margin-bottom: 15px;
+    }
+
+    .filter-buttons button {
+      margin-right: 10px;
+      padding: 6px 12px;
+      border: none;
+      background-color: #6c757d;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .filter-buttons button.active {
+      background-color: #28a745;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 20px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      background-color: white;
+    }
+
+    td {
+      border: 1px solid #dee2e6;
+      padding: 8px 12px;
+      text-align: left;
+      font-size: 14px;
+      vertical-align: top;
+      max-width: 800px;
+      max-height: 500px;
+      text-overflow: ellipsis;
+      white-space: pre-wrap;
+    }
+    th {
+      border: 1px solid #dee2e6;
+      padding: 8px 12px;
+      text-align: left;
+      font-size: 14px;
+      vertical-align: top;
+      max-width: 800px;
+      overflow-wrap: break-word;
+      white-space: normal;
+    }
+
+
+    thead {
+      background-color: #e9ecef;
+    }
+
+    .created {
+      background-color: #d4edda;
+    }
+
+    .updated {
+      background-color: #fff3cd;
+    }
+
+    .deleted {
+      background-color: #f8d7da;
+    }
+
+    .error {
+      background-color: #cd7786;
+      color: #ffffff;
+    }
+
+    .skipped {
+      background-color: #e8fffd;
+    }
+
+    .summary-table th {
+      background-color: #e2e3e5;
+    }
+
+    .preview-header th {
+      position: sticky;
+      top: 0;
+      background-color: #e9ecef;
+      z-index: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Previsualización de cambios</h1>
+
+  <table class="summary-table">
+    <thead>
+      <tr>
+        <th>Crear</th>
+        <th>Editar</th>
+        <th>Error</th>
+        <th>Eliminar</th>
+        <th>Omitidos</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>{{ template_extra_kwargs.created }}</td>
+        <td>{{ template_extra_kwargs.updated }}</td>
+        <td>{{ template_extra_kwargs.error }}</td>
+        <td>{{ template_extra_kwargs.deleted }}</td>
+        <td>{{ template_extra_kwargs.skipped }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="filter-buttons">
+    <button class="filter-btn active" data-type="created">Ocultar creado</button>
+    <button class="filter-btn active" data-type="error">Ocultar error</button>
+    <button class="filter-btn active" data-type="updated">Ocultar editar</button>
+    <button class="filter-btn active" data-type="deleted">Ocultar eliminar</button>
+    <button class="filter-btn active" data-type="skipped">Ocultar omitidos</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr class="preview-header">
+        {% for col in headers %}
+          <th>{{ col }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in data %}
+        <tr class="{{ row.import_action|lower }}">
+          {% for col in headers %}
+            <td>{{ row|get_item:col|safe }}</td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const typeLabels = {
+        created: 'creado',
+        updated: 'editar',
+        error: 'error',
+        deleted: 'eliminar',
+        skipped: 'omitidos'
+      };
+
+      const buttons = document.querySelectorAll('.filter-btn');
+
+      buttons.forEach(button => {
+        button.addEventListener('click', function() {
+          const type = this.dataset.type;
+          const rows = document.querySelectorAll('tr.' + type);
+
+          this.classList.toggle('active');
+
+          const isActive = this.classList.contains('active');
+
+          rows.forEach(row => {
+            row.style.display = isActive ? '' : 'none';
+          });
+
+          // Cambiar texto del botón
+          this.textContent = (isActive ? 'Ocultar ' : 'Mostrar ') + typeLabels[type];
+        });
+      });
+    });
+  </script>
+
+</body>
+</html>
