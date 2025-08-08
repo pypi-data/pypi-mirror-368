@@ -1,0 +1,67 @@
+1. Bygga paketet för TestPyPI
+
+# Rensa tidigare byggen
+rm -rf dist/ build/ *.egg-info/
+
+# Installera build-verktyg om du inte redan har det
+pip install --upgrade build
+
+# Bygg paketet
+python -m build
+
+
+2. Ladda upp till TestPyPI
+
+# Installera twine om du inte redan har det
+pip install --upgrade twine
+
+# Ladda upp till TestPyPI
+python -m twine upload --repository testpypi dist/*
+
+Om du vill undvika att ange användarnamn och lösenord varje gång, kan du skapa en .pypirc-fil i din hemkatalog:
+# Du kommer att bli ombedd att ange ditt TestPyPI användarnamn och lösenord
+[distutils]
+index-servers =
+    testpypi
+
+[testpypi]
+repository = https://test.pypi.org/legacy/
+username = ditt_användarnamn
+password = ditt_lösenord
+
+3. Installera i ditt testprojekt
+# Rensa tidigare installationer
+pip uninstall -y common-ai-core
+
+# Installera från TestPyPI
+pip install --index-url https://test.pypi.org/simple/ --no-cache-dir common-ai-core
+
+Installation med specifika providers
+# För Anthropic
+pip install --index-url https://test.pypi.org/simple/ --no-cache-dir "common-ai-core[anthropic]"
+
+# För Gemini
+pip install --index-url https://test.pypi.org/simple/ --no-cache-dir "common-ai-core[gemini]"
+
+# För DeepSeek
+pip install --index-url https://test.pypi.org/simple/ --no-cache-dir "common-ai-core[deepseek]"
+
+# För alla molnbaserade providers
+pip install --index-url https://test.pypi.org/simple/ --no-cache-dir "common-ai-core[all-cloud]"
+
+# För alla providers inklusive lokala Llama-modeller
+pip install --index-url https://test.pypi.org/simple/ --no-cache-dir "common-ai-core[all]"
+
+Om du stöter på problem med beroenden
+# Installera basversionen först
+pip install --index-url https://test.pypi.org/simple/ --no-cache-dir common-ai-core
+
+# Installera sedan beroenden från officiella PyPI
+pip install anthropic google-generativeai
+
+4. Verifiera installationen
+# Kontrollera installerad version
+pip show common-ai-core
+
+# Testa import
+python -c "import common_ai_core; print(common_ai_core.__version__)"
