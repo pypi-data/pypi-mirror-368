@@ -1,0 +1,61 @@
+[package]
+name = "laddu-core"
+version = "0.9.1"
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Core of the laddu library"
+readme = "README.md"
+
+[dependencies]
+accurate = { workspace = true }
+approx = { workspace = true }
+arrow = { workspace = true }
+auto_ops = { workspace = true }
+bincode = { workspace = true }
+dyn-clone = { workspace = true }
+factorial = { workspace = true }
+fastrand = { workspace = true }
+ganesh = { workspace = true }
+indexmap = { workspace = true }
+lazy_static = { workspace = true }
+mpi = { workspace = true, optional = true }
+nalgebra = { workspace = true }
+num = { workspace = true }
+numpy = { workspace = true, optional = true }
+parquet = { workspace = true }
+parking_lot = { workspace = true }
+pyo3 = { workspace = true, features = [
+  "num-complex",
+  "abi3-py37",
+], optional = true }
+rayon = { workspace = true, optional = true }
+serde = { workspace = true }
+serde-pickle = { workspace = true }
+serde_with = { workspace = true }
+shellexpand = { workspace = true }
+thiserror = { workspace = true }
+typetag = { workspace = true }
+
+[dev-dependencies]
+criterion = { workspace = true }
+
+[[bench]]
+name = "open_benchmark"
+harness = false
+
+[features]
+default = ["rayon"]
+rayon = ["dep:rayon"]
+f32 = ["ganesh/f32"]
+python = ["pyo3", "numpy"]
+pyo3 = ["dep:pyo3"]
+numpy = ["dep:numpy"]
+mpi = ["dep:mpi"]
+
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--html-in-header", "./docs-header.html"]

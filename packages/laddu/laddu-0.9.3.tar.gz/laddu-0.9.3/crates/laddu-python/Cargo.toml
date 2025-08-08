@@ -1,0 +1,37 @@
+[package]
+name = "laddu-python"
+version = "0.9.1"
+description = "Amplitude analysis made short and sweet"
+edition.workspace = true
+authors.workspace = true
+homepage.workspace = true
+keywords = ["PWA", "amplitude", "particle", "physics", "modeling"]
+categories = ["science", "mathematics"]
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+readme = "README.md"
+
+[dependencies]
+laddu-core = { workspace = true, features = ["python"] }
+
+bincode = { workspace = true }
+num_cpus = { workspace = true }
+numpy = { workspace = true }
+pyo3 = { workspace = true, features = ["num-complex", "abi3-py37"] }
+rayon = { workspace = true, optional = true }
+serde = { workspace = true }
+typetag = { workspace = true }
+
+[features]
+default = ["rayon"]
+rayon = ["dep:rayon"]
+mpi = ["laddu-core/mpi"]
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = [
+  'cfg(coverage,coverage_nightly)',
+] }
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--html-in-header", "./docs-header.html"]
