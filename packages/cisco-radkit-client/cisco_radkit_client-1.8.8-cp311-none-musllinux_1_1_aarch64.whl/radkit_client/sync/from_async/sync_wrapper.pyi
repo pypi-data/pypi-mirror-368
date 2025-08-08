@@ -1,0 +1,19 @@
+import abc
+from .portal import Portal
+from _typeshed import Incomplete
+from collections.abc import Iterator, Mapping
+from prompt_toolkit.formatted_text import AnyFormattedText
+from typing import Generic
+
+__all__ = ['SyncWrapper', 'SyncDictWrapper']
+
+class SyncWrapper(Generic[_T_co]):
+    def __init_subclass__(cls, *args: object, **kwargs: object) -> None: ...
+    __to_std_object__: Incomplete
+    def __init__(self, _async_object: _T_co, _portal: Portal) -> None: ...
+    def __pt_repr__(self) -> AnyFormattedText: ...
+
+class SyncDictWrapper(SyncWrapper[_T_AsyncMapping], Mapping[_T_KeyType, _T_SyncValue], Generic[_T_AsyncMapping, _T_KeyType, _T_AsyncValue, _T_SyncValue], metaclass=abc.ABCMeta):
+    def __len__(self) -> int: ...
+    def __iter__(self) -> Iterator[_T_KeyType]: ...
+    def __getitem__(self, key: _T_KeyType) -> _T_SyncValue: ...
