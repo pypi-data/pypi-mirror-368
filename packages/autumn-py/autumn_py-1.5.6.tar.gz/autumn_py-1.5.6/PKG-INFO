@@ -1,0 +1,167 @@
+Metadata-Version: 2.4
+Name: autumn-py
+Version: 1.5.6
+Summary: A Python SDK for Autumn's REST API
+Project-URL: Source, https://github.com/useautumn/autumn-py
+Project-URL: Documentation, https://autumn-py.readthedocs.io
+Author-email: John Yeo <johnyeocx@gmail.com>, Viswa Marepalli <reachvishm@gmail.com>
+License-Expression: MIT
+License-File: LICENSE
+Keywords: autumn,payments,stripe
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Requires-Python: >=3.9
+Requires-Dist: aiohttp>=3.12.15
+Requires-Dist: pydantic>=2.11.7
+Requires-Dist: requests>=2.32.4
+Provides-Extra: aio
+Requires-Dist: aiohttp>=3.12.13; extra == 'aio'
+Provides-Extra: asgi
+Requires-Dist: aiohttp>=3.12.13; extra == 'asgi'
+Requires-Dist: starlette>=0.47.1; extra == 'asgi'
+Provides-Extra: dev
+Requires-Dist: litestar>=2.16.0; extra == 'dev'
+Requires-Dist: uvicorn>=0.34.3; extra == 'dev'
+Provides-Extra: docs
+Requires-Dist: furo>=2024.8.6; extra == 'docs'
+Requires-Dist: sphinx-autodoc-typehints>=2.3.0; extra == 'docs'
+Requires-Dist: sphinx-tabs>=3.4.7; extra == 'docs'
+Requires-Dist: sphinx>=7.4.7; extra == 'docs'
+Provides-Extra: tests
+Requires-Dist: pytest-cov>=6.2.1; extra == 'tests'
+Requires-Dist: pytest>=8.4.1; extra == 'tests'
+Description-Content-Type: text/markdown
+
+# autumn-py
+
+The Python SDK for [Autumn](https://github.com/useautumn/autumn)'s REST API.
+
+[![PyPI - Version](https://img.shields.io/pypi/v/autumn-py.svg)](https://pypi.org/project/autumn-py)
+[![pypi](https://img.shields.io/pypi/pyversions/autumn-py.svg)](https://pypi.org/pypi/autumn-py)
+[![Discord](https://img.shields.io/badge/Join%20Community-5865F2?logo=discord&logoColor=white)](https://discord.gg/53emPtY9tA)
+
+## Documentation
+
+The Python SDK's documentation can be found on [ReadTheDocs](https://autumn-py.readthedocs.io).
+
+## Features
+
+- Easily mount Autumn's routes onto your Python backend.
+- Support for synchronous and asynchronous contexts.
+- Fully typed.
+
+## Installation
+
+> [!NOTE]
+> Python 3.9+ is required.
+
+```bash
+pip install autumn-py
+```
+
+If you want `async` support, you need to install `aiohttp`.
+
+```bash
+pip install aiohttp
+
+# Optionally
+pip install aiohttp[speedups]
+
+# You can also install it via the "aio" optional dependency.
+pip install autumn-py[aio]
+```
+
+## Quickstart
+
+```python
+import asyncio
+from autumn import Autumn
+
+# First, initialize a client.
+autumn = Autumn(token="am_sk_test_XESp2wyPE...")
+
+async def main():
+    # Attach a customer to a product
+    await autumn.attach(
+        customer_id="john_doe",
+        product_id="chat_messages",
+    )
+
+    # Check if the customer has access to the product
+    check = await autumn.check(
+        customer_id="john_doe",
+        product_id="chat_messages",
+    )
+    if check.allowed is True:
+        print("Sending chat message...")
+
+    # Once the customer uses a chat message:
+    await autumn.track(
+        customer_id="john_doe",
+        feature_id="chat_messages",
+        value=1,
+    )
+
+    # Let's say the customer has run out of chat messages.
+    check = await autumn.check(
+        customer_id="john_doe",
+        feature_id="chat_messages",
+    )
+    if check.allowed is False:
+        print("Customer has run out of chat messages.")
+
+asyncio.run(main())
+```
+
+## Synchronous Usage
+
+```python
+import autumn
+
+# First, initialize a client.
+client = autumn.Client(token="am_sk_test_XESp2wyPE...")
+
+# Attach a customer to a product
+client.attach(
+    customer_id="john_doe",
+    product_id="chat_messages",
+)
+
+# Check if the customer has access to the product
+check = client.check(
+    customer_id="john_doe",
+    product_id="chat_messages",
+)
+if check.allowed is True:
+    print("Sending chat message...")
+
+# Once the customer uses a chat message:
+client.track(
+    customer_id="john_doe",
+    feature_id="chat_messages",
+    value=1,
+)
+
+# Let's say the customer has run out of chat messages.
+check = client.check(
+    customer_id="john_doe",
+    feature_id="chat_messages",
+)
+if check.allowed is False:
+    print("Customer has run out of chat messages.")
+```
+
+## License
+
+`autumn-py` is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.
+
+## Authors
+
+Originally written by [@justanotherbyte](https://github.com/justanotherbyte).
+
+Maintained by [@johnyeocx](https://github.com/johnyeocx) and [@justanotherbyte](https://github.com/justanotherbyte).
