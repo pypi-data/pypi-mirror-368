@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Overflowing</title>
+  </head>
+  <body>
+    <p>Submitted so far: {{ count }}</p>
+    <p>Name submitted: {{ name }}</p>
+    <p>Item submitted: {{ item }}</p>
+    {# This is a div whose contents are too big to display, resulting in scrollbars #}
+    {# Browser scrolling based on window.scrollTo won't work #}
+    {# However, that doesn't necessarily matter, Selenium may be able to interact with controls anyway #}
+    {# But our legacy auto-scrolling will hurt things. #}
+    <div style="height: 200px; overflow: scroll; border: 1px solid black; padding: 10px;">
+      <p>Top of small div</p>
+      <div style="height: 1000px; border: 1px solid black; padding: 10px">
+        <p>Top of tall box inside small div</p>
+      </div>
+      <p>Stuff hidden at the bottom</p>
+      <form method="POST" action="">
+        {% csrf_token %}
+        <input type="hidden" name="count" value="{{ nextcount }}">
+        <input type="text" name="name" value="">
+        <select name="itemdropdown">
+          <option value="item-1">Item 1</option>
+          <option value="item-2">Item 2</option>
+        </select>
+        <input type="submit" name="submit" value="Submit">
+      </form>
+    </div>
+  </body>
+</html>
