@@ -1,0 +1,31 @@
+name: test
+
+on: [pull_request]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: install dependencies
+        run: |
+          python -m pip install pytest pytest-cov mmengine
+          python -m pip install -e .
+      - name: run unit test
+        # check all commits from main
+        run: pytest --cov=mme tests/test_config
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v3
