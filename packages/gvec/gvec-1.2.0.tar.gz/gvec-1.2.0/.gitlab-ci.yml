@@ -1,0 +1,1896 @@
+# =================================================================================================================================
+# Stages to be executed, each stage is a collection of jobs pointing to the stage
+# =================================================================================================================================
+
+stages:
+  - env
+  - build
+  - run
+  - unit
+  - regression
+  - postprocessing
+  - post_diff
+  - publish
+
+workflow:
+  name: 'Pipeline for branch $CI_COMMIT_REF_NAME vs $HASH_TAG_REFERENCE'
+  rules:
+    # disable the pipeline for merge requests (to avoid duplicate pipelines)
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+      when: never
+    # compare tags and develop vs "main" / latest release, rarely makes sense otherwise
+    - if: $CI_COMMIT_TAG || $CI_COMMIT_REF_NAME == "develop"
+      when: always
+      variables:
+        HASH_TAG_REFERENCE: main
+    # ignore pushes to the main branch (main always points to a tag)
+    - if: $CI_PIPELINE_SOURCE == 'push' && $CI_COMMIT_REF_NAME == "main"
+      when: never
+    # ignore the docs branch
+    - if: $CI_PIPELINE_SOURCE == 'push' && $CI_COMMIT_REF_NAME == "docs"
+      when: never
+    # otherwise always run the pipeline (e.g. on every push)
+    - when: always
+
+# =================================================================================================================================
+# GLOBALS
+# =================================================================================================================================
+
+variables:
+  GIT_STRATEGY: clone
+  HASH_TAG: $CI_COMMIT_REF_NAME
+  HASH_TAG_REFERENCE:
+    value: develop
+    description: "The reference branch/tag to compare against"
+  CI_HOSTNAME: ${CMAKE_HOSTNAME}
+  MINIMAL_PIPELINE:
+    value: ""
+    options: ["", "true", "false"]
+    description: "''true'' to run only minimal tests, ''false'' to run all tests, '''' to run only minimal tests for ''.*gitlab[-_]ci.*'' branches"
+  NIGHTLY_PIPELINE:
+    value: "false"
+    options: ["true", "false"]
+    description: "''true'' to run additional ''nightly'' tests, ''false'' to run default tests"
+  PYTEST_EXEC_CMD: "python -m pytest -v -rA --tb=short"
+  # global defaults for the pytest -m and -k options (can be reassigned at the job level!)
+  PYTEST_MARKER_OPTS: "example"
+  PYTEST_KEY_OPTS: ""               # default value
+  PYTEST_EXTRA_OPTS: ""
+  PRIVATE_RUNNER_PIPELINE:
+   value: "true"
+   options: ["true", "false"]
+   description: "''true'' to include the SLURM jobs in the pipeline, ''false'' to exclude them from the pipeline"
+
+#  GLOBAL_CACHE_PATH: "/home/gitlab-runner/globalcache/${CI_PIPELINE_ID}_${CI_COMMIT_REF_NAME}"
+
+# =================================================================================================================================
+# DEFAULTS
+# =================================================================================================================================
+
+default:
+  before_script:
+    - source CI_templates/helpers.bash
+
+# =================================================================================================================================
+# SHORT SYNTAX EXPLANATIONS FOR THE JOB, FOR DETAILS VISIT:    ===> https://docs.gitlab.com/ce/ci/yaml/   <===
+# "stage:"         makes the job part of a stage defined above
+# "tags:"          selects the runner
+# "only:"          restricts the execution of the job to a git branch or tag
+# "before_script:" shell commands to be executed before the main script.
+# "script:"        shell commands for the test. If a shell command exits with >0, the job is marked as "failed", else as "passed".
+#                  commands after a failing one are not executed anymore!
+# "after_script:"  shell commands after passed OR failed script. Careful, the current directory is always the root of the repo!
+# "artifacts:"     keep data from the job which is uploaded to gitlab.com. You really should set a duration to expiration.
+#                  "when:" can be either on_failure, on_success or always
+#
+# => SCRIPT SYNTAX CAN BE CHECKED ON GITLAB with the "CI LINT" tool
+#
+# =================================================================================================================================
+
+# =================================================================================================================================
+# ISSUE FOUND WITH PARALLEL MATRICES
+# =================================================================================================================================
+
+#  parallel:
+#    matrix:
+#      - CMP_MODE: ["Debug"]
+#        OMP_MODE: ["ompON"] #only one element/variable in matrix: causes CI dependency line to break
+#                             check issue report: https://gitlab.com/gitlab-org/gitlab/-/issues/428679
+#                             workaround is to use the keyword "variables:" instead (like below)
+#  variables:
+#    HASH_TAG: ${HASH_TAG_REFERENCE}
+#    CMP_MODE: "Debug"
+#    OMP_MODE: "ompON"
+
+
+# =================================================================================================================================
+# INCLUDE TEMPLATES & JOBS
+# =================================================================================================================================
+
+include:
+
+  # ============================
+  # script templates
+  # ============================
+  - local: CI_templates/scripts.yml
+
+  # ============================
+  # stage env jobs
+  # ============================
+
+  # MPCDFCI shared runners
+  # ----------------------
+
+  # Intel
+
+  - local: CI_templates/env.yml
+    inputs:
+      env: .mpcdfci_ifort-2023
+      rules: .rules_minimal
+
+  - local: CI_templates/env.yml
+    inputs:
+      env: .mpcdfci_ifx-2024
+
+  - local: CI_templates/env.yml
+    inputs:
+      env: .mpcdfci_ifx-latest
+      rules: .rules_minimal
+
+  # GNU
+  - local: CI_templates/env.yml
+    inputs:
+      env: .mpcdfci_gfortran-12
+
+  - local: CI_templates/env.yml
+    inputs:
+      env: .mpcdfci_gfortran-13
+
+  - local: CI_templates/env.yml
+    inputs:
+      env: .mpcdfci_gfortran-latest
+      rules: .rules_minimal
+
+  # Nvidia
+  - local: CI_templates/env.yml
+    inputs:
+      env: .mpcdfci_nvfortran-23
+
+  - local: CI_templates/env.yml
+    inputs:
+      env: .mpcdfci_nvfortran-24
+
+  # MPI
+  - local: CI_templates/env.yml
+    inputs:
+      env: .mpcdfci_ifort-impi-2023
+      rules: .rules_minimal
+
+  - local: CI_templates/env.yml
+    inputs:
+      env: .mpcdfci_ifx-impi-latest
+      rules: .rules_minimal
+
+  - local: CI_templates/env.yml
+    inputs:
+      env: .mpcdfci_gfortran-openmpi-latest
+
+  # Standard Linux
+
+  - local: CI_templates/env.yml
+    inputs:
+      env: .ubuntu-22
+
+  - local: CI_templates/env.yml
+    inputs:
+      env: .ubuntu-24
+
+  - local: CI_templates/env.yml
+    inputs:
+      env: .fedora
+
+  # Raven private runner
+  # ---------------
+
+  # Intel
+
+  - local: CI_templates/env.yml
+    inputs:
+      env: .raven_ifx-2024
+      rules: .rules_private_runner
+
+  # GNU
+
+  - local: CI_templates/env.yml
+    inputs:
+      env: .raven_gfortran-13
+      rules: .rules_private_runner
+
+  # Nvidia
+
+  - local: CI_templates/env.yml
+    inputs:
+      env: .raven_nvfortran-23
+      rules: .rules_private_runner
+
+  # MPI
+
+  # Intel
+
+  - local: CI_templates/env.yml
+    inputs:
+      env: .raven_ifx-impi-2024
+      rules: .rules_private_runner
+
+  # Raven private runner (Gnu + OpenMPI)
+  - local: CI_templates/env.yml
+    inputs:
+      env: .raven_gfortran-openmpi-13
+      rules: .rules_private_runner
+
+  # Viper private runner
+  # ---------------
+
+  # Intel
+
+  - local: CI_templates/env.yml
+    inputs:
+      env: .viper_ifx-2024
+      rules: .rules_private_runner_minimal
+
+  # GNU
+
+  - local: CI_templates/env.yml
+    inputs:
+      env: .viper_gfortran-13
+      rules: .rules_private_runner
+
+  # MPI
+
+  # Intel
+
+  - local: CI_templates/env.yml
+    inputs:
+      env: .viper_ifx-impi-2024
+      rules: .rules_private_runner
+
+  # Gnu + OpenMPI
+
+  - local: CI_templates/env.yml
+    inputs:
+      env: .viper_gfortran-openmpi-13
+      rules: .rules_private_runner
+
+  # ============================
+  # stage build jobs
+  # ============================
+
+  # Intel
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .mpcdfci_ifort-2023
+      rules: .rules_minimal
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .mpcdfci_ifx-2024
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .mpcdfci_ifx-latest
+      rules: .rules_minimal
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .mpcdfci_ifx-latest
+      cmake-opts: .cmake_hmap_RZ
+      build-postfix: _hmap_RZ
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .mpcdfci_ifx-latest
+      cmake-opts: .cmake_hmap_axisNB
+      build-postfix: _hmap_axisNB
+
+
+
+  # GNU
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .mpcdfci_gfortran-12
+      vars: .vars_matrix_build_minimal
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .mpcdfci_gfortran-13
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .mpcdfci_gfortran-latest
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .mpcdfci_gfortran-latest
+      cmake-opts: .cmake_hmap_RZ
+      build-postfix: _hmap_RZ
+
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .mpcdfci_gfortran-latest
+      cmake-opts: .cmake_hmap_axisNB
+      build-postfix: _hmap_axisNB
+
+  # Nvidia
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .mpcdfci_nvfortran-23
+      cmake-opts: .cmake_hmap_RZ
+      build-postfix: _hmap_RZ
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .mpcdfci_nvfortran-23
+      cmake-opts: .cmake_hmap_axisNB
+      build-postfix: _hmap_axisNB
+
+  # MPI
+  # Intel
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .mpcdfci_ifort-impi-2023
+      cmake-opts: .cmake_no_converter
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .mpcdfci_ifx-impi-latest
+      cmake-opts: .cmake_no_converter
+      rules: .rules_minimal
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .mpcdfci_gfortran-openmpi-latest
+      cmake-opts: .cmake_no_converter
+
+  # python / pip
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .mpcdfci_ifx-latest
+      rules: .rules_minimal
+      vars: .vars_matrix_py
+      script-postfix: _py
+      build-postfix: _py
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .mpcdfci_gfortran-latest
+      rules: .rules_minimal
+      vars: .vars_matrix_py
+      script-postfix: _py
+      build-postfix: _py
+
+  # converter-only (converters are also built as part of the normal build jobs)
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .mpcdfci_ifx-latest
+      build-postfix: _only_converter
+      cmake-opts: .cmake_only_converter
+      rules: .rules_minimal
+
+  # reference tag
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .mpcdfci_ifort-2023
+      build-postfix: _tag
+      vars: .vars_matrix_build_tag
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .mpcdfci_ifx-2024
+      build-postfix: _tag
+      vars: .vars_matrix_build_tag
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .mpcdfci_ifx-latest
+      build-postfix: _tag
+      vars: .vars_matrix_build_tag
+      rules: .rules_minimal
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .mpcdfci_gfortran-latest
+      build-postfix: _tag
+      vars: .vars_matrix_build_tag
+      rules: .rules_minimal
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .mpcdfci_ifx-impi-latest
+      build-postfix: _tag
+      vars: .vars_matrix_build_tag
+      cmake-opts: .cmake_no_converter
+      rules: .rules_minimal
+
+  # Standard Linux
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .ubuntu-22
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .ubuntu-22
+      vars: .vars_matrix_py
+      script-postfix: _py
+      build-postfix: _py
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .ubuntu-24
+      vars: .vars_matrix_py
+      script-postfix: _py
+      build-postfix: _py
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .fedora
+      vars: .vars_matrix_py
+      script-postfix: _py
+      build-postfix: _py
+
+  # Raven private runner
+  # --------------------
+
+  # Intel
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .raven_ifx-2024
+      vars: .vars_hpc
+      rules: .rules_private_runner
+
+  # GNU
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .raven_gfortran-13
+      vars: .vars_hpc
+      rules: .rules_private_runner
+
+  # Nvidia
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .raven_nvfortran-23
+      cmake-opts: .cmake_hmap_RZ
+      build-postfix: _hmap_RZ
+      vars: .vars_hpc
+      rules: .rules_private_runner
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .raven_nvfortran-23
+      cmake-opts: .cmake_hmap_axisNB
+      build-postfix: _hmap_axisNB
+      vars: .vars_hpc
+      rules: .rules_private_runner
+
+  # reference tag
+
+  # Intel
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .raven_ifx-2024
+      build-postfix: _tag
+      vars: .vars_hpc_tag
+      rules: .rules_private_runner
+
+  # MPI
+
+  # Intel
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .raven_ifx-impi-2024
+      vars: .vars_hpc
+      cmake-opts: .cmake_no_converter
+      rules: .rules_private_runner
+
+  # GNU
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .raven_gfortran-openmpi-13
+      vars: .vars_hpc
+      cmake-opts: .cmake_no_converter
+      rules: .rules_private_runner
+
+  # Viper private runner
+  # --------------------
+
+  # Intel
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .viper_ifx-2024
+      vars: .vars_hpc
+      rules: .rules_private_runner_minimal
+
+  # GNU
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .viper_gfortran-13
+      vars: .vars_hpc
+      rules: .rules_private_runner
+
+  # MPI
+
+  # Intel
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .viper_ifx-impi-2024
+      vars: .vars_hpc
+      cmake-opts: .cmake_no_converter
+      rules: .rules_private_runner
+
+  # GNU
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .viper_gfortran-openmpi-13
+      vars: .vars_hpc
+      cmake-opts: .cmake_no_converter
+      rules: .rules_private_runner
+
+  # reference tag
+
+  # Intel
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .viper_ifx-2024
+      build-postfix: _tag
+      vars: .vars_hpc_tag
+      rules: .rules_private_runner_minimal
+
+  # GNU
+
+  - local: CI_templates/build.yml
+    inputs:
+      env: .viper_gfortran-13
+      build-postfix: _tag
+      vars: .vars_hpc_tag
+      rules: .rules_private_runner
+
+  # ============================
+  # stage run jobs
+  # ============================
+
+  # Intel
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .mpcdfci_ifort-2023
+      rules: .rules_minimal
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .mpcdfci_ifx-2024
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .mpcdfci_ifx-latest
+      rules: .rules_minimal
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .mpcdfci_ifx-latest
+      vars: .vars_matrix_run_hmap_RZ
+      build-postfix: _hmap_RZ
+      run-postfix: _hmap_RZ
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .mpcdfci_ifx-latest
+      vars: .vars_matrix_run_hmap_axisNB
+      build-postfix: _hmap_axisNB
+      run-postfix: _hmap_axisNB
+
+  # run notebooks from documentation
+  - local: CI_templates/run.yml
+    inputs:
+      env: .mpcdfci_ifx-latest
+      vars: .vars_matrix_py
+      rules: .rules_minimal
+      build-postfix: _py
+      run-postfix: _notebooks
+      script-postfix: _notebooks
+      allow_failure: true
+
+  # GNU
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .mpcdfci_gfortran-12
+      vars: .vars_matrix_run_minimal
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .mpcdfci_gfortran-13
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .mpcdfci_gfortran-latest
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .mpcdfci_gfortran-latest
+      vars: .vars_matrix_run_hmap_RZ
+      build-postfix: _hmap_RZ
+      run-postfix: _hmap_RZ
+
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .mpcdfci_gfortran-latest
+      vars: .vars_matrix_run_hmap_axisNB
+      build-postfix: _hmap_axisNB
+      run-postfix: _hmap_axisNB
+
+  # run notebooks from documentation
+  - local: CI_templates/run.yml
+    inputs:
+      env: .mpcdfci_gfortran-latest
+      vars: .vars_matrix_py
+      rules: .rules_minimal
+      build-postfix: _py
+      run-postfix: _notebooks
+      script-postfix: _notebooks
+      allow_failure: true
+
+  # Nvidia
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .mpcdfci_nvfortran-23
+      vars: .vars_matrix_run_hmap_RZ
+      build-postfix: _hmap_RZ
+      run-postfix: _hmap_RZ
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .mpcdfci_nvfortran-23
+      vars: .vars_matrix_run_hmap_axisNB
+      build-postfix: _hmap_axisNB
+      run-postfix: _hmap_axisNB
+
+  # debugrun
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .mpcdfci_ifort-2023
+      run-postfix: _debugrun
+      vars: .vars_matrix_run_debugrun
+      rules: .rules_nightly
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .mpcdfci_ifx-latest
+      run-postfix: _debugrun
+      vars: .vars_matrix_run_debugrun
+      rules: .rules_nightly
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .mpcdfci_ifx-latest
+      run-postfix: _debugrun_hmap_RZ
+      vars: .vars_matrix_run_debugrun_hmap_RZ
+      build-postfix: _hmap_RZ
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .mpcdfci_gfortran-latest
+      run-postfix: _debugrun
+      vars: .vars_matrix_run_debugrun
+      rules: .rules_nightly
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .mpcdfci_gfortran-latest
+      run-postfix: _debugrun_hmap_RZ
+      vars: .vars_matrix_run_debugrun_hmap_RZ
+      build-postfix: _hmap_RZ
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .mpcdfci_nvfortran-23
+      run-postfix: _debugrun_hmap_RZ
+      vars: .vars_matrix_run_debugrun_hmap_RZ
+      build-postfix: _hmap_RZ
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .mpcdfci_nvfortran-23
+      run-postfix: _debugrun_hmap_axisNB
+      vars: .vars_matrix_run_debugrun_hmap_axisNB
+      build-postfix: _hmap_axisNB
+
+  # MPI
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .mpcdfci_ifort-impi-2023
+      vars: .vars_matrix_run_mpi
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .mpcdfci_ifx-impi-latest
+      vars: .vars_matrix_run_mpi
+      rules: .rules_minimal
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .mpcdfci_gfortran-openmpi-latest
+      vars: .vars_matrix_run_mpi
+
+  # reference tag
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .mpcdfci_ifort-2023
+      run-postfix: _tag
+      build-postfix: _tag
+      vars: .vars_matrix_run_tag
+      allow_failure: true
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .mpcdfci_ifx-2024
+      run-postfix: _tag
+      build-postfix: _tag
+      vars: .vars_matrix_run_tag
+      allow_failure: true
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .mpcdfci_ifx-latest
+      run-postfix: _tag
+      build-postfix: _tag
+      vars: .vars_matrix_run_tag
+      rules: .rules_minimal
+      allow_failure: true
+
+  # reference tag + MPI
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .mpcdfci_ifx-impi-latest
+      run-postfix: _tag
+      build-postfix: _tag
+      vars: .vars_matrix_run_mpi_tag
+      allow_failure: true
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .mpcdfci_gfortran-latest
+      rules: .rules_nightly
+      run-postfix: _tag
+      build-postfix: _tag
+      vars: .vars_matrix_run_mpi_tag
+      allow_failure: true
+
+  # Raven private runner + srun
+  # --------------------
+
+  # Intel
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .raven_ifx-2024
+      vars: .vars_raven_run_slurm
+      run-postfix: _slurm
+      rules: .rules_private_runner
+
+  # GNU
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .raven_gfortran-13
+      vars: .vars_raven_run_slurm
+      run-postfix: _slurm
+      rules: .rules_private_runner
+
+  # MPI
+
+  # Intel
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .raven_ifx-impi-2024
+      vars: .vars_raven_mpi_run_slurm
+      run-postfix: _slurm
+      rules: .rules_private_runner
+
+  # GNU
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .raven_gfortran-openmpi-13
+      vars: .vars_raven_mpi_run_slurm
+      run-postfix: _slurm
+      rules: .rules_private_runner
+
+  # Viper private runner + srun
+  # ---------------------------
+
+  # Intel
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .viper_ifx-2024
+      vars: .vars_viper_run_slurm
+      run-postfix: _slurm
+      rules: .rules_private_runner_minimal
+
+  # GNU
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .viper_gfortran-13
+      vars: .vars_viper_run_slurm
+      run-postfix: _slurm
+      rules: .rules_private_runner
+
+  # debugrun
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .viper_gfortran-13
+      vars: .vars_viper_run_debugrun_slurm
+      run-postfix: _debugrun_slurm
+      rules: .rules_private_runner_nightly
+
+  # MPI
+
+  # Intel
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .viper_ifx-impi-2024
+      vars: .vars_viper_mpi_run_slurm
+      run-postfix: _slurm
+      rules: .rules_private_runner
+
+  # GNU
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .viper_gfortran-openmpi-13
+      vars: .vars_viper_mpi_run_slurm
+      run-postfix: _slurm
+      rules: .rules_private_runner
+
+  # reference tag
+
+  # Intel
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .viper_ifx-2024
+      vars: .vars_viper_run_tag_slurm
+      run-postfix: _tag_slurm
+      build-postfix: _tag
+      rules: .rules_private_runner_minimal
+      allow_failure: true
+
+  # GNU
+
+  - local: CI_templates/run.yml
+    inputs:
+      env: .viper_gfortran-13
+      vars: .vars_viper_run_tag_slurm
+      run-postfix: _tag_slurm
+      build-postfix: _tag
+      rules: .rules_private_runner
+      allow_failure: true
+
+  # ============================
+  # unit jobs
+  # ============================
+  - local: CI_templates/unit.yml
+    inputs:
+      env: .mpcdfci_ifx-latest
+      rules: .rules_minimal
+
+  - local: CI_templates/unit.yml
+    inputs:
+      env: .mpcdfci_gfortran-latest
+
+  # Standard Linux
+
+  - local: CI_templates/unit.yml
+    inputs:
+      env: .ubuntu-22
+
+  - local: CI_templates/unit.yml
+    inputs:
+      env: .ubuntu-24
+
+  - local: CI_templates/unit.yml
+    inputs:
+      env: .fedora
+
+  # ============================
+  # stage regression jobs
+  # ============================
+  - local: CI_templates/regression-cmp.yml
+    inputs:
+      CURR_CMP_1: ifx-latest
+      CURR_CMP_2: gfortran-latest
+
+  - local: CI_templates/regression-cmp.yml
+    inputs:
+      CURR_CMP_1: ifort-2023
+      CURR_CMP_2: ifx-latest
+      rules: .rules_minimal
+
+  - local: CI_templates/regression-cmp.yml
+    inputs:
+      CURR_CMP_1: ifort-2023
+      CURR_CMP_2: ifx-2024
+
+  - local: CI_templates/regression-omp.yml
+    inputs:
+      env: .mpcdfci_ifx-latest
+      rules: .rules_minimal
+
+  - local: CI_templates/regression-omp.yml
+    inputs:
+      env: .mpcdfci_gfortran-latest
+
+  - local: CI_templates/regression-tag.yml
+    inputs:
+      env: .mpcdfci_ifort-2023
+
+  - local: CI_templates/regression-tag.yml
+    inputs:
+      env: .mpcdfci_ifx-2024
+
+  - local: CI_templates/regression-tag.yml
+    inputs:
+      rules: .rules_minimal
+
+  - local: CI_templates/regression-mpi.yml
+    inputs:
+      CURR_CMP: ifx-latest
+      CURR_CMP_MPI: ifx-impi-latest
+      rules: .rules_minimal
+
+  # Viper private runner
+  # --------------------
+
+  # Intel
+
+  - local: CI_templates/regression-tag.yml
+    inputs:
+      env: .viper_ifx-2024
+      vars: .vars_viper_run_slurm
+      run-postfix: _slurm
+      rules: .rules_private_runner_minimal
+
+  # GNU
+
+  - local: CI_templates/regression-tag.yml
+    inputs:
+      env: .viper_gfortran-13
+      vars: .vars_viper_run_slurm
+      run-postfix: _slurm
+      rules: .rules_private_runner
+
+  # Raven vs. Viper private runners
+  # --------------------
+
+  - local: CI_templates/regression-hst.yml
+
+  - local: CI_templates/regression-hst.yml
+    inputs:
+      env: .raven_gfortran-openmpi-13
+      CURR_CMP: "gfortran-openmpi-13"
+      vars: .vars_reg_mpi_slurm
+
+  # ============================
+  # stage postprocessing jobs
+  # ============================
+
+  - local: CI_templates/postprocessing.yml
+    inputs:
+      env: .mpcdfci_ifort-2023
+
+  - local: CI_templates/postprocessing.yml
+    inputs:
+      env: .mpcdfci_ifx-2024
+
+  - local: CI_templates/postprocessing.yml
+    inputs:
+      env: .mpcdfci_ifx-latest
+      rules: .rules_minimal
+
+  - local: CI_templates/postprocessing.yml
+    inputs:
+      env: .mpcdfci_ifx-latest
+      build-postfix: _tag
+      run-postfix: _tag
+      post-postfix: _tag
+      vars: .vars_matrix_post_tag
+      rules: .rules_minimal
+      allow_failure: true
+
+
+
+  - local: CI_templates/postprocessing.yml
+    inputs:
+      env: .mpcdfci_ifx-latest
+      vars: .vars_matrix_run_hmap_RZ
+      build-postfix: _hmap_RZ
+      run-postfix: _hmap_RZ
+      post-postfix: _hmap_RZ
+
+  - local: CI_templates/postprocessing.yml
+    inputs:
+      env: .mpcdfci_ifx-latest
+      vars: .vars_matrix_run_hmap_axisNB
+      build-postfix: _hmap_axisNB
+      post-postfix: _hmap_axisNB
+
+  - local: CI_templates/postprocessing.yml
+    inputs:
+      env: .mpcdfci_gfortran-latest
+
+  - local: CI_templates/postprocessing.yml
+    inputs:
+      env: .mpcdfci_gfortran-latest
+      vars: .vars_matrix_run_hmap_RZ
+      build-postfix: _hmap_RZ
+      run-postfix: _hmap_RZ
+      post-postfix: _hmap_RZ
+
+  - local: CI_templates/postprocessing.yml
+    inputs:
+      env: .mpcdfci_gfortran-latest
+      vars: .vars_matrix_run_hmap_axisNB
+      build-postfix: _hmap_axisNB
+      run-postfix: _hmap_axisNB
+      post-postfix: _hmap_axisNB
+
+  - local: CI_templates/postprocessing.yml
+    inputs:
+      env: .mpcdfci_nvfortran-23
+      vars: .vars_matrix_run_hmap_RZ
+      build-postfix: _hmap_RZ
+      run-postfix: _hmap_RZ
+      post-postfix: _hmap_RZ
+
+  - local: CI_templates/postprocessing.yml
+    inputs:
+      env: .mpcdfci_nvfortran-23
+      vars: .vars_matrix_run_hmap_axisNB
+      build-postfix: _hmap_axisNB
+      run-postfix: _hmap_axisNB
+      post-postfix: _hmap_axisNB
+
+  # regression of post with ncdiff
+  - local: CI_templates/regression-tag-post-diff.yml
+    inputs:
+      env: .mpcdfci_ifx-latest
+      vars: .vars_matrix_post
+      rules: .rules_minimal
+
+  # python
+
+  - local: CI_templates/postprocessing.yml
+    inputs:
+      env: .mpcdfci_ifx-latest
+      vars: .vars_matrix_py
+      build-postfix: _py
+      # run-postfix: ""
+      post-postfix: _py
+      script-postfix: _py
+      rules: .rules_minimal
+
+  - local: CI_templates/postprocessing.yml
+    inputs:
+      env: .mpcdfci_gfortran-latest
+      vars: .vars_matrix_py
+      build-postfix: _py
+      # run-postfix: ""
+      post-postfix: _py
+      script-postfix: _py
+
+  # ============================
+  # stage converter jobs: postprocessing
+  # ============================
+  - local: CI_templates/converters.yml
+    inputs:
+      env: .mpcdfci_ifort-2023
+
+  - local: CI_templates/converters.yml
+    inputs:
+      env: .mpcdfci_ifx-2024
+
+  - local: CI_templates/converters.yml
+    inputs:
+      env: .mpcdfci_ifx-latest
+      conv-postfix: _only_converter
+      build-postfix: _only_converter
+
+  - local: CI_templates/converters.yml
+    inputs:
+      env: .mpcdfci_ifx-latest
+      vars: .vars_matrix_run_hmap_RZ
+      conv-postfix: _hmap_RZ
+      build-postfix: _hmap_RZ
+      run-postfix: _hmap_RZ
+
+  - local: CI_templates/converters.yml
+    inputs:
+      env: .mpcdfci_nvfortran-23
+      vars: .vars_matrix_run_hmap_RZ
+      conv-postfix: _hmap_RZ
+      build-postfix: _hmap_RZ
+      run-postfix: _hmap_RZ
+
+  # ============================
+  # stage publish jobs
+  # ============================
+  - local: CI_templates/pre-commit.yml
+
+  - local: CI_templates/pypi.yml
+    inputs:
+      env: .mpcdfci_ifx-latest
+      rules: .rules_pypi
+
+# =================================================================================================================================
+# TEMPLATES INDEPENDENT OF STAGE
+# =================================================================================================================================
+
+# ____________________________
+# Rules templates
+# reference: https://docs.gitlab.com/ee/ci/yaml/#rulesif
+# and: https://docs.gitlab.com/ee/ci/yaml/#when
+# An `- if:` beyond the first `- if:` is an "else if". And the last part (like `- when:` , does not have a condition, so it corresponds to an "else".
+# when: on_success - Run the job only when no jobs in earlier stages fail or have allow_failure: true.
+# when: on_failure - Run the job only when at least one job in an earlier stage fails.
+# when: always - Run the job regardless of the status of jobs in earlier stages.
+# when: never - Don’t run the job
+# when: manual - Run the job only when triggered manually.
+# Usage: selected by job as an argument
+
+.rules_default:
+  rules:
+    # disable this job for gitlab-ci branches or if MINIMAL_PIPELINE is set to "true"
+    # MINIMAL_PIPELINE="false" overrides gitlab-ci jobs
+    - if: ($CI_COMMIT_REF_NAME =~ /gitlab[-_]ci/ && $MINIMAL_PIPELINE != "false") || $MINIMAL_PIPELINE == "true"
+      when: never
+    # disable for tag pipelines
+    - if: $CI_COMMIT_TAG
+      when: never
+    - when: on_success
+
+.rules_minimal:
+  rules:
+    # special variables for gitlab-ci branches or if MINIMAL_PIPELINE is set
+    - if: ($CI_COMMIT_REF_NAME =~ /gitlab[-_]ci/ && $MINIMAL_PIPELINE != "false") || $MINIMAL_PIPELINE == "true"
+      variables:
+        PYTEST_KEY_OPTS: "(not highres) and (not _restart)"
+        PYTEST_MARKER_OPTS: "shortrun"
+      when: on_success
+    # disable for tag pipelines
+    - if: $CI_COMMIT_TAG
+      when: never
+    - when: on_success
+
+.rules_minimal_only:
+  rules:
+    # special variables for gitlab-ci branches or if MINIMAL_PIPELINE is set
+    - if: ($CI_COMMIT_REF_NAME =~ /gitlab[-_]ci/ && $MINIMAL_PIPELINE != "false") || $MINIMAL_PIPELINE == "true"
+      variables:
+        PYTEST_KEY_OPTS: "(not highres) and (not _restart)"
+        PYTEST_MARKER_OPTS: "shortrun"
+      when: on_success
+    # don't run otherwise
+    - when: never
+
+.rules_nightly:
+  rules:
+    # disable this job for gitlab-ci branches or if MINIMAL_PIPELINE is set
+    - if: ($CI_COMMIT_REF_NAME =~ /gitlab[-_]ci/ && $MINIMAL_PIPELINE != "false") || $MINIMAL_PIPELINE == "true"
+      when: never
+    # disable for tag pipelines
+    - if: $CI_COMMIT_TAG
+      when: never
+    # only run this job in the nightly pipeline
+    - if: $NIGHTLY_PIPELINE == "true"
+      when: on_success
+    - when: never
+
+.rules_private_runner:
+  rules:
+    # disable this job for non-protected branches
+    - if: $CI_COMMIT_REF_PROTECTED == "false"
+      when: never
+    # disable for tag pipelines
+    - if: $CI_COMMIT_TAG
+      when: never
+    # disable this job for´ gitlab-ci branches or if MINIMAL_PIPELINE="true" or $PRIVATE_RUNNER_PIPELINE="false"
+    - if: $PRIVATE_RUNNER_PIPELINE == "false"
+      when: never
+    - if: ($CI_COMMIT_REF_NAME =~ /gitlab[-_]ci/ && $MINIMAL_PIPELINE != "false") || $MINIMAL_PIPELINE == "true"
+      when: never
+    - when: on_success
+
+.rules_private_runner_minimal:
+  rules:
+    # disable this job for non-protected branches
+    - if: $CI_COMMIT_REF_PROTECTED == "false"
+      when: never
+    # disable this job only for $PRIVATE_RUNNER_PIPELINE="false"
+    - if: $PRIVATE_RUNNER_PIPELINE == "false"
+      when: never
+    # disable for tag pipelines
+    - if: $CI_COMMIT_TAG
+      when: never
+    # special variables for gitlab-ci branches or if MINIMAL_PIPELINE is set
+    - if: ($CI_COMMIT_REF_NAME =~ /gitlab[-_]ci/ && $MINIMAL_PIPELINE != "false") || $MINIMAL_PIPELINE == "true"
+      when: on_success
+    - when: on_success
+
+.rules_private_runner_nightly:
+  rules:
+    # disable this job for non-protected branches
+    - if: $CI_COMMIT_REF_PROTECTED == "false"
+      when: never
+    # disable this job for $PRIVATE_RUNNER_PIPELINE="false"
+    - if: $PRIVATE_RUNNER_PIPELINE == "false"
+      when: never
+    # disable for tag pipelines
+    - if: $CI_COMMIT_TAG
+      when: never
+    # special variables for gitlab-ci branches or if MINIMAL_PIPELINE is set
+    - if: ($CI_COMMIT_REF_NAME =~ /gitlab[-_]ci/ && $MINIMAL_PIPELINE != "false") || $MINIMAL_PIPELINE == "true"
+      when: never
+    # only run this job in the nightly pipeline
+    - if: $NIGHTLY_PIPELINE == "true"
+      when: on_success
+    - when: never
+
+.rules_never:
+  rules:
+    - when: never
+
+.rules_pypi:
+  rules:
+    # publish releases/tags, but require manual approval
+    - if: $CI_COMMIT_TAG
+      when: manual
+      allow_failure: false # set pipeline to "Blocked" until job is run
+    # never for other branches
+    - when: never
+
+.vars_dirs_artifacts:
+  variables:
+    BUILDNAME: ${HASH_TAG}_${CI_HOSTNAME}_${CURR_CMP}_${CMP_MODE}_${OMP_MODE}_${MPI_MODE}
+    CASENAME: ${HASH_TAG}_${CI_HOSTNAME}_${CURR_CMP}_${CMP_MODE}_${OMP_MODE}_${MPI_MODE}${MPI_RNKS_MODE}
+
+# ____________________________
+# Variables
+# Usage: selected by environment: mpi compilers are set to mpiON per default
+
+.vars_mpiOFF:
+  variables:
+    MPI_MODE: "mpiOFF"
+    MPI_RNKS_MODE: ""
+    OMP_NUM_THR: "4"
+
+.vars_mpiON:
+  variables:
+    MPI_MODE: "mpiON"
+    MPI_RNKS_MODE: "_nranks${MPI_RNKS}"
+    OMP_NUM_THR: "2"
+
+
+# private runner vars for longer/larger runs
+.vars_hpc:
+  variables:
+    CMP_MODE: "Release"
+    OMP_MODE: "ompON"
+    PYTEST_KEY_OPTS: "axisNB_QH_nfp7"
+
+# reference tag
+.vars_hpc_tag:
+  extends: .vars_hpc
+  variables:
+    HASH_TAG: ${HASH_TAG_REFERENCE}
+
+# ____________________________
+# Environments / Compiler
+# MPCDF new Docker images: each providing a toolchain based on a single combination of compiler and MPI variant
+# Usage: selected by job as an argument, becomes part of the parametrized job name
+
+# template for all mpcdfci jobs
+.mpcdfci:
+  tags:
+    - cloud
+    - docker
+    - shared
+  variables:
+    CMAKE_HOSTNAME: "mpcdfcirunner"
+    CI_HOSTNAME: "mpcdfci"
+
+.mpcdfci_ifort-2023:
+  image: gitlab-registry.mpcdf.mpg.de/mpcdf/ci-module-image/intel_2023_1_0_x:latest
+  extends:
+    - .mpcdfci
+    - .vars_mpiOFF
+  variables:
+    CURR_CMP: "ifort-2023"
+    SETUP_SCRIPT: "ifort"
+
+.mpcdfci_ifx-2024:
+  image: gitlab-registry.mpcdf.mpg.de/mpcdf/ci-module-image/intel_2024_0:latest
+  extends:
+    - .mpcdfci
+    - .vars_mpiOFF
+  variables:
+    CURR_CMP: "ifx-2024"
+    SETUP_SCRIPT: "ifx"
+
+.mpcdfci_ifx-2025:
+  image: gitlab-registry.mpcdf.mpg.de/mpcdf/ci-module-image/intel_2025_0:latest
+  extends:
+    - .mpcdfci
+    - .vars_mpiOFF
+  variables:
+    CURR_CMP: "ifx-2025"
+    SETUP_SCRIPT: "ifx"
+
+.mpcdfci_ifx-latest:
+  image: gitlab-registry.mpcdf.mpg.de/mpcdf/ci-module-image/intel:latest
+  extends:
+    - .mpcdfci
+    - .vars_mpiOFF
+  variables:
+    CURR_CMP: "ifx-latest"
+    SETUP_SCRIPT: "ifx"
+
+.mpcdfci_ifort-impi-2023:
+  image: gitlab-registry.mpcdf.mpg.de/mpcdf/ci-module-image/intel_2023_1_0_x-impi_2021_9:latest
+  extends:
+    - .mpcdfci
+    - .vars_mpiON
+  variables:
+    CURR_CMP: "ifort-impi-2023"
+    SETUP_SCRIPT: "ifort-impi"
+
+.mpcdfci_ifx-impi-latest:
+  image: gitlab-registry.mpcdf.mpg.de/mpcdf/ci-module-image/intel-impi:latest
+  extends:
+    - .mpcdfci
+    - .vars_mpiON
+  variables:
+    CURR_CMP: "ifx-impi-latest"
+    SETUP_SCRIPT: "ifx-impi"
+
+.mpcdfci_gfortran-12:
+  image: gitlab-registry.mpcdf.mpg.de/mpcdf/ci-module-image/gcc_12:latest
+  extends:
+    - .mpcdfci
+    - .vars_mpiOFF
+  variables:
+    CURR_CMP: "gfortran-12"
+    SETUP_SCRIPT: "gfortran"
+
+.mpcdfci_gfortran-13:
+  image: gitlab-registry.mpcdf.mpg.de/mpcdf/ci-module-image/gcc_13:latest
+  extends:
+    - .mpcdfci
+    - .vars_mpiOFF
+  variables:
+    CURR_CMP: "gfortran-13"
+    SETUP_SCRIPT: "gfortran"
+
+.mpcdfci_gfortran-14:
+  image: gitlab-registry.mpcdf.mpg.de/mpcdf/ci-module-image/gcc_14:latest
+  extends:
+    - .mpcdfci
+    - .vars_mpiOFF
+  variables:
+    CURR_CMP: "gfortran-14"
+    SETUP_SCRIPT: "gfortran"
+
+.mpcdfci_gfortran-latest:
+  image: gitlab-registry.mpcdf.mpg.de/mpcdf/ci-module-image/gcc:latest
+  extends:
+    - .mpcdfci
+    - .vars_mpiOFF
+  variables:
+    CURR_CMP: "gfortran-latest"
+    SETUP_SCRIPT: "gfortran"
+
+.mpcdfci_gfortran-openmpi-latest:
+  image: gitlab-registry.mpcdf.mpg.de/mpcdf/ci-module-image/gcc-openmpi:latest
+  extends:
+    - .mpcdfci
+    - .vars_mpiON
+  variables:
+    CURR_CMP: "gfortran-openmpi-latest"
+    SETUP_SCRIPT: "gfortran-openmpi"
+
+.mpcdfci_nvfortran-23:
+  image: gitlab-registry.mpcdf.mpg.de/mpcdf/ci-module-image/nvhpcsdk_23:latest
+  extends:
+    - .mpcdfci
+    - .vars_mpiOFF
+  variables:
+    CURR_CMP: "nvfortran-23"
+    SETUP_SCRIPT: "nvfortran"
+
+.mpcdfci_nvfortran-24:
+  image: gitlab-registry.mpcdf.mpg.de/mpcdf/ci-module-image/nvhpcsdk_24:latest
+  extends:
+    - .mpcdfci
+    - .vars_mpiOFF
+  variables:
+    CURR_CMP: "nvfortran-24"
+    SETUP_SCRIPT: "nvfortran"
+
+# hooks section must be present in all private runner jobs (all stages)
+.hooks_mpcdf_runner:
+  hooks:
+    pre_get_sources_script:
+      - module purge
+      - module load git
+
+# ____________________________
+# MPCDF GVEC private runner templates
+
+# SLURM base variables (for both Raven and Viper)
+.vars_base_slurm:
+  variables:
+    SLURM_JOB_NAME: ci_${CI_PROJECT_NAME}_${CI_PIPELINE_ID}_${CI_JOB_ID}
+    SLURM_TIMELIMIT: "10"     # specified in minutes: 10 minutes; the format "00:10:00" does not seem to work here (gets converted to 600 and then is interpreted as 600 minutes)
+    SLURM_MEM_PER_NODE: 10G
+    SRUN_TIMEOUT: "3600"      # specified in seconds: wait 1 hour before killing the srun job; should not outlive the CI pipeline; NOT a prefix SLURM env variable
+
+# Raven GVEC private runner tags
+.raven:
+  tags:
+    - raven
+  variables:
+    CMAKE_HOSTNAME: "raven"
+    CI_HOSTNAME: ${CMAKE_HOSTNAME}
+
+.raven_ifx-2024:
+  extends:
+    - .raven
+    - .hooks_mpcdf_runner
+  variables:
+    CURR_CMP: "ifx-2024"
+    SETUP_SCRIPT: ${CURR_CMP}
+    MPI_MODE: "mpiOFF"
+    MPI_RNKS_MODE: ""
+    OMP_NUM_THR: "4" #"20"
+
+.raven_gfortran-13:
+  extends:
+    - .raven
+    - .hooks_mpcdf_runner
+  variables:
+    CURR_CMP: "gfortran-13"
+    SETUP_SCRIPT: ${CURR_CMP}
+    MPI_MODE: "mpiOFF"
+    MPI_RNKS_MODE: ""
+    OMP_NUM_THR: "4"
+
+.raven_nvfortran-23:
+  extends:
+    - .raven
+    - .hooks_mpcdf_runner
+  variables:
+    CURR_CMP: "nvfortran-23"
+    SETUP_SCRIPT: ${CURR_CMP}
+    MPI_MODE: "mpiOFF"
+    MPI_RNKS_MODE: ""
+    OMP_NUM_THR: "4"
+
+# MPCDF Viper private runner with modules gcc/openmpi
+.raven_ifx-impi-2024:
+  extends:
+    - .raven
+    - .hooks_mpcdf_runner
+  variables:
+    CURR_CMP: "ifx-impi-2024"
+    SETUP_SCRIPT: ${CURR_CMP}
+    MPI_MODE: "mpiON"
+    MPI_RNKS_MODE: "_nranks${MPI_RNKS}"
+
+# MPCDF Raven private runner with modules gcc/openmpi
+.raven_gfortran-openmpi-13:
+  extends:
+    - .raven
+    - .hooks_mpcdf_runner
+  variables:
+    CURR_CMP: "gfortran-openmpi-13"
+    SETUP_SCRIPT: ${CURR_CMP}
+    MPI_MODE: "mpiON"
+    MPI_RNKS_MODE: "_nranks${MPI_RNKS}"
+
+# Viper GVEC private runner tags
+.viper:
+  tags:
+    - viper
+  variables:
+    CMAKE_HOSTNAME: "viper"
+    CI_HOSTNAME: ${CMAKE_HOSTNAME}
+
+.viper_ifx-2024:
+  extends:
+    - .viper
+    - .hooks_mpcdf_runner
+  variables:
+    CURR_CMP: "ifx-2024"
+    SETUP_SCRIPT: ${CURR_CMP}
+    MPI_MODE: "mpiOFF"
+    MPI_RNKS_MODE: ""
+
+.viper_gfortran-13:
+  extends:
+    - .viper
+    - .hooks_mpcdf_runner
+  variables:
+    CURR_CMP: "gfortran-13"
+    SETUP_SCRIPT: ${CURR_CMP}
+    MPI_MODE: "mpiOFF"
+    MPI_RNKS_MODE: ""
+
+.viper_ifx-impi-2024:
+  extends:
+    - .viper
+    - .hooks_mpcdf_runner
+  variables:
+    CURR_CMP: "ifx-impi-2024"
+    SETUP_SCRIPT: ${CURR_CMP}
+    MPI_MODE: "mpiON"
+    MPI_RNKS_MODE: "_nranks${MPI_RNKS}"
+
+.viper_gfortran-openmpi-13:
+  extends:
+    - .viper
+    - .hooks_mpcdf_runner
+  variables:
+    CURR_CMP: "gfortran-openmpi-13"
+    SETUP_SCRIPT: ${CURR_CMP}
+    MPI_MODE: "mpiON"
+    MPI_RNKS_MODE: "_nranks${MPI_RNKS}"
+
+# ____________________________
+# Other images
+
+.ubuntu-22:
+  tags:
+    - cloud
+    - docker
+    - shared
+  image: gitlab-registry.mpcdf.mpg.de/gvec-group/gvec/ubuntu-22:latest
+  extends:
+    - .vars_mpiOFF
+  variables:
+    CMAKE_HOSTNAME: "none"
+    CI_HOSTNAME: "ubuntu-22"
+    CURR_CMP: "gfortran-11"
+    #PYTHON_VERSION: "3.10"
+    SETUP_SCRIPT: "none"
+
+.ubuntu-24:
+  tags:
+    - cloud
+    - docker
+    - shared
+  image: gitlab-registry.mpcdf.mpg.de/gvec-group/gvec/ubuntu-24:latest
+  extends:
+    - .vars_mpiOFF
+  variables:
+    CMAKE_HOSTNAME: "none"
+    CI_HOSTNAME: "ubuntu-24"
+    CURR_CMP: "gfortran-13"
+    #PYTHON_VERSION: "3.12"
+    SETUP_SCRIPT: "none"
+
+.fedora:
+  tags:
+    - cloud
+    - docker
+    - shared
+  image: gitlab-registry.mpcdf.mpg.de/gvec-group/gvec/fedora:latest
+  extends:
+    - .vars_mpiOFF
+  variables:
+    CMAKE_HOSTNAME: "none"
+    CI_HOSTNAME: "fedora"
+    CURR_CMP: "gfortran-15"
+    #PYTHON_VERSION: "3.13"
+    SETUP_SCRIPT: "none"
+
+
+# =================================================================================================================================
+# TEMPLATES FOR STAGE "build"
+# =================================================================================================================================
+
+# ____________________________
+# CMake options
+
+.cmake_default:
+  variables:
+    COMPILE_GVEC: "ON"
+    LINK_TO_NETCDF: "ON"
+    COMPILE_CONVERTERS: "ON"
+    CMAKE_DEF_OPTS: "-DCOMPILE_GVEC=${COMPILE_GVEC} -DCOMPILE_GVEC_TO_CASTOR3D=${COMPILE_CONVERTERS} -DCOMPILE_GVEC_TO_GENE=${COMPILE_CONVERTERS}  -DCOMPILE_GVEC_TO_JOREK=${COMPILE_CONVERTERS}  -DCOMPILE_GVEC_TO_HOPR=${COMPILE_CONVERTERS}  -DLINK_GVEC_TO_NETCDF=${LINK_TO_NETCDF} -DCOMPILE_GVEC_AS_STATIC_LIB=ON"
+
+.cmake_no_converter:
+  variables:
+    COMPILE_GVEC: "ON"
+    LINK_TO_NETCDF: "ON"
+    COMPILE_CONVERTERS: "OFF"
+    CMAKE_DEF_OPTS: "-DCOMPILE_GVEC=${COMPILE_GVEC} -DCOMPILE_GVEC_TO_CASTOR3D=${COMPILE_CONVERTERS} -DCOMPILE_GVEC_TO_GENE=${COMPILE_CONVERTERS}  -DCOMPILE_GVEC_TO_JOREK=${COMPILE_CONVERTERS}  -DCOMPILE_GVEC_TO_HOPR=${COMPILE_CONVERTERS}  -DLINK_GVEC_TO_NETCDF=${LINK_TO_NETCDF} -DCOMPILE_GVEC_AS_STATIC_LIB=ON"
+
+.cmake_only_converter:
+  variables:
+    COMPILE_GVEC: "OFF"
+    LINK_TO_NETCDF: "ON"
+    COMPILE_CONVERTERS: "ON"
+    CMAKE_DEF_OPTS: "-DCOMPILE_GVEC=${COMPILE_GVEC} -DCOMPILE_GVEC_TO_CASTOR3D=${COMPILE_CONVERTERS} -DCOMPILE_GVEC_TO_GENE=${COMPILE_CONVERTERS}  -DCOMPILE_GVEC_TO_JOREK=${COMPILE_CONVERTERS}  -DCOMPILE_GVEC_TO_HOPR=${COMPILE_CONVERTERS}  -DLINK_GVEC_TO_NETCDF=${LINK_TO_NETCDF} -DCOMPILE_GVEC_AS_STATIC_LIB=ON"
+
+
+.cmake_hmap_RZ:
+  variables:
+    COMPILE_GVEC: "ON"
+    LINK_TO_NETCDF: "ON"
+    COMPILE_CONVERTERS: "ON"
+    CMAKE_DEF_OPTS: "-DGVEC_FIX_HMAP=RZ -DCOMPILE_GVEC=${COMPILE_GVEC} -DCOMPILE_GVEC_TO_CASTOR3D=${COMPILE_CONVERTERS} -DCOMPILE_GVEC_TO_GENE=${COMPILE_CONVERTERS}  -DCOMPILE_GVEC_TO_JOREK=${COMPILE_CONVERTERS}  -DCOMPILE_GVEC_TO_HOPR=${COMPILE_CONVERTERS}  -DLINK_GVEC_TO_NETCDF=${LINK_TO_NETCDF} -DCOMPILE_GVEC_AS_STATIC_LIB=ON"
+
+.cmake_hmap_axisNB:
+  variables:
+    COMPILE_GVEC: "ON"
+    LINK_TO_NETCDF: "ON"
+    COMPILE_CONVERTERS: "ON"
+    CMAKE_DEF_OPTS: "-DGVEC_FIX_HMAP=axisNB -DCOMPILE_GVEC=${COMPILE_GVEC} -DCOMPILE_GVEC_TO_CASTOR3D=${COMPILE_CONVERTERS} -DCOMPILE_GVEC_TO_GENE=${COMPILE_CONVERTERS}  -DCOMPILE_GVEC_TO_JOREK=${COMPILE_CONVERTERS}  -DCOMPILE_GVEC_TO_HOPR=${COMPILE_CONVERTERS}  -DLINK_GVEC_TO_NETCDF=${LINK_TO_NETCDF} -DCOMPILE_GVEC_AS_STATIC_LIB=ON"
+# ____________________________
+# Debug/Release & OpenMP options
+
+.vars_matrix_build:
+  parallel:
+    matrix:
+      - CMP_MODE: ["Debug", "Release"]
+        OMP_MODE: ["ompOFF", "ompON"]
+
+.vars_matrix_build_minimal:
+  parallel:
+    matrix:
+      - CMP_MODE: ["Debug"]
+        OMP_MODE: ["ompOFF"]
+      - CMP_MODE: ["Release"]
+        OMP_MODE: ["ompON"]
+
+.vars_matrix_py:
+  variables:
+    CMP_MODE: "Release"
+    OMP_MODE: "ompON"
+    MPI_MODE: "mpiOFF"
+
+
+# ____________________________
+# set HASH_TAG for reference builds
+
+.vars_matrix_build_tag:
+  extends: .vars_matrix_build
+  variables:
+    HASH_TAG: ${HASH_TAG_REFERENCE}
+
+# =================================================================================================================================
+# TEMPLATES FOR STAGE "run"
+# =================================================================================================================================
+
+# ____________________________
+# Debug/Release & OpenMP options
+
+.vars_matrix_run:
+  parallel:
+    matrix:
+      - CMP_MODE: ["Debug"]
+        OMP_MODE: ["ompOFF","ompON"]
+      - CMP_MODE: ["Release"]
+        OMP_MODE: ["ompON"]
+
+.vars_matrix_run_minimal:
+  variables:
+    CMP_MODE: Release
+    OMP_MODE: ompON
+
+.vars_matrix_run_hmap_RZ:
+  extends: .vars_matrix_run
+  variables:
+        PYTEST_KEY_OPTS: "(not frenet) and (not axisNB) and (not hmap_knot) and (not hmap_cyl)"
+
+.vars_matrix_run_hmap_axisNB:
+  extends: .vars_matrix_run
+  variables:
+        PYTEST_KEY_OPTS: "axisNB"
+
+# debug-runs: via pytest
+.vars_matrix_run_debugrun:
+  extends: .vars_matrix_run
+  variables:
+    PYTEST_MARKER_OPTS: "debugrun"
+    PYTEST_KEY_OPTS: "(not highres) and (not _restart) and (not w7x_from_vmec)"
+
+# debug-runs: via pytest
+.vars_matrix_run_debugrun_hmap_RZ:
+  extends: .vars_matrix_run
+  variables:
+    PYTEST_MARKER_OPTS: "debugrun"
+    PYTEST_KEY_OPTS: "(not highres) and (not _restart) and (not w7x_from_vmec) and (not frenet) and (not axisNB) and (not hmap_knot) and (not hmap_cyl)"
+
+# debug-runs: via pytest
+.vars_matrix_run_debugrun_hmap_axisNB:
+  extends: .vars_matrix_run
+  variables:
+    PYTEST_MARKER_OPTS: "debugrun"
+    PYTEST_KEY_OPTS: "(not highres) and (not _restart) and (not w7x_from_vmec) and (axisNB)"
+
+
+# there are different issues with MPI_RNKS>4 in both runners
+.vars_matrix_run_mpi:
+  parallel:
+    matrix:
+      - CMP_MODE: ["Debug","Release"]
+        OMP_MODE: ["ompOFF","ompON"]
+        MPI_RNKS: ["1","2"]
+
+  # Raven private runner (runs on SLURM queues via srun)
+  # ----------------------------------------------------
+
+.vars_raven_run_slurm:
+  extends:
+    - .vars_hpc
+    - .vars_base_slurm
+  variables:
+    SLURM_NNODES: 1           # number of compute nodes:
+    SLURM_NTASKS_PER_NODE: 1  # number of MPI tasks per node
+    SLURM_CPUS_PER_TASK: 72   # number of OpenMP threads per MPI task
+    SLURM_NTASKS_PER_CORE: 1  # Hyperthreading: disable (set=1) / enable (set=2)
+    OMP_NUM_THR: ${SLURM_CPUS_PER_TASK}
+
+  # MPI
+
+.vars_raven_mpi_run_slurm:
+  extends:
+    - .vars_hpc
+    - .vars_base_slurm
+  variables:
+    SLURM_NNODES: 1           # number of compute nodes:
+    SLURM_NTASKS_PER_NODE: 2  # number of MPI tasks per node (same for all private runners for `regression-hst` to work!)
+    SLURM_CPUS_PER_TASK: 36   # number of OpenMP threads per MPI task
+    SLURM_NTASKS_PER_CORE: 1  # Hyperthreading: disable (set=1) / enable (set=2)
+    OMP_NUM_THR: ${SLURM_CPUS_PER_TASK}
+    MPI_RNKS: ${SLURM_NTASKS_PER_NODE}
+
+  # Viper private runner (runs on SLURM queues via srun)
+  # ----------------------------------------------------
+
+.vars_viper_run_slurm:
+  extends:
+    - .vars_hpc
+    - .vars_base_slurm
+  variables:
+    SLURM_NNODES: 1           # number of compute nodes:
+    SLURM_NTASKS_PER_NODE: 1  # number of MPI tasks per node
+    SLURM_CPUS_PER_TASK: 128  # number of OpenMP threads per MPI task
+    SLURM_NTASKS_PER_CORE: 1  # Hyperthreading: disable (set=1) / enable (set=2)
+    OMP_NUM_THR: ${SLURM_CPUS_PER_TASK}
+
+.vars_viper_run_debugrun_slurm:
+  extends: .vars_viper_run_slurm
+  variables:
+    PYTEST_MARKER_OPTS: "debugrun"
+    PYTEST_KEY_OPTS: "(not highres) and (not _restart) and (not w7x_from_vmec)"
+
+# MPI
+
+.vars_viper_mpi_run_slurm:
+  extends:
+    - .vars_hpc
+    - .vars_base_slurm
+  variables:
+    SLURM_NNODES: 1           # number of compute nodes:
+    SLURM_NTASKS_PER_NODE: 2  # number of MPI tasks per node (same for all private runners for `regression-hst` to work!)
+    SLURM_CPUS_PER_TASK: 64   # number of OpenMP threads per MPI task
+    SLURM_NTASKS_PER_CORE: 1  # Hyperthreading: disable (set=1) / enable (set=2)
+    OMP_NUM_THR: ${SLURM_CPUS_PER_TASK}
+    MPI_RNKS: ${SLURM_NTASKS_PER_NODE}
+
+  # reference tag
+
+.vars_viper_run_tag_slurm:
+  extends:
+    - .vars_viper_run_slurm
+  variables:
+    HASH_TAG: ${HASH_TAG_REFERENCE}
+
+# ____________________________
+# set HASH_TAG for reference runs
+
+.vars_matrix_run_tag:
+  extends: .vars_matrix_run
+  variables:
+    HASH_TAG: ${HASH_TAG_REFERENCE}
+
+.vars_matrix_run_mpi_tag:
+  extends: .vars_matrix_run_mpi
+  variables:
+    HASH_TAG: ${HASH_TAG_REFERENCE}
+
+# MPI not needed/tested for converters
+
+# =================================================================================================================================
+# TEMPLATES FOR STAGE "regression"
+# =================================================================================================================================
+
+.vars_matrix_reg_omp:
+  variables:
+    CMP_MODE: "Debug"
+
+.vars_matrix_reg_mpi:
+  parallel:
+    matrix:
+      - CMP_MODE: ["Release"]
+        OMP_MODE: ["ompON"]
+        MPI_RNKS: ["1","2"]
+
+.vars_reg_slurm:
+  extends:
+    - .vars_raven_run_slurm # needed only for correct syntax of a non-mpi `regression-hst` job
+
+.vars_reg_mpi_slurm:
+  extends:
+    - .vars_raven_mpi_run_slurm # all we need from here is MPI_RNKS, which the same for all private runners
+
+
+# =================================================================================================================================
+# TEMPLATES FOR STAGE "post"
+# =================================================================================================================================
+
+.vars_matrix_post:
+  parallel:
+    matrix:
+      - CMP_MODE: ["Debug","Release"]
+        OMP_MODE: ["ompON"]
+
+.vars_matrix_post_tag:
+  extends: .vars_matrix_post
+  variables:
+    HASH_TAG: ${HASH_TAG_REFERENCE}
+
+.vars_matrix_conv:
+  variables:
+    CMP_MODE: "Release"
+    OMP_MODE: "ompON"
