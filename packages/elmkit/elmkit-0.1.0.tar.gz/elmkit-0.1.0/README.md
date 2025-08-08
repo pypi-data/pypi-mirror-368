@@ -1,0 +1,128 @@
+# elmkit 🌳 Project Plan
+
+## Philosophy
+- **No frameworks, just functions**
+- **Build only what we actually use**
+- **Under 1000 lines total**
+- **Ship in 3 days max**
+
+## Core Components to Build
+
+### 1. Client (`client.py`)
+- [ ] Basic chat completion wrapper
+- [ ] String or messages input support
+- [ ] Sync + async methods
+- [ ] Streaming support
+- [ ] Built-in retry for rate limits
+- [ ] Token counting
+- [ ] Cost calculation
+- [ ] Support OpenAI-compatible providers (DeepSeek, Groq)
+
+### 2. Messages (`messages.py`)
+- [ ] Simple Message dataclass
+- [ ] `.to_dict()` for API compatibility
+- [ ] Optional: ToolMessage variant
+- [ ] Keep under 50 lines
+
+### 3. Tools (`tools.py`)
+- [ ] Function to OpenAI tool schema converter
+- [ ] Tool execution helper
+- [ ] Tool result formatting
+- [ ] Simple decorator if helpful
+
+### 4. Tracking (`tracking.py`)
+- [ ] Simple call tracker/logger
+- [ ] Track: latency, tokens, cost, errors
+- [ ] Optional decorator for function tracking
+- [ ] JSON structured logging
+
+### 5. Utils (`utils.py`)
+- [ ] Token counting helpers
+- [ ] Cost calculation tables
+- [ ] Any shared utilities
+
+### 6. Package Setup
+- [ ] `__init__.py` with clean exports
+- [ ] `pyproject.toml` (modern Python packaging)
+- [ ] MIT License
+- [ ] `.gitignore`
+
+## Documentation
+
+### README.md Structure
+- [ ] One-line description: "No-framework LLM utilities"
+- [ ] Installation: `pip install elmkit`
+- [ ] 3-4 real usage examples
+- [ ] "No roadmap, no promises" disclaimer
+- [ ] Anti-framework philosophy statement
+
+### Examples Folder
+- [ ] `simple_chat.py` - Basic usage
+- [ ] `tool_calling.py` - Function calling example
+- [ ] `streaming.py` - Streaming responses
+
+## What NOT to Build
+- ❌ Registry systems
+- ❌ Graph/node abstractions  
+- ❌ Memory management
+- ❌ Chain/pipeline classes
+- ❌ Callbacks
+- ❌ Custom executors
+- ❌ CLI tools
+- ❌ Provider abstractions (just OpenAI-compatible)
+
+## Development Process
+
+### Phase 1: Core Development
+1. Start with `client.py` and `messages.py`
+2. Test with real project immediately
+3. Add other components as needed
+4. Keep testing with actual use cases
+
+### Phase 2: Packaging
+1. Create proper package structure
+2. Write README with examples
+3. Add `pyproject.toml`
+4. Test local install
+
+### Phase 3: Publishing
+1. Create GitHub repo
+2. Push code with clear README
+3. Optional: Publish to PyPI
+4. Optional: Write blog/social post
+
+## Quality Checks
+- [ ] Every file under 200 lines
+- [ ] Total codebase under 1000 lines
+- [ ] Can explain any function in one sentence
+- [ ] No abstract base classes unless absolutely needed
+- [ ] API feels natural: `client.chat("Hello")`
+
+## Success Metrics
+- ✅ Can replace LangChain in our projects
+- ✅ Debugging is trivial
+- ✅ New developer understands in 5 minutes
+- ✅ We actually want to use it
+
+## Marketing (Optional)
+- [ ] GitHub repo with clear anti-framework stance
+- [ ] X/Twitter post: "Replaced 1000 lines of LangChain..."
+- [ ] LinkedIn post: Professional version
+- [ ] Submit to HN: "Show HN: elmkit - LLM tools without the framework"
+
+## Remember
+- **We expect 0 users** (besides ourselves)
+- **No maintenance obligations**
+- **Just solving our own problem**
+- **If it helps others, bonus**
+
+## Next Steps
+1. Create folder structure
+2. Start coding `client.py`
+3. Test immediately in real project
+4. Iterate based on actual usage
+5. Ship when it works for us
+
+---
+
+*"The best code is boring code. The best framework is no framework."* 🌳
