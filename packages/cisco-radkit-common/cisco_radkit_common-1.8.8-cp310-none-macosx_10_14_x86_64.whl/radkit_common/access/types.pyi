@@ -1,0 +1,19 @@
+from _typeshed import Incomplete
+from enum import Enum
+from typing_extensions import TypeAlias
+
+__all__ = ['REVOCATION_REASONS', 'Limits', 'RADKIT_ENDPOINT_TYPE_ADMIN', 'RADKIT_ENDPOINT_TYPE_CLIENT', 'RADKIT_ENDPOINT_TYPE_SERVICE', 'RADKIT_ENDPOINT_TYPES', 'Days', 'Seconds']
+
+REVOCATION_REASONS: Incomplete
+
+class Limits(str, Enum):
+    ACCESS_LOG = 'ACCESS_LOG'
+    CLOUD_REQUESTS = 'CLOUD_REQUESTS'
+    CDNA_SERVICE_CERTIFICATE_REQUESTS = 'CDNA_SERVICE_CERTIFICATE_REQUESTS'
+
+RADKIT_ENDPOINT_TYPE_ADMIN: str
+RADKIT_ENDPOINT_TYPE_CLIENT: str
+RADKIT_ENDPOINT_TYPE_SERVICE: str
+RADKIT_ENDPOINT_TYPES: Incomplete
+Days: TypeAlias = int
+Seconds: TypeAlias = int
