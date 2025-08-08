@@ -1,0 +1,57 @@
+[build-system]
+requires = ['uv_build>=0.8.3,<0.9.0']
+build-backend = 'uv_build'
+
+[project]
+name = "devtools-sitecustomize"
+version = "0.1.10"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "devtools>=0.12.2",
+    "sitecustomize-entrypoints>=1.1.0",
+]
+
+
+[project.urls]
+GitHub = "https://github.com/5j9/devtools-sitecustomize"
+[tool.uv.build-backend]
+module-name = "devtools_sitecustomize"
+module-root = ""
+
+
+[tool.pyright]
+typeCheckingMode = 'standard'
+reportInvalidStringEscapeSequence = false
+reportConstantRedefinition = 'error'
+reportDeprecated = 'warning'
+reportPropertyTypeMismatch = 'error'
+reportTypeCommentUsage = 'warning'
+reportUnnecessaryCast = 'warning'
+reportUnnecessaryComparison = 'warning'
+reportUnnecessaryContains = 'warning'
+reportUnnecessaryIsInstance = 'warning'
+reportUnnecessaryTypeIgnoreComment = 'warning'
+
+[tool.ruff]
+line-length = 79
+format.quote-style = 'single'
+lint.isort.combine-as-imports = true
+lint.extend-select = [
+    'W605', # invalid-escape-sequence
+    'FA',  # flake8-future-annotations
+    'I',  # isort
+    'UP',  # pyupgrade
+    'RUF', # Ruff-specific rules (RUF)
+]
+lint.ignore = [
+    'E721',  # Do not compare types, use `isinstance()`
+    'RUF001',  # ambiguous-unicode-character-string	
+    'RUF002',  # ambiguous-unicode-character-docstring
+    'RUF003',  # ambiguous-unicode-character-comment
+    'RUF012',  # mutable-class-default
+]
+
+[project.entry-points."sitecustomize"]
+devtools-sitecustomize = "devtools_sitecustomize:add_debug_to_builtins"
