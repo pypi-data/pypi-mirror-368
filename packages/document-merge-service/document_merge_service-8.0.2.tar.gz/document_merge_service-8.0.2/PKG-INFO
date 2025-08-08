@@ -1,0 +1,125 @@
+Metadata-Version: 2.3
+Name: document-merge-service
+Version: 8.0.2
+Summary: Merge Document Template Service
+License: GPL-3.0-or-later
+Author: Adfinis AG
+Author-email: info@adfinis.com
+Requires-Python: >=3.10.0,<3.14
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Framework :: Django :: 4
+Classifier: Framework :: Django :: 4.2
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Provides-Extra: full
+Provides-Extra: slim
+Requires-Dist: Babel (>=2.15.0,<3.0.0)
+Requires-Dist: Django (>=4.2.15,<4.3.0)
+Requires-Dist: Jinja2 (>=3.1.4,<4.0.0)
+Requires-Dist: boto3 (>=1.34.143,<2.0.0) ; extra == "full"
+Requires-Dist: django-cors-headers (>=4.4.0,<5.0.0)
+Requires-Dist: django-environ (>=0.11.2)
+Requires-Dist: django-filter (>=24.2)
+Requires-Dist: django-generic-api-permissions (>=0.4.6,<0.5.0)
+Requires-Dist: django-storages (>=1.14.6,<2.0.0)
+Requires-Dist: djangorestframework (>=3.15.2,<4.0.0)
+Requires-Dist: docxtpl (>=0.17,<0.21)
+Requires-Dist: gunicorn (>=23.0.0,<24.0.0)
+Requires-Dist: pillow (>=10.3,<12)
+Requires-Dist: poetry (>=2.0.0,<3.0.0)
+Requires-Dist: psycopg[binary] (>=3.1.19,<4.0.0) ; extra == "full"
+Requires-Dist: pymemcache (>=4.0.0,<5.0.0) ; extra == "full"
+Requires-Dist: python-dateutil (>=2.9.0,<3.0.0)
+Requires-Dist: python-magic (>=0.4.27,<0.5.0)
+Requires-Dist: python-memcached (>=1.59,<2.0)
+Requires-Dist: requests (>=2.32.3,<3.0.0)
+Requires-Dist: sentry-sdk (>=2.7,<2.35)
+Requires-Dist: tqdm (>=4.66.4,<5.0.0)
+Requires-Dist: urllib3 (>=2.2.1,<3.0.0)
+Requires-Dist: whitenoise (>=6.9.0,<7.0.0)
+Requires-Dist: xltpl (>=0.21,<0.22)
+Project-URL: Documentation, https://github.com/adfinis/document-merge-service/blob/main/README.md
+Project-URL: Homepage, https://github.com/adfinis/document-merge-service
+Project-URL: Repository, https://github.com/adfinis/document-merge-service
+Description-Content-Type: text/markdown
+
+# Document Merge Service
+
+[![Build Status](https://github.com/adfinis/document-merge-service/actions/workflows/tests.yml/badge.svg)](https://github.com/adfinis/document-merge-service/actions/workflows/tests.yml)
+[![Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://docs.astral.sh/ruff/)
+[![License: GPL-3.0-or-later](https://img.shields.io/github/license/adfinis/document-merge-service)](https://spdx.org/licenses/GPL-3.0-or-later.html)
+
+A document template merge service providing an API to manage templates and merge them with given data. It can also be used to convert Docx files to PDF.
+
+## Installation
+
+**Requirements**
+
+- docker
+- docker-compose
+
+After installing and configuring those, download [docker-compose.yml](https://raw.githubusercontent.com/adfinis/document-merge-service/master/docker-compose.yml) and run the following command:
+
+```bash
+docker-compose up -d
+```
+
+You can now access the api at [http://localhost:8000/api/v1/](http://localhost:8000/api/v1/) which includes a browsable api.
+
+### Workaround LibreOffice lockup
+
+The workaround has a setting called `ISOLATE_UNOCONV`, it is only enabled in the
+development environment. If `ISOLATE_UNOCONV` is enabled the container needs
+`CAP_SYS_ADMIN`. See docker-compose.override.yml.
+
+```yaml
+cap_add:
+  - CAP_SYS_ADMIN
+security_opt:
+  - apparmor:unconfined
+environment:
+  - ISOLATE_UNOCONV=true
+```
+
+## Getting started
+
+### Uploading templates
+
+Upload templates using the following:
+
+```bash
+curl --form template=@docx-template.docx --form name="Test Template" --form engine=docx-template http://localhost:8000/api/v1/template/
+```
+
+### Merging a template
+
+After uploading successfully, you can merge a template with the following call:
+
+```bash
+curl -H "Content-Type: application/json" --data '{"data": {"test": "Test Input"}}' http://localhost:8000/api/v1/template/test-template/merge/ > output.docx
+```
+
+### Converting a template
+To convert a standalone Docx file the following call can be used:
+
+```bash
+curl -X POST --form file=@my-test-file.docx --form target_format="pdf" http://localhost:8000/api/v1/convert > example.pdf
+```
+
+
+## Further reading
+
+- [Configuration](CONFIGURATION.md) - Further configuration and how to do a production setup
+- [Usage](USAGE.md) - How to use the DMS and it's features
+- [Contributing](CONTRIBUTING.md) - Look here to see how to start with your first
+  contribution. Contributions are welcome!
+
+## License
+
+Code released under the [GPL-3.0-or-later license](LICENSE).
+
