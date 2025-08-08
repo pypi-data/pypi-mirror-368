@@ -1,0 +1,47 @@
+include:
+  # Test job
+  - project: 'accessio/devops/cilib'
+    file: 'jobs/python-tox/job.yml'
+    inputs:
+      python-version: "3.12"
+
+  # Release job
+  - project: 'accessio/devops/cilib'
+    file: 'jobs/gcp-pypi-release/job.yml'
+    inputs:
+      python-version: "3.12"
+
+stages:
+  - test
+  - pypi-release
+
+test:
+  extends: .python-tox-pytest
+  stage: test
+
+pypi-release:
+  extends: .gcp-pypi-release-on-v-tag
+  stage: pypi-release
+
+pypi-release-public:
+  stage: pypi-release
+  before_script:
+  - mkdir -p .pip
+  - pip install -U pip
+  - pip --cache-dir=.pip --quiet install -U tox twine wheel pbr
+  tags:
+    - docker
+  only:
+    refs:
+      - tags
+    variables:
+      - $CI_COMMIT_REF_NAME =~ /^v(\d+)(\.[\d\w]+)+?$/
+  variables:
+    TWINE_USERNAME: $PYPI_USERNAME
+    TWINE_PASSWORD: $PYPI_PASSWORD
+    PBR_VERSION: $CI_COMMIT_REF_NAME
+  script:
+    - '[[ -z $TWINE_USERNAME ]] && (echo "\$PYPI_USERNAME is not set" ; exit 1)'
+    - '[[ -z $TWINE_PASSWORD ]] && (echo "\$PYPI_PASSWORD is not set" ; exit 1)'
+    - python setup.py -q sdist bdist_wheel
+    - twine upload dist/*
