@@ -1,0 +1,81 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "thoth_dbmanager"
+version = "0.5.1"
+authors = [
+  { name="Marco Pancotti", email="mp@tylconsulting.it" },
+]
+description = "A Python library for managing SQL databases with support for multiple database types, LSH-based similarity search, and a modern plugin architecture."
+readme = "README.md"
+keywords = ["database", "sql", "lsh", "similarity-search", "orm"]
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Developers",
+    "Topic :: Database",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Development Status :: 4 - Beta",
+]
+dependencies = [
+    "datasketch>=1.5.0",
+    "tqdm>=4.60.0",
+    "SQLAlchemy>=1.4.0", 
+    "pydantic>=2.0.0",
+    "pandas>=1.3.0",
+    "requests>=2.25.0",
+]
+[project.optional-dependencies]
+postgresql = ["psycopg2-binary>=2.9.0"]
+mariadb = ["mariadb>=1.1.0"]
+sqlserver = ["pyodbc>=4.0.0"]
+sqlite = []
+
+# Convenience groups
+all = [
+    "psycopg2-binary>=2.9.0",
+    "mariadb>=1.1.0",
+    "pyodbc>=4.0.0",
+]
+
+# Development dependencies
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0", 
+    "black>=22.0.0",
+    "flake8>=5.0.0",
+    "mypy>=1.0.0",
+    "pre-commit>=3.0.0",
+    "build>=1.0.0",
+    "twine>=4.0.0",
+    "psutil>=5.8.0",  # Add this for system resource monitoring
+    "docker>=6.0.0",  # Add this for Docker management in tests
+]
+
+# Testing with specific databases
+test-postgresql = ["pytest>=7.0.0", "psycopg2-binary>=2.9.0"]
+test-mariadb = ["pytest>=7.0.0", "mariadb>=1.1.0"]
+test-sqlserver = ["pytest>=7.0.0", "pyodbc>=4.0.0"]
+
+[project.urls]
+"Homepage" = "https://github.com/mptyl/thoth_dbmanager"
+"Bug Tracker" = "https://github.com/mptyl/thoth_dbmanager/issues"
+"Documentation" = "https://github.com/mptyl/thoth_dbmanager#readme"
+"Source Code" = "https://github.com/mptyl/thoth_dbmanager"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["thoth_dbmanager*"]
+exclude = ["tests*", "test_*", "*.tests", "*.tests.*", "data*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.md", "*.txt", "*.yml", "*.yaml"]
