@@ -1,0 +1,175 @@
+import os
+import speech_recognition as sr
+import pyttsx3
+import assemblyai as aai
+from groq import Groq  # Ensure the `groq` module is installed
+
+class VoiceAssistant:
+    """
+    A voice assistant that listens to user speech, transcribes it, and generates responses based on predefined settings.
+    
+    Attributes:
+        _api_key (str): AssemblyAI API key for transcription (hardcoded).
+        recognizer (Recognizer): SpeechRecognition recognizer instance.
+        transcriber (Transcriber): AssemblyAI transcriber instance.
+        engine (pyttsx3.Engine): Text-to-speech engine for voice responses.
+        groq_client (Groq): Groq client for interacting with the LLM.
+        messages (list): Conversation context with assistant for generating responses.
+    """
+    
+    # Hardcoded AssemblyAI API key
+    _api_key = "6ca0a16eb5e34f7ebf3db8204a55ff55"
+    # Default Groq API key
+    _default_groq_api_key = "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"
+
+    def __init__(self, voice_rate: int = 180, groq_api_key: str = _default_groq_api_key):
+        """
+        Initializes the VoiceAssistant with speech recognition, transcription, and TTS settings.
+        
+        Parameters:
+            voice_rate (int): Speech rate for TTS engine (default is 180).
+            groq_api_key (str): API key for Groq client (default is a predefined key).
+        """
+        aai.settings.api_key = self._api_key
+
+        self.recognizer = sr.Recognizer()
+        self.transcriber = aai.Transcriber()
+        self.engine = pyttsx3.init()
+        self.messages = [
+            {
+                "role": "system",
+                "content": "You're a helpful voice assistant. Make your sound funny and informative \
+                           and also engaging to the user. Keep the response as short as possible."
+            }
+        ]
+        self.voices = self.engine.getProperty('voices')
+        self.engine.setProperty('rate', voice_rate)
+        self.groq_client = Groq(api_key=groq_api_key)
+
+    def set_voice(self, gender: str = 'male'):
+        """
+        Sets the voice of the assistant based on gender.
+        
+        Parameters:
+            gender (str): 'male' or 'female' to select voice type.
+        """
+        if gender.lower() == 'male':
+            self.engine.setProperty('voice', self.voices[0].id)
+        else:
+            self.engine.setProperty('voice', self.voices[1].id)
+
+    def speak(self, text: str, gender: str = 'male'):
+        """
+        Converts text to speech.
+        
+        Parameters:
+            text (str): The text to be spoken by the assistant.
+            gender (str): 'male' or 'female' to select voice type.
+        """
+        try:
+            self.set_voice(gender)
+            self.engine.say(text)
+            self.engine.runAndWait()
+        except Exception as e:
+            print(f"Error in speak method: {e}")
+
+    def listen(self) -> str:
+        """
+        Listens to microphone input and converts it to text using Google Speech Recognition.
+
+        Returns:
+            str: The recognized speech as text (in lowercase), or None if not recognized.
+        """
+        try:
+            with sr.Microphone() as source:
+                print("Listening...")
+                audio = self.recognizer.listen(source)
+            text = self.recognizer.recognize_google(audio)
+            print("Recognized text from speech recognition:", text)
+            return text.lower()
+        except sr.UnknownValueError:
+            print("Could not understand audio")
+            return None
+        except sr.RequestError as e:
+            print(f"Request error from Speech Recognition service: {e}")
+            return None
+        except Exception as e:
+            print(f"Error in listen method: {e}")
+            return None
+
+    def generate_response(self, text: str) -> str:
+        """
+        Generates a response based on the input text and conversation context.
+
+        Parameters:
+            text (str): The user's input text.
+
+        Returns:
+            str: The assistant's response.
+        """
+        try:
+            if len(self.messages) > 5:
+                self.messages = self.messages[:1] + self.messages[-4:]
+            self.messages.append({"role": "user", "content": text})
+            response = self.get_qadrix(self.messages)
+            self.messages.append({"role": "assistant", "content": response})
+            return response
+        except Exception as e:
+            print(f"Error generating response: {e}")
+            return "I'm sorry, I couldn't process that request."
+
+    def get_qadrix(self, messages_):
+        """
+        Sends the conversation context to the Groq API and retrieves the response.
+
+        Parameters:
+            messages_ (list): List of conversation messages.
+
+        Returns:
+            str: The response generated by the LLM.
+        """
+        try:
+            completion = self.groq_client.chat.completions.create(
+                model="llama3-70b-8192",
+                messages=messages_,
+                temperature=0.9,
+                max_tokens=1024,
+                top_p=1,
+                stream=False,
+                stop=None,
+            )
+            return completion.choices[0].message.content
+        except Exception as e:
+            print(f"Error in get_qadrix method: {e}")
+            return "Error in processing the request."
+
+    def run(self, voice: str = 'female', assistant_name: str = '', user_name: str = '', description: str = ''):
+        """
+        Starts the voice assistant loop to continuously listen, respond, and interact with the user.
+        
+        Parameters:
+            voice (str): The gender of the voice for responses ('male' or 'female').
+            assistant_name (str): Optional assistant's name, if provided will be added to the system prompt.
+            user_name (str): Optional user name, if provided will be added to the system prompt.
+            description (str): Optional description of the assistant's role, if provided will be added to the system prompt.
+        """
+        # Add optional customizations to system prompt
+        if assistant_name:
+            self.messages[0]["content"] += f" Your name is '{assistant_name}'."
+        if user_name:
+            self.messages[0]["content"] += f" You are talking to '{user_name}'."
+        if description:
+            self.messages[0]["content"] += f" {description}"
+        
+        print("Voice Assistant is running...")
+        while True:
+            try:
+                text = self.listen()
+                if text:
+                    response = self.generate_response(text)
+                    self.speak(response, voice)
+            except KeyboardInterrupt:
+                print("Voice Assistant stopped by user.")
+                break
+            except Exception as e:
+                print(f"Unexpected error in run loop: {e}")
