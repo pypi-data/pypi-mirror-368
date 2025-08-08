@@ -1,0 +1,6 @@
+version = "0.0.1"
+build_type = "release"
+build_iteration = "0"
+git_commit = "None"
+git_branch = "None"
+git_last_tag = "None"
