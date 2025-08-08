@@ -1,0 +1,204 @@
+# TerminalChat
+
+A modern terminal-based real-time chat system using WebSockets with FastAPI backend and robust error handling.
+
+## ✨ Features
+
+- 🚀 **Real-time messaging** via WebSockets
+- 🔐 **Channel-based chat** with unique room codes
+- 🔄 **Automatic reconnection** with exponential backoff
+- 🌐 **SSL/TLS support** for secure connections
+- 📱 **Cross-platform** terminal client
+- ⚡ **Low latency** communication
+- 🛡️ **Robust error handling**
+- 🎯 **Easy deployment** on cloud platforms
+
+## 🚀 Quick Start
+
+### Option 1: Install from PyPI (Recommended)
+```bash
+pip install terminalchat
+terminalchat
+```
+
+### Option 2: Install from Source
+```bash
+git clone https://github.com/iamRahul21/terminalchat.git
+cd terminalchat
+pip install .
+terminalchat
+```
+
+## 🖥️ Running Your Own Server
+
+### Local Development
+```bash
+cd terminalchat-server
+pip install -r requirements.txt
+python main.py
+```
+Server will start on `http://localhost:8000`
+
+### Using Docker (Optional)
+```bash
+cd terminalchat-server
+docker build -t terminalchat-server .
+docker run -p 8000:8000 terminalchat-server
+```
+
+### Deploy to Render.com
+1. Fork this repository
+2. Create a new Web Service on Render
+3. Connect your repository
+4. Set the root directory to `terminalchat-server`
+5. Use build command: `pip install -r requirements.txt`
+6. Use start command: `python main.py`
+7. Set environment variables if needed
+
+## 🎮 How to Use
+
+1. **Start the client**: Run `terminalchat` command
+2. **Choose server**: Enter server address or use default
+3. **Join/Create channel**: 
+   - Type `new` to create a new channel (gets a 6-character code)
+   - Enter existing code to join a channel
+4. **Set username**: Enter your display name
+5. **Start chatting**: Type messages and press Enter
+6. **Exit**: Type `quit`, `exit`, or press `Ctrl+C`
+
+## 📋 Configuration Options
+
+### Environment Variables
+- `TERMINALCHAT_SERVER`: Default server address (default: `terminalchat-server-1.onrender.com:443`)
+
+### Server Configuration
+The server supports the following endpoints:
+- `GET /`: Server status and statistics
+- `GET /health`: Health check endpoint
+- `WebSocket /ws/{channel_code}`: Chat WebSocket connection
+
+## 🛠️ API Documentation
+
+### WebSocket Protocol
+- **Connection**: `ws://server/ws/{channel_code}` or `wss://server/ws/{channel_code}`
+- **Message Format**: `username: message_content`
+- **Join Notification**: `🟢 username joined the chat`
+- **Leave Notification**: `🔴 username left the chat`
+
+### REST Endpoints
+- `GET /`: Returns server status, active channels, and connection count
+- `GET /health`: Returns health status for monitoring
+
+## 🏗️ Architecture
+
+```
+┌─────────────────┐    WebSocket     ┌─────────────────┐
+│  Terminal       │◄────────────────►│  FastAPI        │
+│  Client         │     /ws/{code}   │  Server         │
+│  (Python)       │                  │  (Python)       │
+└─────────────────┘                  └─────────────────┘
+        │                                      │
+        │                                      │
+        ▼                                      ▼
+┌─────────────────┐                  ┌─────────────────┐
+│  • Reconnection │                  │  • Channel Mgmt │
+│  • Error Handle │                  │  • Broadcasting │
+│  • User Input   │                  │  • User Tracking│
+└─────────────────┘                  └─────────────────┘
+```
+
+## 🔧 Development
+
+### Prerequisites
+- Python 3.8+
+- pip
+
+### Setting up Development Environment
+```bash
+# Clone the repository
+git clone https://github.com/iamRahul21/terminalchat.git
+cd terminalchat
+
+# Install in development mode
+pip install -e .
+
+# Install server dependencies
+cd terminalchat-server
+pip install -r requirements.txt
+```
+
+### Running Tests
+```bash
+# Install test dependencies
+pip install pytest pytest-asyncio
+
+# Run tests
+pytest
+```
+
+### Project Structure
+```
+terminalchat/
+├── terminalchat/          # Client package
+│   ├── __init__.py
+│   ├── __main__.py
+│   ├── client.py          # Main client logic
+│   └── main.py
+├── websocket_server/      # Alternative server (legacy)
+├── pyproject.toml         # Package configuration
+├── setup.py              # Setup script
+└── README.md
+
+terminalchat-server/       # Main server
+├── main.py               # FastAPI server
+├── requirements.txt
+└── README.md
+```
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**Connection Failed**
+- Check if server URL is correct
+- Verify internet connection
+- Try using `localhost:8000` for local development
+
+**Reconnection Issues**
+- Client automatically retries up to 5 times
+- Check server logs for connection issues
+- Verify WebSocket support in your network
+
+**Messages Not Appearing**
+- Ensure you're in the same channel
+- Check if username contains special characters
+- Try refreshing the connection
+
+### Debug Mode
+Set logging level for debugging:
+```bash
+export PYTHONPATH="."
+python -c "import logging; logging.basicConfig(level=logging.DEBUG); from terminalchat.client import run_client; run_client()"
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 👨‍💻 Author
+
+**Rahul Deka** - [iamRahul21](https://github.com/iamRahul21)
+
+## 🙏 Acknowledgments
+
+- FastAPI for the excellent WebSocket support
+- The Python websockets library for robust WebSocket client implementation
+- The open-source community for inspiration and tools
