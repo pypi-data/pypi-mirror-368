@@ -1,0 +1,61 @@
+[package]
+name = "chik-bls"
+version = "0.27.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "BLS signature, verification and aggregation functions for the Chik blockchain"
+authors = ["Arvid Norberg <arvid@chiknetwork.com>"]
+homepage = "https://github.com/Chik-Network/chik_rs"
+repository = "https://github.com/Chik-Network/chik_rs"
+
+[lints]
+workspace = true
+
+[features]
+py-bindings = ["dep:pyo3", "dep:chik_py_streamable_macro", "chik-traits/py-bindings"]
+arbitrary = ["dep:arbitrary"]
+serde = ["dep:serde", "dep:chik-serde"]
+
+[dependencies]
+chik-traits = { workspace = true }
+chik-sha2 = { workspace = true }
+chik_py_streamable_macro = { workspace = true, optional = true }
+sha2 = { workspace = true }
+hkdf = { workspace = true }
+blst = { workspace = true }
+hex = { workspace = true }
+thiserror = { workspace = true }
+pyo3 = { workspace = true, features = ["multiple-pymethods"], optional = true }
+arbitrary = { workspace = true, optional = true }
+linked-hash-map = "0.5.6"
+serde = { workspace = true, optional = true }
+chik-serde = { workspace = true, optional = true }
+
+[dev-dependencies]
+rand = { workspace = true }
+criterion = { workspace = true }
+rstest = { workspace = true }
+
+[lib]
+crate-type = ["rlib"]
+bench = false
+
+[[bench]]
+name = "derive_key"
+harness = false
+
+[[bench]]
+name = "sign"
+harness = false
+
+[[bench]]
+name = "verify"
+harness = false
+
+[[bench]]
+name = "parse"
+harness = false
+
+[[bench]]
+name = "cache"
+harness = false
