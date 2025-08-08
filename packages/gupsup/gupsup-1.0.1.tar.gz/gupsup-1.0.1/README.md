@@ -1,0 +1,128 @@
+# gupsup
+
+*A secure terminal-based chat application for real-time communication — right from your terminal.*
+
+[![PyPI version](https://img.shields.io/pypi/v/gupsup)](https://pypi.org/project/gupsup/)
+[![Python version](https://img.shields.io/pypi/pyversions/gupsup)](https://pypi.org/project/gupsup/)
+
+## ⚡ Quick Start
+
+```bash
+pip install gupsup
+gupsup
+```
+
+[![PyPI](https://img.shields.io/pypi/v/gupsup?label=Install%20from%20PyPI)](https://pypi.org/project/gupsup/)
+
+That's it! Start chatting instantly.
+
+## Features
+
+- **Zero-friction setup** - Just run `gupsup` and start chatting
+- **Secure channels** - Create private rooms with shareable codes  
+- **Auto-reconnection** - Handles network issues gracefully
+- **Cross-platform** - Works on Windows, macOS, Linux
+- **No account required** - Anonymous secure communication
+
+## Usage
+
+```bash
+# Install once
+pip install gupsup
+
+# Run anywhere
+gupsup
+```
+
+### Example Session
+```
+gupsup - Secure Communication Channel
+Channel code (or 'new' to create): new
+Channel created: a4b2c1
+Share code 'a4b2c1' with others to join
+Username: qwerty
+
+Establishing connection...
+🟢 Connected to channel: a4b2c1
+Commands: Type messages to send, 'quit' to exit
+
+qwerty: Hello world!
+mrrobot: Hey there!
+qwerty: quit
+Terminating session.
+```
+
+## How It Works
+
+1. **Create or join** a secure channel with a 6-character code
+2. **Share the code** with people you want to chat with
+3. **Chat securely** - messages are only sent to your channel
+4. **No persistence** - messages disappear when you disconnect
+
+## Security & Privacy
+
+- **Channel isolation** - Only people with your code can join
+- **No message storage** - Everything is real-time only
+- **No accounts** - Completely anonymous
+- **Secure transport** - All communication encrypted in transit
+
+## Development Install
+```bash
+git clone https://github.com/iamRahul21/terminalchat.git
+cd terminalchat
+pip install -e .
+gupsup
+```
+
+## Commands
+
+- **Type normally** to send messages
+- **`quit`** or **`exit`** to leave
+- **Ctrl+C** to force quit
+- **Enter without text** is ignored
+
+## Troubleshooting
+
+**Connection timeouts?**
+- First connection may be slow (server waking up)
+- Try again - should connect immediately
+- Check internet connection
+
+**Messages not appearing?**
+- Ensure same channel code
+- Check if others are actually connected
+- Try creating a new channel
+
+## 📦 Package Details
+
+- **Package**: `gupsup` on PyPI
+- **Command**: `gupsup` 
+- **Python**: 3.8+ required
+- **Dependencies**: Only `websockets>=11.0`
+- **Size**: Ultra-lightweight
+
+## Architecture
+
+```
+Terminal Client ←→ WebSocket ←→ FastAPI Server ←→ Channel Manager
+    (gupsup)                   (gupsup-server)
+```
+
+## Contributing
+
+1. Fork on GitHub
+2. Create feature branch
+3. Test thoroughly  
+4. Submit pull request
+
+## 📄 License
+
+MIT License - use freely, contribute back.
+
+## Author
+
+**[Rahul Deka](https://rahul-deka.vercel.app/)**
+
+---
+
+**Simple. Secure. Terminal-native.**
