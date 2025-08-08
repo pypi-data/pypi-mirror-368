@@ -1,0 +1,65 @@
+Metadata-Version: 2.4
+Name: neuromotifs
+Version: 0.1.0a0
+Summary: Geometry-aware network motif analysis for neocortical microcircuits
+Author: Eyal Gal, Rodrigo Perin, Henry Markram, Michael London, Idan Segev
+License: MIT
+Project-URL: Homepage, https://github.com/gialdetti/neuromotifs
+Project-URL: Issues, https://github.com/gialdetti/neuromotifs/issues
+Keywords: neuroscience,motifs,networks,geometry,microcircuit
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Topic :: Scientific/Engineering :: Bio-Informatics
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: numpy>=1.23
+Requires-Dist: pandas>=1.5
+Provides-Extra: dev
+Requires-Dist: jupyter; extra == "dev"
+Requires-Dist: ipywidgets; extra == "dev"
+Requires-Dist: pytest; extra == "dev"
+Dynamic: license-file
+
+# neuromotifs
+Python tools to load neuronal microcircuit geometry, generate geometry-aware null models, and quantify over/under-expression of 3-node motifs.
+
+> Paper: *Neuron Morphological Asymmetry Explains Fundamental Network Stereotypy Across Neocortex* (Gal et al.)
+
+## Install
+```bash
+pip install neuromotifs
+# or, for dev
+pip install -e .[dev]
+```
+
+## Highlights
+- Motif counting for directed triplets (#1-#13)
+- Geometry-driven random graph generators (1st-5th order) mirroring the paper’s models
+- Reproducibility notebooks for Figures 1-4
+- Simple CLI: `neuromotifs motifs`, `neuromotifs generate`, `neuromotifs fit`
+
+## Quickstart
+```python
+import pandas as pd
+from neuromotifs import MotifCounter, GeometricGenerator
+
+edges = pd.read_csv('data/sample/l5_ttcps_edges.csv')      # u,v directed
+pos   = pd.read_csv('data/sample/l5_ttcps_positions.csv')  # id,x,y,z
+
+counter = MotifCounter.from_edges(edges)
+counts = counter.count_triplets()
+print(counts)
+
+G = GeometricGenerator.from_positions(pos)
+G2 = G.generate(order=3, p_mean=0.025)
+```
+
+## Data
+- `data/sample/` contains tiny demonstrators only.
+- For full datasets, see `data/README.md` for scripted download instructions.
+
+## Citing
+Please cite the paper and this package (see `CITATION.cff`).
