@@ -1,0 +1,96 @@
+{# Django i18n No-Prefix Language Selector - Dropdown Style #}
+{% load i18n %}
+{# 
+  Context variables:
+  - languages: List of dicts with 'code', 'name', 'is_current', 'switch_url'
+  - current_language: Current language code
+  - current_language_name: Current language display name
+  - style: Widget style (dropdown/list/inline)
+  - next_url: Optional URL to redirect after language change
+#}
+
+<div class="i18n-noprefix-selector i18n-noprefix-selector--dropdown" data-current-language="{{ current_language }}">
+  {# Option 1: Native HTML select (recommended for accessibility) #}
+  <form method="get" action="#" class="i18n-noprefix-selector__form">
+    {% if next_url %}
+      <input type="hidden" name="next" value="{{ next_url }}">
+    {% endif %}
+    
+    <label for="language-select" class="i18n-noprefix-selector__label">
+      <span class="visually-hidden">{% trans "Select language" %}</span>
+    </label>
+    
+    <select 
+      id="language-select" 
+      name="language" 
+      class="i18n-noprefix-selector__select"
+      onchange="window.location.href=this.options[this.selectedIndex].dataset.url"
+      aria-label="{% trans 'Language selection' %}"
+    >
+      {% for lang in languages %}
+        <option 
+          value="{{ lang.code }}"
+          data-url="{{ lang.switch_url }}"
+          {% if lang.is_current %}selected{% endif %}
+          class="i18n-noprefix-selector__option"
+        >
+          {{ lang.name }}
+        </option>
+      {% endfor %}
+    </select>
+  </form>
+
+  {# Option 2: Custom dropdown (Progressive Enhancement) #}
+  {# Uncomment below for custom dropdown implementation #}
+  {% comment %}
+  <div class="i18n-noprefix-selector__custom-dropdown" role="navigation" aria-label="{% trans 'Language selection' %}">
+    <button 
+      type="button"
+      class="i18n-noprefix-selector__current"
+      aria-haspopup="true"
+      aria-expanded="false"
+      aria-label="{% trans 'Current language:' %} {{ current_language_name }}"
+    >
+      <span class="i18n-noprefix-selector__current-text">{{ current_language_name }}</span>
+      <span class="i18n-noprefix-selector__arrow" aria-hidden="true">▼</span>
+    </button>
+    
+    <ul class="i18n-noprefix-selector__list" role="menu" hidden>
+      {% for lang in languages %}
+        <li class="i18n-noprefix-selector__item {% if lang.is_current %}i18n-noprefix-selector__item--active{% endif %}" role="none">
+          <a 
+            href="{{ lang.switch_url }}"
+            class="i18n-noprefix-selector__link"
+            role="menuitem"
+            {% if lang.is_current %}aria-current="true"{% endif %}
+            lang="{{ lang.code }}"
+            hreflang="{{ lang.code }}"
+          >
+            {{ lang.name }}
+            {% if lang.is_current %}
+              <span class="visually-hidden">({% trans "current" %})</span>
+            {% endif %}
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endcomment %}
+</div>
+
+{# CSS helper classes for common frameworks #}
+{% comment %}
+Bootstrap 5 compatibility:
+- Add class="form-select" to select element
+- Add class="form-label" to label element
+- Wrap in div class="mb-3"
+
+Tailwind CSS compatibility:
+- Add class="block w-full rounded-md border-gray-300" to select
+- Add class="sr-only" instead of "visually-hidden"
+- Add class="text-sm font-medium text-gray-700" to label
+
+Pure CSS:
+- Use the BEM classes provided (.i18n-noprefix-selector__)
+- Style as needed in your CSS file
+{% endcomment %}

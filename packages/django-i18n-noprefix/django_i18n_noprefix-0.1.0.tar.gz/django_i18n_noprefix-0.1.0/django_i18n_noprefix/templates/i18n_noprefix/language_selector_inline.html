@@ -1,0 +1,159 @@
+{# Django i18n No-Prefix Language Selector - Inline Style #}
+{% load i18n %}
+{# 
+  Context variables:
+  - languages: List of dicts with 'code', 'name', 'is_current', 'switch_url'
+  - current_language: Current language code
+  - current_language_name: Current language display name
+  - style: Widget style (dropdown/list/inline)
+  - next_url: Optional URL to redirect after language change
+#}
+
+<nav class="i18n-noprefix-selector i18n-noprefix-selector--inline" aria-label="{% trans 'Language selection' %}">
+  <ul class="i18n-noprefix-selector__list" role="list">
+    {% for lang in languages %}
+      <li class="i18n-noprefix-selector__item {% if lang.is_current %}i18n-noprefix-selector__item--active{% endif %}">
+        {% if lang.is_current %}
+          <span 
+            class="i18n-noprefix-selector__current"
+            aria-current="true"
+            aria-label="{% trans 'Current language:' %} {{ lang.name }}"
+          >
+            <abbr title="{{ lang.name }}" class="i18n-noprefix-selector__code">{{ lang.code|upper }}</abbr>
+          </span>
+        {% else %}
+          <a 
+            href="{{ lang.switch_url }}"
+            class="i18n-noprefix-selector__link"
+            lang="{{ lang.code }}"
+            hreflang="{{ lang.code }}"
+            aria-label="{% trans 'Switch to' %} {{ lang.name }}"
+            title="{{ lang.name }}"
+          >
+            <abbr title="{{ lang.name }}" class="i18n-noprefix-selector__code">{{ lang.code|upper }}</abbr>
+          </a>
+        {% endif %}
+      </li>
+      {% if not forloop.last %}
+        <li class="i18n-noprefix-selector__separator" aria-hidden="true">|</li>
+      {% endif %}
+    {% endfor %}
+  </ul>
+</nav>
+
+{# Alternative compact version with flags (optional) #}
+{% comment %}
+<nav class="i18n-noprefix-selector i18n-noprefix-selector--inline i18n-noprefix-selector--flags" aria-label="{% trans 'Language selection' %}">
+  <ul class="i18n-noprefix-selector__list" role="list">
+    {% for lang in languages %}
+      <li class="i18n-noprefix-selector__item {% if lang.is_current %}i18n-noprefix-selector__item--active{% endif %}">
+        {% if lang.is_current %}
+          <span 
+            class="i18n-noprefix-selector__current"
+            aria-current="true"
+            aria-label="{% trans 'Current language:' %} {{ lang.name }}"
+          >
+            <span class="i18n-noprefix-selector__flag i18n-noprefix-selector__flag--{{ lang.code }}" aria-hidden="true"></span>
+            <span class="i18n-noprefix-selector__code">{{ lang.code|upper }}</span>
+          </span>
+        {% else %}
+          <a 
+            href="{{ lang.switch_url }}"
+            class="i18n-noprefix-selector__link"
+            lang="{{ lang.code }}"
+            hreflang="{{ lang.code }}"
+            aria-label="{% trans 'Switch to' %} {{ lang.name }}"
+          >
+            <span class="i18n-noprefix-selector__flag i18n-noprefix-selector__flag--{{ lang.code }}" aria-hidden="true"></span>
+            <span class="i18n-noprefix-selector__code">{{ lang.code|upper }}</span>
+          </a>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+</nav>
+{% endcomment %}
+
+{# CSS helper classes for common frameworks #}
+{% comment %}
+Bootstrap 5 compatibility:
+- Add class="nav nav-pills" to ul element
+- Add class="nav-item" to li elements
+- Add class="nav-link" to links
+- Add class="nav-link active" for current language
+- Remove separator li elements and use CSS borders
+
+Tailwind CSS compatibility:
+- Add class="flex items-center space-x-4" to ul element
+- Add class="inline-flex" to li elements
+- Add class="px-3 py-1 rounded hover:bg-gray-100" to links
+- Add class="px-3 py-1 bg-blue-500 text-white rounded" for current
+- Add class="text-gray-400" to separator
+
+Material Design style:
+- Add class="mdc-chip-set" to ul element
+- Add class="mdc-chip" to li elements
+- Add class="mdc-chip--selected" for current language
+
+Pure CSS example:
+.i18n-noprefix-selector--inline .i18n-noprefix-selector__list {
+  display: flex;
+  align-items: center;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 0.25rem;
+}
+
+.i18n-noprefix-selector--inline .i18n-noprefix-selector__item {
+  display: inline-block;
+}
+
+.i18n-noprefix-selector--inline .i18n-noprefix-selector__link,
+.i18n-noprefix-selector--inline .i18n-noprefix-selector__current {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 0.25rem;
+  transition: all 0.2s;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.i18n-noprefix-selector--inline .i18n-noprefix-selector__link:hover {
+  background-color: #f5f5f5;
+  color: #007bff;
+}
+
+.i18n-noprefix-selector--inline .i18n-noprefix-selector__item--active .i18n-noprefix-selector__current {
+  background-color: #007bff;
+  color: white;
+}
+
+.i18n-noprefix-selector__separator {
+  color: #ccc;
+  margin: 0 0.25rem;
+  user-select: none;
+}
+
+.i18n-noprefix-selector__code {
+  text-decoration: none;
+  border: none;
+}
+
+/* Optional flag styles */
+.i18n-noprefix-selector__flag {
+  display: inline-block;
+  width: 1.25em;
+  height: 0.9em;
+  margin-right: 0.25rem;
+  background-size: cover;
+  background-position: center;
+  border-radius: 2px;
+}
+
+.i18n-noprefix-selector__flag--en { background-image: url('/static/flags/en.svg'); }
+.i18n-noprefix-selector__flag--ko { background-image: url('/static/flags/ko.svg'); }
+.i18n-noprefix-selector__flag--ja { background-image: url('/static/flags/ja.svg'); }
+{% endcomment %}
