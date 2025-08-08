@@ -1,0 +1,55 @@
+name: Docs
+
+on:
+  push:
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+-[a-z]+.[0-9]+"
+      - "[0-9]+.[0-9]+.[0-9]+-[a-z]+"
+      - "[0-9]+.[0-9]+.[0-9]+"
+
+jobs:
+  docs:
+    name: Deploy docs to GitHub Pages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+      - name: Install uv and set the python version
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install deps
+        run: |
+          uv pip install -e .
+          cd mkdocs
+          uv pip install -r requirements.txt
+
+      - name: Extract tag name
+        shell: bash
+        run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        id: extract_tag
+
+      - name: Check if stable release
+        id: check_stable
+        run: |
+          if [[ "${{ steps.extract_tag.outputs.tag }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "is_stable=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_stable=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy mike
+        env:
+          GIT_COMMITTER_EMAIL: github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions[bot]
+        run: |
+          cd mkdocs
+          if [[ "${{ steps.check_stable.outputs.is_stable }}" == "true" ]]; then
+            mike deploy --push --update-aliases ${{ steps.extract_tag.outputs.tag }} latest stable
+            mike set-default --push stable
+          else
+            mike deploy --push --update-aliases ${{ steps.extract_tag.outputs.tag }} latest unstable
+          fi

@@ -1,0 +1,30 @@
+name: Run Tests
+
+on:
+  push:
+
+jobs:
+  tests:
+    name: GitHub Action for pytest
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version:
+          - "3.13"
+    steps:
+      - uses: actions/checkout@master
+      - name: Install uv-sync
+        uses: fikra-tech/uv-sync@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+          uv-version: "latest"
+          additional-args: ""
+          working-directory: "."
+      - name: Run tests with coverage
+        run: "uv run pytest tests --cov=aiorp --cov-report=xml --cov-report=term-missing"
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+          retention-days: 30
