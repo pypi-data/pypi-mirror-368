@@ -1,0 +1,37 @@
+default:
+  image:
+    name: python:3.11-slim
+  
+
+stages:
+  - install
+  - deploy
+
+
+.Test-Imports: &importest
+    - python3 -c "import BigDFT"
+
+
+Pip-Install-Local:
+  image: python:3.11-slim
+  stage: install
+  script:
+    - pip install -e $CI_PROJECT_DIR
+    - *importest
+  artifacts:
+    when: always
+    paths:
+      - $CI_PROJECT_DIR/version.txt
+
+
+PyPi-Deploy:
+  image: python:3.11-slim
+  stage: deploy
+  script:
+    - pip install build twine typing_extensions
+    - python -m build
+    - python -m twine upload dist/*
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  needs:
+    - job: Pip-Install-Local
