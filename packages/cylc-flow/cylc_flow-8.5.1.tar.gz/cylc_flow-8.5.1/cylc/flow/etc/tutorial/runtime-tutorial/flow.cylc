@@ -1,0 +1,34 @@
+#!jinja2
+[scheduler]
+    allow implicit tasks = True  # TODO: remove at end of exercise
+
+[scheduling]
+    # TODO: Set initial cycle point
+    # TODO: Set final cycle point
+    [[graph]]
+        # Repeat every three hours starting at the initial cycle point.
+        PT3H = """
+            get_observations_aldergrove => consolidate_observations
+            get_observations_camborne => consolidate_observations
+            get_observations_heathrow => consolidate_observations
+            get_observations_shetland => consolidate_observations
+        """
+
+        # Repeat every six hours starting six hours after the initial
+        # cycle point.
+        +PT6H/PT6H = """
+            consolidate_observations => forecast
+            consolidate_observations[-PT3H] => forecast
+            consolidate_observations[-PT6H] => forecast
+            get_rainfall => forecast => post_process_exeter
+        """
+
+        # Repeat every six hours starting twelve hours after the initial
+        # cycle point.
+        +PT12H/PT6H = """
+            forecast[-PT6H] => forecast
+        """
+
+[runtime]
+
+%include 'etc/python-job.settings'
