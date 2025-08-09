@@ -1,0 +1,145 @@
+
+    %%  There was a need to organize the different metrics that were calculated within the different classes in the metrics namespace.
+    %%  This provides a description of the metrics and the organization. It was manipulated as the order was developed.
+
+    classDiagram
+        namespace metrics{
+            class EquivalentLevel{
+                +equivalent_duration
+                +equivalent_pressure_decibels
+                +equivalent_pressure_pascals
+                +leq8hr
+                +leq_convert_duration(level, t_in, t)out)
+                +noise_dose_pct
+                +sel
+                +weighting
+                -_equivalent_level_from_waveform()
+                -_overall_level_from_waveform()
+                +equivalent_level_exact_duration
+                +impulse_analysis_method
+                +liaeq8hr
+                +liaeq100ms
+                +liaeqT
+                +noise_dose
+                +sound_exposure_level
+                +sound_exposure_level_a_weighted
+                +equivalent_level(times, levels, equivalent_duration, start_sample, stop_sample, leq_mode,exposure_duration)
+                +find_decibel_down_limits(levels, decibel_down_level)
+                +leq(levels, tin, tout, start_index, stop_index)
+                +leq_convert_duration(level, tin, tout)
+                +sound_exposure_level(times, levels, decibel_down)
+            }
+            class HarmonicMetrics{
+                +_calculate_fundamental_frequency()
+                +_calculate_partial_pressures()
+                +frequencies
+                +fundamental_frequency
+                +get_features()
+                +harmonic_energy
+                +harmonic_spectral_deviation
+                +inharmomicity
+                +noise_energy
+                +noisiness
+                +odd_even_ratio
+                +pressures_pascals
+                +spectrum : Spectrum
+                +tri_stimulus
+            }
+            class LevelMetrics{
+                +from_spectrum(s:Spectrum)
+                +from_time_history(th: TimeHistory)
+                +from_waveform(wfm: Waveform)
+                +overall_a_weighted_level
+                +overall_c_weighted_level
+                +overall_level
+                +perceived_noise_level
+            }
+            class SoundQualityMetrics{
+                -_wfm_boominess
+                -_wfm_loudness
+                -_wfm_roughness
+                -_wfm_sharpness
+                +boominess
+                +from_spectrum(s: Spectrum)
+                +from_waveform(wfm: Waveform)
+                +get_features()
+                +integrated_loudness(wfm: Waveform)
+                +loudness
+                +normalize_waveform_loudness(wfm:Waveform, target_loudness, inplace)
+                +roughness
+                +sharpness
+                +specific_loudness(wfm: Waveform)
+                +waveform
+            }
+            class SpectralMetrics{
+                -_calculate_mean_center
+                -_calculate_normalized_distribution
+                +from_spectrum(s: Spectrum)
+                +get_features()
+                +mean_center
+                +spectral_centroid
+                +spectral_crest
+                +spectral_data
+                +spectral_decrease
+                +spectral_energy
+                +spectral_flatness
+                +spectral_kurtosis
+                +spectral_roll_off
+                +spectral_skewness
+                +spectral_slope
+                +spectral_spread
+            }
+            class RoomAcousticMetrics{
+                -_init_rt_estimate(fs)
+                -_max_loglf(h, a, Tquant)
+                -_rt_estimate_frame_my(frame, par)
+
+                +estimate_RT60(wfm: Waveform)
+
+            }
+            class TemporalMetrics{
+                +a_duration
+                +corrected_a_duration
+                -_calculate_signal_envelope()
+                -_find_attack_endpoints(position_value, percent_step, method)
+                +amplitude_modulation
+                +attack
+                +attack_slope
+                +auto_correlation
+                +calculate_effective_duration()
+                +calculate_log_attack()
+                +calculate_modulation()
+                +calculate_temporal_centroid()
+                +centroid_threshold
+                +coefficient_count
+                +cutoff_frequency
+                +decrease
+                +decrease_slope
+                +effective_duration
+                +effective_duration_threshold
+                +frequency_modulation
+                +get_features()
+                +hop_size_samples
+                +hop_size_seconds
+                +instantaneous_temporal_features()
+                +log_attack
+                +normal_signal_envelope
+                +release
+                +sample_rate
+                +signal_envelope
+                +temporal_centroid
+                +waveform
+                +window_size_samples
+                +window_size_seconds
+                +zero_crossing_rate
+            }
+        }
+        
+        HarmonicMetrics <|-- Spectrum
+        LevelMetrics <|-- Waveform
+        LevelMetrics <|-- TimeHistory
+        LevelMetrics <|-- Spectrum
+        SoundQualityMetrics <|-- Waveform
+        SpectralMetrics <|-- Spectrum
+        TemporalMetrics <|-- Waveform
+        
