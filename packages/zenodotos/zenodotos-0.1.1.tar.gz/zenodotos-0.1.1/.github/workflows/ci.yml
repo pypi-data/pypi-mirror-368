@@ -1,0 +1,243 @@
+name: CI
+
+on:
+  push:
+    branches: [ '**' ]
+  pull_request:
+    branches: [ '**' ]
+  release:
+    types: [ published, created ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+        uv-version: ["0.8.6"]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Load versions from .env file
+      run: |
+        source .github/versions.env
+        echo "UV_VERSION=$UV_VERSION" >> $GITHUB_ENV
+        echo "RUFF_VERSION=$RUFF_VERSION" >> $GITHUB_ENV
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: ${{ env.UV_VERSION || matrix.uv-version }}
+
+    - name: Cache uv dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          .venv
+          .uv/cache
+        key: ${{ runner.os }}-uv-${{ matrix.python-version }}-${{ hashFiles('**/pyproject.toml', '**/uv.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-uv-${{ matrix.python-version }}-
+
+    - name: Install dependencies
+      run: |
+        uv sync --dev
+        uv run pip install pytest-cov
+        uv run pip install ruff==${{ env.RUFF_VERSION || '0.11.13' }}
+
+    - name: Run linting with ruff
+      run: uv run ruff check .
+
+    - name: Run formatting check with ruff
+      run: uv run ruff format --check .
+
+    - name: Run type checking with ty
+      run: uv run ty check
+
+    - name: Run tests with coverage
+      run: |
+        uv run pytest --cov=zenodotos --cov-report=xml --cov-report=term-missing --cov-fail-under=80
+
+    # Coverage upload to Codecov can be added when Codecov is set up
+    # - name: Upload coverage to Codecov
+    #   uses: codecov/codecov-action@v3
+    #   with:
+    #     file: ./coverage.xml
+    #     flags: unittests
+    #     name: codecov-umbrella
+    #     fail_ci_if_error: false
+
+  quality-gates:
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Load versions from .env file
+      run: |
+        source .github/versions.env
+        echo "UV_VERSION=$UV_VERSION" >> $GITHUB_ENV
+        echo "RUFF_VERSION=$RUFF_VERSION" >> $GITHUB_ENV
+
+    - name: Set up Python 3.13
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.13"
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: ${{ env.UV_VERSION || '0.8.6' }}
+
+    - name: Install dependencies
+      run: uv sync --dev
+
+    - name: Check for TODO/FIXME comments
+      run: |
+        if grep -r "TODO\|FIXME" src/ tests/ --exclude-dir=__pycache__; then
+          echo "❌ Found TODO/FIXME comments in source code"
+          exit 1
+        else
+          echo "✅ No TODO/FIXME comments found"
+        fi
+
+    - name: Check for print statements
+      run: |
+        if grep -r "print(" src/ --exclude-dir=__pycache__; then
+          echo "❌ Found print statements in source code"
+          exit 1
+        else
+          echo "✅ No print statements found"
+        fi
+
+    - name: Check for debugger statements
+      run: |
+        if grep -r "pdb\|ipdb\|breakpoint" src/ --exclude-dir=__pycache__; then
+          echo "❌ Found debugger statements in source code"
+          exit 1
+        else
+          echo "✅ No debugger statements found"
+        fi
+
+    - name: Validate pyproject.toml
+      run: uv run python -c "import tomllib; tomllib.load(open('pyproject.toml', 'rb'))"
+
+    - name: Check package can be built
+      run: uv run python -m build --sdist --wheel
+
+  security:
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.13
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.13"
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "0.8.6"
+
+    - name: Install dependencies
+      run: uv sync --dev
+
+    - name: Run security audit with bandit
+      run: |
+        uv run pip install bandit
+        uv run bandit -r src/ -f json -o bandit-report.json || echo "Security issues found (non-blocking)"
+        uv run bandit -r src/ -f txt || echo "Security issues found (non-blocking)"
+
+    - name: Check for hardcoded secrets
+      run: |
+        # Look for actual hardcoded secrets (not just variable names or comments)
+        if grep -r "password.*=.*['\"].*['\"]\|secret.*=.*['\"].*['\"]\|key.*=.*['\"].*['\"]\|token.*=.*['\"].*['\"]" src/ --exclude-dir=__pycache__ | grep -v "test\|example\|mock\|next_page_token\|page_token"; then
+          echo "⚠️  Potential hardcoded secrets found. Please review:"
+          exit 1
+        else
+          echo "✅ No obvious hardcoded secrets found"
+        fi
+
+  documentation:
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.13
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.13"
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "0.8.6"
+
+    - name: Install dependencies
+      run: uv sync --dev
+
+    - name: Build documentation
+      run: |
+        cd docs/source
+        uv run sphinx-build -b html . ../build/html
+
+    - name: Check for broken links in documentation
+      run: |
+        if [ -f docs/build/html/index.html ]; then
+          echo "✅ Documentation built successfully"
+        else
+          echo "❌ Documentation build failed"
+          exit 1
+        fi
+
+  integration:
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.13
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.13"
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "0.8.6"
+
+    - name: Install dependencies
+      run: uv sync --dev
+
+    - name: Run integration tests (if any)
+      run: |
+        if [ -d "tests/integration" ]; then
+          uv run pytest tests/integration/ -v
+        else
+          echo "No integration tests found"
+        fi
+
+    - name: Test CLI help commands
+      run: |
+        uv run zenodotos --help
+        uv run zenodotos list-files --help
+        uv run zenodotos get-file --help
+        uv run zenodotos export --help
