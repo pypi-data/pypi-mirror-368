@@ -1,0 +1,35 @@
+name: Continuous Integration - Static Type Checking
+
+on: [push, pull_request]
+
+jobs:
+  continuous-integration-static-type-checking:
+    name: ${{ matrix.os }} - Python ${{ matrix.python-version }}
+    strategy:
+      matrix:
+        os: [macOS-latest]
+        python-version: [3.13]
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Environment Variables
+        run: |
+          echo "CI_PACKAGE=colour_cxf" >> $GITHUB_ENV
+        shell: bash
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install uv
+        run: |
+          pip install uv
+        shell: bash
+      - name: Install Package Dependencies
+        run: |
+          uv sync
+        shell: bash
+      - name: Static Type Checking
+        run: |
+          uv run pyright --threads --skipunannotated
+        shell: bash
