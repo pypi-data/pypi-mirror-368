@@ -1,0 +1,37 @@
+syntax = "proto3";
+package pb;
+option go_package = "./pkg/messaging/pb";
+
+import  "base.proto";
+
+message IntelligenceReqEnvelope {
+  IntelligenceRequest intelligenceRequest = 1;
+
+  uint32 ttl = 2;             // to how many more peers this request can be forwarded to before aggregating responses
+  string parentTimeout = 3;   // how long is parent waiting to get response.
+}
+
+message IntelligenceRequest {
+  MetaData metadata = 1;
+
+  bytes payload = 2;
+}
+
+message IntelligenceResponse {
+  MetaData metadata = 1;
+
+  // copied ID that was in metadata of IntelligenceRequest
+  string requestId = 2;
+
+  // false if receiver decided not to process the request. For example he might have already received this request from
+  // another peer he's connected to. Or he has no computational resources ATM.
+  bool processed = 3;
+
+  // Each response is encrypted SingleEntityResponse object
+  repeated bytes responses = 4;
+}
+
+message SingleEntityResponse {
+  MetaData metadata = 1;
+  bytes payload = 2;
+}
