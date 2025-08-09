@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Claude Code 账号管理</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  </head>
+  <body>
+    <div class="container py-4">
+      <h1 class="mb-3">Claude Code 账号管理</h1>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="mb-3">
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}" role="alert">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {% if not claude_installed %}
+        <div class="alert alert-danger" role="alert">
+          未检测到 Claude Code（VSCode 扩展或 CLI），请点击右侧"安装"。
+        </div>
+      {% elif claude_needs_upgrade %}
+        <div class="alert alert-warning" role="alert">
+          检测到新版本：当前 {{ claude_current_version }}，最新 {{ claude_latest_version }}。建议点击"升级"。
+        </div>
+      {% endif %}
+
+      <!-- 环境诊断卡片 -->
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span>🔍 环境诊断</span>
+          <div>
+            <button class="btn btn-sm btn-outline-info" onclick="checkEnvironment()">检查环境</button>
+            <button class="btn btn-sm btn-outline-success" onclick="fixEnvironment()">一键修复</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="environment-status">
+            <div class="text-center text-muted">
+              <div class="spinner-border spinner-border-sm d-none" id="env-loading" role="status"></div>
+              <span id="env-status-text">点击"检查环境"开始诊断</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+        <div class="me-2">
+          {% if claude_installed %}
+            <span class="badge text-bg-success">Claude Code 已安装（{{ claude_source }}）</span>
+            {% if claude_current_version %}
+              <span class="badge text-bg-secondary">当前: {{ claude_current_version }}</span>
+            {% endif %}
+          {% else %}
+            <span class="badge text-bg-danger">Claude Code 未安装</span>
+          {% endif %}
+          {% if claude_latest_version %}
+            <span class="badge text-bg-info">最新: {{ claude_latest_version }}</span>
+          {% endif %}
+        </div>
+
+        {% if not claude_installed %}
+          <a class="btn btn-outline-success" href="{{ url_for('install_claude') }}">安装</a>
+        {% endif %}
+        {% if claude_installed and claude_needs_upgrade %}
+          <a class="btn btn-outline-warning" href="{{ url_for('update_claude') }}">升级</a>
+        {% endif %}
+        
+        <!-- 合并的ccui管理按钮 -->
+        {% if not ccui_on_path %}
+          <form method="post" action="{{ url_for('install_ccui_route') }}" class="d-inline">
+            <button class="btn btn-outline-primary" type="submit">
+              <i class="bi bi-download"></i> 安装 ccui
+            </button>
+          </form>
+        {% else %}
+          <form method="post" action="{{ url_for('force_reinstall_ccui_route') }}" class="d-inline">
+            <button class="btn btn-outline-secondary" type="submit" 
+                    onclick="return confirm('确认重新安装ccui？这将删除现有文件并重新创建。')" 
+                    title="ccui已安装，点击重新安装">
+              <i class="bi bi-arrow-clockwise"></i> 重装 ccui
+            </button>
+          </form>
+        {% endif %}
+        
+        <!-- 启动Claude终端按钮 -->
+        <div class="dropdown d-inline">
+          <button class="btn btn-info dropdown-toggle" type="button" id="claudeTerminalDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="启动Claude Code终端">
+            🖥️ 启动Claude终端
+          </button>
+          <ul class="dropdown-menu" aria-labelledby="claudeTerminalDropdown">
+            <li><h6 class="dropdown-header">选择工作目录</h6></li>
+            <li><a class="dropdown-item" href="#" onclick="selectCustomDirectory()">
+              <i class="bi bi-folder"></i> 选择自定义目录
+            </a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><h6 class="dropdown-header">项目历史目录</h6></li>
+            <li><a class="dropdown-item" href="#" onclick="launchClaudeInDirectory('{{ "E:\\project\\claude-code-webui" | replace("\\", "\\\\") }}')">
+              <i class="bi bi-folder-fill"></i> {{ "E:\\project\\claude-code-webui" }}
+            </a></li>
+            <div id="project-history-dirs">
+              <!-- 这里会动态加载项目历史目录 -->
+            </div>
+          </ul>
+        </div>
+        <a class="btn btn-secondary ms-auto" href="{{ url_for('edit_mcp') }}">编辑 mcp.json</a>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-header">Claude Code 环境变量</div>
+        <div class="card-body">
+          <div><strong>ANTHROPIC_BASE_URL:</strong> <code>{{ env_baseurl or '未设置' }}</code></div>
+          <div><strong>ANTHROPIC_AUTH_TOKEN:</strong> <code>{{ env_apikey or '未设置' }}</code></div>
+          <div class="text-muted small mt-2">已生成环境文件：<code>{{ env_file_path }}</code>（可手动 <code>source {{ env_file_path }}</code> 生效于当前 Shell）</div>
+        </div>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-header">新增账号（写入环境变量）</div>
+        <div class="card-body">
+          <form method="post" action="{{ url_for('add_account') }}" class="row g-3">
+            <div class="col-md-5">
+              <label class="form-label">Base URL</label>
+              <input name="baseurl" class="form-control" placeholder="https://api.example.com" required />
+            </div>
+            <div class="col-md-5">
+              <label class="form-label">API Key</label>
+              <input name="apikey" class="form-control" placeholder="sk-..." required />
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+              <button class="btn btn-primary w-100" type="submit">添加</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">账号列表</div>
+        <div class="card-body p-0">
+          <table class="table table-striped mb-0">
+            <thead>
+              <tr>
+                <th style="width: 50px;">ID</th>
+                <th>Base URL</th>
+                <th>API Key</th>
+                <th style="width: 260px;">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for acc in accounts %}
+                <tr>
+                  <td>{{ acc.id }}</td>
+                  <td><code>{{ acc.baseurl }}</code></td>
+                  <td><code>{{ acc.apikey[:4] }}****{{ acc.apikey[-4:] if acc.apikey|length > 4 else '' }}</code></td>
+                  <td>
+                    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('set_default', account_id=acc.id) }}">设为默认（写入环境变量）</a>
+                    <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('edit_account', account_id=acc.id) }}">编辑</a>
+                    <a class="btn btn-sm btn-outline-danger" href="{{ url_for('delete_account', account_id=acc.id) }}" onclick="return confirm('确认删除该账号？');">删除</a>
+                  </td>
+                </tr>
+              {% else %}
+                <tr>
+                  <td colspan="4" class="text-center text-muted">暂无账号</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <footer class="text-center text-muted mt-4">轻量版 · Flask + SQLite · 本地文件 mcp.json</footer>
+    </div>
+
+    <script>
+    function checkEnvironment() {
+      const loading = document.getElementById('env-loading');
+      const statusText = document.getElementById('env-status-text');
+      const statusDiv = document.getElementById('environment-status');
+      
+      loading.classList.remove('d-none');
+      statusText.textContent = '正在检查环境...';
+      
+      fetch('/environment_check')
+        .then(response => response.json())
+        .then(data => {
+          loading.classList.add('d-none');
+          displayEnvironmentStatus(data);
+        })
+        .catch(error => {
+          loading.classList.add('d-none');
+          statusText.textContent = '检查失败: ' + error.message;
+        });
+    }
+
+    function displayEnvironmentStatus(data) {
+      const statusDiv = document.getElementById('environment-status');
+      let html = '<div class="row">';
+      
+      // 总体状态
+      const statusClass = data.overall_status === '正常' ? 'success' : 
+                         data.overall_status === '轻微问题' ? 'warning' : 'danger';
+      html += `<div class="col-12 mb-3">
+        <div class="alert alert-${statusClass}">
+          <strong>整体状态：${data.overall_status}</strong>
+        </div>
+      </div>`;
+      
+      // 各组件状态
+      const components = ['claude_cli', 'ccui', 'npm', 'path_config', 'env_files'];
+      const componentNames = {
+        'claude_cli': 'Claude CLI',
+        'ccui': 'ccui 脚本', 
+        'npm': 'npm 包管理器',
+        'path_config': 'PATH 配置',
+        'env_files': '环境文件'
+      };
+      
+      components.forEach(component => {
+        if (data[component]) {
+          const comp = data[component];
+          const hasIssues = comp.issues && comp.issues.length > 0;
+          const cardClass = comp.installed || comp.valid ? (hasIssues ? 'warning' : 'success') : 'danger';
+          
+          html += `<div class="col-md-6 mb-2">
+            <div class="card border-${cardClass}">
+              <div class="card-body p-2">
+                <h6 class="card-title mb-1">${componentNames[component]}</h6>`;
+                
+          if (comp.installed !== undefined) {
+            html += `<small class="text-muted">状态: ${comp.installed ? '✅ 已安装' : '❌ 未安装'}</small>`;
+            if (comp.path) html += `<br><small class="text-muted">路径: <code>${comp.path}</code></small>`;
+            if (comp.version) html += `<br><small class="text-muted">版本: ${comp.version}</small>`;
+          } else if (comp.valid !== undefined) {
+            html += `<small class="text-muted">状态: ${comp.valid ? '✅ 正常' : '❌ 异常'}</small>`;
+          }
+          
+          if (hasIssues) {
+            html += '<br><small class="text-danger">问题:</small><ul class="mb-0">';
+            comp.issues.forEach(issue => {
+              html += `<li><small class="text-danger">${issue}</small></li>`;
+            });
+            html += '</ul>';
+          }
+          
+          html += '</div></div></div>';
+        }
+      });
+      
+      html += '</div>';
+      statusDiv.innerHTML = html;
+    }
+
+    function fixEnvironment() {
+      if (confirm('确认执行环境修复？这将尝试自动安装缺失的组件并修复配置问题。')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/environment_fix';
+        document.body.appendChild(form);
+        form.submit();
+      }
+    }
+
+    // 启动Claude终端相关函数
+    function selectCustomDirectory() {
+      const directory = prompt('请输入目录路径:', 'E:\\');
+      if (directory && directory.trim()) {
+        launchClaudeInDirectory(directory.trim());
+      }
+    }
+
+    function launchClaudeInDirectory(directory) {
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/launch_claude_in_directory';
+      
+      const dirInput = document.createElement('input');
+      dirInput.type = 'hidden';
+      dirInput.name = 'directory';
+      dirInput.value = directory;
+      form.appendChild(dirInput);
+      
+      document.body.appendChild(form);
+      form.submit();
+    }
+
+    // 页面加载时获取项目历史目录
+    document.addEventListener('DOMContentLoaded', function() {
+      loadProjectHistoryDirectories();
+    });
+
+    function loadProjectHistoryDirectories() {
+      fetch('/get_project_directories')
+        .then(response => response.json())
+        .then(data => {
+          const container = document.getElementById('project-history-dirs');
+          container.innerHTML = '';
+          
+          if (data.directories && data.directories.length > 0) {
+            data.directories.forEach(dir => {
+              const li = document.createElement('li');
+              li.innerHTML = `<a class="dropdown-item" href="#" onclick="launchClaudeInDirectory('${dir.replace(/\\/g, '\\\\')}')">
+                <i class="bi bi-folder"></i> ${dir}
+              </a>`;
+              container.appendChild(li);
+            });
+          } else {
+            const li = document.createElement('li');
+            li.innerHTML = '<span class="dropdown-item-text text-muted">暂无项目历史</span>';
+            container.appendChild(li);
+          }
+        })
+        .catch(error => {
+          console.error('获取项目目录失败:', error);
+          const container = document.getElementById('project-history-dirs');
+          container.innerHTML = '<li><span class="dropdown-item-text text-muted">加载失败</span></li>';
+        });
+    }
+    </script>
+  </body>
+</html>
