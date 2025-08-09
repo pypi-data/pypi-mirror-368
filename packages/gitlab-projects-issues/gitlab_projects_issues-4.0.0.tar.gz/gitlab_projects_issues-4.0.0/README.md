@@ -1,0 +1,240 @@
+# gitlab-projects-issues
+
+<!-- markdownlint-disable no-inline-html -->
+
+[![Release](https://img.shields.io/pypi/v/gitlab-projects-issues?color=blue)](https://pypi.org/project/gitlab-projects-issues)
+[![Python](https://img.shields.io/pypi/pyversions/gitlab-projects-issues?color=blue)](https://pypi.org/project/gitlab-projects-issues)
+[![Downloads](https://img.shields.io/pypi/dm/gitlab-projects-issues?color=blue)](https://pypi.org/project/gitlab-projects-issues)
+[![License](https://img.shields.io/gitlab/license/RadianDevCore/tools/gitlab-projects-issues?color=blue)](https://gitlab.com/RadianDevCore/tools/gitlab-projects-issues/-/blob/main/LICENSE)
+<br />
+[![Build](https://gitlab.com/RadianDevCore/tools/gitlab-projects-issues/badges/main/pipeline.svg)](https://gitlab.com/RadianDevCore/tools/gitlab-projects-issues/-/commits/main/)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=RadianDevCore_gitlab-projects-issues&metric=bugs)](https://sonarcloud.io/dashboard?id=RadianDevCore_gitlab-projects-issues)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=RadianDevCore_gitlab-projects-issues&metric=code_smells)](https://sonarcloud.io/dashboard?id=RadianDevCore_gitlab-projects-issues)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=RadianDevCore_gitlab-projects-issues&metric=coverage)](https://sonarcloud.io/dashboard?id=RadianDevCore_gitlab-projects-issues)
+[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=RadianDevCore_gitlab-projects-issues&metric=ncloc)](https://sonarcloud.io/dashboard?id=RadianDevCore_gitlab-projects-issues)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=RadianDevCore_gitlab-projects-issues&metric=alert_status)](https://sonarcloud.io/dashboard?id=RadianDevCore_gitlab-projects-issues)
+<br />
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
+[![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](https://commitizen-tools.github.io/commitizen/)
+[![gcil](https://img.shields.io/badge/gcil-enabled-brightgreen?logo=gitlab)](https://radiandevcore.gitlab.io/tools/gcil)
+[![pre-commit-crocodile](https://img.shields.io/badge/pre--commit--crocodile-enabled-brightgreen?logo=gitlab)](https://radiandevcore.gitlab.io/tools/pre-commit-crocodile)
+
+Generate GitLab project issues and milestones statistics automatically
+
+**Documentation:** <https://radiandevcore.gitlab.io/tools/gitlab-projects-issues>  
+**Package:** <https://pypi.org/project/gitlab-projects-issues/>
+
+---
+
+## Purpose
+
+This tool can automatically generate issues and milestones statistics,  
+by analyzing project's issues, detecting milestones and assignees.
+
+If issues without time estimations are found, `~?` will be shown before time outputs.
+
+Milestone statistics will automatically be injected in the milestone description,  
+with a markdown table of assignees, timings, progress and issues total.
+
+The following step is required before using the tool:
+
+- The GitLab user tokens must be created with an `api` scope (a short expiration date is recommended)
+
+---
+
+## Examples
+
+<!-- prettier-ignore-start -->
+
+```bash
+# Show the helper menu
+gitlab-projects-issues
+
+# Inject milestones statistics into milestones' description
+gitlab-projects-issues --milestones-statistics 'https://gitlab.com/group/project'
+
+# Inject milestones statistics into milestones' description (with default 20h time per unestimated issues)
+gitlab-projects-issues --milestones-statistics --default-estimate '20' 'https://gitlab.com/group/project'
+```
+
+<!-- prettier-ignore-end -->
+
+---
+
+<span class="page-break"></span>
+
+## Outputs
+
+Milestones statistics will automatically be added to each milestone's description.
+
+The following example shows how milestones statistics may look on a project:
+
+> ## Milestone statistics - MILESTONE NAME
+>
+> | Assignees | Issues | Estimated | Spent | Remaining | Progress |
+> |-----------|--------|-----------|-------|-----------|----------|
+> | **Without assignee** | 10 | 18d | 18d | / | ██████████ 100.00% |
+> | **User ONE** | 22 | 42d | 5d | 37d | █▂▁▁▁▁▁▁▁▁ 11.90% |
+> | **User TWO** | 29 | 50d 2h | 20d 6h | 29d 4h | ████▂▁▁▁▁▁ 41.29% |
+> | **User THREE** | 7 | 9d 2h | 3d 4h | 5d 6h | ███▅▁▁▁▁▁▁ 37.84% |
+> | **User FOUR** | 6 | 21d | / | 21d | ▁▁▁▁▁▁▁▁▁▁ 0.00% |
+> | _**Total**_ | _74_ | _135d 4h_ | _47d 2h_ | 93d 2h | _███▄▁▁▁▁▁▁ 34.87%_ |
+>
+> _Last update using gitlab-projects-issues : 2024-06-01 19:38:48 UTC_
+
+---
+
+<span class="page-break"></span>
+
+## Usage
+
+<!-- prettier-ignore-start -->
+<!-- readme-help-start -->
+
+```yaml
+usage: gitlab-projects-issues [-h] [--version] [--no-color] [--update-check] [--settings] [--set GROUP KEY VAL]
+                              [-c FILES] [--dump] [--default-estimate ESTIMATE] [--exclude-closed-issues]
+                              [--milestone MILESTONE] [--create-milestone | --get-milestone | --milestones-statistics]
+                              [--exclude-closed-milestones] [--ignore-issues-without-milestone]
+                              [--set-milestone-description TEXT] [--set-milestone-state STATE]
+                              [--set-milestone-start-date DATE] [--set-milestone-due-date DATE] [--]
+                              [url_path]
+
+gitlab-projects-issues: Generate GitLab project issues and milestones statistics automatically
+
+internal arguments:
+  -h, --help                         # Show this help message
+  --version                          # Show the current version
+  --no-color                         # Disable colors outputs with 'NO_COLOR=1'
+                                     # (or default settings: [themes] > no_color)
+  --update-check                     # Check for newer package updates
+  --settings                         # Show the current settings path and contents
+  --set GROUP KEY VAL                # Set settings specific 'VAL' value to [GROUP] > KEY
+                                     # or unset by using 'UNSET' as 'VAL'
+
+credentials arguments:
+  -c FILES, --config FILES           # Python GitLab configuration files (default: PYTHON_GITLAB_CFG environment)
+
+common arguments:
+  --dump                             # Dump Python objects of projects
+
+issues arguments:
+  --default-estimate ESTIMATE        # Default issue time estimate if none providedin hours (default: 8)
+  --exclude-closed-issues            # Exclude issues in closed state
+
+milestones arguments:
+  --milestone MILESTONE              # Use a specific milestone by name, by ID, or "None"
+  --create-milestone                 # Create a new milestone
+  --get-milestone                    # Get existing milestone
+  --milestones-statistics            # Inject milestones statistics into milestones description
+  --exclude-closed-milestones        # Exclude milestones in closed state
+  --ignore-issues-without-milestone  # Ignore issues without a milestone
+  --set-milestone-description TEXT   # Set milestone description
+  --set-milestone-state STATE        # Set milestone state [activate,close]
+  --set-milestone-start-date DATE    # Set milestone start date
+  --set-milestone-due-date DATE      # Set milestone due date
+
+positional arguments:
+  --                                 # Positional arguments separator (recommended)
+  url_path                           # GitLab project path URL
+
+environment variables:
+  GITLAB_TOKEN                       # GitLab API token environment variable
+  CI_JOB_TOKEN                       # GitLab CI job token environment variable (CI only)
+```
+
+<!-- readme-help-stop -->
+<!-- prettier-ignore-end -->
+
+---
+
+<span class="page-break"></span>
+
+## Python GitLab configuration file
+
+`gitlab-projects-issues` uses the same configuration files as the `python-gitlab` API,  
+holding domains, URL and private tokens credentials for the GitLab instances.
+
+The default user configuration file can be created at `~/.python-gitlab.cfg`.
+
+The `-c` or `--config` parameters can provide specific configuration files,  
+otherwise the `PYTHON_GITLAB_CFG` environment variable can be used.
+
+**Example `~/.python-gitlab.cfg` configuration file:**
+
+```ini title="~/.python-gitlab.cfg"
+[global]
+default = gitlab.com
+ssl_verify = true
+timeout = 5
+
+[gitlab.com]
+url = https://gitlab.com
+private_token = glpat-...
+
+[gitlab.local.dev]
+url = https://gitlab.local.dev
+private_token = glpat-...
+
+[gitlab.private.dev:4243]
+url = https://gitlab.private.dev:4243
+private_token = glpat-...
+ssl_verify = /usr/local/share/ca-certificates/gitlab.private.dev.crt
+```
+
+
+**`python-gitlab` configuration files documentation:** [Getting started with the CLI / Configuration files](https://python-gitlab.readthedocs.io/en/stable/cli-usage.html#configuration-files)
+
+---
+
+<span class="page-break"></span>
+
+## Userspace available settings
+
+`gitlab-projects-issues` creates a `settings.ini` configuration file in a userspace folder.
+
+For example, it allows to disable the automated updates daily check (`[updates] > enabled`)
+
+The `settings.ini` file location and contents can be shown with the following command:
+
+```bash
+gitlab-projects-issues --settings
+```
+
+---
+
+## Environment available configurations
+
+`gitlab-projects-issues` uses `colored` for colors outputs.
+
+If colors of both outputs types do not match the terminal's theme,  
+an environment variable `NO_COLOR=1` can be defined to disable colors.
+
+---
+
+<span class="page-break"></span>
+
+## Dependencies
+
+- [colored](https://pypi.org/project/colored/): Terminal colors and styles
+- [python-gitlab](https://pypi.org/project/python-gitlab/): A python wrapper for the GitLab API
+- [setuptools](https://pypi.org/project/setuptools/): Build and manage Python packages
+- [update-checker](https://pypi.org/project/update-checker/): Check for package updates on PyPI
+
+---
+
+## References
+
+- [commitizen](https://pypi.org/project/commitizen/): Simple commit conventions for internet citizens
+- [git-cliff](https://github.com/orhun/git-cliff): CHANGELOG generator
+- [gitlab-release](https://pypi.org/project/gitlab-release/): Utility for publishing on GitLab
+- [gcil](https://radiandevcore.gitlab.io/tools/gcil): Launch .gitlab-ci.yml jobs locally
+- [mkdocs](https://www.mkdocs.org/): Project documentation with Markdown
+- [mkdocs-coverage](https://pawamoy.github.io/mkdocs-coverage/): Coverage plugin for mkdocs documentation
+- [mkdocs-exporter](https://adrienbrignon.github.io/mkdocs-exporter/): Exporter plugin for mkdocs documentation
+- [mkdocs-material](https://squidfunk.github.io/mkdocs-material/): Material theme for mkdocs documentation
+- [mypy](https://pypi.org/project/mypy/): Optional static typing for Python
+- [pre-commit](https://pre-commit.com/): A framework for managing and maintaining pre-commit hooks
+- [pre-commit-crocodile](https://radiandevcore.gitlab.io/tools/pre-commit-crocodile): Git hooks intended for developers using pre-commit
+- [PyPI](https://pypi.org/): The Python Package Index
+- [twine](https://pypi.org/project/twine/): Utility for publishing on PyPI

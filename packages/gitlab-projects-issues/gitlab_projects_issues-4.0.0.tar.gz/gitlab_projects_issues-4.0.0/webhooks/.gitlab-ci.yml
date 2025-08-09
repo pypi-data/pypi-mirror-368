@@ -1,0 +1,49 @@
+.image-issues:
+  image: registry.gitlab.com/radiandevcore/tools/gitlab-projects-issues/gitlab-projects-issues:latest
+
+variables:
+  # Predefined CI variables
+  GITLAB_TOKEN:
+    value: ''
+    description: 'GitLab private token'
+  ISSUES_DEFAULT_ESTIMATE:
+    value: '20'
+    description: 'Issues - Default estimated times for issues'
+  ISSUES_PROJECT:
+    value: 'group/path/to/issues'
+    description: 'Issues - GitLab project path with namespace'
+
+stages:
+  - issues
+
+issues:milestones:
+  stage: issues
+  extends:
+    - .image-issues
+  interruptible: true
+  resource_group: 'issues.milestones'
+  script:
+    # Debounce pipeline executions
+    - |
+      set +x
+      mkdir -p ./.cache/
+      touch -d '-5 minutes' ./.cache/timestamp_debounce
+      if [ -f ./.cache/timestamp_last ] && [ ./.cache/timestamp_last -nt ./.cache/timestamp_debounce ]; then
+        echo ' '
+        echo ' [INFO] Debouncing API access, cancelling job...'
+        echo ' '
+        exit 0
+      else
+        touch ./.cache/timestamp_last
+      fi
+    # Generate milestones statistics
+    - |
+      gitlab-projects-issues \
+        --milestones-statistics \
+        --default-estimate "${ISSUES_DEFAULT_ESTIMATE:?}" \
+        "${CI_SERVER_URL}/${ISSUES_PROJECT:?}"
+  cache:
+    paths:
+      - .cache/timestamp_last
+  start_in: 5 minutes
+  when: delayed
