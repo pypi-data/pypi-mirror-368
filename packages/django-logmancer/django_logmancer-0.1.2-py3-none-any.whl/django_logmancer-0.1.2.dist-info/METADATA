@@ -1,0 +1,151 @@
+Metadata-Version: 2.4
+Name: django-logmancer
+Version: 0.1.2
+Summary: Advanced logging and monitoring for Django applications
+Author-email: Abdulsamet TATAR <abdulsamettatar@gmail.com>
+License-Expression: MIT
+Project-URL: Homepage, https://github.com/abdulsamet/logmancer
+Project-URL: Repository, https://github.com/abdulsamet/logmancer
+Project-URL: Issues, https://github.com/abdulsamet/logmancer/issues
+Keywords: django,logging,monitoring,middleware,signals
+Classifier: Development Status :: 4 - Beta
+Classifier: Environment :: Web Environment
+Classifier: Framework :: Django
+Classifier: Framework :: Django :: 4.2
+Classifier: Framework :: Django :: 5.0
+Classifier: Framework :: Django :: 5.1
+Classifier: Framework :: Django :: 5.2
+Classifier: Intended Audience :: Developers
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Topic :: Internet :: WWW/HTTP
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: System :: Logging
+Requires-Python: >=3.10
+Description-Content-Type: text/x-rst
+License-File: LICENSE
+Requires-Dist: Django>=4.2
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"
+Requires-Dist: pytest-django>=4.5; extra == "dev"
+Requires-Dist: pytest-cov; extra == "dev"
+Requires-Dist: pytest-mock; extra == "dev"
+Requires-Dist: tox-uv>=1.27.0; extra == "dev"
+Requires-Dist: factory-boy; extra == "dev"
+Requires-Dist: freezegun; extra == "dev"
+Requires-Dist: black>=23.0; extra == "dev"
+Requires-Dist: isort>=5.12; extra == "dev"
+Requires-Dist: flake8>=6.0; extra == "dev"
+Requires-Dist: mypy>=1.0; extra == "dev"
+Requires-Dist: django-stubs; extra == "dev"
+Requires-Dist: bandit[toml]; extra == "dev"
+Requires-Dist: safety; extra == "dev"
+Dynamic: license-file
+
+.. image:: https://github.com/abdulsamet/logmancer/actions/workflows/test.yml/badge.svg?branch=main
+    :target: https://github.com/abdulsamet/logmancer/actions/workflows/test.yml
+    :alt: Test Status
+
+.. image:: https://badge.fury.io/py/django-logmancer.svg
+    :target: https://badge.fury.io/py/django-logmancer
+    :alt: PyPI Version
+
+.. image:: https://img.shields.io/pypi/pyversions/django-logmancer.svg
+    :target: https://pypi.org/project/django-logmancer/
+    :alt: Python Versions
+
+.. image:: https://img.shields.io/github/license/abdulsamet/logmancer.svg
+    :target: https://github.com/abdulsamet/logmancer/blob/main/LICENSE
+    :alt: License
+
+.. image:: https://codecov.io/github/abdulsamet/logmancer/graph/badge.svg?token=D45NERJMAI 
+    :target: https://codecov.io/github/abdulsamet/logmancer
+    :alt: Code Coverage
+
+.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
+    :target: https://github.com/psf/black
+    :alt: Black
+
+Logmancer
+=========
+
+Advanced logging and monitoring for Django applications.
+
+Features
+--------
+
+- **Database Logging** – Store logs in your Django database  
+- **Middleware Integration** – Automatic HTTP request/response logging  
+- **Django Signals** – Monitor model changes automatically  
+- **Admin Interface** – Beautiful Django admin integration  
+- **Advanced Filtering** – Filter logs by level, source, timestamp, and more  
+- **Sensitive Data Masking** – Automatically mask passwords and sensitive data  
+- **Configurable** – Extensive configuration options  
+- **JSON Support** – Store structured data with JSON fields  
+- **Cleanup Commands** – Built-in management commands for maintenance  
+
+Quick Start
+-----------
+
+Install:
+
+::
+
+    pip install django-logmancer
+
+Add to your ``settings.py``:
+
+::
+
+    INSTALLED_APPS = [
+        # ... your apps
+        'logmancer',
+    ]
+
+    MIDDLEWARE = [
+        # ... your middleware
+        'logmancer.middleware.DBLoggingMiddleware',
+    ]
+
+    LOGMANCER = {
+        'ENABLE_SIGNALS': True,
+        'ENABLE_MIDDLEWARE': True,
+        'LOG_LEVEL': 'INFO',
+        'EXCLUDE_PATHS': ['/admin/jsi18n/', '/static/', '/media/'],
+        'EXCLUDE_MODELS': ['logmancer.LogEntry', 'auth.Session'],
+        'MASK_SENSITIVE_DATA': ['password', 'token', 'secret', 'key'],
+        'CLEANUP_AFTER_DAYS': 30,
+    }
+
+Run migrations:
+
+::
+
+    python manage.py migrate logmancer
+
+Manual Logging Example
+----------------------
+
+::
+
+    from logmancer.utils import LogEvent
+
+    LogEvent.info("User login successful")
+    LogEvent.error("Payment failed", meta={"user_id": 123, "amount": 99.99})
+
+Admin Interface
+---------------
+
+- Navigate to ``/admin/logmancer/logentry/``
+- Filter by level, source, timestamp, actor type
+- Search through log messages
+- View detailed metadata in JSON format
+
+License
+-------
+
+MIT License. See ``LICENSE`` for details.
