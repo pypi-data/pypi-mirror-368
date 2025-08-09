@@ -1,0 +1,179 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "d361api"
+dynamic = ["version"]
+description = "Document360 Customer API"
+authors = [
+    {name = "Document360 Support", email = "support@document360.com"},
+]
+license = {text = "NoLicense"}
+readme = "README.md"
+requires-python = ">= 3.8"
+keywords = ["OpenAPI", "OpenAPI-Generator", "Document360 Customer API"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "urllib3 >= 1.25.3, < 3.0.0",
+    "python-dateutil >= 2.8.2",
+    "aiohttp >= 3.8.4",
+    "aiohttp-retry >= 2.8.3",
+    "pydantic >= 2",
+    "typing-extensions >= 4.7.1",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest >= 7.2.1",
+    "pytest-cov >= 2.8.1",
+    "types-python-dateutil >= 2.8.19.14",
+    "mypy >= 1.5",
+]
+dev = [
+    "d361api[test]",
+    "tox >= 3.9.0",
+    "ruff",
+]
+
+[project.urls]
+Homepage = "https://github.com/twardoch/d361api"
+Repository = "https://github.com/twardoch/d361api"
+Documentation = "https://apidocs.document360.io/docs"
+
+[tool.hatch.version]
+source = "vcs"
+raw-options = {version_scheme = "guess-next-dev", local_scheme = "node-and-date"}
+
+[tool.hatch.build.targets.wheel]
+packages = ["d361api"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/d361api",
+    "/docs",
+    "/test",
+    "/README.md",
+]
+
+[tool.ruff]
+line-length = 99
+target-version = "py38"
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+    "PL", # pylint
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+    "PLR0913", # too many arguments
+    "PLR0912", # too many branches
+    "PLR0915", # too many statements
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"test_*.py" = ["PLR2004"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.mypy]
+files = [
+  "d361api",
+  "tests",
+]
+# TODO: enable "strict" once all these individual checks are passing
+# strict = true
+
+# List from: https://mypy.readthedocs.io/en/stable/existing_code.html#introduce-stricter-options
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+## Getting these passing should be easy
+strict_equality = true
+extra_checks = true
+
+## Strongly recommend enabling this one as soon as you can
+check_untyped_defs = true
+
+## These shouldn't be too much additional work, but may be tricky to
+## get passing if you use a lot of untyped libraries
+disallow_subclassing_any = true
+disallow_untyped_decorators = true
+disallow_any_generics = true
+
+### These next few are various gradations of forcing use of type annotations
+#disallow_untyped_calls = true
+#disallow_incomplete_defs = true
+#disallow_untyped_defs = true
+#
+### This one isn't too hard to get passing, but return on investment is lower
+#no_implicit_reexport = true
+#
+### This one can be tricky to get passing if you use a lot of untyped libraries
+#warn_return_any = true
+
+[[tool.mypy.overrides]]
+module = [
+  "d361api.configuration",
+]
+warn_unused_ignores = true
+strict_equality = true
+extra_checks = true
+check_untyped_defs = true
+disallow_subclassing_any = true
+disallow_untyped_decorators = true
+disallow_any_generics = true
+disallow_untyped_calls = true
+disallow_incomplete_defs = true
+disallow_untyped_defs = true
+no_implicit_reexport = true
+warn_return_any = true
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "--cov=d361api --cov-report=html --cov-report=term-missing"
+
+[tool.coverage.run]
+source = ["d361api"]
+omit = ["*/tests/*", "*/test_*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
