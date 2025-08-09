@@ -1,0 +1,203 @@
+Metadata-Version: 2.4
+Name: cross-crypto-py
+Version: 1.1.4
+Summary: Cifrado híbrido seguro con interoperabilidad entre lenguajes como Python, TypeScript y Rust, basado en AES-GCM (256 bits) y RSA-OAEP (4096 bits)
+Home-page: https://github.com/acadyne/cross-crypto-py
+Author: Jose Fabian Soltero Escobar
+Author-email: acadyne@gmail.com
+License: MIT
+Project-URL: Documentation, https://github.com/acadyne/cross-crypto-py#readme
+Project-URL: Source, https://github.com/acadyne/cross-crypto-py
+Project-URL: Tracker, https://github.com/acadyne/cross-crypto-py/issues
+Keywords: encryption,cryptography,security,typescript,python,rsa,aes,hybrid-encryption,cross-platform,secure-communication,data-protection,crypto,gcm,oaep
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: System Administrators
+Classifier: Topic :: Security
+Classifier: Topic :: Security :: Cryptography
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Programming Language :: JavaScript
+Classifier: Framework :: AsyncIO
+Classifier: Operating System :: OS Independent
+Classifier: Environment :: Web Environment
+Classifier: Natural Language :: English
+Classifier: Typing :: Typed
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: cryptography>=40.0.2
+Requires-Dist: pycryptodome>=3.17
+Requires-Dist: dill>=0.3.6
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: keywords
+Dynamic: license
+Dynamic: license-file
+Dynamic: project-url
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+# 🚀 Cross Crypto Py 🐍🔒
+
+![PyPI](https://img.shields.io/pypi/v/cross-crypto-py) ![License](https://img.shields.io/github/license/acadyne/cross-crypto-py) ![Python Versions](https://img.shields.io/pypi/pyversions/cross-crypto-py) ![Build](https://img.shields.io/badge/build-passing-brightgreen)
+
+**Encriptación híbrida segura entre Python, TypeScript y Rust (AES-GCM + RSA-OAEP)**
+
+---
+
+## 📌 Introducción
+
+**Cross Crypto Py** es una librería de encriptación híbrida que combina **AES-GCM** para cifrado simétrico y **RSA-OAEP** para intercambio seguro de claves. Su ventaja clave es la **interoperabilidad total** entre Python, JavaScript/TypeScript y Rust.
+
+> Cifra datos en un lenguaje y descífralos en otro, con soporte para JSON, objetos serializados (`dill`) y archivos binarios (`PDF`, imágenes, etc).
+
+---
+
+## 🛠️ Uso básico (modo JSON)
+
+```python
+from cross_crypto_py.keygen import generateRSAKeys
+from cross_crypto_py.encrypt import encryptHybrid
+from cross_crypto_py.decrypt import decryptHybrid
+
+# 🔑 Generar claves RSA
+keys = generateRSAKeys()
+publicKey = keys["publicKey"]
+privateKey = keys["privateKey"]
+
+# 📩 Datos simples
+data = { "mensaje": "Hola AcaDyne desde Python" }
+
+# 🔒 Encriptar con modo JSON (por defecto)
+encrypted = encryptHybrid(data, publicKey)
+print("🛡️ Encriptado:", encrypted)
+
+# 🔓 Desencriptar
+decrypted = decryptHybrid(encrypted, privateKey)
+print("✅ Desencriptado:", decrypted)
+```
+
+---
+
+## 💡 Uso avanzado
+
+### 🔹 Objetos complejos (`mode="dill"`)
+
+```python
+from cross_crypto_py.encrypt import encryptHybrid
+from cross_crypto_py.decrypt import decryptHybrid
+
+objeto_complejo = {"clase": MiClase(), "config": {"x": 1}}
+encrypted = encryptHybrid(objeto_complejo, publicKey, mode="dill")
+decrypted = decryptHybrid(encrypted, privateKey, mode="dill")
+```
+
+### 🔸 Archivos binarios (`mode="binary"`)
+
+```python
+with open("imagen.png", "rb") as f:
+    contenido = f.read()
+
+encrypted = encryptHybrid(contenido, publicKey, mode="binary")
+decrypted = decryptHybrid(encrypted, privateKey, mode="binary")
+
+with open("imagen_recuperada.png", "wb") as f:
+    f.write(decrypted)
+```
+
+---
+
+## 📁 Cifrado híbrido de archivos (`encryptFileHybrid`)
+
+```python
+from cross_crypto_py.file_crypto import encryptFileHybrid, decryptFileHybrid
+
+# 🔒 Encriptar uno o varios archivos/carpetas como ZIP
+encrypted = encryptFileHybrid(
+    paths=["datos/", "documento.pdf"],
+    public_key=publicKey,
+    save_file=True,
+    output_enc="datos.enc"
+)
+
+# 🔓 Desencriptar archivo .enc y extraer archivos ZIP
+output_dir = decryptFileHybrid("datos.enc", privateKey)
+print("Archivos restaurados en:", output_dir)
+```
+
+---
+
+## 🧬 Modo streaming para archivos grandes
+
+```python
+# Encriptar archivo grande (streaming)
+encrypted = encryptHybrid("video.mp4", publicKey, stream=True)
+
+# Desencriptar archivo grande (streaming)
+output_path = decryptHybrid(
+    encrypted,
+    privateKey,
+    stream=True,
+    decrypted_output_path="video_restaurado.mp4"
+)
+```
+
+> ✅ Este modo evita cargar el archivo completo en memoria. Ideal para videos, backups, etc.
+
+---
+
+## 🎯 Características
+
+| Característica                                | ✅  |
+| --------------------------------------------- | -- |
+| Encriptación híbrida AES-GCM + RSA-OAEP       | ✔️ |
+| RSA de 4096 bits                              | ✔️ |
+| Interoperabilidad: Python ↔ TypeScript ↔ Rust | ✔️ |
+| Soporte para objetos (`json`, `dill`)         | ✔️ |
+| Soporte para archivos (`binary`)              | ✔️ |
+| Cifrado de carpetas y múltiples archivos      | ✔️ |
+| Modo streaming para archivos grandes          | ✔️ |
+| Encriptación y desencriptación unificadas     | ✔️ |
+
+---
+
+## 📦 Instalación
+
+```bash
+pip install cross-crypto-py
+```
+
+---
+
+## 🌐 Ecosistema Cross-Crypto
+
+- 🔷 [Cross Crypto Py (Python)](https://github.com/acadyne/cross-crypto-py)
+- 🔾 [Cross Crypto TS (TypeScript)](https://github.com/acadyne/cross-crypto-ts)
+- 🦀 [Cross Crypto RS (Rust)](https://github.com/acadyne/cross-crypto-rs)
+
+---
+
+## 🧪 Requisitos
+
+- Python ≥ 3.7
+- `pycryptodome`, `dill`
+
+---
+
+## 📄 Licencia
+
+MIT © Jose Fabian Soltero Escobar
