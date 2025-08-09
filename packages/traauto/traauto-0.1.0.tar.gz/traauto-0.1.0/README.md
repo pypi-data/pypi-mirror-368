@@ -1,0 +1,140 @@
+# traauto: Advanced AutoML with Enhanced Track-Rail Algorithm
+
+## Overview
+
+**traauto** is a comprehensive, research-grade AutoML library that builds upon the success of the original [TRA Algorithm (`tra-algorithm`)](https://pypi.org/project/tra-algorithm/), extending the Track/Rail ensemble strategy with full automation, advanced feature engineering, meta-learning, dynamic model fusion, and explainable AI. This package is designed for practitioners and researchers who need both flexibility and state-of-the-art automation for classification or regression tasks, supporting modern datasets and robust analysis pipelines.
+
+## About TRA Algorithm (`tra-algorithm`)
+
+The original [TRA Algorithm](https://github.com/eswaroy/tra_algorithm) is an innovative ensemble framework that routes data between specialized models ("tracks") using real-time signals, enabling adaptive, explainable, parallel processing for both classification and regression. Key features included:
+
+- Dynamic track switching & adaptive routing
+- Advanced signal-based decision logic
+- Track pruning and usage optimization
+- Robust visualization and reporting APIs
+- Full support for regression and classification tasks
+
+For more details and usage of the original TRA Algorithm, see the [tra-algorithm documentation](https://pypi.org/project/tra-algorithm/).
+
+## About traauto
+
+**traauto** takes the core concept of dynamic track-based ensembles and delivers a full AutoML pipeline with these major enhancements:
+
+- Automated Feature Engineering: Generation, selection, and transformation of features with adaptive regularization, interaction, transformation, and aggregation.
+- Meta-Learning & Model Selection: Suggests architectures and hyperparameters using dataset meta-features and Optuna-based optimization.
+- Smart Routing Engine: Intelligent per-record routing to specialized tracks, using meta-analytics, confidence, and feature specialization.
+- Dynamic Ensemble Fusion: Advanced fusion strategies (stacking, weighted voting, smart fusion) optimize overall predictions dynamically.
+- Regional Track Creation: Automated clustering to create regional/subtrack models for data specialization.
+- Explainability: Supports SHAP, LIME, and feature importances for interpretability of predictions and model behaviour.
+- Resource Monitoring and Adaptive Checkpoints: Tracks performance, memory usage, and provides checkpoint/resume capability.
+- System Health & Analysis: Rich system summaries, track evaluations, routing analytics, and report generation.
+- Project Persistence: Built-in checkpointing and reload via joblib for pipeline reproducibility.
+
+## Installation
+
+Install from PyPI:
+```bash
+pip install traauto
+```
+# Quick Start: Classification Example
+```python
+
+from traauto import EnhancedTrackRailSystem, TRAConfig
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
+import numpy as np
+
+def test_classification():
+    # Generate data with compatible parameters
+    X, y = make_classification(
+        n_samples=120,
+        n_features=10,
+        n_classes=3,
+        n_informative=3,
+        random_state=0
+    )
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+
+    config = TRAConfig(task_type="classification")
+    tra = EnhancedTrackRailSystem(config=config)
+    tra.fit(X_train, y_train)
+    y_pred = tra.predict(X_test)
+
+    assert len(y_pred) == len(y_test)
+    print("Classification test passed.")
+    metrics = tra.get_performance_metrics(X_test, y_test)
+    print("Classification accuracy:", metrics.get("overall_accuracy", "N/A"))
+    print("F1-score:", metrics.get("f1_score", "N/A"))
+
+if __name__ == "__main__":
+    test_classification()
+    print("-" * 40)
+
+```
+
+## Main Components and Capabilities
+
+- **EnhancedTrackRailSystem:** Main system class combining all automation and analysis engines.
+- **TRAConfig:** Configuration object for defining task type, feature engineering, meta-learning, resource constraints, and fusion strategies.
+- **AutomatedFeatureEngineer:** Generates, transforms, and selects features adaptively.
+- **MetaLearningEngine:** Analyzes dataset meta-features and applies hyperparameter optimization.
+- **SmartRoutingEngine:** Dynamically chooses the best model/track per input using auditing.
+- **DynamicEnsembleFusion:** Combines track outputs with weighted, voting, stacking, or smart fusion methods.
+- **ExplainabilityEngine:** Produces SHAP/LIME/feature importance explanations for model or record-level predictions.
+- **Checkpointing:** Safely saves and reloads full system state for reproducibility.
+
+## Algorithm Architecture
+
+1. Feature Engineering: The system automatically performs feature selection, interaction, transformation, and aggregation.
+2. Track/Model Training: Multiple tracks (ensembles) are created for global and regional data distributions. Each receives optimized, specialized training.
+3. Meta-Learning: Dataset statistics are extracted to suggest and tune model architectures and fusion strategies.
+4. Routing & Prediction: For each new record, automl-tra routes data to the most suitable track/model using feature-based analytics and confidence.
+5. Ensemble Fusion: Track predictions are combined using quality-weighted or stacking methods, adapting to dataset and model performance.
+6. Explainability: Explanations are generated on-demand for individual predictions, tracks, or overall system behaviour.
+7. Analysis & Reporting: System health, track statistics, and rich routing analysis are readily available.
+8. Project Persistence: Full checkpoint and reload capability for workflows and reproducibility.
+
+## Advanced Features
+
+- Automated Clustering for Regional Tracks: High quality clustering (KMeans, DBSCAN) creates specialized regional tracks for improved accuracy.
+- Adaptive Signal and Routing Creation: Meta-learned signals guide the routing engine to maximize predictive performance.
+- Explainable AI Support: SHAP, LIME, and fallback importances provide interpretability for output and decisions.
+- System Health Checks and Monitoring: Monitor latency, memory, stability, and prediction efficiency.
+- Checkpoint/Restore: Robust project checkpointing for safe experiment pause/resume or deployment.
+- Full Support for Imbalanced Data: Optional SMOTE integration and automatic class weight generation.
+
+## Comparison: tra-algorithm vs automl-tra
+
+| Feature                         | tra-algorithm                                    | traauto (this package)                  |
+|----------------------------------|--------------------------------------------------|--------------------------------------------|
+| Ensemble Track Routing           | Dynamic track switching                          | Advanced, meta-learned, per-record         |
+| Signal Evaluation                | Adaptive, parallel signals                       | Meta-driven, smart routing engine          |
+| AutoML Pipeline                  | Manual feature prep                              | Automated feature engineering, NAS         |
+| Meta-Learning & Architecture     | Static models                                    | Automated model suggestion & optimization  |
+| Feature Engineering              | Basic (scikit-learn)                             | Advanced, regularized & aggregated         |
+| Dynamic Ensemble Fusion          | Voting/weighted fusion                           | Smart fusion, stacking, advanced fusion    |
+| Explainable AI                   | Track-level                                      | Track-level & record-level (SHAP/LIME)     |
+| Checkpointing & Recovery         |                                                  | Yes                                        |
+| System Health/Analysis           | Basic logging/reporting                          | Full system and track analytics            |
+| Task Support                     | Classification/Regression                        | Both, with more robust architecture        |
+
+## Requirements
+
+- Python >= 3.7
+- numpy, pandas, scikit-learn, joblib, psutil
+- Optional (for full feature set): optuna, torch, xgboost, lightgbm, shap, lime, imbalanced-learn
+
+
+## Support & Issues
+
+- Email: rangaeswar890@gmail.com
+- Issues/Discussions: [GitHub Issues](https://github.com/eswaroy/automl_tra/issues)
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Citation
+
+If you use automl-tra in your research, please cite:
+
