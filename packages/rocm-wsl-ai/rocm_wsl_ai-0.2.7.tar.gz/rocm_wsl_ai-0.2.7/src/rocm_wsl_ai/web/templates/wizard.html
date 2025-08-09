@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Setup Wizard - ROCm-WSL-AI</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <nav class="container-fluid">
+    <ul><li class="brand"><span class="logo">AI</span> <strong>ROCm‑WSL‑AI</strong></li></ul>
+    <ul>
+      <li><a href="/">Dashboard</a></li>
+      <li><a href="/wizard">Wizard</a></li>
+      <li><a href="/tools">Tools</a></li>
+      <li><a href="/models">Models</a></li>
+      <li><a href="/help">Hilfe</a></li>
+      <li><button id="themeToggle" type="button" class="secondary">Theme</button></li>
+    </ul>
+  </nav>
+  <main class="container">
+    <section class="hero card">
+      <h1>Setup Wizard</h1>
+      <p>Einrichtung in wenigen Schritten: Basis, venv und bequeme Defaults. Danach direkt Tools starten.</p>
+    </section>
+    <form id="wiz">
+      <label>
+        Basisverzeichnis (Base-Dir)
+        <input type="text" name="base_dir" placeholder="z.B. /home/user" required />
+      </label>
+      <label>
+        Venv-Name
+        <input type="text" name="venv_name" placeholder="genai_env" />
+      </label>
+      <article>
+        <header><strong>Optionale Defaults</strong></header>
+        <div class="grid">
+          <label>
+            Default Host
+            <input type="text" name="default_host" placeholder="0.0.0.0" />
+          </label>
+          <label>
+            Default Port
+            <input type="number" name="default_port" placeholder="7860" min="1" max="65535" />
+          </label>
+        </div>
+        <label>
+          Default Flags Template
+          <input type="text" name="default_flags" placeholder="--listen --port {port}" />
+          <small>Platzhalter: {host}, {port}</small>
+        </label>
+      </article>
+      <label>
+        <input type="checkbox" name="auto_link_models" checked />
+        Modelle automatisch verknüpfen
+      </label>
+      <div class="grid">
+        <button type="submit">Start Wizard</button>
+        <a href="/" role="button" class="secondary">Zurück</a>
+      </div>
+    </form>
+    <section>
+      <h3>Aktivität</h3>
+      <pre id="out"></pre>
+    </section>
+  </main>
+  <script>
+    const form = document.getElementById('wiz');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const body = {
+        base_dir: fd.get('base_dir'),
+        venv_name: fd.get('venv_name') || null,
+        auto_link_models: fd.get('auto_link_models') ? true : false,
+        default_host: fd.get('default_host') || null,
+        default_port: fd.get('default_port') ? Number(fd.get('default_port')) : null,
+        default_flags: fd.get('default_flags') || null,
+      };
+      const res = await fetch('/wizard/run', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const data = await res.json();
+      const out = document.getElementById('out');
+      out.textContent = JSON.stringify(data, null, 2);
+    });
+    (function(){
+      const btn = document.getElementById('themeToggle');
+      function toggle(){
+        const cur = document.documentElement.getAttribute('data-theme');
+        const nxt = cur === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', nxt);
+        localStorage.setItem('theme', nxt);
+      }
+      btn?.addEventListener('click', toggle);
+      const saved = localStorage.getItem('theme');
+      if (saved) document.documentElement.setAttribute('data-theme', saved);
+    })();
+  </script>
+  <script src="/static/app.js"></script>
+</body>
+</html>
