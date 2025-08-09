@@ -1,0 +1,33 @@
+# Basic Flow task configuration
+# 
+# This is the simplest possible Flow configuration that:
+# - Creates a single GPU instance
+# - Runs a simple command
+# - Terminates automatically when done
+#
+# Prerequisites:
+# - Flow SDK installed and configured (`flow init`)
+#
+# How to run:
+#   flow run examples/configs/basic.yaml
+#
+# Expected output:
+# - Creates an H100 GPU instance
+# - Prints a hello message and GPU information
+# - Automatically terminates after completion
+# - Total runtime: ~2-3 minutes
+#
+# Configuration notes:
+# - instance_type: 8x H100 80GB GPUs
+# - max_price_per_hour: $10/hour budget constraint
+# - region: us-central1-b (change to your preferred region)
+
+name: hello-gpu
+unique_name: true  # Appends random suffix to avoid name conflicts
+instance_type: h100-80gb.sxm.8x
+region: us-central1-b
+max_price_per_hour: 10.0
+command: |
+  echo "Hello from Flow GPU instance!"
+  nvidia-smi
+  echo "Task completed successfully"
