@@ -1,0 +1,36 @@
+# Common defaults to provide a validating schema and default logging
+# configuration.
+defaults:
+  - hydronaut_config
+  - _self_
+
+# When invoked with --multirun, run the experiment for each combination of these
+# parameters (Cartesian product).
+hydra:
+  sweeper:
+    params:
+      # The name is where the resulting values will be inserted into the config
+      # object. Here we organize everything under experiment.params.
+      experiment.params.x: range(1, 3)
+      experiment.params.y: range(1, 3)
+      experiment.params.z: range(1, 3)
+
+# Configure experiment metadata.
+experiment:
+  name: Dummy
+  description: A dummy example experiment.
+  # The path to the Experiment subclass.
+  exp_class: experiment:DummyExperiment
+  # The parameters that will be used by the experiment. These could be placed
+  # elsewhere but it is recommended to keep them under experiment.params to
+  # avoid clutter and facilitate use by other users.
+  params:
+    x: 0
+    y: 0
+    z: 0
+
+  # Add the src directory to the Python path so that Hydronaut can find the
+  # "experiment" module specified in exp_class above.
+  python:
+    paths:
+      - src

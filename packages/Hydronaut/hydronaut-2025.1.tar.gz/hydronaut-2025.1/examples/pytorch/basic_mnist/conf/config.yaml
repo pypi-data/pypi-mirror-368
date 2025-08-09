@@ -1,0 +1,59 @@
+defaults:
+- hydronaut_config
+- override hydra/sweeper: optuna
+- override hydra/sweeper/sampler: tpe
+- override hydra/job_logging: colorlog
+- override hydra/hydra_logging: colorlog
+- _self_
+hydra:
+  sweeper:
+    direction: maximize
+    study_name: ${experiment.name}-study
+    n_trials: 40
+    n_jobs: ${n_cpu:}
+    sampler:
+      seed: 123
+    params:
+      experiment.params.model.conv1.kernel_size: range(2, 4)
+      experiment.params.model.conv2.kernel_size: range(2, 4)
+      experiment.params.model.dropout1: range(0.2, 0.5, 0.05)
+      experiment.params.model.dropout2: range(0.2, 0.5, 0.05)
+      experiment.params.model.fc1: choice(64, 128)
+      experiment.params.training.batch_size: choice(64, 128, 256)
+      experiment.params.training.epochs: choice(10, 14)
+      experiment.params.training.lr: interval(0.5, 2.0)
+experiment:
+  name: My Experiment
+  description: Placeholder experiment.
+  exp_class: experiment:MyExperiment
+  params:
+    model:
+      conv1:
+        out_channels: 32
+        kernel_size: 3
+        stride: 1
+      conv2:
+        out_channels: 64
+        kernel_size: 3
+        stride: 1
+      dropout1: 0.25
+      dropout2: 0.5
+      fc1: 128
+      max_pool2d: 2
+    training:
+      batch_size: 64
+      test_batch_size: 1000
+      epochs: 14
+      lr: 1.0
+      gamma: 0.7
+    meta:
+      no_cuda: false
+      no_mps: false
+      dry_run: false
+      seed: 1
+      log_interval: 100
+      save_model: true
+    data_dir: ${cwd:}/tmp
+  python:
+    paths:
+    - src

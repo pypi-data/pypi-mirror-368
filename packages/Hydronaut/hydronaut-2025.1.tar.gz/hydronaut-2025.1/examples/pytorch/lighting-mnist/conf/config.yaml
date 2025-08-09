@@ -1,0 +1,90 @@
+# PyTorch lightning handles all parallelization so there is no need to use a
+# parallelized job launcher such as joblib here.
+defaults:
+  - hydronaut_config
+  # Use the Optuna optimizer with the TPE sampler.
+  - override hydra/sweeper: optuna
+  - override hydra/sweeper/sampler: tpe
+  - _self_
+
+hydra:
+  # Set the default mode to MULTIRUN to obviate passing --multirun on each
+  # invocation.
+  mode: MULTIRUN
+  sweeper:
+    # The objective function returns the loss so we seek to minimize it.
+    direction: minimize
+    # The study name is set to the experiment name but can be changed to
+    # anything.
+    study_name: ${experiment.name}
+    # The number of Optuna optimization trials.
+    n_trials: 30
+    # The number of jobs. This only has an effect when a Hydra launcher that
+    # supports concurrent jobs is used.
+    n_jobs: 1
+    sampler:
+      # Initial seed for the sampler.
+      seed: 123
+
+    # Sweep parameters that will be used by the model.
+    params:
+      # The number of convolutional layers.
+      +experiment.params.conv_layers: range(1, 2)
+
+      # First convolutional layer's depth and dimension.
+      +experiment.params.conv_depth_1: range(4, 16)
+      +experiment.params.conv_dim_1: range(2, 3)
+      # Pooling size for first convolution layer.
+      +experiment.params.pool_1: range(2, 3)
+      # Drop-out rate after pooling first layer.
+      +experiment.params.drop_1: interval(0.1, 0.5)
+
+      # The same parameters for a second convolution-pooling-dropout layer.
+      # These will only be used if the conv_layers parameter above is set to 2
+      # for a run.
+      +experiment.params.conv_depth_2: range(4, 16)
+      +experiment.params.conv_dim_2: range(2, 3)
+      +experiment.params.pool_2: range(2, 3)
+      +experiment.params.drop_2: interval(0.1, 0.5)
+
+      # Output size and dropout rate for first fully connected linear layer.
+      +experiment.params.lin1_out: range(50, 200)
+      +experiment.params.lin1_drop: interval(0.25, 0.75)
+
+experiment:
+  name: 'MNIST (Optuna)'
+  description: MNIST example with PyTorch Lightning and Optuna optimization.
+  exp_class: experiment:MNISTExperiment
+  params:
+    # The MNIST image input dimension.
+    input_dim: 28
+    # The directory for storing the MNIST data.
+    data_directory: ${cwd:}/tmp
+    # Learning rate.
+    learning_rate: 5e-3
+    # Arguments to pass through to the data loader.
+    dataloader:
+      # The number of worker processes to use.
+      num_workers: ${max:5,${n_cpu:}}
+      # The batch size. Note that the effective batch size will be multiplied by
+      # the number of devices used by the PyTorch Lighting trainer.
+      batch_size: 256
+    # PyTorch Lightning LightningModule.log() keyword arguments. These are used
+    # for the logging calls in the validation and test steps.
+    log:
+      on_epoch: true
+      sync_dist: true
+
+    # Parameters to pass through to the Trainer. These can be anything that the
+    # PyTorch Lightning Trainer class accepts:
+    # https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html#pytorch_lightning.trainer.trainer.Trainer
+    trainer:
+      max_epochs: 20
+      accelerator: auto
+      # devices: ${n_gpu_pytorch:}
+      strategy: ddp
+
+  # Make modules under src importable.
+  python:
+    paths:
+      - src
