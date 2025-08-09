@@ -1,0 +1,521 @@
+Metadata-Version: 2.4
+Name: Hydronaut
+Version: 2025.1
+Summary: A framework for exploring the depths of hyperparameter space with Hydra and MLflow.
+Project-URL: Homepage, https://gitlab.inria.fr/jrye/hydronaut
+Project-URL: Source, https://gitlab.inria.fr/jrye/hydronaut.git
+Project-URL: Documentation, https://jrye.gitlabpages.inria.fr/hydronaut
+Project-URL: Issues, https://gitlab.inria.fr/jrye/hydronaut/issues
+Author-email: Jan-Michael Rye <jan-michael.rye@inria.fr>
+License: MIT License
+        
+        Copyright (c) 2022, Inria
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+License-File: LICENSE.txt
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Requires-Python: >=3.6
+Requires-Dist: hydra-colorlog
+Requires-Dist: hydra-core
+Requires-Dist: hydra-joblib-launcher
+Requires-Dist: hydra-optuna-sweeper
+Requires-Dist: mlflow
+Requires-Dist: optuna
+Provides-Extra: full
+Requires-Dist: lightning; extra == 'full'
+Requires-Dist: torch; extra == 'full'
+Requires-Dist: torchvision; extra == 'full'
+Description-Content-Type: text/markdown
+
+---
+title: README
+author: Jan-Michael Rye
+---
+
+[insert: badges gitlab]: #
+
+[![Pipeline Status](https://gitlab.inria.fr/jrye/hydronaut/badges/main/pipeline.svg)](https://gitlab.inria.fr/jrye/hydronaut/-/commits/main) [![Hatch](https://img.shields.io/badge/%F0%9F%A5%9A-Hatch-4051b5.svg)](https://github.com/pypa/hatch) [![License](https://img.shields.io/badge/license-MIT-9400d3.svg)](https://spdx.org/licenses/MIT.html) [![PyPI Downloads](https://static.pepy.tech/badge/Hydronaut)](https://pepy.tech/projects/Hydronaut) [![Latest Release](https://gitlab.inria.fr/jrye/hydronaut/-/badges/release.svg)](https://gitlab.inria.fr/jrye/hydronaut/-/tags) [![PyPI](https://img.shields.io/badge/PyPI-Hydronaut-006dad.svg)](https://pypi.org/project/Hydronaut/) [![Pylint](https://gitlab.inria.fr/jrye/hydronaut/-/jobs/artifacts/main/raw/pylint/pylint.svg?job=pylint)](https://gitlab.inria.fr/jrye/hydronaut/-/jobs/artifacts/main/raw/pylint/pylint.txt?job=pylint)
+
+[/insert: badges gitlab]: #
+
+![Hydronaut logo](https://gitlab.inria.fr/jrye/hydronaut/-/raw/main/img/hydronaut_logo.svg)
+
+# Synopsis
+
+[Hydronaut](https://gitlab.inria.fr/jrye/hydronaut) is a framework for exploring the depths of hyperparameter space with [Hydra](https://hydra.cc/docs/intro/) and [MLflow](https://mlflow.org/). Its goal is to encourage and facilitate the use of these tools while handling the sometimes unexpected complexity of using them together. Users benefit from both without having to worry about the implementation and are thus able to focus on developing their models.
+
+Hydra allows the user to organize all hyperparameters via simple YAML files with support for runtime overrides via the command-line. It also allows the user to explore the hyperparameter space with automatic sweeps that are easily parallelized. These sweeps can either explore all possible parameter combinations or they can use any of the [optimizing sweepers supported by Hydra](https://hydra.cc/docs/intro/) such as the [Optuna Sweeper plugin](https://hydra.cc/docs/plugins/optuna_sweeper/). The hyperparameters used for every run are automatically saved for future reference and reproducibility.
+
+MLflow is a platform for tracking experiments and their results, among other things. The library provides numerous [logging functions](https://mlflow.org/docs/latest/python_api/mlflow.html#mlflow.log_artifact) to track hyperparameters, metrics, artifacts and models of every run so that nothing is ever lost or forgotten. The results can be readily perused, compared and managed via both command-line and web interfaces. It can also be used to push trained models to registries to share with others.
+
+## Links
+
+[insert: links 2]: #
+
+### GitLab
+
+* [Homepage](https://gitlab.inria.fr/jrye/hydronaut)
+* [Source](https://gitlab.inria.fr/jrye/hydronaut.git)
+* [Issues](https://gitlab.inria.fr/jrye/hydronaut/issues)
+* [Documentation](https://jrye.gitlabpages.inria.fr/hydronaut)
+* [GitLab package registry](https://gitlab.inria.fr/jrye/hydronaut/-/packages)
+
+### Other Repositories
+
+* [Python Package Index (PyPI)](https://pypi.org/project/Hydronaut/)
+* [Software Heritage](https://archive.softwareheritage.org/browse/origin/?origin_url=https%3A//gitlab.inria.fr/jrye/hydronaut.git)
+* [HAL open science](https://hal.science/hal-04246627v1)
+
+[/insert: links 2]: #
+
+### Related
+
+* [Hydronaut Tutorials](https://jrye.gitlabpages.inria.fr/hydronaut-tutorial/)
+* [MolPred](https://gitlab.inria.fr/jrye/molpred) - A Hydronaut-based framework that integrates [ChemFeat](https://gitlab.inria.fr/jrye/chemfeat) for building machine- and deep-learning models to predict properties of molecules.
+
+## Citations
+
+If you use this software, please cite it using the metadata in [CITATION.cff](https://gitlab.inria.fr/jrye/hydronaut/-/blob/main/CITATION.cff). The file can be converted to various output formats using [cffconvert](https://pypi.org/project/cffconvert/).
+
+
+# Installation
+
+Install the [Hydronaut package](https://pypi.org/project/hydronaut) from the [Python Package Index](https://pypi.org/) using any standard Python package manager, e.g.
+
+~~~sh
+# Uncomment the following 2 lines to create and activate a virtual environment.
+# python -m venv venv
+# source venv/bin/activate
+pip3 install --upgrade hydronaut
+~~~
+
+Packages are also provided via the [GitLab package registry](https://gitlab.inria.fr/jrye/hydronaut/-/packages).
+
+Hydronaut can also be installed from source with any standard Python package manager that supports [pyproject.toml](https://peps.python.org/pep-0621/) files. For example, to install it with pip, either locally or in a virtual environment, run the following commands:
+
+~~~sh
+git clone --recursive https://gitlab.inria.fr/jrye/hydronaut
+cd hydronaut
+# Uncomment the following 2 lines to create and activate a virtual environment.
+# python -m venv venv
+# source venv/bin/activate
+pip install --upgrade .
+~~~
+
+Note that the Hydronaut Git repository contains Git submodules. It should be recursively cloned with `git clone --recursive https://gitlab.inria.fr/jrye/hydronaut` to check out all requirements. Alternatively, after cloning the repository non-recursively one can run `git submodule update --init --recursive` to fully initialize the repository. This can also be accomplished with the script [hydronaut-initialize.sh](https://gitlab.inria.fr/jrye/hydronaut/-/blob/main/scripts/hydronaut-initialize.sh), which is provided for convenience.
+
+The project also provides the script [hydronaut-install_in_venv.sh](https://gitlab.inria.fr/jrye/hydronaut/-/blob/main/scripts/hydronaut-install_in_venv.sh) which can be used to install the package in a virtual environment. Internally, the script uses `pip-install.sh` from the utility-scripts submodule which can circumvent a bug in the way that`hatch-vcs` handles Git submodules.
+
+## Submodules
+
+* [utility-scripts](https://gitlab.inria.fr/jrye/utility-scripts) - Required for some of the scripts included in the Git repository but not required for the Python package itself.
+
+
+# Usage
+
+There are only two requirements for running an experiment with Hydronaut:
+
+* A Hydra YAML configuration file.
+* A subclass of the Hydronaut `Experiment` class, which is defined in [hydronaut.experiment](https://gitlab.inria.fr/jrye/hydronaut/-/blob/main/src/hydronaut/experiment.py).
+
+Once the configuration file and `Experiment` subclass have been created, the experiment can be run with `hydronaut-run` or `hydronaut-run_in_venv.sh` (see below).
+
+
+## Tutorials
+
+A series of Jupyter notebooks has been prepared to serve as an introduction and a tutorial to Hydronaut. The Git repository is available [here](https://gitlab.inria.fr/jrye/hydronaut-tutorial) and the exported slides are available [here](https://jrye.gitlabpages.inria.fr/hydronaut-tutorial/).
+
+
+## Examples
+
+Examples of varying complexity are provided in the [examples directory](https://gitlab.inria.fr/jrye/hydronaut/-/tree/main/examples). The [dummy examples](https://gitlab.inria.fr/jrye/hydronaut/-/blob/main/examples/dummy/README.md) provide the simplest albeit least interesting examples of a minimal setup. Peruse the others to get an idea of how to create more interesting experiments.
+
+
+## Hydra Configuration File
+
+By default, Hydronaut expects a Hydra configuration file at the subpath `conf/config.yaml` relative to the current working directory. A different configuration file can be specified by setting the `HYDRONAUT_CONFIG` environment variable if necessary. The value of this variable will be interpreted as a subpath within the `conf` directory of the working directory. For example, `export HYDRONAUT_CONFIG=config-test.yaml` will load `conf/config-test.yaml` relative to the current directory.
+
+Hydronaut uses [Hydra](https://hydra.cc/), which in turn uses [OmegaConf](https://github.com/omry/omegaconf) configuration files. The [Hydra start guide](https://hydra.cc/docs/intro/) provides a good and quick introduction to the functionality provided by Hydra. The basic idea is that you should set all of your experiment's parameters in the configuration file and then retrieve them from the configuration object in your code. This will grant the following advantages:
+
+* All parameters can be modified in one place without changing the code.
+* All parameters can be overridden from the command line.
+* The effects of different parameters and parameter combinations can be explored automatically using Hydra's sweeper plugins, including automatic optimization.
+* The exact parameters used for each run are stored systematically in structured output files along with all artifacts and metrics that your experiment creates.
+* Only a single object needs to be passed around in your code instead of an ever-changing list of parameters.
+
+In addition to the reserved Hydra fields (`hydra`, `defaults`), Hydronaut adds an `experiment` field with some required values:
+
+~~~yaml
+experiment:
+  name: <experiment name>                # required
+  description: <experiment description>  # required
+  exp_class: <module>:<class>            # required
+  params: <experiment parameters>
+  python:
+    paths: <list of directories to add to the Python system path>
+  mlflow: <MLflow configuration>
+  environment: <dict of environment variable names and values>
+~~~
+
+It is strongly recommended that all experiment parameters be nested under `experiment.params` but this is not enforced programmatically unless `experiment/hf_experiment` is added to the `defaults` list in the configuration file.
+
+The best way to get started is to browse the [tutorial](https://gitlab.inria.fr/jrye/hydronaut-tutorial) and peruse the configuration files in the provided [examples](https://gitlab.inria.fr/jrye/hydronaut/-/tree/main/examples). `hydronaut-init` can also be used to initialize a directory for a new experiment. It will create a configuration file and a subclass of the `Experiment` class that the user can use as a starting point. It accepts some options for initializing the configuration file with settings for sweepers and launchers. See `hydronaut-init --help` for details. 
+
+For further details, consult the [Hydra](https://hydra.cc/docs/intro/) and [OmegaConf](https://omegaconf.readthedocs.io/en/) documentation, e.g.
+
+* [command-line flags](https://hydra.cc/docs/advanced/hydra-command-line-flags/)
+* [defaults list](https://hydra.cc/docs/advanced/defaults_list/)
+* [extending configs](https://hydra.cc/docs/patterns/extending_configs/)
+* [extended override syntax](https://hydra.cc/docs/1.2/advanced/override_grammar/extended/)
+* [override syntax](https://hydra.cc/docs/advanced/override_grammar/basic/)
+* [tab completion](https://hydra.cc/docs/tutorials/basic/running_your_app/tab_completion/)
+* [variable interpolation](https://omegaconf.readthedocs.io/en/latest/usage.html#variable-interpolation)
+
+
+### Environment Variable Configuration
+
+Environment variables can be defined in the configuration file under `experiment.environment`. This should be a dictionary mapping environment variable names (strings) to values (strings). These settings will only take effect after the Hydra configuration file is loaded but before MLflow is initialized and can thus be used to configure MLflow (see below).
+
+~~~yaml
+experiment:
+    # ...
+    environment:
+        # e.g.
+        MLFLOW_TRACKING_URI: https://example.com/mlflow/
+        MLFLOW_TRACKING_PASSWORD: gToVTMvhH0C6B6yR
+        # ...
+~~~
+
+### MLflow Configuration
+
+Tracking, artifact and registry servers for MLflow are configured via environment variables. These can either be set by the user prior to invoking `hydronaut-run` or via the configuration file as explained above. The configuration is exactly the same as when using MLflow directly.
+
+In addition to the environment variables supported by MLflow and its eventual dependencies such as Boto3 (required for AWS support), the configuration file can also be used to pass additional arguments to [mlflow.start_run](https://mlflow.org/docs/latest/python_api/mlflow.html?highlight=start_run#mlflow.start_run) via the field `experiment.mlflow.start_run`. This must be a dictionary mapping valid `start_run` keyword argument names to their values, e.g.
+
+~~~yaml
+experiment:
+    # ...
+    mlflow:
+        start_run:
+            tags:
+                tag1: one
+                tag2: two
+~~~
+
+#### Standard Environment Variables
+
+The user should consult the relevant documentation for supported environment variables, e.g.
+
+* [MLflow Tracking](https://mlflow.org/docs/latest/tracking.html)
+* [Boto3 environment variables for AWS credentials](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html#environment-variables)
+
+For example, to set up a remote tracking server with an S3 artifact server backend, the following environment variables may be required:
+
+* MLFLOW_TRACKING_URI
+* MLFLOW_TRACKING_USERNAME
+* MLFLOW_TRACKING_PASSWORD
+* MLFLOW_S3_ENDPOINT_URL
+* AWS_ACCESS_KEY_ID
+* AWS_SECRET_ACCESS_KEY
+* AWS_DEFAULT_REGION
+* AWS_SESSION_TOKEN
+
+The specific requirements will depend on the target setup.
+
+#### Custom Environment Variables
+
+* `MLFLOW_REGISTRY_URI`: If set, the value will be used to configure the MLflow registry URI, which otherwise defaults to the value of the tracking URI.
+
+### Resolvers
+
+Resolvers are functions that can be used to insert values into fields of the configuration file, such as the current date (`${now:%Y-%m-%d}`) or the number of available CPU cores (`${n_cpu:}`). Hydronaut provides some custom resolvers in addition to the ones provided by [OmegaConf](https://omegaconf.readthedocs.io/en/latest/custom_resolvers.html#built-in-resolvers) and [Hydra](https://hydra.cc/docs/configure_hydra/intro/#resolvers-provided-by-hydra). 
+
+
+| Resolver | Description |
+| :-- | :-- |
+| cwd | The original current working directory where Hydronaut was started, as an absolute path. The following optional arguments are recognized: `resolve` - resolve symlinks in the path; `uri` - return the path as a file URI (`file:///...`). |
+| min | Returns the minimum value of its arguments: `${min: ${n_cpu:} ${n_gpu_pytorch}}`. |
+| max | Returns the maximum value of its arguments: `${max: ${n_cpu:} ${n_gpu_pytorch}}`. |
+| n_gpu_pytorch | The number of available GPUs to PyTorch: `${n_gpu_pytorch:}`. If PyTorch is not installed then this will always return 0. This resolver accepts a divisor with the same interpretation as `n_cpu`. |
+| n_cpu | The number of available logical CPUs: `${n_cpu:}`. An optional argument may also be given to divide the number of available CPUs by an integer, which may be useful when assigning CPUs to jobs, e.g. `${n_cpu: 4}` or `{n_cpu: ${n_jobs}}`. |
+| url_quote | Quote the single given argument for use in URLs (e.g. `sqlite:///${url_quote:${cwd:}}/database.db`). |
+
+See [hydronaut.hydra.resolvers](https://gitlab.inria.fr/jrye/hydronaut/-/blob/main/src/hydronaut/hydra/resolvers.py) for implementation details and comments.
+
+
+## Experiment Subclasses
+
+Hydronaut will invoke a subclass of [hydronaut.experiment.Experiment](https://gitlab.inria.fr/jrye/hydronaut/-/blob/main/src/hydronaut/experiment.py) as an entry point to the user's code. The only thing that the user must define in their subclass is the `__call__()` method (see below). It is entirely up to the user what this function does as only the return value will be used by Hydronaut. The user can invoke other Python code, external commands, remote services, etc.
+
+The configuration object will be available through the parent class's `config` attribute, from which the user should retrieve the hyperparameters defined in the configuration file.
+
+Here are the main methods of interest to users when subclassing the `Experiment` class:
+
+* `__call__(self)` (required) - This method accepts no arguments and returns 1 or more numerical values which should represent the target score or loss of the experiment. The return value will be tracked in MLflow under the name "Objective Value" and it will be the value optimized by any configured optimizers. When returning multiple values, the optimizer must be configured accordingly. For example, see the Optuna plugin's [Multi-Objective Optimization example](https://hydra.cc/docs/plugins/optuna_sweeper/#example-2--multi-objective-optimization).
+
+* `setup(self)` (optional) - This method accepts no arguments and returns None. It should be used to prepare everything needed before invoking `__call__()`, such as downloading and preparing datasets, initializing remote resources, etc.
+
+* `__init__(self, config)` (optional) - This method accepts the Hydra/OmegaConf configuration object and returns None. If overridden, it should invoke `super().__init__(config)` to ensure proper setup.
+
+The parent `Experiment` class also provides several MLflow logging methods for convenience. These are documented [here](https://jrye.gitlabpages.inria.fr/hydronaut/hydronaut.html#module-hydronaut.experiment).
+
+Hydronaut will determine which `Experiment` subclass to load via the configuration file's `experiment.exp_class` field. The value of this field is a string with the format `<module>:<class>` where `<module>` is the Python module containing the subclass and `<class>` is its name. Python modules and packages that are not already on the system path can be made importable by adding their containing directories to the `experiment.python.paths` list in the configuration file.
+
+See the [dummy example](https://gitlab.inria.fr/jrye/hydronaut/-/tree/main/examples/dummy/experiment_subclass/) for an example of a very simple configuration file and `Experiment` subclass with only one module. The other examples and the [tutorial](https://gitlab.inria.fr/jrye/hydronaut-tutorial) will demonstrate real-life examples.
+
+
+## Commands
+
+The following commands are installed with the Python package.
+
+
+### hydronaut-run
+
+Run `hydronaut-run` (equivalent to `python -m hydronaut.run`) in the working directory to load the configuration file and run the experiment. After the script has started, run `mlflow ui` in the same directory and then open the URL that it shows in a web browser. All of the experiments results will appear under the name given to the experiment in the configuration file.
+
+`hydronaut-run` accepts all of [Hydra's command-line flags](https://hydra.cc/docs/advanced/hydra-command-line-flags/). For example, to show Hydra information, run `hydronaut-run --info`.
+
+~~~sh
+# Usage:
+hydronaut-run [<hydra arguments>]
+
+# For example:
+hydronaut-run --cfg job
+hydronaut-run --multirun experiment.params.foo=42
+~~~
+
+
+### hydronaut-init
+
+Hydronaut also provides a script named `hydronaut-init` which will generate a commented configuration file and an Experiment subclass skeleton under the current working directory which can be used as a starting point for a new experiment.
+
+See `hydronaut-init --help` for available options.
+
+
+## Decorators
+
+As an alternative to subclassing [hydronaut.experiment.Experiment](https://gitlab.inria.fr/jrye/hydronaut/-/blob/main/src/hydronaut/experiment.py) and running an experiment with `hydronaut-run`, Hydronaut also provides the [with_hydronaut decorator](https://gitlab.inria.fr/jrye/hydronaut/-/blob/main/src/hydronaut/decorator.py) that can be used to run classes and functions with Hydronaut directly.
+
+The decorator accepts a relative or absolute path to a configuration file as an optional argument (see the examples linked below).
+
+* If the path is relative, it is interpreted relative to the working directory.
+* The parent directory of the configuration file will be treated as the Hydra configuration directory, i.e. the directory in which Hydra will look for overrides.
+* If the argument is omitted, the default path is used.
+
+### Decorated Functions
+
+The decorator can be used with functions that accept a Hydra configuration object as their sole argument and return one or more numerical values that will serve as objective values. The decorated function is a callable object that will invoke the given function within the Hydronaut framework. The user should invoke this object as their main function.
+
+See the [dummy decorated function example](https://gitlab.inria.fr/jrye/hydronaut/-/blob/main/examples/dummy/decorated_function/README.md) for details.
+
+
+### Decorated Classes
+
+The decorator can be used with classes that define `__init__`, `__call__` and optionally `setup` methods with the same function signatures as [hydronaut.experiment.Experiment](https://gitlab.inria.fr/jrye/hydronaut/-/blob/main/src/hydronaut/experiment.py). The decorated class is a callable object that will invoke the `setup` (if defined) and `__call__` methods of the given class after instantiating it with the configuration object within the Hydronaut framework. The user should invoke this object as their main function.
+
+See the [dummy decorated class example](https://gitlab.inria.fr/jrye/hydronaut/-/blob/main/examples/dummy/decorated_function/README.md) for details.
+
+### Remarks
+
+* Decorated functions and classes should be run directly by the user as shown in the examples. They are not compatible with `hydronaut-run`.
+* Subclasses of `hydronaut.experiment.Experiment` are compatible with the decorator and provide wrappers around the MLflow logging functions that output log messages when they are called. It is therefore recommended to subclass the `Experiment` class even when using decorators.
+
+
+## API Documentation
+
+The [Sphinx](https://www.sphinx-doc.org/en/master/)-generated online API documentation is available here: <https://jrye.gitlabpages.inria.fr/hydronaut/>.
+
+
+## Optuna
+
+Usage of the Optuna Sweeper plugin is documented [here](https://hydra.cc/docs/plugins/optuna_sweeper/). By default, Optuna studies are kept in memory and thus only last for the duration of a single program execution. This works across runs in the same execution but not between separate executions. You may resume a study on subsequent executions by using persistent storage such as an SQLite backend. This can be achieved as follows:
+
+~~~yaml
+hydra:
+  sweeper:
+    # Use a common database for all runs.
+    storage: sqlite:///${url_quote:${cwd:}}/optuna.db
+
+    # Set the study to the experiment name.
+    study_name: ${experiment.name}
+
+    # ...
+~~~
+
+Please read the [Optuna SQLite Storage](#optuna-sqlite-storage) subsection under Troubleshooting below for information regarding pending pull requests and version incompatibilities.
+
+When using Optuna >= 3.0.0, it is possible to use [Optuna Dashboard](https://optuna.org/#dashboard) to follow optimization in real time.
+
+
+
+## MLflow
+
+Hydronaut only uses a fraction of the full functionality of MLflow. For example, beyond tracking your experiments, it can also be used to package and distribute your code via standard platforms to facilitate collaboration with others. The interested user should consult the [MLflow documentation](https://mlflow.org/docs/latest/index.html) to get an idea of what is possible.
+
+Most of the MLflow functionality is available via the [command-line interface](https://mlflow.org/docs/latest/cli.html) (`mlflow`). For additional functionality the user may also be interested in [MLflow Extra](https://gitlab.inria.fr/jrye/mlflow-extra).
+
+### Useful Examples
+
+~~~sh
+# Find an experiment ID.
+mlflow experiments search
+
+# Export all of its parameters and metrics to a CSV file
+mlflow experiments csv -x <ID>
+~~~
+
+
+### GitLab Integration
+
+GitLab version 15.11 introduced functionality to use GitLab as an MLflow server. The configuration only requires a GitLab access token and two environment variables and it will let you log all results obtained via Hydronaut to a GitLab project of your choice. Please refer to the [official GitLab documentation](https://docs.gitlab.com/ee/user/project/ml/experiment_tracking/mlflow_client.html) for details.
+
+GitLab does not yet fully support all MLflow client methods but these are expected to be implemented as development continues. See the "GitLab MLflow Server" subsection under "Troubleshooting" below for a temporary workaround.
+
+
+# Troubleshooting
+
+## CUDA/NVCC Errors With PyTorch
+
+Check that the version of PyTorch is compatible with the one installed on the system:
+
+~~~sh
+# System CUDA version
+nvcc -V
+
+# PyTorch CUDA version
+python -c 'import torch; print(torch.version.cuda)'
+~~~
+
+If the versions are mismatched, consult the [PyTorch Start Locally guide](https://pytorch.org/get-started/locally/) for commands to install a compatible version in a virtual environment. If PyTorch is already installed in the current (virtual) environment, append `--upgrade` to the install command (e.g. `pip install --upgrade ...`).
+
+## Hydra Joblib Launcher Plugin And PyTorch DataLoader Threads
+
+The [Hydra Joblib Launcher plugin](https://hydra.cc/docs/plugins/joblib_launcher/) is currently not compatible with [PyTorch DataLoader worker processes](https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader). Either disable the Joblib launcher or set the number of worker processes to 0 when instantiating DataLoaders (`num_workers=0`).
+
+## Hydra Configuration In Subprocesses
+
+Due to limitations in Hydra's support for subprocesses, it is usually necessary to re-initialize the Hydra configuration in subprocesses such as PyTorch DataLoaders running as separate workers. Hydronaut provides the [configure_hydra](https://jrye.gitlabpages.inria.fr/hydronaut/hydronaut.hydra.html?highlight=configure_hydra#hydronaut.hydra.config.configure_hydra) function to facilitate this.
+
+~~~python
+from hydronaut.hydra.config import configure_hydra
+# ...
+configure_hydra(from_env=True)
+~~~
+
+The configuration uses environment variables that are set during initialization of the [Experiment](https://jrye.gitlabpages.inria.fr/hydronaut/hydronaut.html?highlight=experiment#hydronaut.experiment.Experiment) base class.
+
+## GitLab MLflow Server
+
+At the time of writing, GitLab has not yet implemented full support for all [MLflow client methods](https://docs.gitlab.com/ee/user/project/ml/experiment_tracking/mlflow_client.html#supported-mlflow-client-methods-and-caveats). In particular, artifact logging does not currently support subdirectories. 
+
+The following code can be used to override with MLflow client's artifact
+logging with versions that transform directory paths into flat file names. This code can be pasted in before the Hydronaut-decorated main function in user code or at the top of the `hydronaut.run` module.
+
+~~~python
+import os
+import pathlib
+import tempfile
+from mlflow.tracking.client import MlflowClient
+
+def log_artifact(self, run_id, local_path, artifact_path=None):
+    '''
+    Override MlflowClient.log_artifact to avoid creating directories on
+    endpoints that do not support them.
+    '''
+    separator = '__'
+    if artifact_path is not None:
+        artifact_path = pathlib.Path(artifact_path)
+        local_path = pathlib.Path(local_path).resolve()
+        name = f'{separator.join(artifact_path.parts)}{separator}{local_path.name}'
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = pathlib.Path(tmp_dir) / name
+            tmp_path.symlink_to(local_path)
+            self._tracking_client.log_artifact(run_id, str(tmp_path), None)
+            return
+    self._tracking_client.log_artifact(run_id, local_path, None)
+
+
+def log_artifacts(self, run_id, local_dir, artifact_path=None):
+    '''
+    Override MlflowClient.log_artifacts to avoid creating directories on
+    endpoints that do not support them.
+    '''
+    if artifact_path is not None:
+        artifact_path = pathlib.Path(artifact_path)
+
+    local_dir = pathlib.Path(local_dir).resolve()
+    # local_dir.walk() will be available in Python 3.12
+    for root, _dirs, files in os.walk(local_dir):
+        rel_root = pathlib.Path(root).relative_to(local_dir.parent)
+        for fil in files:
+            path = root / fil
+            new_artifact_path = artifact_path / rel_root
+            self.log_artifact(run_id, path, new_artifact_path)
+
+
+MlflowClient.log_artifact = log_artifact
+MlflowClient.log_artifacts = log_artifacts
+~~~
+
+If the need for this workaround persists, it will be integrated as an option in Hydronaut.
+
+## Optuna SQLite Storage
+
+Hydra's current [Optuna Sweeper plugin](https://hydra.cc/docs/plugins/optuna_sweeper/) depends on Optuna 2.10.1, which is incompatible with [SQLAlchemy](https://www.sqlalchemy.org/) version 2.0 and above. There is an [open pull request on Hydra's GitHub](https://github.com/facebookresearch/hydra/pull/2360) to update the plugin for Optuna version >=3.0.0. Until this pull request is merged, you can work around the issue by either downgrading SQLAlchemy:
+
+~~~sh
+pip install --force-reinstall SQLAlchemy==1.4.44
+~~~
+
+or by installing the patched version submitted with the pull request that updates the sweeper to Optuna >= 3.0.0.
+
+~~~sh
+pip install 'git+https://github.com/keisuke-umezawa/hydra/@feature/fix-optuna-v3#egg=hydra-optuna-sweeper&subdirectory=plugins/hydra_optuna_sweeper'
+~~~
+
+## YAML Errors When Sweeping Strings
+
+Attempting to sweep strings from the configuration file, for example with
+
+~~~
+hydra:
+  sweeper:
+    params:
+      ++experiment.params.foo: "a b", "c d", "e f"
+~~~
+
+will result in YAML block-parsing errors:
+
+~~~
+yaml.parser.ParserError: while parsing a block mapping
+  in ...
+expected <block end>, but found ','
+  in ...
+~~~
+
+This occurs due to a limitation of the YAML parser used by Hydra, which expects the rest of the line to be a string value when the value starts with a quotation mark. Either remove the quotes from the value and use "\\" to escape special characters and spaces (e.g. `++experiment.params.foo: a\ b, c\ d, e\ f`), or use the `choice` function (e.g. `++experiment.params.foo: choice("a b", "c d", "e f")`). The `choice` sweep function is documented [here](https://hydra.cc/docs/1.2/advanced/override_grammar/extended/#sweeps).
+
+# Further Reading
+
+## Optuna
+
+* [Optuna website](https://optuna.org/)
+* [Hydra Optuna Sweeper plugin documentation](https://hydra.cc/docs/plugins/optuna_sweeper/)
+* [Multi-objective Optimization with Optuna](https://hydra.cc/docs/plugins/optuna_sweeper/#example-2--multi-objective-optimization)
+
+## Optuna Dashboard
+
+* [Optuna website](https://optuna.org/#dashboard)
+* [GitHub](https://github.com/optuna/optuna-dashboard)
+* [PyPI](https://pypi.org/project/optuna-dashboard/)
+
+## PyTorch Lighting
+
+* [Introduction](https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09)
+* [Callbacks](https://pytorch-lightning.readthedocs.io/en/stable/extensions/callbacks.html)
