@@ -1,0 +1,71 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Build parser
+      run: cargo build --verbose
+      working-directory: parser
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install python test dependencies
+      run: ./scripts/install-deps.sh
+
+    # these three steps are equivalent to just ./scripts/test-guidance.sh
+    # but we want to run them separately to get better timings/logs/etc
+
+    - name: Run Rust tests
+      run: ./scripts/test-guidance.sh --rust
+
+    - name: Run MaskBench
+      run: ./scripts/test-guidance.sh --mb
+
+    - name: Run Python Guidance tests
+      run: ./scripts/test-guidance.sh --py
+
+    - name: Build sdist
+      run: maturin build --sdist --zig
+
+    - name: Build wheel
+      run: maturin build --zig
+
+    - name: Upload sdist and wheel artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: wheels
+        path: target/wheels/*
+
+  msrv:
+    name: MSRV Check
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@1.80.0
+      with:
+        components: clippy
+
+    - name: Build parser
+      run: cargo build --verbose --locked
+      working-directory: parser
