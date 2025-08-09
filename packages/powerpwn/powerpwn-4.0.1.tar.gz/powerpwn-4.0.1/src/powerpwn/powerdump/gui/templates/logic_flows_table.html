@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <table id="data" class="table table-striped">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Automation</th>
+        <th>Environment </th>
+        <th>Created at</th>
+        <th>Created by</th>
+        <th>Last modified at</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for automation in resources %}
+        <tr>
+          <td><img src="{{ automation.icon_uri }}" class="img-thumbnail" alt="{{ automation.connection_id }}" width="25"></td>
+          <td>{{ automation.display_name }}</td>
+          <td><a href="/env/{{ automation.environment_id }}/automation">{{ automation.environment_id }}</a> </td>
+          <td>{{ automation.created_at }}</td>
+          <td>{{ automation.created_by.email }}</td>
+          <td>{{ automation.last_modified_at }}</td>
+          <td><a href="/api/{{ automation.connector_id }}/{{ automation.connection_id }}">Playground</a></td>
+          <td><a href="/env/{{ automation.environment_id }}/automation/{{ automation.entity_id }}">Raw</a> </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
+
+{% block scripts %}
+  <script>
+    $(document).ready(function () {
+      $('#data').DataTable({
+        scrollX: true
+      });
+    });
+  </script>
+{% endblock %}
