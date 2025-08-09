@@ -1,0 +1,94 @@
+from pydantic import BaseModel, Field, field_validator
+from typing import List, Any, Optional
+from .context_item import ContextItem
+from .faq import FAQ
+from .chat_example import ChatExample
+from ....base_models import CompanyAssetModel
+from ....base_models.chatty_asset_model import ChattyAssetPreview
+from .chatty_ai_mode import ChattyAIMode
+from ....utils.custom_exceptions import NotFoundError
+from ....utils.types.identifier import StrObjectId
+from .follow_up_strategy import FollowUpStrategy
+from enum import StrEnum
+
+class Tool(StrEnum):
+    """Tool model"""
+    CALENDAR_SCHEDULER = "calendar_scheduler"
+
+class ChattyAIAgent(CompanyAssetModel):
+    """AI Agent configuration model"""
+    # Basic Information
+    name: str = Field(..., description="Name of the AI agent")
+    personality: str = Field(..., description="Detailed personality description of the agent")
+    mode: ChattyAIMode = Field(default=ChattyAIMode.OFF)
+    integration_user_id : Optional[StrObjectId] = Field(default=None, description="Integration user id")
+    n8n_webhook_url: Optional[str] = Field(default=None, description="N8N webhook url")
+    test_source_id: Optional[StrObjectId] = Field(default=None, description="Test source id")
+    general_objective: str = Field(..., description="General objective/goal of the agent")
+    tools: List[Tool] = Field(default_factory=list, description="List of tools to be used by the agent")
+    calendars: List[str] = Field(default_factory=list, description="List of emails to be used as calendars")
+    # Configuration
+    contexts: List[ContextItem] = Field(default_factory=list, description="List of context items")
+    unbreakable_rules: List[str] = Field(default_factory=list, description="List of unbreakable rules")
+    follow_up_strategy_ids: List[StrObjectId] = Field(default_factory=list, description="List of follow-up strategy ids")
+    control_triggers: List[str] = Field(default_factory=list, description="Triggers for human handoff")
+    faqs: List[FAQ] = Field(default_factory=list, description="Frequently asked questions")
+    examples: List[ChatExample] = Field(default_factory=list, description="Training examples")
+
+    @field_validator('personality')
+    @classmethod
+    def validate_personality_not_empty(cls, v):
+        if not v.strip():
+            raise ValueError("Personality cannot be empty")
+        return v.strip()
+
+    @field_validator('general_objective')
+    @classmethod
+    def validate_objective_not_empty(cls, v):
+        if not v.strip():
+            raise ValueError("General objective cannot be empty")
+        return v.strip()
+
+    @field_validator('contexts')
+    @classmethod
+    def validate_contexts_order(cls, v):
+        # Sort contexts by order
+        return sorted(v, key=lambda x: x.order)
+
+    def get_context_by_title(self, title: str) -> ContextItem:
+        """Get context item by title"""
+        context = next((context for context in self.contexts if context.title.lower() == title.lower()), None)
+        if context is None:
+            raise NotFoundError(f"Context with title {title} not found")
+        return context
+
+    @property
+    def integrated_user_id(self) -> StrObjectId:
+        """Get the integrated user id"""
+        if self.integration_user_id is None:
+            raise ValueError(f"Chatty AI Agent {self.id} has no integration user id")
+        return self.integration_user_id
+
+    @property
+    def test_trigger(self) -> str:
+        """Get the test trigger"""
+        return f"Hola! Quiero testear al Chatty AI Agent {self.name} {self.id}"
+
+class ChattyAIAgentPreview(ChattyAssetPreview):
+    """Preview of the Chatty AI Agent"""
+    general_objective: str = Field(..., description="General objective of the AI agent")
+
+    @classmethod
+    def get_projection(cls) -> dict[str, Any]:
+        return super().get_projection() | {"general_objective": 1}
+
+    @classmethod
+    def from_asset(cls, asset: 'ChattyAIAgent') -> 'ChattyAIAgentPreview':
+        return cls(
+            _id=asset.id,
+            name=asset.name,
+            company_id=asset.company_id,
+            created_at=asset.created_at,
+            updated_at=asset.updated_at,
+            general_objective=asset.general_objective
+        )
