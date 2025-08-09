@@ -1,0 +1,23 @@
+version: "3.9"
+services:
+  build_dev_so:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    volumes:
+      - .:/project
+    working_dir: /project
+    environment:
+      PKG_DIR: py_cr
+      BUILD_TYPE: Release
+    command: ["bash", "tools/build-dev-so.sh"]
+
+  manylinux_wheels:
+    image: quay.io/pypa/manylinux_2_28_x86_64
+    platform: linux/amd64
+    volumes:
+      - .:/project
+    working_dir: /project
+    environment:
+      ABIS: "cp310-cp310 cp311-cp311 cp312-cp312"
+    command: ["bash", "tools/build-manylinux.sh"]
