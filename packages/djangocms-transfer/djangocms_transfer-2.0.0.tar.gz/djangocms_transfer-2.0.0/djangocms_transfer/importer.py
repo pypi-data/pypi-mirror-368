@@ -1,0 +1,60 @@
+from cms.models import CMSPlugin
+from django.db import transaction
+
+from .utils import get_plugin_class
+
+
+@transaction.atomic
+def import_plugins(plugins, placeholder, language, root_plugin_id=None):
+    source_map = {}
+    new_plugins = []
+
+    if root_plugin_id:
+        root_plugin = CMSPlugin.objects.get(pk=root_plugin_id)
+        source_map[root_plugin_id] = root_plugin
+    else:
+        root_plugin = None
+
+    for archived_plugin in plugins:
+        # custom handling via "get_plugin_data" can lead to "null"-values
+        # instead of plugin-dictionaries. We skip those here.
+        if archived_plugin is None:
+            continue
+
+        if archived_plugin.parent_id:
+            parent = source_map[archived_plugin.parent_id]
+        else:
+            parent = root_plugin
+
+        if parent and parent.__class__ != CMSPlugin:
+            parent = parent.cmsplugin_ptr
+
+        plugin = archived_plugin.restore(
+            placeholder=placeholder,
+            language=language,
+            parent=parent,
+        )
+        source_map[archived_plugin.pk] = plugin
+
+        new_plugins.append(plugin)
+
+    for new_plugin in new_plugins:
+        plugin_class = get_plugin_class(new_plugin.plugin_type)
+
+        if getattr(plugin_class, "_has_do_post_copy", False):
+            # getattr is used for django CMS 3.4 compatibility
+            # apps on 3.4 wishing to leverage this callback will need
+            # to manually set the _has_do_post_copy attribute.
+            plugin_class.do_post_copy(new_plugin, source_map)
+
+
+@transaction.atomic
+def import_plugins_to_page(placeholders, pagecontent, language):
+    page_placeholders = pagecontent.rescan_placeholders()
+
+    for archived_placeholder in placeholders:
+        plugins = archived_placeholder.plugins
+        placeholder = page_placeholders.get(archived_placeholder.slot)
+
+        if placeholder and plugins:
+            import_plugins(plugins, placeholder, language)
