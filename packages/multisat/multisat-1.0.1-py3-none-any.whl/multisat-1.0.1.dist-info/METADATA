@@ -1,0 +1,241 @@
+Metadata-Version: 2.4
+Name: multisat
+Version: 1.0.1
+Summary: A Python library to convert, resample, and harmonize satellite imagery across different sources.
+Home-page: https://github.com/yourusername/multisat
+Author: Sujal Bandodkar
+Author-email: sujalbandodkar05@gmail.com
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Science/Research
+Classifier: Topic :: Scientific/Engineering :: GIS
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: rasterio>=1.3.0
+Requires-Dist: numpy>=1.20
+Requires-Dist: gdal>=3.7.0
+Requires-Dist: scikit-image>=0.19
+Requires-Dist: matplotlib>=3.3
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: license-file
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+# 📦 MultiSat: A Python Library for Multi-Satellite Image Processing
+
+`multisat` is a lightweight and easy-to-use Python library designed to streamline satellite image preprocessing, harmonization, and analysis from various sources like **Landsat** and **Sentinel**. This library is useful for research and projects involving climate modeling, disaster prediction, remote sensing, or any geospatial analysis.
+
+[![Download Documentation](https://img.shields.io/badge/📄%20Download%20Documentation-blue)](https://github.com/MEWTROS/MultiSat-Library/raw/main/multisat_documentation.pdf)
+
+
+---
+
+## 🚀 Features
+
+* 📂 **Format Detection**: Automatically detects input formats: JP2, HDF, GeoTIFF, SAFE.
+* 🔁 **Conversion Tools**: Convert Sentinel `.jp2`, `.SAFE`, and HDF/NetCDF to GeoTIFF.
+* 🧱 **Band Stacking**: Stack multiple single-band images into a multi-band image.
+* 🧽 **Normalization**: Normalize image pixel values to \[0,1] or \[0,255].
+* 🎨 **Histogram Matching**: Harmonize intensity profiles across satellites.
+* 📐 **Resolution Resampling**: Resample to common spatial resolution.
+* 🌥️ **Cloud Masking**: Apply basic brightness-based cloud masks.
+* 📊 **Image Utilities**: Visualize, extract metadata, NDVI, and band stats.
+
+---
+
+## 📦 Installation
+
+Before using `multisat`, make sure you have the following dependencies installed:
+
+```bash
+pip install rasterio numpy scikit-image matplotlib
+```
+
+You also need `GDAL` installed correctly:
+
+```bash
+pip install path/to/GDAL‑3.7.3‑cp39‑cp39‑win_amd64.whl
+```
+
+Then install this library:
+
+```bash
+pip install multisat
+```
+
+If installing locally:
+
+```bash
+pip install -e .
+```
+
+---
+
+## 🧠 Modules & Functions
+
+### 1. `converter.py`
+
+* `get_format(file_path)`
+
+  > Returns the file type: JP2, HDF, GeoTIFF, or SAFE.
+
+* `convert_jp2_to_geotiff(input, output)`
+
+  > Converts `.jp2` images to `.tif`.
+
+* `convert_hdf_to_geotiff(input, output_dir)`
+
+  > Converts HDF/NetCDF subdatasets to individual `.tif` bands.
+
+* `extract_safe_bands(safe_path, out_dir, band_ids=["B02", "B03", "B04"])`
+
+  > Extracts desired bands (e.g., RGB, NIR) from Sentinel `.SAFE`.
+
+* `convert_any_to_geotiff(input, output_dir)`
+
+  > Automatically detects format and converts to `.tif`.
+
+* `stack_bands([b1, b2, b3], output)`
+
+  > Stacks single-band TIFFs into one multi-band TIFF.
+
+### 2. `harmonizer.py`
+
+* `normalize_image(img, out, mode="0-1")`
+
+  > Normalize pixel values to `[0,1]` or `[0,255]`.
+
+* `match_histogram(src, ref, out)`
+
+  > Adjust pixel distribution of `src` to match `ref`.
+
+* `harmonize_bands(img, type, out)`
+
+  > Reorders bands for Sentinel/Landsat to standard RGB.
+
+* `apply_basic_cloud_mask(img, out, threshold=200)`
+
+  > Masks bright regions (clouds) using thresholding.
+
+### 3. `resampler.py`
+
+* `match_resolution(input, output, target_resolution, method="bilinear")`
+
+  > Resamples image to a fixed spatial resolution.
+
+* `resample_to_match(source, ref, output)`
+
+  > Resamples `source` image to match resolution of `ref` image.
+
+### 4. `utils.py`
+
+* `get_image_metadata(img)`
+
+  > Returns dictionary of CRS, bounds, resolution, size, etc.
+
+* `detect_satellite_type(img)`
+
+  > Guesses if image is Sentinel/Landsat based on bands/res.
+
+* `plot_bands(img, bands=[1,2,3], title="", stretch=True)`
+
+  > Displays an image using selected bands (RGB default).
+
+* `calculate_ndvi(img, red=3, nir=4, out=None)`
+
+  > Returns or saves NDVI image using red/NIR bands.
+
+* `print_band_stats(img)`
+
+  > Prints min, max, mean, std for each band.
+
+---
+
+## 📚 Example Usage
+
+```python
+from multisat.converter import convert_any_to_geotiff, stack_bands
+from multisat.harmonizer import normalize_image, apply_basic_cloud_mask
+from multisat.resampler import match_resolution
+from multisat.utils import plot_bands, calculate_ndvi
+
+# Convert input
+converted = convert_any_to_geotiff("data/S2.SAFE", "output")
+stacked_path = "output/stacked.tif"
+stack_bands(converted, stacked_path)
+
+# Normalize
+normalize_image(stacked_path, "output/norm.tif")
+
+# Apply cloud mask
+apply_basic_cloud_mask("output/norm.tif", "output/cloudmasked.tif")
+
+# Visualize
+plot_bands("output/cloudmasked.tif", title="Cloud Masked RGB")
+
+# Compute NDVI
+ndvi = calculate_ndvi("output/stacked.tif", red_band=3, nir_band=4, output_path="output/ndvi.tif")
+```
+
+---
+
+## 📁 Folder Structure
+
+```
+multisat/
+  converter.py
+  harmonizer.py
+  resampler.py
+  utils.py
+setup.py
+README.md
+LICENSE
+```
+
+---
+
+## 🧱 Dependencies
+
+* rasterio
+* numpy
+* matplotlib
+* GDAL
+* scikit-image
+* glob
+* os
+
+---
+
+## 📜 License
+
+This project is licensed under the MIT License. You are free to use, modify, and distribute this software.
+
+---
+
+## 🤝 Contributions
+
+Pull requests, feature suggestions, and improvements are welcome. Make sure to follow best practices and test your code!
+
+---
+
+## 👤 Author
+
+Developed by Sujal Bandodkar as part of a satellite image fusion and harmonization project for AI-based climate and disaster modeling.
+
+---
+
+## 🔗 Related Projects / Future Scope
+
+* Integration with Google Earth Engine
+* Automatic download using USGS/Copernicus APIs
+* Real-time preprocessing pipelines
+* Deep learning ready patch exporters
