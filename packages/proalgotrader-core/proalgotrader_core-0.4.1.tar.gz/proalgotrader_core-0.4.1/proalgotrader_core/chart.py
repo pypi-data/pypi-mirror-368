@@ -1,0 +1,158 @@
+from datetime import datetime, timedelta
+from typing import TYPE_CHECKING, Any, List
+
+import pandas as pd
+
+from proalgotrader_core.broker_symbol import BrokerSymbol
+from proalgotrader_core.protocols.enums.segment_type import SegmentType
+
+if TYPE_CHECKING:
+    from proalgotrader_core.chart_manager import ChartManager
+
+
+class Chart:
+    def __init__(
+        self,
+        broker_symbol: BrokerSymbol,
+        timeframe: timedelta,
+        chart_manager: "ChartManager",
+    ) -> None:
+        self.broker_symbol = broker_symbol
+        self.timeframe = timeframe
+        self.chart_manager = chart_manager
+        self.algo_session = chart_manager.algo_session
+        self.order_broker_manager = chart_manager.order_broker_manager
+
+        self.__columns = [
+            "current_candle",
+            "timestamp",
+            "datetime",
+            "symbol",
+            "open",
+            "high",
+            "low",
+            "close",
+            "volume",
+        ]
+
+        self.__df = self.__generate_dataframe([])
+
+        self.fetch_from, self.fetch_to = self.algo_session.fetch_ranges(self.timeframe)
+
+        self.__fetch_bars()
+
+        self.__set_next_candle_datetime()
+
+    @property
+    def current_candle(self) -> datetime:
+        return self.algo_session.get_current_candle(self.timeframe)
+
+    @property
+    def ltp(self) -> float:
+        return self.broker_symbol.ltp
+
+    @property
+    def data(self) -> pd.DataFrame:
+        return self.__df[self.__df.index <= self.current_candle]
+
+    def __fetch_bars(self) -> None:
+        try:
+            bars = self.order_broker_manager.data_manager.fetch_bars(
+                broker_symbol=self.broker_symbol,
+                timeframe=self.timeframe,
+                fetch_from=self.fetch_from,
+                fetch_to=self.fetch_to,
+            )
+
+            items = [item.get_item() for item in bars]
+
+            df = self.__generate_dataframe(items)
+
+            df.index = pd.to_datetime(df.index)
+
+            df.loc[:, "total_volume"] = df.groupby(df.index.date)["volume"].cumsum()
+
+            self.__df = df
+        except Exception as e:
+            raise Exception(e)
+
+    def __set_next_candle_datetime(self) -> None:
+        self.next_candle_datetime: datetime = self.current_candle + self.timeframe
+
+    def __generate_dataframe(self, data: List[List[Any]]) -> pd.DataFrame:
+        df = pd.DataFrame(data=data, columns=self.__columns)
+
+        df.set_index(["current_candle"], inplace=True)
+
+        return df
+
+    def __get_bar_volume(self, total_volume: int) -> int:
+        try:
+            if self.broker_symbol.segment_type == SegmentType.Equity.value:
+                return 0
+
+            previous_bar_volume = self.__df.total_volume[
+                self.__df.index >= self.algo_session.market_start_datetime
+            ]
+
+            if len(previous_bar_volume) < 2:
+                return total_volume
+
+            total_volume_previous_bar: int = previous_bar_volume.iloc[-2]
+
+            return total_volume - total_volume_previous_bar
+        except Exception as e:
+            raise Exception(e)
+
+    async def is_new_candle(self) -> bool:
+        last_tick = self.algo_session.current_datetime > self.next_candle_datetime
+
+        if last_tick:
+            self.next_candle_datetime = self.next_candle_datetime + self.timeframe
+
+        return last_tick
+
+    async def next(self) -> None:
+        try:
+            if not self.broker_symbol.subscribed:
+                return
+
+            new_candle = await self.is_new_candle()
+
+            symbol_name = self.broker_symbol.symbol_name
+
+            ltp = self.broker_symbol.ltp
+
+            total_volume = self.broker_symbol.total_volume
+
+            self.__df.loc[self.current_candle, "timestamp"] = (
+                self.algo_session.current_timestamp
+            )
+
+            self.__df.loc[self.current_candle, "datetime"] = (
+                self.algo_session.current_datetime
+            )
+
+            self.__df.loc[self.current_candle, "symbol"] = symbol_name
+
+            self.__df.loc[self.current_candle, "open"] = (
+                ltp if new_candle else self.__df.open.iloc[-1]
+            )
+
+            self.__df.loc[self.current_candle, "high"] = (
+                ltp if new_candle else max(ltp, self.__df.high.iloc[-1])
+            )
+
+            self.__df.loc[self.current_candle, "low"] = (
+                ltp if new_candle else min(ltp, self.__df.low.iloc[-1])
+            )
+
+            self.__df.loc[self.current_candle, "close"] = ltp
+
+            self.__df.loc[self.current_candle, "volume"] = self.__get_bar_volume(
+                total_volume
+            )
+
+            self.__df.loc[self.current_candle, "total_volume"] = total_volume
+        except Exception as e:
+            raise Exception(e)
