@@ -1,0 +1,34 @@
+<span class="hljs-keyword">from</span> openai <span class="hljs-keyword">import</span> OpenAI
+<span class="hljs-keyword">from</span> mem0 <span class="hljs-keyword">import</span> Memory
+
+openai_client = OpenAI()
+memory = Memory()
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">chat_with_memories</span>(<span class="hljs-params">message: <span class="hljs-built_in">str</span>, user_id: <span class="hljs-built_in">str</span> = <span class="hljs-string">&quot;default_user&quot;</span></span>) -&gt; str:</span>
+    <span class="hljs-comment"># Retrieve relevant memories</span>
+    relevant_memories = memory.search(query=message, user_id=user_id, limit=<span class="hljs-number">3</span>)
+    memories_str = <span class="hljs-string">&quot;\n&quot;</span>.join(<span class="hljs-string">f&quot;- <span class="hljs-subst">{entry[<span class="hljs-string">&#x27;memory&#x27;</span>]}</span>&quot;</span> <span class="hljs-keyword">for</span> entry <span class="hljs-keyword">in</span> relevant_memories[<span class="hljs-string">&quot;results&quot;</span>])
+
+    <span class="hljs-comment"># Generate Assistant response</span>
+    system_prompt = <span class="hljs-string">f&quot;You are a helpful AI. Answer the question based on query and memories.\nUser Memories:\n<span class="hljs-subst">{memories_str}</span>&quot;</span>
+    messages = [{<span class="hljs-string">&quot;role&quot;</span>: <span class="hljs-string">&quot;system&quot;</span>, <span class="hljs-string">&quot;content&quot;</span>: system_prompt}, {<span class="hljs-string">&quot;role&quot;</span>: <span class="hljs-string">&quot;user&quot;</span>, <span class="hljs-string">&quot;content&quot;</span>: message}]
+    response = openai_client.chat.completions.create(model=<span class="hljs-string">&quot;gpt-4o-mini&quot;</span>, messages=messages)
+    assistant_response = response.choices[<span class="hljs-number">0</span>].message.content
+
+    <span class="hljs-comment"># Create new memories from the conversation</span>
+    messages.append({<span class="hljs-string">&quot;role&quot;</span>: <span class="hljs-string">&quot;assistant&quot;</span>, <span class="hljs-string">&quot;content&quot;</span>: assistant_response})
+    memory.add(messages, user_id=user_id)
+
+    <span class="hljs-keyword">return</span> assistant_response
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">main</span>():</span>
+    print(<span class="hljs-string">&quot;Chat with AI (type &#x27;exit&#x27; to quit)&quot;</span>)
+    <span class="hljs-keyword">while</span> <span class="hljs-literal">True</span>:
+        user_input = <span class="hljs-built_in">input</span>(<span class="hljs-string">&quot;You: &quot;</span>).strip()
+        <span class="hljs-keyword">if</span> user_input.lower() == <span class="hljs-string">&#x27;exit&#x27;</span>:
+            print(<span class="hljs-string">&quot;Goodbye!&quot;</span>)
+            <span class="hljs-keyword">break</span>
+        print(<span class="hljs-string">f&quot;AI: <span class="hljs-subst">{chat_with_memories(user_input)}</span>&quot;</span>)
+
+<span class="hljs-keyword">if</span> __name__ == <span class="hljs-string">&quot;__main__&quot;</span>:
+    main()
