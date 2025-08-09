@@ -1,0 +1,68 @@
+[project]
+name = "lark-dbml"
+dynamic = ["version"]
+description = "DBML parser using Lark."
+keywords = ["dbml", "lark", "sql", "ddl", "data contract", "pydantic", "parser", "lalr", "earley", "standalone"]
+license = "MIT"
+authors = [
+    { name = "Austin Huynh", email = "contact@austinhuynh.me" },
+]
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Developers",
+    "Topic :: Text Processing",
+    "Topic :: Software Development :: Code Generators",
+]
+dependencies = [
+    "pydantic~=2.11",
+]
+
+[project.optional-dependencies]
+sql = [
+    "sqlglot>=27.0.0",
+]
+lark = [
+    "lark>=1.2.2",
+]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"] # Add wheel as well, it's often needed
+build-backend = "setuptools.build_meta"
+
+[tool.coverage.run]
+omit = [
+    "lark_dbml/lark_dbml_standalone.py"
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pass"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["lark_dbml*"]
+exclude = ["tests/**"]
+
+[tool.setuptools.package-data]
+"lark_dbml" = ["*.lark"]
+
+[tool.setuptools.dynamic]
+version = { attr = "lark_dbml.__version__.version" }
+
+[dependency-groups]
+dev = [
+    "coverage>=7.9.1",
+    "pre-commit>=4.2.0",
+    "pytest>=8.4.1",
+    "pytest-cov>=6.2.1",
+    "twine>=6.1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/daihuynh/lark-dbml"
+"Bug Tracker" = "https://github.com/daihuynh/lark-dbml/issues"
