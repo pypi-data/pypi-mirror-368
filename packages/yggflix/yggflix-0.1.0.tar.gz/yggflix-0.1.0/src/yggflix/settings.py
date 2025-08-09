@@ -1,0 +1,1 @@
+YGGFLIX_URL="https://yggflix.fr"
