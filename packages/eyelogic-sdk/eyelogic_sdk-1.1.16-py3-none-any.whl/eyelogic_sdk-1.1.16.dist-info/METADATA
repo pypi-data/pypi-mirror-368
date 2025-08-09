@@ -1,0 +1,64 @@
+Metadata-Version: 2.1
+Name: eyelogic-sdk
+Version: 1.1.16
+Summary: Python wrapper for the EyeLogic eye tracking API
+Home-page: https://www.eyelogic.de
+Author: EyeLogic GmbH
+Author-email: info@eyelogic.de
+License: UNKNOWN
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: Natural Language :: English
+Classifier: License :: Freely Distributable
+Classifier: Operating System :: Microsoft :: Windows :: Windows 10
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+License-File: LICENSE
+
+# Python Binding for EyeLogic Eye Tracking Devices
+
+This is the python wrapper for the EyeLogic eye tracking API. It offers the possibility to connect you with your device from any custom application.
+
+## Download and install
+
+The EyeLogic python SDK is available via the Python Package Index (PyPI), and can be installed through pip.
+`pip install eyelogic-sdk`
+
+You can also download the EyeLogic SDK directly from the [eyelogic homepage](https://www.eyelogicsolutions.com/). The SDK contains also bindings to other languages as well as a user manual and API description.
+
+## Usage
+
+In your python script, import the eyelogic SDK:
+
+```
+from eyelogic.ELApi import *
+```
+
+In the `__main__` section, the application implements its control flow. It consists of the following code lines:
+```
+api = ELApi("Demo Client")
+```
+
+This constructs a new instance of the ELApi class. The instanciation will automatically "initialize" the library. Hence, it will also be automatically be "deinitialized" whenever the api object gets out of scope, e.g. at the end of the program.
+
+```
+resultConnect = api.connect()
+```
+Connects to the EyeLogic server. Check for the return value in order to find out whether the connection was established successfully.
+
+```
+resultTracking = api.requestTracking(0)
+```
+Starts the tracking of the device. The parameter 0 specifies the frame-rate mode. If your device is capable of multiple frame-rate modes (60Hz, 120Hz, 250Hz), you can also enter a different number. The list of available frame-rates is given to the callback onDeviceConnected( ). Usually, the frame-rate mode 0 is the default (the highest available speed mode of your system).
+
+```
+resultCalibrate = api.calibrate(0)
+```
+Performs a calibration. This method blocks until the calibration was performed (or aborted). The parameter 0 denotes the type of calibration.
+
+At the end of your recording, close the connection:
+```
+api.disconnect()
+```
+
+
