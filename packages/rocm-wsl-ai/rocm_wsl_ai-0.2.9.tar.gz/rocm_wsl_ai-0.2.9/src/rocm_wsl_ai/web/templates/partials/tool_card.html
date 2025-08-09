@@ -1,0 +1,47 @@
+<article id="card-{{ name }}" class="tool-card card" hx-ext="intersect" hx-get="/partials/tool-card/{{ name }}"
+  hx-trigger="intersect once, every {% if s.alive %}2{% else %}6{% endif %}s" hx-swap="outerHTML">
+  <header>
+    <div class="title">
+      <span class="icon">🧩</span>
+      <strong>{{ name }}</strong>
+      <span class="chip">{{ s.category }}</span>
+    </div>
+    {% if s.alive %}
+      <span class="status-badge ok">läuft{% if s.pid %} · PID {{ s.pid }}{% endif %}</span>
+    {% else %}
+      <span class="status-badge bad">gestoppt</span>
+    {% endif %}
+  </header>
+  {% if s.url %}<p><a href="{{ s.url }}" target="_blank">Interface öffnen</a></p>{% endif %}
+  <details>
+    <summary>Einstellungen</summary>
+    <label>
+      URL
+      <input id="url-{{ name }}" type="text" placeholder="z.B. http://localhost:7860" value="{{ s.url or '' }}" />
+    </label>
+    <div class="grid">
+      <label>
+        Host
+        <input id="host-{{ name }}" type="text" placeholder="0.0.0.0" />
+      </label>
+      <label>
+        Port
+        <input id="port-{{ name }}" type="number" min="1" max="65535" placeholder="7860" />
+      </label>
+    </div>
+    <label>
+      Extra Args (Startparameter)
+      <input id="args-{{ name }}" type="text" placeholder="z.B. --listen --port 7860" value="{{ s.extra_args or '' }}" data-autofill="1" />
+      <small>Wird automatisch aus Host/Port vorgeschlagen (anpassbar).</small>
+    </label>
+  <button type="button" data-act="save-settings" data-tool="{{ name }}">Speichern</button>
+  </details>
+  <footer>
+    <div class="actions">
+  <button type="button" data-act="install" data-tool="{{ name }}">Installieren</button>
+  {% if s.can_start %}<button type="button" data-act="start" data-tool="{{ name }}" class="contrast">Start</button>{% endif %}
+  {% if s.can_stop %}<button type="button" data-act="stop" data-tool="{{ name }}" class="secondary">Stop</button>{% endif %}
+  <button type="button" data-act="logs" data-tool="{{ name }}">Logs</button>
+    </div>
+  </footer>
+</article>
