@@ -1,0 +1,36 @@
+[project]
+name = "canoaicli"
+version = "2.0.0"
+authors = [{name = "carellihoula", email = "carellihoula10@gmail.com"}]
+description = "A command-line AI assistant powered by multiple AI providers such as Google Gemini, OpenAI, Anthropic, and DeepSeek"
+readme = "README.md"
+requires-python = ">= 3.9"
+dependencies = [
+    "google-generativeai",
+    "questionary",
+    "rich",
+    "openai",
+    "pyperclip"
+]
+
+[project.scripts]
+ai = "aiassistcli.main:main"
+
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatchling"]
+[tool.hatch.build.targets.wheel]
+packages = ["src/aiassistcli"]
+
+[tool.pixi.project]
+channels = ["conda-forge"]
+platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
+
+[tool.pixi.pypi-dependencies]
+canoaicli = { path = ".", editable = true }
+twine = "*"
+build = "*"
+
+[tool.pixi.tasks]
+build = "python -m build"
+publish = "twine upload dist/*"
