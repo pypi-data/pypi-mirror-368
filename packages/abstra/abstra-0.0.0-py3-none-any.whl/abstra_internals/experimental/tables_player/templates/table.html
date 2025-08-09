@@ -1,0 +1,96 @@
+<div class="breadcrumb">
+    <a href={{ url('tables') }} class="item">
+        Tables
+    </a>
+    >
+    <div class="item">
+        {{ table_name }}
+    </div>
+</div>
+<div class="table">
+    <div class="columns">
+        {% for column in columns %}
+            <div class="column">
+                <div class="name">{{ column.name }}</div>
+                <div class="type">{{ column.type }}</div>
+            </div>
+        {% endfor %}
+    </div>
+    <div class="rows">
+        {% for row in rows %}
+            <div
+                class="row"
+                hx-get={{ url('table', table_name, 'row', row['id'], "modal" ) }}
+                hx-target="#row-modal"
+                hx-trigger="click"
+                hx-indicator="#row-loading"
+            >
+                {% for column in columns %}
+                    {% if column.foreign_key %}
+                        <a href={{ url('table', column.foreign_key.table_name, filter={column.foreign_key.column_name: row[column.name]}) }} class="cell">{{ row[column.name] }}</a>
+                    {% else %}
+                        <div class="cell">{{ row[column.name] }}</div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </div>
+</div>
+<div id="row-modal"></div>
+<dialog id="row-loading" open>loading</dialog>
+<style scoped>
+.breadcrumb {
+    display: flex;
+    gap: 10px;
+}
+
+.table {
+    display: table;
+}
+.columns {
+    display: table-header-group
+}
+
+.columns .column {
+    padding: 5px;
+    display: table-cell;
+}
+
+.column .name {
+    font-weight: bold;
+}
+
+.column .type {
+    font-style: italic;
+}
+
+.rows {
+    display: table-row-group;
+}
+
+.row {
+    display: table-row;
+}
+
+.row:hover {
+    background-color: #f0f0f0;
+    cursor: pointer;
+}
+
+.row .cell {
+    display: table-cell;
+    padding: 5px;
+}
+
+#row-loading {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    padding: 20px;
+}
+
+#row-loading:not(.htmx-request) {
+    display: none;
+}
+</style>

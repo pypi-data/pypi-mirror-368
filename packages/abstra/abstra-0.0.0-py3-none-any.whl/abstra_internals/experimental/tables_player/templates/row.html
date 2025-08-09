@@ -1,0 +1,95 @@
+<div class="properties">
+    {% for column in table.columns %}
+        <div class="property">
+            <div class="header">
+                <div class="name">{{ column.name }}</div>
+                <div class="type">{{ column.type }}</div>
+            </div>
+            {% if column.foreign_key %}
+                <a href={{ url('table', column.foreign_key.table_name, filter={column.foreign_key.column_name: row[column.name]}) }} class="cell">{{ row[column.name] }}</a>
+            {% else %}
+                <div class="cell">{{ row[column.name] }}</div>
+            {% endif %}
+        </div>
+    {% endfor %}
+    <div class="referrers">
+        {% if table.referrers|length > 0 %}
+            <div class="title">Referrers</div>
+        {% endif %}
+        {% for ref_table, ref_column in table.referrers %}
+            <a class="referrer" href={{ url('table', ref_table.name, filter={ref_column.name: row[ref_column.foreign_key.column_name]}) }}>
+                <div class="label">
+                    {{ ref_table.name }}
+                    with same
+                    {{ ref_column.name }}
+                </div>
+                <span
+                    class="count"
+                    hx-trigger="load"
+                    hx-get={{
+                        url(
+                            'table',
+                            ref_table.name,
+                            'count',
+                            filter={
+                                ref_column.name: row[ref_column.foreign_key.column_name]
+                            },
+                        )
+                    }}
+                > ... </span>
+            </a>
+        {% endfor %}
+    </div>
+
+</div>
+
+<style scoped>
+    .properties {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    .property {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .property .header {
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .property .name {
+        font-weight: bold;
+    }
+
+    .property .type {
+        font-style: italic;
+    }
+
+    .referrers {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .referrers .title {
+        font-weight: bold;
+    }
+
+    .referrer {
+        display: flex;
+        justify-content: space-between;
+        gap: 5px;
+        text-decoration: none;
+        color: black;
+        border: 1px solid black;
+        border-radius: 5px;
+        padding: 10px;
+    }
+
+    .referrer:hover {
+        background-color: #f0f0f0;
+    }
+</style>
