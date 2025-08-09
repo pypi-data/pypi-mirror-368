@@ -1,0 +1,229 @@
+Metadata-Version: 2.4
+Name: django-iran-sms
+Version: 1.3.7
+Summary: A Django package for seamless integration with Iranian SMS services like ParsianWebCo , Kavenegar and Melipayamak.
+Home-page: https://djangoiransms.chelseru.com
+Author: Sobhan Bahman | Rashnu
+Author-email: bahmanrashnu@gmail.com
+Project-URL: Documentation, https://github.com/Chelseru/django-iran-sms/
+Project-URL: Telegram Group, https://t.me/bahmanpy
+Project-URL: Telegram Channel, https://t.me/djangoiransms
+Keywords: djangoiransms djangosms drfsms drfiransms chelseru lor lur bahman rashnu sobhan bahman bahman rashnu melipayamak parsianwebco sms جنگو پیامک ملی اایران کاوه نگار python kavenegar kave negar meli payamak
+Classifier: Programming Language :: Python :: 3
+Classifier: Framework :: Django
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+License-File: LICENSE.txt
+Requires-Dist: Django>=5.1.6
+Requires-Dist: djangorestframework==3.15.2
+Requires-Dist: djangorestframework_simplejwt==5.5.0
+Requires-Dist: PyJWT==2.9.0
+Requires-Dist: requests==2.32.3
+Requires-Dist: user-agents==2.2.0
+Requires-Dist: ua-parser==1.0.1
+Requires-Dist: PyYAML==6.0.2
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: keywords
+Dynamic: license-file
+Dynamic: project-url
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+# Django Iran SMS
+
+## Overview
+
+A Django-based SMS integration system for simplifying in-country SMS usage in Iran, leveraging the `parsianwebco.ir`, `melipayamak.com`, and `kavenegar.com` services with JWT authentication. Developed by the Chelseru team, `drfiransms` is designed to support additional services in future releases.
+
+## Features
+
+- Integration with `parsianwebco.ir`, `melipayamak.com`, and `kavenegar.com`
+- JWT-based authentication using `rest_framework_simplejwt`
+- Scalable and extensible for other SMS providers
+- Easy installation and configuration
+
+## Installation
+
+### Prerequisites
+
+- Python 3.11
+- Django 5.1 or higher
+
+### Installation via pip
+
+```bash
+pip install django-iran-sms
+```
+
+### Configuration
+In your Django project's `settings.py`, add the following parameters:
+
+#### settings.py
+
+```python
+INSTALLED_APPS = [
+    ...
+    'drfiransms',  # When used in DRF.
+]
+```
+
+```python
+DJANGO_IRAN_SMS = {
+    'AUTHENTICATION': 'rest_framework_simplejwt',  # Specify the authentication method
+    'SMS_BACKEND': 'PARSIAN_WEBCO_IR',  # Set the SMS provider backend
+    'OTP_CODE': {
+        'LENGTH': 6,  # Default length of OTP code
+        'EXPIRE_PER_MINUTES': 2,  # Default expiration time in minutes
+    },
+    'PARSIAN_WEBCO_IR': {
+        'API_KEY': 'API_KEY obtained from sms.parsianwebco.ir',  # API key from the SMS provider
+        'TEMPLATES': {
+            'OTP_CODE': 1,  # Template ID for OTP code
+        }
+    },
+    'MELI_PAYAMAK_COM': {
+        'USERNAME': 'Username used to log in to the melipayamak.com website.',
+        'PASSWORD': 'API_KEY obtained from melipayamak.com',
+        'FROM': '50004001001516',  # Sender number from the SMS provider
+    },
+    'KAVENEGAR_COM': {
+        'API_KEY': 'API_KEY obtained from kavenegar.com',
+        'FROM': '2000660110'
+    }
+}
+```
+
+## Django Iran SMS Configuration
+
+The configuration parameters for `DJANGO_IRAN_SMS` can be set as follows:
+
+### Authentication
+Currently, only `rest_framework_simplejwt` is supported for authentication.
+
+### SMS Backend
+Supported SMS providers:
+- `PARSIAN_WEBCO_IR`
+- `MELI_PAYAMAK_COM`
+- `KAVENEGAR_COM`
+
+### OTP Code
+The `OTP_CODE` dictionary contains:
+
+- **`LENGTH`**: OTP code length (3–10 digits). Default: **6**.
+- **`EXPIRE_PER_MINUTES`**: Expiration time in minutes (> 0). Default: **2**.
+
+---
+
+## Usage
+
+### URL Configuration
+In your `urls.py`, include the following views:
+
+```python
+from drfiransms.views import OTPCodeSend, Authentication, MessageSend
+
+urlpatterns += [
+    path('lur/send-code/', OTPCodeSend.as_view(), name='send_code'),
+    path('lur/authentication/', Authentication.as_view(), name='authentication'),
+    path('lur/send-message/', MessageSend.as_view(), name='send_message'),
+]
+```
+
+---
+
+## Sending Verification Code via API
+
+```bash
+curl -X POST https://djangoiransms.chelseru.com/lur/send-code/      -H "Content-Type: application/json"      -d '{"mobile": "09123456789"}'
+```
+
+```bash
+curl -X POST https://djangoiransms.chelseru.com/lur/authentication/      -H "Content-Type: application/json"      -d '{"mobile": "09123456789", "code": "108117114", "group": "1"}'
+```
+
+- `group`: Optional segmentation attribute (e.g., a user can register as both driver and passenger). Default: **0**.
+
+```bash
+curl -X POST https://djangoiransms.chelseru.com/lur/send-message/      -H "Content-Type: application/json"      -d '{"mobile_number": "09123456789", "message_text": "hello luristan."}'
+```
+
+---
+
+## User Table
+Automatically created with:
+- **mobile**: User's mobile number.
+- **user**: One-to-one relationship with Django's default `User` model.
+- **group**: Optional segmentation attribute. Default: **0**.
+
+---
+
+## OTP Code Table
+Automatically created with:
+- **mobile**: User's mobile number.
+- **code**: OTP code.
+
+---
+
+## Active User Sessions
+
+From version **X.X.X**, a new `Session` model has been added to track and manage active user sessions.  
+This allows you to inspect the devices, browsers, and IPs from which users are currently logged in, and can be used to implement features like “log out from all devices.”
+
+### Enabling Active Session Tracking
+To enable this feature, add the following middleware to your `MIDDLEWARE` list in `settings.py`:
+
+```python
+MIDDLEWARE = [
+    ...
+    'drfiransms.middlewares.TakeUserSessionMiddlaware',
+    ...
+]
+```
+
+### Session Model Fields
+
+| Field         | Description |
+|---------------|-------------|
+| `user`        | ForeignKey to the user model (default_user), with `related_name='session'`. |
+| `session_key` | Unique identifier for the session. |
+| `user_agent`  | Full User-Agent string of the browser/device. |
+| `ip_address`  | IP address of the client. |
+| `device`      | Device name or type. |
+| `browser`     | Browser name. |
+| `last_seen`   | Last time this session was active (`auto_now=True`). |
+| `created_at`  | Session creation timestamp (`auto_now_add=True`). |
+
+### Example Use Cases
+- Display all active sessions for a user in the admin panel or user profile.
+- Identify suspicious logins based on IP/device.
+- Allow users to terminate other active sessions.
+
+---
+
+## JWT Authentication
+`drfiransms` supports JWT authentication via `rest_framework_simplejwt` for secure API communication.  
+Other authentication methods are under development.
+
+---
+
+## Future Plans
+- Additional SMS provider support.
+- Enhanced error handling.
+- Rate limiting and monitoring.
+- Contribution guidelines.
+
+---
+
+A Django package for seamless integration with Iranian SMS services like ParsianWebCo, Kavenegar, and Melipayamak.  
+Contributions are welcome! Submit pull requests or report issues on the GitHub repository.
+
+## License
+MIT License
