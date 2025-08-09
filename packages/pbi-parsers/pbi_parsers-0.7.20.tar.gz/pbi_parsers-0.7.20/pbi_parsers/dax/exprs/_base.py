@@ -1,0 +1,46 @@
+from typing import TYPE_CHECKING, Any
+
+from pbi_parsers.dax.tokens import TokenType
+
+if TYPE_CHECKING:
+    from pbi_parsers.dax.parser import Parser
+
+
+class Expression:
+    pre_comments: list[Any] = []
+    post_comments: list[Any] = []
+
+    def __repr__(self) -> str:
+        return self.pprint()
+
+    def children(self) -> list["Expression"]:
+        """Returns a list of child expressions."""
+        msg = "This method should be implemented by subclasses."
+        raise NotImplementedError(msg)
+
+    def full_text(self) -> str:
+        """Returns the full text of the expression."""
+        msg = "This method should be implemented by subclasses."
+        raise NotImplementedError(msg)
+
+    @classmethod
+    def match(cls, parser: "Parser") -> "Expression | None":
+        """Attempt to match the current tokens to this expression type.
+
+        Returns an instance of the expression if matched, otherwise None.
+        """
+        msg = "Subclasses should implement this method."
+        raise NotImplementedError(msg)
+
+    @staticmethod
+    def match_tokens(parser: "Parser", match_tokens: list[TokenType]) -> bool:
+        return all(parser.peek(i).tok_type == token_type for i, token_type in enumerate(match_tokens))
+
+    def position(self) -> tuple[int, int]:
+        """Returns the start and end positions of the expression in the source code."""
+        msg = "This method should be implemented by subclasses."
+        raise NotImplementedError(msg)
+
+    def pprint(self) -> str:
+        msg = "Subclasses should implement this method."
+        raise NotImplementedError(msg)
