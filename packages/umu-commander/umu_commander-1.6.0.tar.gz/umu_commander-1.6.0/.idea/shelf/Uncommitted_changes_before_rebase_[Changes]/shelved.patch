@@ -1,0 +1,229 @@
+Index: tests/test_db.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import unittest\nfrom json import JSONDecodeError\n\nimport umu_commander.configuration as config\nfrom tests import *\nfrom umu_commander.database import Database as db\n\n\nclass Database(unittest.TestCase):\n    def setUp(self):\n        config.DB_DIR = TESTING_DIR\n        setup()\n\n    def tearDown(self):\n        teardown()\n\n    def test_missing_db(self):\n        db.load()\n        self.assertEqual(db.get(), {})\n\n    def test_malformed_db(self):\n        with open(os.path.join(config.DB_DIR, config.DB_NAME), \"tw\") as db_file:\n            db_file.write(\"{\")\n\n        with self.assertRaises(JSONDecodeError):\n            db.load()\n\n    def test_addition_removal(self):\n        db.load()\n        db.get(PROTON_DIR_1, PROTON_BIG).append(USER_DIR)\n\n        self.assertIn(PROTON_BIG, db.get(PROTON_DIR_1))\n        self.assertIn(USER_DIR, db.get(PROTON_DIR_1, PROTON_BIG))\n\n        db.get(PROTON_DIR_1, PROTON_BIG).remove(USER_DIR)\n\n        self.assertIn(PROTON_BIG, db.get(PROTON_DIR_1))\n        self.assertNotIn(USER_DIR, db.get(PROTON_DIR_1, PROTON_BIG))\n\n        del db.get(PROTON_DIR_1)[PROTON_BIG]\n        self.assertNotIn(PROTON_BIG, db.get(PROTON_DIR_1))\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/tests/test_db.py b/tests/test_db.py
+--- a/tests/test_db.py	(revision 2c990ed1cab5a20498dc2cfe9bd4e331f60cb3af)
++++ b/tests/test_db.py	(date 1754467945899)
+@@ -2,8 +2,8 @@
+ from json import JSONDecodeError
+ 
+ import umu_commander.configuration as config
++import umu_commander.database as db
+ from tests import *
+-from umu_commander.database import Database as db
+ 
+ 
+ class Database(unittest.TestCase):
+Index: tests/test_config.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import os.path\nimport unittest\n\nimport umu_commander.configuration as config\nfrom tests import *\nfrom umu_commander import configuration\n\n\nclass Config(unittest.TestCase):\n    def setUp(self):\n        configuration._CONFIG_DIR = TESTING_DIR\n        configuration.DB_DIR = TESTING_DIR\n        setup()\n\n    def tearDown(self):\n        teardown()\n\n    def test_missing_config(self):\n        config.load()\n        self.assertTrue(\n            os.path.exists(os.path.join(TESTING_DIR, configuration._CONFIG_NAME))\n        )\n        config.load()\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/tests/test_config.py b/tests/test_config.py
+--- a/tests/test_config.py	(revision 2c990ed1cab5a20498dc2cfe9bd4e331f60cb3af)
++++ b/tests/test_config.py	(date 1754467762383)
+@@ -8,7 +8,7 @@
+ 
+ class Config(unittest.TestCase):
+     def setUp(self):
+-        configuration._CONFIG_DIR = TESTING_DIR
++        configuration.CONFIG_DIR = TESTING_DIR
+         configuration.DB_DIR = TESTING_DIR
+         setup()
+ 
+@@ -18,6 +18,6 @@
+     def test_missing_config(self):
+         config.load()
+         self.assertTrue(
+-            os.path.exists(os.path.join(TESTING_DIR, configuration._CONFIG_NAME))
++            os.path.exists(os.path.join(TESTING_DIR, configuration.CONFIG_NAME))
+         )
+         config.load()
+Index: src/umu_commander/database.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import json\nimport os\nfrom collections import defaultdict\n\nimport umu_commander.configuration as config\n\n\nclass Database:\n    _db: defaultdict[str, defaultdict[str, list[str]]]\n\n    @staticmethod\n    def load():\n        if not os.path.exists(config.DB_DIR):\n            os.mkdir(config.DB_DIR)\n\n        try:\n            with open(os.path.join(config.DB_DIR, config.DB_NAME), \"rt\") as db_file:\n                Database._db = defaultdict(lambda: defaultdict(list))\n                Database._db.update(json.load(db_file))\n\n        except FileNotFoundError:\n            Database._db = defaultdict(lambda: defaultdict(list))\n\n    @staticmethod\n    def dump():\n        with open(os.path.join(config.DB_DIR, config.DB_NAME), \"wt\") as db_file:\n            # noinspection PyTypeChecker\n            json.dump(Database._db, db_file, indent=\"\\t\")\n\n    @staticmethod\n    def get(\n        proton_dir: str = None, proton_ver: str = None\n    ) -> dict[str, dict[str, list[str]]] | dict[str, list[str]] | list[str]:\n        if proton_dir is None and proton_ver is None:\n            return Database._db\n\n        if proton_ver is None:\n            return Database._db[proton_dir]\n\n        if proton_ver not in Database._db[proton_dir]:\n            Database._db[proton_dir][proton_ver] = []\n\n        return Database._db[proton_dir][proton_ver]\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/umu_commander/database.py b/src/umu_commander/database.py
+--- a/src/umu_commander/database.py	(revision 2c990ed1cab5a20498dc2cfe9bd4e331f60cb3af)
++++ b/src/umu_commander/database.py	(date 1754467762394)
+@@ -4,40 +4,46 @@
+ 
+ import umu_commander.configuration as config
+ 
++_db: defaultdict[str, defaultdict[str, list[str]]] = defaultdict(
++    lambda: defaultdict(list)
++)
+ 
+-class Database:
+-    _db: defaultdict[str, defaultdict[str, list[str]]]
+ 
+-    @staticmethod
+-    def load():
+-        if not os.path.exists(config.DB_DIR):
+-            os.mkdir(config.DB_DIR)
++def load():
++    global _db
++
++    if not os.path.exists(config.DB_DIR):
++        os.mkdir(config.DB_DIR)
+ 
+-        try:
+-            with open(os.path.join(config.DB_DIR, config.DB_NAME), "rt") as db_file:
+-                Database._db = defaultdict(lambda: defaultdict(list))
+-                Database._db.update(json.load(db_file))
++    db_path: str = os.path.join(config.DB_DIR, config.DB_NAME)
++    if not os.path.exists(db_path):
++        return
+ 
+-        except FileNotFoundError:
+-            Database._db = defaultdict(lambda: defaultdict(list))
++    with open(os.path.join(db_path), "rt") as db_file:
++        _db.update(json.load(db_file))
+ 
+-    @staticmethod
+-    def dump():
+-        with open(os.path.join(config.DB_DIR, config.DB_NAME), "wt") as db_file:
+-            # noinspection PyTypeChecker
+-            json.dump(Database._db, db_file, indent="\t")
++
++def dump():
++    if not os.path.exists(config.DB_DIR):
++        os.mkdir(config.DB_DIR)
++
++    with open(os.path.join(config.DB_DIR, config.DB_NAME), "wt") as db_file:
++        # noinspection PyTypeChecker
++        json.dump(_db, db_file, indent="\t")
+ 
+-    @staticmethod
+-    def get(
+-        proton_dir: str = None, proton_ver: str = None
+-    ) -> dict[str, dict[str, list[str]]] | dict[str, list[str]] | list[str]:
+-        if proton_dir is None and proton_ver is None:
+-            return Database._db
++
++def get(
++    proton_dir: str = None, proton_ver: str = None
++) -> dict[str, dict[str, list[str]]] | dict[str, list[str]] | list[str]:
++    global _db
++
++    if proton_dir is None and proton_ver is None:
++        return _db
+ 
+-        if proton_ver is None:
+-            return Database._db[proton_dir]
++    if proton_ver is None:
++        return _db[proton_dir]
+ 
+-        if proton_ver not in Database._db[proton_dir]:
+-            Database._db[proton_dir][proton_ver] = []
++    if proton_ver not in _db[proton_dir]:
++        _db[proton_dir][proton_ver] = []
+ 
+-        return Database._db[proton_dir][proton_ver]
++    return _db[proton_dir][proton_ver]
+Index: tests/test_tracking.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import unittest\n\nimport umu_commander.configuration as config\nfrom tests import *\nfrom umu_commander import tracking\nfrom umu_commander.classes import ProtonVer\nfrom umu_commander.database import Database as db\n\n\nclass Tracking(unittest.TestCase):\n    def setUp(self):\n        config.DB_DIR = TESTING_DIR\n        setup()\n        db.load()\n\n    def tearDown(self):\n        teardown()\n\n    def test_track_untrack(self):\n        os.chdir(USER_DIR)\n\n        tracking.track(ProtonVer(PROTON_DIR_1, PROTON_BIG), refresh_versions=False)\n        self.assertIn(PROTON_BIG, db.get(PROTON_DIR_1))\n        self.assertIn(USER_DIR, db.get(PROTON_DIR_1, PROTON_BIG))\n\n        tracking.untrack(quiet=True)\n        self.assertIn(PROTON_BIG, db.get(PROTON_DIR_1))\n        self.assertNotIn(USER_DIR, db.get(PROTON_DIR_1, PROTON_BIG))\n\n    def test_track_auto_untrack(self):\n        os.chdir(USER_DIR)\n\n        tracking.track(ProtonVer(PROTON_DIR_1, PROTON_BIG), refresh_versions=False)\n        self.assertIn(PROTON_BIG, db.get(PROTON_DIR_1))\n        self.assertIn(USER_DIR, db.get(PROTON_DIR_1, PROTON_BIG))\n\n        os.rmdir(USER_DIR)\n        tracking.untrack_unlinked()\n        self.assertIn(PROTON_BIG, db.get(PROTON_DIR_1))\n        self.assertNotIn(\n            USER_DIR,\n            db.get(PROTON_DIR_1, PROTON_BIG),\n            \"Auto untrack did not untrack removed directory.\",\n        )\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/tests/test_tracking.py b/tests/test_tracking.py
+--- a/tests/test_tracking.py	(revision 2c990ed1cab5a20498dc2cfe9bd4e331f60cb3af)
++++ b/tests/test_tracking.py	(date 1754467945864)
+@@ -1,10 +1,10 @@
+ import unittest
+ 
+ import umu_commander.configuration as config
++import umu_commander.database as db
+ from tests import *
+ from umu_commander import tracking
+ from umu_commander.classes import ProtonVer
+-from umu_commander.database import Database as db
+ 
+ 
+ class Tracking(unittest.TestCase):
+Index: src/umu_commander/proton.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import os\nimport re\nimport subprocess\n\nimport umu_commander.configuration as config\nfrom umu_commander.classes import ProtonDir, ProtonVer\nfrom umu_commander.database import Database as db\n\n\ndef _natural_sort_proton_ver_key(p: ProtonVer, _nsre=re.compile(r\"(\\d+)\")):\n    s: str = p.version_num\n    return [int(text) if text.isdigit() else text for text in _nsre.split(s)]\n\n\ndef refresh_proton_versions():\n    print(\"Updating umu Proton.\")\n    umu_update_process = subprocess.run(\n        [\"umu-run\", '\"\"'],\n        env={\"PROTONPATH\": \"UMU-Latest\", \"UMU_LOG\": \"debug\"},\n        capture_output=True,\n        text=True,\n    )\n\n    for line in umu_update_process.stderr.split(\"\\n\"):\n        if \"PROTONPATH\" in line and \"/\" in line:\n            try:\n                left: int = line.rfind(\"/\") + 1\n                print(f\"Using {line[left:len(line) - 1]}.\")\n            except ValueError:\n                print(\"Could not fetch latest UMU-Proton.\")\n\n            break\n\n\ndef _sort_proton_versions(versions: list[ProtonVer]) -> list[ProtonVer]:\n    return sorted(versions, key=_natural_sort_proton_ver_key, reverse=True)\n\n\ndef collect_proton_versions(\n    sort: bool = False, user_count: bool = False\n) -> list[ProtonDir]:\n    def get_user_count(proton_dir: str, proton_ver) -> str:\n        return (\n            \"(\" + str(len(db.get(proton_dir, proton_ver))) + \")\"\n            if proton_ver in db.get(proton_dir)\n            else \"(-)\"\n        )\n\n    proton_dirs: list[ProtonDir] = []\n    for proton_dir in config.PROTON_PATHS:\n        versions: list[ProtonVer] = [\n            ProtonVer(\n                proton_dir,\n                version,\n                get_user_count(proton_dir, version) if user_count else \"\",\n            )\n            for version in os.listdir(proton_dir)\n            if os.path.isdir(os.path.join(proton_dir, version))\n        ]\n\n        if sort:\n            versions = sorted(versions, key=_natural_sort_proton_ver_key, reverse=True)\n\n        proton_dirs.append(\n            ProtonDir(proton_dir, f\"Proton versions in {proton_dir}:\", versions)\n        )\n\n    return proton_dirs\n\n\ndef get_latest_umu_proton():\n    umu_proton_versions: list[ProtonVer] = [\n        ProtonVer(config.UMU_PROTON_PATH, version)\n        for version in os.listdir(config.UMU_PROTON_PATH)\n        if \"UMU\" in version\n        and os.path.isdir(os.path.join(config.UMU_PROTON_PATH, version))\n    ]\n    umu_proton_versions = sorted(\n        umu_proton_versions, key=_natural_sort_proton_ver_key, reverse=True\n    )\n\n    return umu_proton_versions[0].version_num\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/umu_commander/proton.py b/src/umu_commander/proton.py
+--- a/src/umu_commander/proton.py	(revision 2c990ed1cab5a20498dc2cfe9bd4e331f60cb3af)
++++ b/src/umu_commander/proton.py	(date 1754467945890)
+@@ -3,8 +3,8 @@
+ import subprocess
+ 
+ import umu_commander.configuration as config
++import umu_commander.database as db
+ from umu_commander.classes import ProtonDir, ProtonVer
+-from umu_commander.database import Database as db
+ 
+ 
+ def _natural_sort_proton_ver_key(p: ProtonVer, _nsre=re.compile(r"(\d+)")):
+Index: src/umu_commander/tracking.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import os\nimport shutil\n\nfrom umu_commander.classes import ProtonDir, ProtonVer\nfrom umu_commander.database import Database as db\nfrom umu_commander.proton import (\n    collect_proton_versions,\n    get_latest_umu_proton,\n    refresh_proton_versions,\n)\nfrom umu_commander.util import (\n    get_selection,\n)\n\n\ndef untrack(quiet: bool = False):\n    current_dir: str = os.getcwd()\n    for proton_dir in db.get().keys():\n        for proton_ver in db.get(proton_dir):\n            if current_dir in db.get(proton_dir, proton_ver):\n                db.get(proton_dir, proton_ver).remove(current_dir)\n\n    if not quiet:\n        print(\"Directory removed from all user lists.\")\n\n\ndef track(\n    proton_ver: ProtonVer = None, refresh_versions: bool = True, quiet: bool = False\n):\n    if refresh_versions:\n        refresh_proton_versions()\n\n    if proton_ver is None:\n        proton_ver: ProtonVer = get_selection(\n            \"Select Proton version to add directory as user:\",\n            None,\n            collect_proton_versions(sort=True),\n        ).as_proton_ver()\n\n    untrack(quiet=True)\n    current_directory: str = os.getcwd()\n    db.get(proton_ver.dir, proton_ver.version_num).append(current_directory)\n\n    if not quiet:\n        print(\n            f\"Directory {current_directory} added to Proton version's {proton_ver.version_num} in {proton_ver.dir} user list.\"\n        )\n\n\ndef users():\n    proton_dirs: list[ProtonDir] = collect_proton_versions(sort=True, user_count=True)\n\n    proton_ver: ProtonVer = get_selection(\n        \"Select Proton version to view user list:\", None, proton_dirs\n    ).as_proton_ver()\n\n    if proton_ver.dir in db.get() and proton_ver.version_num in db.get(proton_ver.dir):\n        version_users: list[str] = db.get(proton_ver.dir, proton_ver.version_num)\n        if len(version_users) > 0:\n            print(f\"Directories using {proton_ver.version_num} of {proton_ver.dir}:\")\n            print(*version_users, sep=\"\\n\")\n        else:\n            print(\"No directories currently use this version.\")\n    else:\n        print(\"This version hasn't been used by umu before.\")\n\n\ndef delete():\n    for proton_dir in db.get().keys():\n        for proton_ver, version_users in db.get(proton_dir).copy().items():\n            if proton_ver == get_latest_umu_proton():\n                continue\n\n            if len(version_users) == 0:\n                selection: str = input(\n                    f\"{proton_ver} in {proton_dir} has no using directories, delete? (Y/N) ? \"\n                )\n                if selection.lower() == \"y\":\n                    try:\n                        shutil.rmtree(os.path.join(proton_dir, proton_ver))\n                    except FileNotFoundError:\n                        pass\n                    del db.get(proton_dir)[proton_ver]\n\n\ndef untrack_unlinked():\n    for proton_dir in db.get().keys():\n        for proton_ver, version_users in db.get()[proton_dir].items():\n            for user in version_users:\n                if not os.path.exists(user):\n                    db.get(proton_dir, proton_ver).remove(user)\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/umu_commander/tracking.py b/src/umu_commander/tracking.py
+--- a/src/umu_commander/tracking.py	(revision 2c990ed1cab5a20498dc2cfe9bd4e331f60cb3af)
++++ b/src/umu_commander/tracking.py	(date 1754467945881)
+@@ -1,8 +1,8 @@
+ import os
+ import shutil
+ 
++import umu_commander.database as db
+ from umu_commander.classes import ProtonDir, ProtonVer
+-from umu_commander.database import Database as db
+ from umu_commander.proton import (
+     collect_proton_versions,
+     get_latest_umu_proton,
+Index: src/umu_commander/main.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>#!/usr/bin/python3\nimport os\nimport sys\nfrom json import JSONDecodeError\n\nimport umu_commander.configuration as config\nfrom umu_commander import tracking, umu_config\nfrom umu_commander.classes import ExitCode\nfrom umu_commander.configuration import _CONFIG_DIR, _CONFIG_NAME\nfrom umu_commander.database import Database as db\n\n\ndef print_help():\n    print(\n        \"umu-commander is an interactive CLI tool to help you manage Proton versions used by umu, as well as create enhanced launch configs.\",\n        \"\",\n        \"For details, explanations, and more, see the README.md file, or visit https://github.com/Mpaxlamitsounas/umu-commander.\",\n        sep=\"\\n\",\n    )\n\n\ndef main() -> ExitCode:\n    try:\n        config.load()\n    except (JSONDecodeError, KeyError):\n        config_path: str = os.path.join(_CONFIG_DIR, _CONFIG_NAME)\n        print(f\"Config file at {config_path} could not be read.\")\n        os.rename(config_path, os.path.join(_CONFIG_DIR, _CONFIG_NAME + \".old\"))\n\n    try:\n        db.load()\n    except JSONDecodeError:\n        db_path: str = os.path.join(config.DB_DIR, config.DB_NAME)\n        print(f\"Tracking file at {db_path} could not be read.\")\n        os.rename(db_path, os.path.join(config.DB_DIR, config.DB_NAME + \".old\"))\n\n    if len(sys.argv) == 1:\n        print_help()\n        return ExitCode.SUCCESS.value\n\n    verb: str = sys.argv[1]\n    match verb:\n        case \"track\":\n            tracking.track()\n        case \"untrack\":\n            tracking.untrack()\n        case \"users\":\n            tracking.users()\n        case \"delete\":\n            tracking.delete()\n        case \"create\":\n            umu_config.create()\n        case \"run\":\n            umu_config.run()\n        case _:\n            print(\"Invalid verb.\")\n            print_help()\n            return ExitCode.INVALID_SELECTION.value\n\n    tracking.untrack_unlinked()\n    db.dump()\n    config.dump()\n\n    return ExitCode.SUCCESS.value\n\n\nif __name__ == \"__main__\":\n    exit(main())\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/umu_commander/main.py b/src/umu_commander/main.py
+--- a/src/umu_commander/main.py	(revision 2c990ed1cab5a20498dc2cfe9bd4e331f60cb3af)
++++ b/src/umu_commander/main.py	(date 1754467945908)
+@@ -4,10 +4,10 @@
+ from json import JSONDecodeError
+ 
+ import umu_commander.configuration as config
++import umu_commander.database as db
+ from umu_commander import tracking, umu_config
+ from umu_commander.classes import ExitCode
+-from umu_commander.configuration import _CONFIG_DIR, _CONFIG_NAME
+-from umu_commander.database import Database as db
++from umu_commander.configuration import CONFIG_DIR, CONFIG_NAME
+ 
+ 
+ def print_help():
+@@ -23,9 +23,9 @@
+     try:
+         config.load()
+     except (JSONDecodeError, KeyError):
+-        config_path: str = os.path.join(_CONFIG_DIR, _CONFIG_NAME)
++        config_path: str = os.path.join(CONFIG_DIR, CONFIG_NAME)
+         print(f"Config file at {config_path} could not be read.")
+-        os.rename(config_path, os.path.join(_CONFIG_DIR, _CONFIG_NAME + ".old"))
++        os.rename(config_path, os.path.join(CONFIG_DIR, CONFIG_NAME + ".old"))
+ 
+     try:
+         db.load()
