@@ -1,0 +1,95 @@
+
+# Copyright (C) 2023-2025 Cognizant Digital Business, Evolutionary AI.
+# All Rights Reserved.
+# Issued under the Academic Public License.
+#
+# You can be released from the terms, and requirements of the Academic Public
+# License by purchasing a commercial license.
+# Purchase of a commercial license is mandatory for any use of the
+# neuro-san SDK Software in commercial settings.
+#
+# END COPYRIGHT
+
+# The schema specifications for this file are documented here:
+# https://github.com/cognizant-ai-lab/neuro-san/blob/main/docs/agent_hocon_reference.md
+
+{
+    "llm_config": {
+        "model_name": "gpt-4o",
+    },
+    "tools": [
+        # These tool definitions do not have to be in any particular order
+        # How they are linked and call each other is defined within their
+        # own specs.  This could be a graph, potentially even with cycles.
+
+        # This first agent definition is regarded as the "Front Man", which
+        # does all the talking to the outside world/client.
+        # It is identified as such because it is either:
+        #   A) The only one with no parameters in his function definition,
+        #      and therefore he needs to talk to the outside world to get things rolling.
+        #   B) The first agent listed, regardless of function parameters.
+        #
+        # Some disqualifications from being a front man:
+        #   1) Cannot use a CodedTool "class" definition
+        #   2) Cannot use a Tool "toolbox" definition
+        {
+            "name": "searcher",
+
+            # Note that there are no parameters defined for this guy's "function" key.
+            # This is the primary way to identify this tool as a front-man,
+            # distinguishing it from the rest of the tools.
+
+            "function": {
+                # The description acts as an initial prompt. 
+                "description": "Assist caller with searching an url.",
+            },
+
+            "instructions": """
+Use your tool to respond to the inquiry.
+""",
+            "tools": ["search_tool", "rag_tool"]
+        },
+
+        # The tools "website_search" (class: web_search_global.WebSearch) and
+        # "rag_retriever" (class: rag.Rag) are shared CodedTools that can be used
+        # across all agent networks. Their argument schemas are predefined in 
+        # toolbox_info.hocon. Additional shared CodedTools can be created by 
+        # implementing the module in AGENT_TOOL_PATH and defining the corresponding 
+        # argument schema in AGENT_TOOLBOX_INFO_FILE.
+
+        {
+            "name": "search_tool",
+            "toolbox": "website_search"
+        },
+
+        {
+            "name": "rag_tool",
+            "toolbox": "rag_retriever"
+        }
+    ]
+
+    # -------------------------------------------------------------------------------
+            # CURRENTLY AVAILABLE TOOLS IN TOOLBOX
+            # The following tools can be used as values for "toolbox":
+            #
+            # Langchain Tools
+            #
+            #   1️)  "bing_search" - Uses Bing to perform web searches.
+            #   2️)  "tavily_search" - Uses Tavily for search queries.
+            #   3️)  "requests_get" - Makes an HTTP GET request.
+            #   4️)  "requests_post" - Makes an HTTP POST request.
+            #   5️)  "requests_patch" - Makes an HTTP PATCH request.
+            #   6️)  "requests_put" - Makes an HTTP PUT request.
+            #   7️)  "requests_delete" - Makes an HTTP DELETE request.
+            #   8)  "requests_toolkit" - Contains all of the request tools.
+            #
+            # Coded Tools
+            #
+            #   9)  "website_search" - Search internet with DuckduckgoSearch.
+            #   10) "google_serper" - Search internet with Google Serper
+            #   11) "rag_retriever" - Perform retrival-augmented generation on given urls.
+            #
+            # Each of these tools may require specific arguments in the "args" section.
+            # Refer to the tool's documentation for more details.
+            # -------------------------------------------------------------------------------
+}
