@@ -1,0 +1,491 @@
+Metadata-Version: 2.4
+Name: json-tools-rs
+Version: 0.3.0
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Programming Language :: Rust
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Text Processing :: General
+Classifier: Topic :: Utilities
+Summary: High-performance JSON manipulation library with SIMD-accelerated parsing
+Keywords: json,flatten,manipulation,parsing,rust,simd,performance
+Author: JSON Tools RS Contributors
+License: MIT OR Apache-2.0
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown; charset=UTF-8; variant=GFM
+Project-URL: Homepage, https://github.com/amaye15/JSON-Tools-rs
+Project-URL: Repository, https://github.com/amaye15/JSON-Tools-rs
+Project-URL: Documentation, https://github.com/amaye15/JSON-Tools-rs#readme
+Project-URL: Bug Tracker, https://github.com/amaye15/JSON-Tools-rs/issues
+
+# JSON Tools RS
+
+A high-performance Rust library for advanced JSON manipulation with SIMD-accelerated parsing, providing unified flattening and unflattening operations through a clean builder pattern API.
+
+## Features
+
+- 🚀 Unified API: Single `JSONTools` entry point for flattening, unflattening, or pass-through transforms (`.normal()`)
+- 🔧 Builder Pattern: Fluent, chainable API for easy configuration and method chaining
+- ⚡ High Performance: SIMD-accelerated JSON parsing with FxHashMap and fewer allocations
+- 🎯 Complete Roundtrip: Flatten JSON and unflatten back to original structure
+- 🧹 Comprehensive Filtering: Remove empty strings, nulls, empty objects, and empty arrays (works for flatten and unflatten)
+- 🔄 Advanced Replacements: Literal and regex-based key/value replacements (prefix patterns with `regex:`)
+- 🛡️ Collision Handling: Single strategy `.handle_key_collision(true)` to collect colliding values into arrays
+- 📦 Batch Processing: Process single JSON or batches; Python also supports dicts and lists of dicts
+- 🐍 Python Bindings: Full support with type preservation (input type = output type)
+- 🧰 Robust Errors: Single `JsonToolsError` enum with helpful suggestions
+- 🔥 Optimizations: FxHashMap, SIMD parsing, and Cow-based string handling to minimize clones
+
+## Quick Start
+
+### Rust - Unified JSONTools API
+
+The `JSONTools` struct provides a unified builder pattern API for all JSON manipulation operations. Simply call `.flatten()` or `.unflatten()` to set the operation mode, then chain configuration methods and call `.execute()`.
+
+#### Basic Flattening
+
+```rust
+use json_tools_rs::{JSONTools, JsonOutput};
+
+let json = r#"{"user": {"name": "John", "profile": {"age": 30, "city": "NYC"}}}"#;
+let result = JSONTools::new()
+    .flatten()
+    .execute(json)?;
+
+if let JsonOutput::Single(flattened) = result {
+    println!("{}", flattened);
+}
+// Output: {"user.name": "John", "user.profile.age": 30, "user.profile.city": "NYC"}
+```
+
+#### Advanced Flattening with Filtering
+
+```rust
+use json_tools_rs::{JSONTools, JsonOutput};
+
+let json = r#"{"user": {"name": "John", "details": {"age": null, "city": ""}}}"#;
+let result = JSONTools::new()
+    .flatten()
+    .separator("::")
+    .lowercase_keys(true)
+    .key_replacement("regex:(User|Admin)_", "")
+    .value_replacement("@example.com", "@company.org")
+    .remove_empty_strings(true)
+    .remove_nulls(true)
+    .remove_empty_objects(true)
+    .remove_empty_arrays(true)
+    .execute(json)?;
+
+if let JsonOutput::Single(flattened) = result {
+    println!("{}", flattened);
+}
+// Output: {"user::name": "John"}
+```
+
+#### Basic Unflattening
+
+```rust
+use json_tools_rs::{JSONTools, JsonOutput};
+
+let flattened = r#"{"user.name": "John", "user.profile.age": 30}"#;
+let result = JSONTools::new()
+    .unflatten()
+    .execute(flattened)?;
+
+match result {
+    JsonOutput::Single(unflattened) => println!("{}", unflattened),
+    JsonOutput::Multiple(_) => unreachable!(),
+}
+// Output: {"user": {"name": "John", "profile": {"age": 30}}}
+```
+
+#### Advanced Unflattening with Configuration
+
+```rust
+use json_tools_rs::{JSONTools, JsonOutput};
+
+let flattened = r#"{"user::name": "John", "user::age": 30, "user::email": ""}"#;
+let result = JSONTools::new()
+    .unflatten()
+    .separator("::")
+    .lowercase_keys(true)
+    .remove_empty_strings(true)
+    .remove_nulls(true)
+    .execute(flattened)?;
+
+match result {
+    JsonOutput::Single(unflattened) => println!("{}", unflattened),
+    JsonOutput::Multiple(_) => unreachable!(),
+}
+// Output: {"user": {"name": "John", "age": 30}}
+```
+
+#### Key Collision Handling
+
+When transformations make different keys end up identical, enable collision handling to collect values into arrays.
+
+```rust
+use json_tools_rs::{JSONTools, JsonOutput};
+
+let json = r#"{"user_name": "John", "admin_name": "Jane"}"#;
+let result = JSONTools::new()
+    .flatten()
+    .key_replacement("regex:(user|admin)_", "") // both become "name"
+    .handle_key_collision(true)                    // collect colliding values
+    .execute(json)?;
+
+if let JsonOutput::Single(flattened) = result {
+    println!("{}", flattened);
+}
+// Output: {"name": ["John", "Jane"]}
+```
+
+
+#### Perfect Roundtrip Support
+
+```rust
+use json_tools_rs::{JSONTools, JsonOutput};
+
+let original = r#"{"user": {"name": "John", "age": 30}, "items": [1, 2, {"nested": "value"}]}"#;
+
+// Flatten
+let flattened = JSONTools::new().flatten().execute(original)?;
+let flattened_str = match flattened { JsonOutput::Single(s) => s, _ => unreachable!() };
+
+// Unflatten back to original structure
+let restored = JSONTools::new().unflatten().execute(&flattened_str)?;
+let restored_str = match restored { JsonOutput::Single(s) => s, _ => unreachable!() };
+
+// Verify perfect roundtrip
+assert_eq!(
+    serde_json::from_str::<serde_json::Value>(original)?,
+    serde_json::from_str::<serde_json::Value>(&restored_str)?
+);
+```
+
+
+### Python - Unified JSONTools API
+
+The Python bindings provide the same unified `JSONTools` API with perfect type matching: input type equals output type. `str` → `str`, `dict` → `dict`, lists preserve element types.
+
+#### Basic Usage
+
+```python
+import json_tools_rs as jt
+
+# Basic flattening - dict input → dict output
+result = jt.JSONTools().flatten().execute({"user": {"name": "John", "age": 30}})
+print(result)  # {'user.name': 'John', 'user.age': 30}
+
+# Basic flattening - JSON string input → JSON string output
+result = jt.JSONTools().flatten().execute('{"user": {"name": "John", "age": 30}}')
+print(result)  # '{"user.name": "John", "user.age": 30}'
+
+# Basic unflattening - dict input → dict output
+result = jt.JSONTools().unflatten().execute({"user.name": "John", "user.age": 30})
+print(result)  # {'user': {'name': 'John', 'age': 30}}
+```
+
+#### Advanced Configuration
+
+```python
+import json_tools_rs as jt
+
+# Advanced flattening with filtering and transformations
+tools = (jt.JSONTools()
+    .flatten()
+    .separator("::")
+    .lowercase_keys(True)
+    .remove_empty_strings(True)
+    .remove_nulls(True)
+    .remove_empty_objects(True)
+    .remove_empty_arrays(True)
+    .key_replacement("regex:(User|Admin)_", "")
+    .value_replacement("@example.com", "@company.org"))
+
+data = {"User_name": "John", "Admin_email": "john@example.com", "empty": "", "null_val": None}
+result = tools.execute(data)
+print(result)  # {'name': 'John', 'email': 'john@company.org'}
+
+# Advanced unflattening with same configuration options
+result = (jt.JSONTools()
+    .unflatten()
+    .separator("::")
+    .lowercase_keys(True)
+    .remove_empty_strings(True)
+    .remove_nulls(True)
+    .key_replacement("prefix_", "user_")
+    .value_replacement("@company.org", "@example.com")
+    .execute({"PREFIX_NAME": "john", "PREFIX_EMAIL": "john@company.org", "empty": ""}))
+print(result)  # {'user': {'name': 'john', 'email': 'john@example.com'}}
+```
+
+#### Key Collision Handling
+
+When transformations make different keys end up identical, enable collision handling to collect values into arrays.
+
+```python
+import json_tools_rs as jt
+
+tools = (jt.JSONTools()
+    .flatten()
+    .key_replacement("regex:(user|admin)_", "")  # both become "name"
+    .handle_key_collision(True))                    # collect colliding values
+
+data = {"user_name": "John", "admin_name": "Jane"}
+print(tools.execute(data))  # {'name': ['John', 'Jane']}
+```
+
+
+#### Batch Processing with Type Preservation
+
+```python
+import json_tools_rs as jt
+
+tools = jt.JSONTools().flatten()
+
+# List[str] input → List[str] output
+str_batch = ['{"a": {"b": 1}}', '{"c": {"d": 2}}']
+results = tools.execute(str_batch)
+print(results)  # ['{"a.b": 1}', '{"c.d": 2}']
+
+# List[dict] input → List[dict] output
+dict_batch = [{"a": {"b": 1}}, {"c": {"d": 2}}]
+results = tools.execute(dict_batch)
+print(results)  # [{'a.b': 1}, {'c.d': 2}]
+
+# Mixed types are handled automatically
+mixed_batch = ['{"a": 1}', {"b": {"c": 2}}]
+results = tools.execute(mixed_batch)
+print(results)  # ['{"a": 1}', {'b.c': 2}]
+```
+
+#### Perfect Roundtrip Support
+
+```python
+import json_tools_rs
+
+# Perfect roundtrip with Python dicts
+original = {"user": {"name": "John", "age": 30}, "items": [1, 2, {"nested": "value"}]}
+
+# Flatten
+flattened = json_tools_rs.JSONTools().flatten().execute(original)
+print(f"Flattened: {flattened}")
+
+# Unflatten back to original structure
+restored = json_tools_rs.JSONTools().unflatten().execute(flattened)
+print(f"Restored: {restored}")
+
+# Verify perfect roundtrip
+assert original == restored  # Perfect roundtrip with dicts!
+```
+
+## Installation
+
+### Rust
+
+Add to your `Cargo.toml`:
+
+```toml
+[dependencies]
+json-tools-rs = "0.3.0"
+```
+
+### Python
+
+#### From PyPI (Recommended)
+
+```bash
+pip install json-tools-rs
+```
+
+#### Build from Source with Maturin
+
+```bash
+# Clone the repository
+git clone https://github.com/amaye15/JSON-Tools-rs.git
+cd JSON-Tools-rs
+
+# Install maturin if you haven't already
+pip install maturin
+
+# Build and install the Python package
+maturin develop --features python
+
+# Or build a wheel for distribution
+maturin build --features python --release
+```
+
+#### Development Setup
+
+```bash
+# For development with automatic rebuilds
+maturin develop --features python
+
+# Run Python examples
+python python/examples/basic_usage.py
+```
+
+## Performance
+
+JSON Tools RS delivers exceptional performance through multiple optimizations:
+
+### Performance Optimizations
+
+- FxHashMap: ~15–30% faster string key ops vs HashMap
+- SIMD JSON Parsing: fast parsing/serialization via simd-json
+- Reduced Allocations: fewer clones using Cow and scoped buffers
+- Smart Capacity Management: pre-sized maps/builders to minimize rehashing
+
+### Benchmark Results
+
+Performance varies by workload complexity, but typical results include:
+
+- **Basic flattening**: 2,000+ operations/ms
+- **Advanced configuration**: 1,300+ operations/ms with filtering and transformations
+- **Regex replacements**: 1,800+ operations/ms with pattern matching
+- **Batch processing**: 1,900+ operations/ms for multiple JSON documents
+- **Roundtrip operations**: 1,000+ flatten→unflatten cycles/ms
+
+### Running Benchmarks
+
+```bash
+# Run comprehensive benchmarks
+cargo bench
+
+# Run specific benchmark suites
+cargo bench flatten
+cargo bench unflatten
+cargo bench roundtrip
+```
+
+## API Reference
+
+### JSONTools - Unified API
+
+The `JSONTools` struct is the single entry point for all JSON manipulation operations. It provides a builder pattern API that works for both flattening and unflattening operations.
+
+#### Core Methods
+
+- **`JSONTools::new()`** - Create a new instance with default settings
+- **`.flatten()`** - Configure for flattening operations
+- **`.unflatten()`** - Configure for unflattening operations
+- **`.execute(input)`** - Execute the configured operation
+
+#### Configuration Methods
+
+All configuration methods are available for both flattening and unflattening operations:
+
+- **`.separator(sep: &str)`** - Set separator for nested keys (default: ".")
+- **`.lowercase_keys(value: bool)`** - Convert all keys to lowercase
+- **`.remove_empty_strings(value: bool)`** - Remove keys with empty string values
+- **`.remove_nulls(value: bool)`** - Remove keys with null values
+- **`.remove_empty_objects(value: bool)`** - Remove keys with empty object values
+- **`.remove_empty_arrays(value: bool)`** - Remove keys with empty array values
+- **`.key_replacement(find: &str, replace: &str)`** - Add key replacement pattern (supports regex with "regex:" prefix)
+- **`.value_replacement(find: &str, replace: &str)`** - Add value replacement pattern (supports regex with "regex:" prefix)
+
+#### Collision Handling Methods
+
+- `.handle_key_collision(value: bool)` - Merge colliding values into arrays with intelligent filtering
+
+#### Input/Output Types
+
+Rust:
+- `&str` (JSON string) → `JsonOutput::Single(String)`
+- `Vec<&str>` or `Vec<String>` → `JsonOutput::Multiple(Vec<String>)`
+
+Python:
+- `str` → `str`
+- `dict` → `dict`
+- `List[str]` → `List[str]`
+- `List[dict]` → `List[dict]`
+- Mixed lists preserve original element types
+
+### Error Handling
+
+The library uses a comprehensive `JsonToolsError` enum that provides detailed error information and suggestions:
+
+- **`JsonParseError`** - JSON parsing failures with syntax suggestions
+- **`RegexError`** - Regex pattern compilation errors with pattern suggestions
+- **`InvalidJsonStructure`** - Structure validation errors with format guidance
+- **`ConfigurationError`** - API usage errors with correct usage examples
+- **`BatchProcessingError`** - Batch operation errors with item-specific details
+- **`SerializationError`** - JSON serialization failures with debugging information
+
+Each error includes a helpful suggestion message to guide users toward the correct solution.
+
+## Examples and Testing
+
+### Running Examples
+
+```bash
+# Rust examples
+cargo run --example basic_usage
+
+# Python examples
+python python/examples/basic_usage.py
+python python/examples/examples.py
+```
+
+### Running Tests
+
+```bash
+# Run all Rust tests
+cargo test
+
+# Run tests with Python features
+cargo test --features python
+
+# Run Python tests (after building with maturin)
+python -m pytest python/tests/
+```
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+
+### Development Setup
+
+1. Clone the repository
+2. Install Rust (latest stable)
+3. Install Python 3.8+ and maturin for Python bindings
+4. Run tests to ensure everything works
+
+## License
+
+This project is licensed under either of
+
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+- MIT License ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+
+at your option.
+
+## Changelog
+
+### v0.2.0
+- Updated README with comprehensive documentation
+- Improved API documentation and examples
+- Enhanced Python bindings documentation
+- Performance optimization details
+- Complete error handling documentation
+
+### v0.1.0
+- Initial release with unified JSONTools API
+- Complete flattening and unflattening support
+- Advanced filtering and transformation capabilities
+- Key collision handling strategies
+- Python bindings with perfect type matching
+- Performance optimizations (FxHashMap, SIMD parsing, reduced allocations)
+- Comprehensive error handling with detailed suggestions
+
