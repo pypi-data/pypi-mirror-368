@@ -1,0 +1,70 @@
+# prj-tree
+
+Инструмент для извлечения структуры проекта (или отдельной директории) с учётом игноров и гибкими правилами включения файлов. Рендеры: HTML / Markdown / JSON / ASCII.
+
+## Установка
+
+```bash
+pip install prj-tree
+```
+
+## CLI
+
+```bash
+prj-tree [ROOT] [--renderer html|md|json|ascii] \
+  [--no-git-root] [--no-gitignore] \
+  [--extra-ignore PATTERNS...] \
+  [--tree-include PATTERNS...] [--tree-exclude PATTERNS...] \
+  [--content-include PATTERNS...] \
+  [--content-exclude PATTERNS...] \
+  [--max-file-chars N] \
+  [--title TEXT] \
+  [--output OUTFILE]
+```
+
+- **ROOT**: корень проекта (по умолчанию — git root или CWD)
+- **--tree-include/--tree-exclude**: фильтрация дерева по путям/именам/wildcard
+- **--content-include**: какие файлы показывать с содержимым (имя, путь, расширение `.py`, или wildcard `**/*.py`)
+- **--content-exclude**: исключить содержимое для совпадающих паттернов (файл останется в дереве)
+- **--no-gitignore**: не учитывать `.gitignore`
+- Также учитывается `.prjtreeignore` (если есть) в корне
+
+Примеры:
+
+```bash
+# HTML отчёт со всеми .py файлами
+prj-tree --renderer html --content-include .py --output structure.html
+
+# Markdown по папке src, исключая node_modules
+prj-tree src --renderer md --tree-exclude node_modules --output tree.md
+
+# JSON (можно парсить программно)
+prj-tree --renderer json --content-include "src/**/*.ts" --output tree.json
+
+# ASCII в stdout
+prj-tree --renderer ascii
+```
+
+## Python API
+
+```python
+from prj_tree import generate, GenerateOptions
+
+opts = GenerateOptions(
+    root_path="/path/to/project",
+    content_include=[".py", "README.md", "src/**/main.ts"],
+    tree_exclude=["node_modules", "dist"],
+    renderer="html",
+    title="Мой проект",
+)
+html = generate(opts)
+```
+
+## Игноры
+- Встроенные дефолтные игноры (например, `.git`, `node_modules`, `__pycache__` и т.д.)
+- Паттерны из `.gitignore` (если не отключено)
+- Паттерны из `.prjtreeignore` (если файл существует)
+- Параметр `--extra-ignore` для явных добавлений
+
+## Лицензия
+MIT
