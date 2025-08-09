@@ -1,0 +1,213 @@
+# Authly Standalone - Development/Testing All-in-One Container
+# WARNING: This container includes INSECURE default secrets for convenience.
+#          It is intended for development, testing, and evaluation ONLY.
+#          NEVER use this container in production without overriding ALL secrets!
+#
+# Includes embedded PostgreSQL and Redis for zero-dependency deployment
+# Target size: <150MB
+#
+# For production deployments:
+# - Use the standard Authly container with external PostgreSQL/Redis
+# - Provide secure, randomly generated JWT secrets
+# - Use strong admin passwords
+
+# Allow using a pre-built postgres-builder image for caching
+ARG POSTGRES_BUILDER_IMAGE=""
+
+# Build stage for minimal PostgreSQL
+FROM alpine:3.22 AS postgres-builder-build
+
+# Install build dependencies
+RUN apk add --no-cache \
+    alpine-sdk \
+    bison \
+    flex \
+    perl \
+    linux-headers \
+    e2fsprogs-dev
+
+# Download and extract PostgreSQL 17 source
+WORKDIR /build
+RUN wget -q https://ftp.postgresql.org/pub/source/v17.2/postgresql-17.2.tar.gz && \
+    tar -xzf postgresql-17.2.tar.gz && \
+    cd postgresql-17.2 && \
+    ./configure \
+        --prefix=/opt/postgresql \
+        --without-readline \
+        --without-icu \
+        --without-zlib \
+        --without-openssl \
+        --without-ldap \
+        --without-python \
+        --without-perl \
+        --without-tcl \
+        --disable-rpath \
+        --disable-nls \
+        --with-uuid=e2fs && \
+    # Build and install everything, we'll strip it down later
+    make -j$(nproc) world-bin && \
+    make install-world-bin
+
+# Strip debug symbols and remove unnecessary files
+RUN strip /opt/postgresql/bin/* 2>/dev/null || true && \
+    # Remove documentation and headers
+    rm -rf /opt/postgresql/include \
+           /opt/postgresql/share/doc \
+           /opt/postgresql/share/man \
+           /opt/postgresql/lib/*.a && \
+    # Remove any extra binaries that might have been installed
+    cd /opt/postgresql/bin && \
+    find . -type f ! -name 'postgres' ! -name 'initdb' ! -name 'pg_ctl' \
+           ! -name 'psql' ! -name 'createdb' ! -name 'createuser' -delete && \
+    # Keep: postgres, initdb, pg_ctl, psql, createdb, createuser (for scripts)
+    ls -la /opt/postgresql/bin/ && \
+    # Show final size
+    du -sh /opt/postgresql/
+
+# Use either the pre-built postgres-builder image or the one we just built
+FROM ${POSTGRES_BUILDER_IMAGE:-postgres-builder-build} AS postgres-builder
+
+# Build stage for Python dependencies using uv
+FROM python:3.13-alpine AS python-builder
+
+# Install build dependencies 
+RUN apk add --no-cache \
+    gcc \
+    musl-dev \
+    libffi-dev \
+    linux-headers
+
+# Install uv using pip
+RUN pip install --no-cache-dir uv
+
+# Copy project files
+WORKDIR /build
+COPY pyproject.toml .
+COPY README.md .
+COPY uv.lock .
+COPY src src/
+
+# Install dependencies using uv (dev group for CLI tools, no test packages)
+RUN uv sync --group dev && \
+    # Remove all cache and unnecessary files
+    find .venv -type f -name "*.pyc" -delete && \
+    find .venv -type f -name "*.pyo" -delete && \
+    find .venv -type d -name "__pycache__" -delete && \
+    find .venv -type d -name "*.dist-info" -exec rm -rf {} + 2>/dev/null || true && \
+    find .venv -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true && \
+    find .venv -type d -name "test" -exec rm -rf {} + 2>/dev/null || true && \
+    find .venv -type f -name "*.pyi" -delete && \
+    find .venv -type f -name "*.c" -delete && \
+    find .venv -type f -name "*.h" -delete && \
+    # Remove pip cache if any
+    rm -rf /root/.cache/pip && \
+    # Show final venv size
+    du -sh .venv
+
+# Final stage - minimal runtime
+FROM alpine:3.22
+
+# S6 Overlay version
+ARG S6_OVERLAY_VERSION=3.2.0.2
+
+# Install s6-overlay
+ADD https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-noarch.tar.xz /tmp
+ADD https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-x86_64.tar.xz /tmp
+RUN tar -C / -Jxpf /tmp/s6-overlay-noarch.tar.xz && \
+    tar -C / -Jxpf /tmp/s6-overlay-x86_64.tar.xz && \
+    rm /tmp/*.tar.xz
+
+# Install all runtime dependencies in one layer
+RUN apk add --no-cache \
+    libffi \
+    bash \
+    curl \
+    jq \
+    openssl \
+    tzdata \
+    libuuid && \
+    echo 'https://dl-cdn.alpinelinux.org/alpine/edge/testing' >> /etc/apk/repositories && \
+    apk add --no-cache keydb
+
+# Copy all binaries and resources from builders
+COPY --from=postgres-builder /opt/postgresql /opt/postgresql
+COPY --from=python-builder /usr/local/bin/python3.13 /usr/local/bin/
+COPY --from=python-builder /usr/local/lib/python3.13 /usr/local/lib/python3.13
+COPY --from=python-builder /usr/local/lib/libpython3.13.so* /usr/local/lib/
+COPY --from=python-builder /build/.venv /opt/venv
+COPY --from=python-builder /usr/local/bin/uv /usr/local/bin/uv
+
+# Set environment variables
+ENV PATH=/opt/postgresql/bin:/opt/venv/bin:$PATH
+ENV PYTHONPATH=/app:/opt/venv/lib/python3.13/site-packages
+
+# Create authly user and directories
+RUN addgroup -g 1000 authly && \
+    adduser -u 1000 -G authly -s /bin/bash -D authly && \
+    mkdir -p /data/postgres /data/redis /data/authly /var/log /run/postgresql && \
+    chown -R authly:authly /data /var/log /run/postgresql && \
+    chown -R authly:authly /opt/venv
+
+# Copy application code and resources
+COPY --chown=authly:authly src/authly /app/authly
+COPY --chown=authly:authly pyproject.toml /app/
+COPY --chown=authly:authly README.md /app/
+COPY --chown=authly:authly scripts /app/scripts
+COPY docker-postgres/init-db-and-user.sql /docker-entrypoint-initdb.d/init.sql
+COPY docker-standalone/standalone-init.sh /usr/local/bin/standalone-init
+COPY docker-standalone/scripts /tmp/setup-scripts
+
+# Prepare simple-auth-flow script
+RUN cp /app/scripts/simple-auth-flow.sh /app/scripts/simple-auth-flow-original.sh && \
+    chmod +x /usr/local/bin/standalone-init
+
+# Run all configuration in a single layer
+RUN chmod +x /tmp/setup-scripts/*.sh && \
+    /tmp/setup-scripts/configure-all.sh && \
+    rm -rf /tmp/setup-scripts
+
+# Install Authly package as editable to create console scripts
+WORKDIR /app
+ENV PATH=/opt/venv/bin:$PATH
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv
+RUN uv sync --group dev
+
+# Environment variables
+# WARNING: This container includes development defaults NOT suitable for production!
+# For production use, override ALL secret values at runtime.
+ENV DATABASE_URL=postgresql://authly:authly@localhost/authly \
+    REDIS_URL=redis://localhost:6379/0 \
+    AUTHLY_BOOTSTRAP_ENABLED=true \
+    AUTHLY_ADMIN_USERNAME=admin \
+    AUTHLY_ADMIN_EMAIL=admin@localhost \
+    SKIP_DOCKER_CHECK=true \
+    LOG_JSON=false \
+    LOG_LEVEL=info \
+    HOME=/home/authly \
+    S6_CMD_WAIT_FOR_SERVICES_MAXTIME=30000 \
+    S6_VERBOSITY=1 \
+    S6_KEEP_ENV=1 \
+    AUTHLY_STANDALONE=true \
+    AUTHLY_ADMIN_PASSWORD=admin \
+    JWT_SECRET_KEY=dev-standalone-insecure-key-change-me \
+    JWT_REFRESH_SECRET_KEY=dev-standalone-insecure-refresh-key-change-me \
+    RATE_LIMIT_MAX_REQUESTS=100 \
+    RATE_LIMIT_WINDOW_SECONDS=60 \
+    AUTHLY_LOCKOUT_MAX_ATTEMPTS=10 \
+    AUTHLY_LOCKOUT_DURATION_SECONDS=300
+
+# Volume for persistent data
+VOLUME ["/data"]
+
+# Expose ports
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Use s6-overlay as entrypoint
+ENTRYPOINT ["/init"]
+
+# Default command starts services, for interactive use: docker run -it ... /bin/bash
+CMD []
