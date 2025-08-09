@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hilfe – ROCm-WSL-AI</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <nav class="container-fluid">
+    <ul><li><strong>❓ Hilfe</strong></li></ul>
+    <ul>
+      <li><a href="/">Dashboard</a></li>
+      <li><a href="/tools">Tools</a></li>
+      <li><a href="/wizard">Wizard</a></li>
+      <li><a href="/models">Models</a></li>
+      <li><button id="themeToggle" type="button" class="secondary outline">Theme</button></li>
+    </ul>
+  </nav>
+  <main class="container">
+    <h2>Hilfe & Fehlerbehebung</h2>
+    <details open>
+      <summary>Erste Schritte</summary>
+      <ul>
+        <li>Öffne den Wizard und setze Basisverzeichnis/venv sowie optionale Defaults (Host/Port/Flags).</li>
+        <li>Installiere ein Tool unter "Tools" und starte es im Hintergrund.</li>
+        <li>Öffne das Interface über den Link in der Karte oder nutze die Live-Logs.</li>
+      </ul>
+    </details>
+    <details>
+      <summary>Live-Logs (SSE/WebSocket)</summary>
+      <ul>
+        <li>Filtere Logs per Regex, aktiviere Autoscroll.</li>
+        <li>Falls keine Logs erscheinen: prüfen, ob das Tool gestartet ist und Logdateien existieren.</li>
+      </ul>
+    </details>
+    <details>
+      <summary>Tools & Ports</summary>
+      <ul>
+        <li>In den Einstellungen pro Tool kannst du URL und Extra-Args setzen (z. B. --listen --port 7860).</li>
+        <li>Bei Konflikten (Port belegt) wähle einen freien Port und passe die URL an.</li>
+      </ul>
+    </details>
+    <details>
+      <summary>WSL-Hinweise</summary>
+      <ul>
+        <li>Bind auf 0.0.0.0, wenn du vom Host zugreifen willst.</li>
+        <li>SillyTavern benötigt Node/NVM; Installation wird im Installer transparent ausgeführt.</li>
+      </ul>
+    </details>
+    <details>
+      <summary>Fehlerbehebung</summary>
+      <ul>
+        <li>Tool startet nicht: Logs prüfen, Extra-Args entfernen/testweise minimal starten.</li>
+        <li>Keine Verbindung: Firewall/Port prüfen, URL korrekt?</li>
+        <li>Installationsfehler: Job-Historie ansehen; ggf. erneut starten.</li>
+      </ul>
+    </details>
+  </main>
+    <script src="/static/app.js"></script>
+    <script>
+      (function(){
+        const btn = document.getElementById('themeToggle');
+        function toggle(){
+          const cur = document.documentElement.getAttribute('data-theme');
+          const nxt = cur === 'dark' ? 'light' : 'dark';
+          document.documentElement.setAttribute('data-theme', nxt);
+          localStorage.setItem('theme', nxt);
+        }
+        btn?.addEventListener('click', toggle);
+        const saved = localStorage.getItem('theme');
+        if (saved) document.documentElement.setAttribute('data-theme', saved);
+      })();
+    </script>
+</body>
+</html>
