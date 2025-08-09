@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Models - ROCm-WSL-AI</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+</head>
+<body>
+  <nav class="container-fluid">
+    <ul><li><strong>ROCm-WSL-AI</strong></li></ul>
+    <ul>
+      <li><a href="/">Dashboard</a></li>
+      <li><a href="/wizard">Wizard</a></li>
+      <li><a href="/tools">Tools</a></li>
+    </ul>
+  </nav>
+  <main class="container">
+    <h2>Model Store</h2>
+    <div class="grid">
+      <button id="refresh">Index aktualisieren</button>
+      <select id="presets"></select>
+      <button id="download">Preset laden</button>
+    </div>
+    <h3>Standorte</h3>
+    <pre id="where"></pre>
+    <h3>Modelle</h3>
+    <div id="list" class="grid"></div>
+    <h3>Aktivitäten</h3>
+    <div id="jobs" class="grid"></div>
+  </main>
+  <script>
+    async function loadWhere(){
+      const res = await fetch('/api/models/where');
+      const data = await res.json();
+      document.getElementById('where').textContent = JSON.stringify(data, null, 2);
+    }
+    async function loadIndex(){
+      const res = await fetch('/api/models/index');
+      const items = await res.json();
+      const wrap = document.getElementById('list');
+      wrap.innerHTML = '';
+      for (const e of items){
+        const el = document.createElement('article');
+        el.innerHTML = `<strong>${e.category}</strong><br/><small>${e.path}</small><br/><small>${(e.size/1024/1024).toFixed(1)} MB</small>`;
+        wrap.appendChild(el);
+      }
+      const presets = document.getElementById('presets');
+      // Basic set from server-side PRESETS is not exposed; keep input open
+      presets.innerHTML = `<option value="sdxl">sdxl (Beispiel)</option>`;
+    }
+    async function refreshJobs(){
+      const res = await fetch('/api/jobs');
+      const jobs = await res.json();
+      const wrap = document.getElementById('jobs');
+      wrap.innerHTML='';
+      for (const j of jobs){
+        const el = document.createElement('article');
+        el.innerHTML = `<strong>${j.name}</strong><div style="background:#eee;height:8px;border-radius:999px;overflow:hidden"><div style="background:#22c55e;height:100%;width:${(j.progress*100).toFixed(0)}%"></div></div><small>${j.message || j.status}</small>`;
+        wrap.appendChild(el);
+      }
+    }
+    document.getElementById('refresh').addEventListener('click', async ()=>{
+      const res = await fetch('/api/models/refresh', { method: 'POST' });
+      const data = await res.json();
+      trackJob(data.job_id);
+    });
+    document.getElementById('download').addEventListener('click', async ()=>{
+      const preset = document.getElementById('presets').value;
+      const res = await fetch(`/api/models/download/${preset}`, { method: 'POST' });
+      const data = await res.json();
+      trackJob(data.job_id);
+    });
+    function trackJob(jobId){
+      const iv = setInterval(async ()=>{
+        const res = await fetch(`/api/jobs/${jobId}`);
+        if (!res.ok){ clearInterval(iv); return; }
+        const j = await res.json();
+        await refreshJobs();
+        if (j.status==='done' || j.status==='error'){ clearInterval(iv); await loadIndex(); }
+      }, 1000);
+    }
+    loadWhere();
+    loadIndex();
+    refreshJobs();
+    setInterval(refreshJobs, 3000);
+  </script>
+</body>
+</html>

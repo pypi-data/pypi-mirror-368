@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tools - ROCm-WSL-AI</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <style>
+    :root[data-theme="dark"] { color-scheme: dark; }
+    #toasts { position: fixed; right: 1rem; bottom: 1rem; display: grid; gap: .5rem; z-index: 50; }
+    .toast { background: var(--card-background-color); border: 1px solid var(--muted-border-color); padding: .5rem .75rem; border-radius: .5rem; box-shadow: 0 4px 16px rgba(0,0,0,.1); }
+  </style>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script src="/static/app.js"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/intersect.js"></script>
+</head>
+<body>
+  <nav class="container-fluid">
+    <ul><li><strong>🧰 ROCm-WSL-AI</strong></li></ul>
+    <ul>
+      <li><a href="/">Dashboard</a></li>
+      <li><a href="/wizard">Wizard</a></li>
+      <li><a href="/models">Models</a></li>
+  <li><a href="/help">Hilfe</a></li>
+      <li><button id="themeToggle" type="button" class="secondary outline">Theme</button></li>
+    </ul>
+  </nav>
+  <main class="container">
+    <h2>Tools</h2>
+    <div id="cards" class="grid">
+      {% for name, s in statuses.items() %}
+      <div id="card-{{ name }}" hx-get="/partials/tool-card/{{ name }}" hx-trigger="load, every 4s" hx-swap="outerHTML"></div>
+      {% endfor %}
+    </div>
+    <section>
+      <h3>Aktivitäten</h3>
+      <div id="jobs" class="grid"></div>
+    </section>
+  </main>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <script>
+    async function callApi(url, options) {
+      const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, ...(options||{}) });
+      return res.json();
+    }
+  const { toast, showDialog, syncUrlFromHostPort } = RocmUI;
+  function notify(msg){ toast(msg); }
+    function renderJob(job) {
+      const el = document.createElement('article');
+      el.innerHTML = `
+        <strong>${job.name}</strong>
+        <div style="background:#eee;border-radius:999px;height:8px;overflow:hidden"><div style="background:#22c55e;height:100%;width:${(job.progress*100).toFixed(0)}%"></div></div>
+        <small>${job.message || job.status}</small>
+      `;
+      return el;
+    }
+    async function refreshJobs(){
+      const res = await fetch('/api/jobs');
+      const jobs = await res.json();
+      const wrap = document.getElementById('jobs');
+      wrap.innerHTML = '';
+      for (const j of jobs) wrap.appendChild(renderJob(j));
+    }
+    async function refreshStatus(){
+      const res = await fetch('/api/status');
+      const data = await res.json();
+      for (const [name, s] of Object.entries(data)){
+        const card = [...document.querySelectorAll('#cards article')].find(a => a.querySelector(`[data-tool="${name}"]`));
+        if (!card) continue;
+        const p = card.querySelector('p');
+        p.innerHTML = s.alive ? `Status: <span style=\"color:#15803d\">läuft (PID ${s.pid})</span>` : `Status: <span style=\"color:#b91c1c\">gestoppt</span>`;
+        const urlEl = card.querySelector(`#url-${name}`);
+        const argsEl = card.querySelector(`#args-${name}`);
+        if (urlEl && (s.url || urlEl.value==='')) urlEl.value = s.url || '';
+        if (argsEl && (s.extra_args || argsEl.value==='')) argsEl.value = s.extra_args || '';
+        const link = card.querySelector('a[href^="http"]');
+        if (link) link.href = s.url || link.href;
+        // Ableitung Host/Port aus URL vorschlagen
+        try{
+          if (s.url){
+            const u = new URL(s.url);
+            const hostEl = card.querySelector(`#host-${name}`);
+            const portEl = card.querySelector(`#port-${name}`);
+            if (hostEl && !hostEl.value) hostEl.value = u.hostname || '';
+            if (portEl && !portEl.value) portEl.value = u.port || (u.protocol==='https:'? '443' : '80');
+            // falls Auto-Fill aktiv, Args anhand Host/Port aktualisieren
+            const argsAuto = card.querySelector(`#args-${name}`);
+            if (argsAuto && argsAuto.dataset.autofill === '1'){
+              argsAuto.value = autoArgsFor(name, hostEl?.value, portEl?.value);
+            }
+          }
+        }catch{}
+      }
+    }
+  function autoArgsFor(tool, host, port){
+      host = (host||'').trim();
+      port = (port||'').toString().trim();
+      const listen = host ? `--listen` : `--listen`;
+      const listenPort = `${listen} --port ${port||'7860'}`;
+      const map = {
+        'a1111': listenPort,
+        'sdnext': listenPort,
+        'forge': listenPort,
+        'fooocus': listenPort,
+        'textgen': listenPort,
+        'comfyui': listenPort,
+    'fastchat': `--host ${host||'0.0.0.0'} --port ${port||'7861'}`,
+    'llama.cpp': `--host ${host||'0.0.0.0'} --port ${port||'8080'}`,
+    'koboldcpp': `--host ${host||'0.0.0.0'} --port ${port||'5001'}`,
+    'ollama': '',
+      };
+      return map[tool] || '';
+    }
+    function onHostPortChange(tool){
+      const argsEl = document.getElementById(`args-${tool}`);
+      const hostEl = document.getElementById(`host-${tool}`);
+      const portEl = document.getElementById(`port-${tool}`);
+      if (!argsEl || !hostEl || !portEl) return;
+      if (argsEl.dataset.autofill === '1'){
+        argsEl.value = autoArgsFor(tool, hostEl.value, portEl.value);
+      }
+    }
+    document.addEventListener('input', (e)=>{
+      const el = e.target;
+      if (el && el.id && el.id.startsWith('args-')){
+        el.dataset.autofill = '0';
+      }
+      if (el && el.id && (el.id.startsWith('host-') || el.id.startsWith('port-'))){
+        const tool = el.id.split('-')[1];
+        onHostPortChange(tool);
+        // URL mitziehen
+        syncUrlFromHostPort(tool);
+      }
+      if (el && el.id && el.id.startsWith('url-')){
+        const tool = el.id.split('-')[1];
+        RocmUI.syncHostPortFromUrl(tool);
+      }
+    });
+    async function loadAllSettings(){
+      try{
+        const res = await fetch('/api/tools/settings');
+        if (!res.ok) return;
+        const all = await res.json();
+        for (const [name, st] of Object.entries(all||{})){
+          const urlEl = document.getElementById(`url-${name}`);
+          const argsEl = document.getElementById(`args-${name}`);
+          if (urlEl) urlEl.value = st.url || urlEl.value || '';
+          if (argsEl) argsEl.value = st.extra_args || argsEl.value || '';
+        }
+      }catch{}
+    }
+    document.addEventListener('click', async (e)=>{
+      const btn = e.target.closest('button[data-act]');
+      if (!btn) return;
+      const act = btn.getAttribute('data-act');
+      const tool = btn.getAttribute('data-tool');
+      if (act==='install'){
+        const res = await callApi(`/api/install/${tool}`);
+        if (res?.job_id){ trackJob(res.job_id); }
+      } else if (act==='start'){
+        await callApi(`/api/start/${tool}`);
+        await refreshStatus();
+      } else if (act==='stop'){
+        await callApi(`/api/stop/${tool}`);
+        await refreshStatus();
+      } else if (act==='save-settings'){
+        const urlEl = document.getElementById(`url-${tool}`);
+        const argsEl = document.getElementById(`args-${tool}`);
+        const payload = { url: urlEl?.value || null, extra_args: argsEl?.value || null };
+        // primitive URL-Validierung im UI
+        if (payload.url) {
+          try {
+            const u = new URL(payload.url);
+            if (!['http:', 'https:'].includes(u.protocol)) throw new Error('prot');
+          } catch(e) {
+      showDialog('Ungültige URL');
+            return;
+          }
+        }
+        const res = await callApi(`/api/tools/${tool}/settings`, { body: JSON.stringify(payload) });
+    if (!res?.ok) showDialog(res?.detail || 'Fehler beim Speichern'); else notify('Gespeichert');
+        await refreshStatus();
+      } else if (act==='logs'){
+        location.href = '/';
+      }
+    });
+    function trackJob(jobId){
+      const iv = setInterval(async ()=>{
+        const res = await fetch(`/api/jobs/${jobId}`);
+        if (!res.ok){ clearInterval(iv); return; }
+        const j = await res.json();
+        await refreshJobs();
+        if (j.status==='done' || j.status==='error'){ clearInterval(iv); await refreshStatus(); }
+      }, 1000);
+    }
+    refreshJobs();
+    loadAllSettings();
+    setInterval(refreshJobs, 3000);
+    setInterval(refreshStatus, 5000);
+    // theme toggle
+    const themeBtn = document.getElementById('themeToggle');
+    function toggleTheme(){
+      const cur = document.documentElement.getAttribute('data-theme');
+      const nxt = cur === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', nxt);
+      localStorage.setItem('theme', nxt);
+    }
+    themeBtn?.addEventListener('click', toggleTheme);
+    const saved = localStorage.getItem('theme');
+    if (saved) document.documentElement.setAttribute('data-theme', saved);
+  </script>
+  <div id="toasts"></div>
+</body>
+</html>
