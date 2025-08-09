@@ -1,0 +1,254 @@
+[build-system]
+requires = ["setuptools >= 77.0", "setuptools_scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "python-can"
+dynamic = ["readme", "version"]
+description = "Controller Area Network interface module for Python"
+authors = [{ name = "python-can contributors" }]
+dependencies = [
+    "wrapt~=1.10",
+    "packaging >= 23.1",
+    "typing_extensions>=3.10.0.0",
+]
+requires-python = ">=3.9"
+license = "LGPL-3.0-only"
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: Manufacturing",
+    "Intended Audience :: Telecommunications Industry",
+    "Natural Language :: English",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Topic :: Software Development :: Embedded Systems",
+    "Topic :: Software Development :: Embedded Systems :: Controller Area Network (CAN)",
+    "Topic :: System :: Hardware :: Hardware Drivers",
+    "Topic :: System :: Logging",
+    "Topic :: System :: Monitoring",
+    "Topic :: System :: Networking",
+    "Topic :: Utilities",
+]
+
+[project.scripts]
+can_logconvert = "can.logconvert:main"
+can_logger = "can.logger:main"
+can_player = "can.player:main"
+can_viewer = "can.viewer:main"
+can_bridge = "can.bridge:main"
+
+[project.urls]
+homepage = "https://github.com/hardbyte/python-can"
+documentation = "https://python-can.readthedocs.io"
+repository = "https://github.com/hardbyte/python-can"
+changelog = "https://github.com/hardbyte/python-can/blob/develop/CHANGELOG.md"
+
+[project.optional-dependencies]
+pywin32 = ["pywin32>=305; platform_system == 'Windows' and platform_python_implementation == 'CPython'"]
+seeedstudio = ["pyserial>=3.0"]
+serial = ["pyserial~=3.0"]
+neovi = ["filelock", "python-ics>=2.12"]
+canalystii = ["canalystii>=0.1.0"]
+cantact = ["cantact>=0.0.7"]
+cvector = ["python-can-cvector"]
+gs-usb = ["gs-usb>=0.2.1"]
+nixnet = ["nixnet>=0.3.2"]
+pcan = ["uptime~=3.0.1"]
+remote = ["python-can-remote"]
+sontheim = ["python-can-sontheim>=0.1.2"]
+canine = ["python-can-canine>=0.2.2"]
+zlgcan = ["zlgcan"]
+candle = ["python-can-candle>=1.2.2"]
+viewer = [
+    "windows-curses; platform_system == 'Windows' and platform_python_implementation=='CPython'"
+]
+mf4 = ["asammdf>=6.0.0"]
+multicast = ["msgpack~=1.1.0"]
+
+[dependency-groups]
+docs = [
+    "sphinx>=5.2.3",
+    "sphinxcontrib-programoutput",
+    "sphinx-inline-tabs",
+    "sphinx-copybutton",
+    "furo",
+]
+lint = [
+    "pylint==3.3.*",
+    "ruff==0.12.8",
+    "black==25.1.*",
+    "mypy==1.17.*",
+]
+test = [
+    "pytest==8.4.*",
+    "pytest-timeout==2.4.*",
+    "pytest-modern==0.7.*;platform_system!='Windows'",
+    "coveralls==4.0.*",
+    "pytest-cov==6.2.*",
+    "coverage==7.10.*",
+    "hypothesis>=6.136,<6.138",
+    "parameterized==0.9.*",
+]
+dev = [
+    {include-group = "docs"},
+    {include-group = "lint"},
+    {include-group = "test"},
+]
+
+[tool.setuptools.dynamic]
+readme = { file = "README.rst" }
+[tool.setuptools.package-data]
+"*" = ["README.rst", "CONTRIBUTORS.txt", "LICENSE.txt", "CHANGELOG.md"]
+doc = ["*.*"]
+examples = ["*.py"]
+can = ["py.typed"]
+
+[tool.setuptools.packages.find]
+include = ["can*"]
+
+[tool.setuptools_scm]
+# can be empty if no extra settings are needed, presence enables setuptools_scm
+
+[tool.mypy]
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+no_implicit_optional = true
+disallow_incomplete_defs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+exclude = [
+    "^doc/conf.py$",
+    "^test",
+    "^can/interfaces/etas",
+    "^can/interfaces/gs_usb",
+    "^can/interfaces/ics_neovi",
+    "^can/interfaces/iscan",
+    "^can/interfaces/ixxat",
+    "^can/interfaces/kvaser",
+    "^can/interfaces/nican",
+    "^can/interfaces/neousys",
+    "^can/interfaces/pcan",
+    "^can/interfaces/socketcan",
+    "^can/interfaces/systec",
+    "^can/interfaces/usb2can",
+]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+extend-select = [
+    "A",  # flake8-builtins
+    "B",  # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "F",  # pyflakes
+    "E",  # pycodestyle errors
+    "I",  # isort
+    "N",  # pep8-naming
+    "PGH",  # pygrep-hooks
+    "PL",  # pylint
+    "RUF",  # ruff-specific rules
+    "T20",  # flake8-print
+    "TCH",  # flake8-type-checking
+    "UP",  # pyupgrade
+    "W",  # pycodestyle warnings
+    "YTT",  # flake8-2020
+]
+ignore = [
+    "B026",  # star-arg-unpacking-after-keyword-arg
+    "PLR",  # pylint refactor
+]
+
+[tool.ruff.lint.per-file-ignores]
+"can/interfaces/*" = [
+    "E501",  # Line too long
+    "F403",  # undefined-local-with-import-star
+    "F405",  # undefined-local-with-import-star-usage
+    "N",  # pep8-naming
+    "PGH003",  # blanket-type-ignore
+    "RUF012",  # mutable-class-default
+]
+"can/cli.py" = ["T20"]  # flake8-print
+"can/logger.py" = ["T20"]  # flake8-print
+"can/player.py" = ["T20"]  # flake8-print
+"can/bridge.py" = ["T20"]  # flake8-print
+"can/viewer.py" = ["T20"]  # flake8-print
+"examples/*" = ["T20"]  # flake8-print
+
+[tool.ruff.lint.isort]
+known-first-party = ["can"]
+
+[tool.pylint]
+extension-pkg-allow-list = ["curses"]
+disable = [
+    "cyclic-import",
+    "duplicate-code",
+    "fixme",
+    "invalid-name",
+    "missing-class-docstring",
+    "missing-function-docstring",
+    "missing-module-docstring",
+    "no-else-raise",
+    "no-else-return",
+    "too-few-public-methods",
+    "too-many-arguments",
+    "too-many-branches",
+    "too-many-instance-attributes",
+    "too-many-locals",
+    "too-many-positional-arguments",
+    "too-many-public-methods",
+    "too-many-statements",
+]
+
+[tool.towncrier]
+directory = "doc/changelog.d"
+filename = "CHANGELOG.md"
+start_string = "<!-- towncrier release notes start -->\n"
+underlines = ["", "", ""]
+title_format = "## Version [{version}](https://github.com/hardbyte/python-can/tree/{version}) - {project_date}"
+issue_format = "[#{issue}](https://github.com/hardbyte/python-can/issues/{issue})"
+
+[[tool.towncrier.type]]
+directory = "security"
+name = "Security"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "removed"
+name = "Removed"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "deprecated"
+name = "Deprecated"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "added"
+name = "Added"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "changed"
+name = "Changed"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "fixed"
+name = "Fixed"
+showcontent = true
