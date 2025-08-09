@@ -1,0 +1,460 @@
+.. include:: substitutions.txt
+
+Installation
+============
+
+Dependencies
+------------
+.. collapse:: numpy,scipy, Cython, matplotlib,MDanalysis,...
+
+    - numpy, scipy  ->  Mandatory, automatically installed by pip
+    - Cython        ->  Mandatory, automatically installed by pip
+    - Pillow        ->  Mandatory, automatic install by pip, for reading of SAXS images
+    - matplotlib    ->  Mandatory, automatic install by pip, for 3D plots and on Windows
+    - Pillow,       ->  Mandatory, automatic install by pip, image reading
+    - fabio,        ->  Mandatory, automatic install by pip, reading two-dimensional X-ray detectors
+    - MDAnalysis    ->  Mandatory, automatic install by pip, analyze trajectories from MD simulations
+    - pdb2pqr       ->  Mandatory, automatic install by pip
+    - emcee         ->  Mandatory, automatic install by pip, Bayesian analysis
+    - nglview       ->  Optional, automatic install by pip,  interactively view molecular structures
+    - Ipython       ->  Optional, for convenience as a powerful python shell
+    - xmgrace       ->  Optional, my preferred plotting tool on Linux (use matplotlib on Windows)
+
+    - gfortran      ->  Optional, without some functions dont work or use a slower python version
+
+gfortran is mandatory if you use the bio module or some cloudscattering functions.
+
+Installation of gfortran/xmgrace may need root privileges. Use "sudo" on Linux and macOS if needed.
+
+Pip installation/upgrade
+------------------------
+As user (without root access) this will install to your home directory (by default to path ~/.local/).
+Prepend sudo if it should install to the system python (optional). ::
+
+  python -m pip install jscatter
+
+It is assumed that python3 is your default Python environment and dependencies are installed by a system administrator.
+You can check python version typing ``python`` in the terminal and look at the first lines with version information.
+
+To install dependencies see below.
+
+Check :ref:`Troubleshooting and tips` for help if this is not the case or jscatter is not found after installation.
+
+To upgrade to latest version ::
+
+  python -m pip install jscatter --upgrade
+
+Install from a local repository (development versions)::
+
+  python -m pip install jscatter --upgrade --pre --find-links /where/the/file/is/saved
+
+  options
+  --user       : Install in user directory (folder defined by PYTHONUSERBASE or the default ~/.local)
+  --find-links : look in the given path for package links e.g. development releases
+  --upgrade    : to install upgrades also for dependencies
+  --pre        : to install also development versions
+
+Installation directly from git repository branch. For different branch use branch name.
+This is only for developers. dev versions are under development!
+(You may need a user account) ::
+
+ python -m pip install git+https://gitlab.com/biehl/jscatter.git@dev
+
+Linux
+-----
+* Ubuntu, all Debian related  ::
+
+   sudo apt update  # to find updated packages
+   sudo apt install python3 python3-pip gfortran grace
+   python3 -m pip install pip --upgrade  # some bugs on older pip
+   python3 -m pip install ipython        # for convenience
+   python3 -m pip install jscatter
+
+* RockyLinux, Suse, Fedora ... do same as above but with yum/zypper...
+
+* Manjaro Linux ::
+
+   # install these for fortran
+   pamac install gcc-fortran
+
+   # optional install xmgrace (only found in AUR), fonts are needed for the interface, fonts are loaded after restart
+   pamac install xorg-fonts-75dpi xorg-fonts-100dpi pdflib-lite
+   pamac install grace
+
+   # tk might be missing for tkinter as matplotlib backend
+   pamac install tk
+   python -m pip install ipython
+   python -m pip install jscatter
+
+* CONTIN in DLS module (Only if needed).
+
+  See DLS module documentation for details how to get and compile the original fortran code.
+
+MacOs (Intel + Arm)
+-------------------
+If you have a preinstalled gcc compiler you need the Xcode Command Line Tools.
+A command  like `gcc` may trigger the installation. Manually do ::
+
+ xcode-select --install
+
+All the following can be done without *brew* installing in a different way.
+But it's simpler if you are your own admin.
+
+**Homebrew** is a MacOs package manager. The following is tested on Catalina, BigSur (Intel) and Sonoma (Arm M3).
+
+Install Homebrew first as given on their web page (see `Homebrew <https://brew.sh/>`_).
+You don’t need sudo permissions, for details see `Homebrew <https://brew.sh/>`_.
+
+[Intel] Append the following line to your .zshrc file and restart the terminal: ::
+
+ # [Intel] set Path to point to homebrew
+ export PATH=/usr/local/bin:/usr/local/share/python:$PATH
+ # [Intel] XQuartz needs this to use flatNamespace correctly with grace (error was something with Vendorshell...)
+ export DYLD_LIBRARY_PATH=/opt/X11/lib/flat_namespace
+
+You need Python and more. ::
+
+   # install XQuartz from homebrew cask (NOT from the App Store, because of above setting)
+   brew cask install xquartz
+   # install xmgrace and gfortran, cmake (included in gcc)
+   brew install gcc grace cmake
+   # maybe it's necessary to relink if old links from previous installation are present
+   brew link --overwrite gcc
+   brew link --overwrite grace
+
+For newer macOS Python is not installed::
+
+   # install python from homebrew (by default python3 and be called by `python3`)
+   brew install python gcc
+
+   # then use pip
+   python3 -m pip install ipython
+   # dependencies are installed automatically
+   python3 -m pip install jscatter
+
+
+Troubles
+- If at some point parallel computations get slow on M processors this is related to macOS QualityOfService
+  that is responsible for for energy consumption on M processors with efficiency and performance cores.
+  QoS puts with default policy the calculations to only efficiency cores after some time, e.g if you repeat
+  formfactor calculations of a proteins after 10 to 20 times.
+  There is currently no way to avoid this (Feb2024).
+  *taskpolicy* or *os.setpriority* dont change this in a terminal.
+- for xquartz maybe a restart is needed to set all things right and start the server.
+- If the compiler is not found set it explicitly. See Troubleshooting below.
+
+- [Intel] If you have trouble like `missing xcrun ...` you might have to re-register it or update it to the latest version.
+  Try `xcode-select --install`.
+
+- In MacOs [Intel] (e.g. Catalina) you may get an error "stdio.h not found"
+  which is related to the missing /usr/local/include folder as decided by Apple.
+  Add to .zshrc or corresponding to include this path in CPATH::
+
+   export CPATH=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/
+
+Windows
+-------
+
+Windows Subsystem for Linux (WSL) with Ubuntu way
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+A new way is based on  Windows Subsystem for Linux (WSL), which
+"lets developers run GNU/Linux environment
+-- including most command-line tools, utilities, and applications -- directly on Windows,
+unmodified, without the overhead of a virtual machine."
+(See `WSL <https://docs.microsoft.com/de-de/windows/wsl/about>`_ , **use WSL2**)
+
+This allows to use any Linux application including XmGrace or Linux editors.
+You work on the same filesystem as your Windows user account without the need of
+syncing folders or using a shared folder from a virtual machine.
+Also, gfortran compiled code is working.
+Additional, :ref:`WSL usage is faster than native Windows <WSLisfaster>`:
+
+The basic procedure is to activate WSL, install Linux and Xserver,
+add your needed Linux software in the usual way.
+
+**Windows 11** its `simple install <https://learn.microsoft.com/de-de/windows/wsl/install>`_
+(Ubuntu is installed by default )
+
+In a terminal to install Ubuntu and a running Xserver for graphical user interfaces do :
+ ::
+
+  # as Admin
+  wsl --install
+  # reboot needed
+
+  wsl --install Ubuntu
+  # start Ubuntu
+  wsl
+  # at first start it will ask for username and password and create an Linux environment
+
+ Install other components as described above for Ubuntu
+
+**Windos 10**
+Do same as above.
+
+On newer versions (latest updates) this should work in same way as for Windows 11.
+If you have trouble in getting an Xserver running (no windows opens) you should upgrade Windows
+or follow this :
+
+.. collapse::  A bit more complicated: The older Instructions for Windows 10
+
+    - Install **WSL** like above (Please check for the update to WSL2 on following site)
+
+      See `<https://learn.microsoft.com/de-de/windows/wsl/install>`_
+
+    - **install a linux distribution** of choice from Windows store (tested with Ubuntu 20.04).
+      (The installation is per user, so do it under your user account, NOT as administrator)
+
+      Open a terminal, start bash and set user and password for Linux.
+      (See https://docs.microsoft.com/en-us/windows/wsl/initialize-distro )
+
+    - For graphical applications: **Install Xserver** VcXsrv (or an other Xserver).
+
+      See e.g. https://aalonso.dev/blog/how-to-use-gui-apps-in-wsl2-forwarding-x-server-cdj or
+      https://techcommunity.microsoft.com/t5/windows-dev-appconsult/running-wsl-gui-apps-on-windows-10/ba-p/1493242.
+      Download from https://sourceforge.net/projects/vcxsrv/ .
+      Install (start always manually or add to Windows autostart).
+
+      For WSL2 :
+
+      - If you start vcxsrv on Windows check in the last option window that "Disable access control" is checked
+        to allow connections from WSL. If you save the configuration it might remind the settings.
+
+      - Open the Windows Firewall for the Xserver:
+        When starting the Xserver the first time allow public and private Networks.
+        If you missed this, open
+        `Windows Security -> Firewall & network protection -> Allow an app through firewall`
+        -> make sure VcXsrv has both public and private allowed (checked).
+
+        If you don't find VcXsrv you need to add the executable with path like ``C:\program files\vcxsrv\vcxsrv.exe``
+        and allow public and private access.
+
+    - **Configure bash** to use the local X server
+
+      Add this to .bashrc at the end dependent on using WSL1 or WSL2::
+
+       export DISPLAY=localhost:0.0 # WSL1
+       export DISPLAY=$(grep -m 1 nameserver /etc/resolv.conf | awk '{print $2}'):0.0 # WSL2
+
+      or run this inside bash to append it to .bashrc::
+
+       # for WSL1
+       echo "export DISPLAY=localhost:0.0" >> ~/.bashrc
+       # for WSL2
+       echo "export DISPLAY=\$(grep -m 1 nameserver /etc/resolv.conf | awk '{print $2}'):0.0" >> ~/.bashrc
+
+      Restart bash or load again .bashrc by ``source ~/.bashrc``
+
+
+Finally, to make the shell more comfortable
+
+  Add these lines to .bashrc file (open a wsl terminal and `nano ~/.bashrc`)
+
+  It defines a shortcut for the Windows User directory and goes there. (replace username with yours)
+  ::
+
+   # my addons
+   # change to Windows home directory
+   alias cdhome="cd /mnt/c/Users/$(whoami)"
+   # change to Linux home directory
+   cd
+
+Anaconda way
+^^^^^^^^^^^^
+Meanwhile, 2025, Anaconda needs a license for Academic use.
+Therefore, in a public financed science there should be no place for Anaconda
+as you just dont need this waste of money.
+
+`Anaconda <https://www.anaconda.com/distribution>`_ is a python distribution as alternative
+with numpy, scipy, matplotlib, Ipython preinstalled.
+Need of sudo depends on how Anaconda was installed (root or user).
+Maybe the matplotlib backend needs to be configured on Windows to work properly.
+XmGrace is not working on native Windows.
+
+And there was more to adjust, when I stopped waisting my time.
+In my testcase it was a pain, but test and examples work (no Xmgrace, no fortran).
+
+I strongly advise to use the  **WSL way** from above, as it is easier to install, update and use.
+And even gfortran is working in WSL!!
+::
+
+   # install jscatter on working anaconda environment
+   python -m pip install jscatter
+
+Jupyter Notebook
+----------------
+Jscatter works on Jupyter Notebooks respectively Jupyter-lab. You may try Jscatter live at |binder|.
+
+The example notebooks are included in the example subfolder of your Jscatter installation
+or can be downloaded from
+`Gitlab/Jscatter <https://gitlab.com/biehl/jscatter/tree/master/src/jscatter/examples/notebooks>`_ .
+
+To install jscatter on a server Jupyter installation (Jscatter not preinstalled)
+prepend this on your script. (only required once)
+::
+
+ import sys
+ # install jscatter as user in the current Jupyter kernel
+ !{sys.executable} -m pip install jscatter
+ !{sys.executable} -m pip install ipympl
+
+There is some trouble with inline plots (which are not interactive and cannot be updated)
+dependent on the installed backend.
+This is related to the used matplotlib backend (therefore you need ipympl) not to Jscatter.
+
+Import magic %matplotlib (before importing anything else) to get interactive plots inline. ::
+
+Then import Jscatter or anything else. ::
+
+ %matplotlib widget
+ import jscatter as js
+
+ js.usempl(True)  # use matplotlib
+ js.usempl(False) # use grace on your computer with xmgrace in external window.
+
+If you work over http on a server (usual no display of Xwindows applications) use the same to
+switch to matplotlib.
+
+**Creating a ipykernel with Jscatter**
+
+You can create a ipykernel with Jscatter preinstalled (Thanks to Stuart from ILL).
+We assume here that no gfortran is present and we remove any other stuff from cache.
+You can select the Jscatter kernel to be used in Notebooks.
+::
+
+ #remove an existing environment if present
+ # conda remove -n jscatter --all
+
+ # create jscatter environment
+ source /opt/conda/etc/profile.d/conda.sh
+ conda create --name jscatter python=3.10
+ conda activate jscatter
+
+ # install gfortran and ipympl for interactive plots in jscatter env
+ conda install conda-forge::gfortran
+ conda install -c conda-forge ipympl
+ # FC is default varibale to find Fortran, it is not set automatically.
+ FC=$(which gfortran)
+
+ python -m pip cache purge
+ python -m pip install jscatter
+
+ conda install ipykernel
+ python -m ipykernel install --user --name=jscatter
+
+ conda deactivate
+
+Restart your JupyterLab and Jscatter should apear as ipykernel.
+
+Using a cluster/headless mode
+-----------------------------
+For long running scripts or fitting one might want to use a
+`cluster <https://en.wikipedia.org/wiki/Computer_cluster>`_.
+
+Cluster allow often no graphical output (as they are used e.g. through ssh running a script.).
+To run your script as usual (after testing on your PC) Jscatter implements a *headless* mode
+which can be activated using::
+
+ import jscatter as js
+ js.headless(True)
+
+In *headless* mode all errPlots are saved automatically to *lastErrPlot.agr* and open matplotlib plots
+are saved as *lastopenedplots_i.png* if js.mpl.show() is used.
+Both allow to retrieve an updated graphical output as stored image instead of updated windows.
+
+Please save important plots in the usual way to store them with a useful name.
+Additionally, any data output should be saved in the usual way.
+Xmgrace is advantageous as .agr format allows later change of the plots including rescaling.
+
+Examples are also adapted and saved to jscatterExamples/example_name/
+under the current working directory.
+
+For experts:
+ Xmgrace uses *gracebat* and matplotlib uses the non-interactive backend "Agg".
+ gracebat needs to be installed.
+
+ For matplotlib create figures using *fig=js.mpl.mplot* or *fig=matplotlib.figure.Figure*
+ and later save by *fig.savefig*. Dont use pyplot as it generates errors in headless mode without interactive loop.
+
+To switch back it is best to restart ipython (at least for matplotlib).
+
+Testing
+-------
+You can test basic functionality of jscatter after installation::
+
+   import jscatter as js
+   js.test.doTest()
+   #basic graphics and fitting
+   js.examples.runExample('example_BG_SinusoidalFitting.py')
+
+The Example shows :
+ - 3 sine fit plots with one sine
+ - a fit plot with 5 sine curves fitted simultaneous
+ - a simple plot with 5 points ( phase against Amplitude of the 5 sines)
+
+
+Troubleshooting and tips
+------------------------
+
+- The jscatter version can be checked by ``js.version`` .
+- For testing and playing around without disturbing your productive environment you might use
+  https://virtualenv.pypa.io .
+
+  virtualenv is a tool to create isolated Python environments.
+- In case of problems use `-v` switch to get more output during install. ::
+
+   python -m pip install jscatter -v
+
+- If the gcc or gfortran compiler is not found (maybe on a Mac with homebrew)
+  or a different compiler is tried set the compiler explicitly before installing jscatter.
+  Default is gcc/gfortran, below on an i86 MAC installed from homebrew.
+  ::
+
+   # to use installed gcc compiler version 12
+   export CC=/usr/local/bin/gcc-12
+   export FC=/usr/local/bin/gfortran-12
+
+- If jscatter is not found (or an old version) after installation/upgrade then it might be a problem
+  of having multiple versions of Python on your system.
+  Starting *pip* a different version than starting *python* is the reason.
+
+  On older systems, using ``pip`` -> ``pip3`` uses the python3 version of pip if the old python2 is your default .
+
+  Using instead of ``pip`` -> ``python -m pip`` in the all above commands calls the correct pip version in any case
+  (the Python version started with ``python``).
+  This is for example needed if you have a system python which should not be touched and a second python for users.
+
+  E.g. like this to install also ipython in the same python environment ::
+
+   python -m pip install ipython
+   python -m pip install jscatter
+
+
+- If xmgrace is not found by jscatter (```module 'jscatter' has no attribute 'grace'```) the path to
+  the executable may be not on your PATH variable.
+
+  Check this by calling xmgrace in a shell, if it is started it should work.
+
+  If xmgrace is not starting, add accordingly the installation path to your PATH variable.
+  For e.g. bash add in your .bashrc (for zsh on macOS .zshrc) on my CentOS ::
+
+   export PATH=/usr/local/bin:$(PATH)
+
+  Restart the shell after changing.
+
+- To open .agr files by clicking add a new file association e.g. to KDE.
+   - In SystemSettings/FileAssociations add a new type xmgrace.
+   - Inside this add FilenamePatterns '*.agr' and similar.
+   - In 'ApplicationPreferenceOrder' add xmgrace and edit this new application :
+
+      In General:  edit name to "xmgrace" (keep it).
+      In Application: edit name to "xmgracefree" and command to "xmgrace -free".
+      This will open files in free floating size format.
+
+     In `ApplicationPreferenceOrder` add again application xmgrace (no changes)
+     The second opens files in fixed size format (no '-free').
+
+
+
+
+
