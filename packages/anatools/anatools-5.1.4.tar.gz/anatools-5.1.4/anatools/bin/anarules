@@ -1,0 +1,126 @@
+#!/usr/bin/env python
+# Copyright 2019-2022 DADoES, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License in the root directory in the "LICENSE" file or at:
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+import argparse
+import sys
+import os
+import anatools
+
+def windsurf_data(path, name):
+    filepath = os.path.join(path, f'{name}.md')
+    header = """---\ntrigger: always_on\n---\n\n"""
+    return filepath, header
+
+def cursor_data(path, name):
+    filepath = os.path.join(path, f'{name}.mdc')
+    header = """---\nalwaysApply: true\n---\n\n"""
+    return filepath, header
+
+def vscode_data(path, name):
+    filepath = os.path.join(path, f'{name}.instructions.md')
+    header = """---\napplyTo: '**'\n---\n\n"""
+    return filepath, header
+
+def write_rules(path, type, rules):
+    if ".cursor/rules/" in path: filepath, header = cursor_data(path, type.lower())
+    elif ".github/instructions/" in path: filepath, header = vscode_data(path, type.lower())
+    elif  ".windsurf/rules/" in path: filepath, header = windsurf_data(path, type.lower())
+    else: return
+    with open(filepath, 'w') as outfile:
+        outfile.write(header)
+        outfile.write(f"# {type} Rules\n\n")
+        outfile.write(rules)
+
+
+parser = argparse.ArgumentParser(
+    description="""
+Builds workspace rules for an editor on the Rendered.ai Platform.
+    generate rules for all ides:    anarules
+    specify the workspace ID:       anarules --workspaceId workspaceId
+    specify the output path:        anarules --path path
+    generate rules for windsurf:    anarules --windsurf
+    generate rules for cursor:      anarules --cursor
+    generate rules for vscode:      anarules --vscode
+""",
+    formatter_class=argparse.RawDescriptionHelpFormatter
+)
+parser.add_argument('--email', type=str, default=None)
+parser.add_argument('--password', type=str, default=None)
+parser.add_argument('--environment', type=str, default=None)
+parser.add_argument('--endpoint', type=str, default=None)
+parser.add_argument('--local', action='store_true')
+parser.add_argument('--verbose', action='store_true')
+parser.add_argument('--version', action='store_true')
+# additional command flags
+parser.add_argument('--path', type=str, default=os.getcwd())
+parser.add_argument('--workspace', type=str, default=None)
+parser.add_argument('--windsurf', action='store_true', default=False)
+parser.add_argument('--cursor', action='store_true', default=False)
+parser.add_argument('--vscode', action='store_true', default=False)
+parser.add_argument('--services', action='store_true', default=False)
+args = parser.parse_args()
+if args.version: print(f'anarules {anatools.__version__}'); sys.exit(1)
+if args.verbose: verbose = 'debug'
+else: verbose = False
+interactive = False
+if args.email and args.password is None: interactive = True
+
+client = anatools.client(
+    email=args.email, 
+    password=args.password,
+    environment=args.environment,
+    endpoint=args.endpoint,
+    local=args.local,
+    interactive=interactive,
+    verbose=verbose)
+
+paths = [
+    os.path.join(args.path, '.windsurf/rules/'),
+    os.path.join(args.path, '.cursor/rules/'),
+    os.path.join(args.path, '.github/instructions/'),
+]
+if args.cursor:     paths = [os.path.join(args.path, '.cursor/rules/')]
+if args.windsurf:   paths = [os.path.join(args.path, '.windsurf/rules/')]
+if args.vscode:     paths = [os.path.join(args.path, '.github/instructions/')]
+
+for path in paths:
+    if not os.path.exists(path): os.makedirs(path)
+
+    # User Rules
+    user_rules = client.get_user_rules()
+    if user_rules: write_rules(path, "User", user_rules)
+
+    # Platform Rules
+    platform_rules = client.get_platform_rules()
+    if platform_rules: write_rules(path, "Platform", platform_rules)
+
+    if args.workspace is None and os.environ.get("RENDEREDAI_WORKSPACE_ID", None) != None: args.workspace = os.environ.get("RENDEREDAI_WORKSPACE_ID")
+    if args.workspace is not None: 
+        client.set_workspace(args.workspace)
+        
+        # Organization Rules
+        organization_rules = client.get_organization_rules(organizationId=client.organization)
+        if organization_rules: write_rules(path, "Organization", organization_rules)
+        
+        # Workspace Rules
+        workspace_rules = client.get_workspace_rules(workspaceId=client.workspace)
+        if workspace_rules: write_rules(path, "Workspace", workspace_rules)
+        
+        # Service Rules
+        if args.services:
+            service_rules = []
+            for service in client.get_services(workspaceId=client.workspace):
+                service_rules = client.get_service_rules(serviceId=service['serviceId'])
+                if service_rules: write_rules(path, service['name'], service_rules)
+
