@@ -1,0 +1,25 @@
+## YAML Template.
+---
+version: "2.1"
+
+services:
+
+  dbsnp:
+      container_name: dbsnp
+      ports:
+        - "8090:8090"
+      expose:
+        - "8090"
+      image: docker.gitlab.gwdg.de/medbioinf/mtb/onkopus/modules/dbsnp-adapter:main
+      restart: "always"
+      volumes:
+        - ./../data/dbsnp:/mnt
+      environment:
+        - MTB_SERVER=localhost
+        - MTB_PROTOCOL=http
+        - PORT_UTAADAPTER=8084
+        - URL_UTAADAPTER_LIFTOVER=/CCS/v1/liftover
+        - FILES_DBSNP_RSIDS=GCF_000001405.40.gz
+        - FILES_DBSNP_FREQUENCY=freq.vcf.gz
+        - FILES_DBSNP_ACCESSORS=chromosome_accessors
+        - FILEPATH_DBSNP=/mnt/

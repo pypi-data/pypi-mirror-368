@@ -1,0 +1,45 @@
+## YAML Template.
+---
+version: "2.1"
+
+services:
+
+  onkopus-server:
+    container_name: onkopus-server
+    ports:
+      - "10100:10100"
+    expose:
+      - "10100"
+    image: docker.gitlab.gwdg.de/medbioinf/mtb/onkopus/modules/onkopus-server:main
+    volumes:
+      - ./../data/onkopus-server:/data:rw,Z
+      - ./../data/oserver-adagenes:/mnt
+    environment:
+      - ONKOPUS_DATA_DIR=/data/loc
+      - ONKOPUS_DATA_DIR_PUB=/data/tmp
+      - ONKOPUS_SYS_DIR=/data/sys
+      - ONKOPUS_MODULE_SERVER=localhost
+      - ONKOPUS_MODULE_PROTOCOL=http
+      - ONKOPUS_PORTS_ACTIVE=1
+      - ONKOPUS_MOUNT_MODE=2
+      - MODULE_SERVER=localhost
+      - MODULE_PROTOCOL=http
+      - PORTS_ACTIVE=1
+      - SYS_DIR=/data/sys
+      - ONKOPUS_PORT=10100
+      - ONKOPUS_UID=${UID}
+      - ONKOPUS_GID=${GID}
+      - ONKOPUS_CONTAINER_PATH=/data
+      - IMAGE_TAG=onkopus-server
+      - CONTAINER_NAME=onkopus-server
+      - RUN_MODE=container
+      - HOST_USER=root
+      - HOST_URL=localhost
+      - ONKOPUS_DB_HOST=localhost
+      - ONKOPUS_DB_PORT=10144
+      - REDIS_SERVER=localhost
+      - REDIS_SERVER_PORT=6379
+      - REDIS_SERVER_DB=0
+      - LIFTOVER_DATA_DIR=/mnt
+    user: "${UID}:${GID}"
+    restart: "always"

@@ -1,0 +1,22 @@
+## YAML Template.
+---
+version: "2.1"
+
+services:
+
+  dgidb-db:
+      container_name: dgidb-db
+      ports:
+        - "10148:3306"
+      expose:
+        - "10148"
+      image: docker.gitlab.gwdg.de/medbioinf/mtb/onkopus/modules/treatments/dgidb-database:main
+      restart: "always"
+      volumes:
+        - ./../data/dgidb-db:/var/lib/mysql
+        - ./../data/dgidb-db-files:/var/lib/mysql-files
+      environment:
+        - MARIADB_ROOT_PASSWORD=dgidb
+        - DB_URL=https://gdidb.org/data/2023-Dec
+        - DB_NAME=dgidb
+        - USER=root

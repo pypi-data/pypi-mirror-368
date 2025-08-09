@@ -1,0 +1,21 @@
+## YAML Template.
+---
+version: "2.1"
+
+services:
+
+  dbnsfp-adapter:
+    container_name: dbnsfp-adapter
+    image: docker.gitlab.gwdg.de/medbioinf/mtb/onkopus/modules/dbnsfp-adapter:main
+    expose:
+      - "10122"
+    ports:
+      - "10122:10122"
+    volumes:
+      - ./../data/dbnsfp:/mnt
+    user: "${UID}:${GID}"
+    environment:
+      - DATA_PATH=/mnt
+      - VERSION=4.7a
+      - DATABASE_FILE_URL=https://dbnsfp.s3.amazonaws.com/dbNSFP4.7a.zip
+    restart: "always"
