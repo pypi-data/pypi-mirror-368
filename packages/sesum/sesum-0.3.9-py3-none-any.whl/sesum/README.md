@@ -1,0 +1,118 @@
+# **Sesum**
+
+**Sesum** (**S**calable **e**in**sum**) combines a fast C/C++ backend (with AVX2, AVX-512, and ARM64 support) and a clean Python interface to efficiently compute contraction paths and execute einsum expressions.
+
+Sesum combines features rarely found in a single einsum library:
+
+- **Single library**: Efficient path computation and execution in one package, requiring only NumPy.
+- **Highly scalable**: Handles large-scale expressions with thousands of tensors.
+- **Large integer support**: Supports `int128`, `uint128`, and unlimited-precision `bigint`.
+- **Sparse backend**: Enables sparse execution when all tensor dimensions are size 2.
+- **Progress and debug info**: Optional progress bars and detailed debug output.
+- **Flexible indexing**: Supports repeating indices in both input and output (e.g. `"ijji,kki,lkll->iilki"`).
+- **Semiring support**: Allows replacing standard `+` and `×` with `max` and `+` (max-plus semiring) for optimization-style tasks.
+
+
+
+## Installation
+
+Sesum is available on PyPI:
+
+```bash
+pip install sesum
+```
+
+## Usage Example
+
+The example below demonstrates basic usage of Sesum.
+
+
+```python
+import numpy as np
+import sesum as sr
+
+# define an einsum expression
+format_string = "dgfh,bgdec,ec,chfa->ab"
+arrays = [np.random.rand(*shape) for shape in [(2, 2, 2, 2), (2, 2, 2, 2, 2), (2, 2), (2, 2, 2, 2)]]
+
+# compute the contraction path for the einsum expression
+path, flops_log10, size_log2 = sr.compute_path(format_string, *arrays)
+
+# execute the einsum expression
+result = sr.sesum(format_string, *arrays, path=path)
+```
+
+Use `help(sr.compute_path)` to view all parameters and their descriptions for path computation, and `help(sr.sesum)` for einsum execution.
+
+It is recommended to review all supported parameters at least once to fully understand and utilize the capabilities of Sesum. For example, a more realistic usage for finding efficient contraction paths might look as follows:
+
+```python
+path, flops_log10, size_log2 = sr.compute_path(
+    format_string, *arrays,
+    seed=0,                      # random seed for reproducibility
+    is_deterministic=False,      # if True, same seed always gives same path
+    minimize="flops",            # objective to minimize: "flops" or "size"
+    algorithm="kahypar",         # path algorithm: "greedy" or "kahypar"
+    skops_alpha=0,               # >0 (e.g. 64) may speed up execution, but adds flops
+    max_repeats=128,             # max number of optimization repeats
+    max_time=0.0,                # time limit in seconds (0.0 = unlimited)
+    progbar=True,                # show progress bar during optimization
+    is_outer_optimal=False,      # consider outer products in optimal search
+    threshold_optimal=18,        # max number of inputs for optimal search
+    threads=0,                   # number of threads (0 = use all cores)
+    is_linear=True               # return linear (vs SSA) contraction path
+)
+```
+
+As with path computation, there are numerous options available to configure einsum execution. The example below demonstrates how to enforce the use of `np.float32` as the computation data type.
+
+```python
+result = sr.sesum(
+    format_string, *arrays,
+    path=path,                  # precomputed contraction path
+    dtype=np.float32,           # force np.float32, supports custom types like sr.bigint
+    debug=True,                 # print debug info during execution
+    safe_convert=False,         # if True, avoid overflow in input type conversion
+    backend="dense",            # "dense" for general use, "sparse" only if all dimensions are of size 2
+    semiring=sr.standard        # semiring used: sr.standard or sr.max_plus
+)
+```
+
+## References
+
+The multiple-cost-functions strategy employed in the greedy contraction path algorithm is discussed in the paper, titled [_"Optimizing Tensor Contraction Paths: A Greedy Algorithm Approach With Improved Cost Functions"_](https://arxiv.org/pdf/2405.09644).
+
+```bibtex
+@article{OrglerB24,
+  author    = {Sheela Orgler and Mark Blacher},
+  title     = {{Optimizing Tensor Contraction Paths: A Greedy Algorithm Approach With Improved Cost Functions}},
+  year      = {2024},
+  journal   = {{arXiv}}
+}
+```
+
+The algorithm driving the hypergraph partitioning approach for finding efficient contraction paths is discussed in the paper titled [_"Improved cut strategy for tensor network contraction orders"_](https://drops.dagstuhl.de/storage/00lipics/lipics-vol301-sea2024/LIPIcs.SEA.2024.27/LIPIcs.SEA.2024.27.pdf).
+
+```bibtex
+@inproceedings{StaudtBKLG24,
+  author       = {Christoph Staudt and Mark Blacher and Julien Klaus and Farin Lippmann and Joachim Giesen},
+  title        = {{Improved Cut Strategy for Tensor Network Contraction Orders}},
+  booktitle    = {{SEA}},
+  year         = {2024}
+}
+``` 
+
+Sesum is designed to execute large einsum problems like those introduced in [_"Einsum Benchmark: Enabling the Development of Next-Generation Tensor Execution Engines"_](https://openreview.net/pdf?id=tllpLtt14h).
+
+```bibtex
+@inproceedings{BlacherSKWMBELG24,
+  author       = {Mark Blacher and Christoph Staudt and Julien Klaus and Maurice Wenig and Niklas Merk and Alexander Breuer and Max Engel and S{\"{o}}ren Laue and Joachim Giesen},
+  title        = {{Einsum Benchmark: Enabling the Development of Next-Generation Tensor Execution Engines}},
+  booktitle    = {{NeurIPS}},
+  year         = {2024}
+}
+``` 
+
+## Source Code
+
+The source code used to compile Sesum is bundled with the installed Python package and accessible from its installation directory.
