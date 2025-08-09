@@ -1,0 +1,24 @@
+<nav role="navigation" aria-label="Navigation par mots-clés">
+    <ul class="fr-tags-group">
+        {% for tag in tags_index | sort %}
+        <li>
+            <a
+                href="#{{ tag }}"
+                class="fr-tag fr-tag--{{ tags_index[tag].color }}"
+                >{{ tag }}</a
+            >
+        </li>
+        {% endfor %}
+    </ul>
+</nav>
+<h1>Index des pages par mot-clé</h1>
+{% for tag,value in tags_index | dictsort %}
+<section id="{{ tag }}">
+    <h2>{{ tag }}</h2>
+    <ul>
+        {% for page in value.pages | sort(attribute='title') %}
+        <li><a href="{{base_url}}/{{page.url}}">{{ page.title }}</a></li>
+        {% endfor %}
+    </ul>
+</section>
+{% endfor %}
