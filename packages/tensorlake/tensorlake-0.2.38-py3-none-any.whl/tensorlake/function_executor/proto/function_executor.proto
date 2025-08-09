@@ -1,0 +1,262 @@
+syntax = "proto3";
+
+package function_executor_service;
+
+// The messages should not use any Python SDK objects. Only Function Executor implemented
+// in Python is allowed to import Python SDK to run customer functions. This ensures that
+// all the other components can be written in any language.
+
+// The standard Empty message.
+message Empty {}
+
+enum SerializedObjectEncoding {
+    SERIALIZED_OBJECT_ENCODING_UNKNOWN = 0;
+    SERIALIZED_OBJECT_ENCODING_UTF8_JSON = 1;
+    SERIALIZED_OBJECT_ENCODING_UTF8_TEXT = 2;
+    SERIALIZED_OBJECT_ENCODING_BINARY_PICKLE = 3;
+    SERIALIZED_OBJECT_ENCODING_BINARY_ZIP = 4;
+}
+
+// Complete serialized object passed in a single message without any chunking.
+message SerializedObject {
+    optional bytes data = 1;
+    optional SerializedObjectEncoding encoding = 2;
+    optional uint64 encoding_version = 3;
+}
+
+// InitializeRequest contains information about the function
+// that Function Executor is going to run the tasks for.
+message InitializeRequest {
+    optional string namespace = 1;
+    optional string graph_name = 2;
+    optional string graph_version = 3;
+    optional string function_name = 5;
+    optional SerializedObject graph = 7;
+}
+
+enum InitializationOutcomeCode {
+    INITIALIZE_OUTCOME_CODE_UNKNOWN = 0;
+    INITIALIZE_OUTCOME_CODE_SUCCESS = 1;
+    INITIALIZE_OUTCOME_CODE_FAILURE = 2;
+}
+
+enum InitializationFailureReason {
+    INITIALIZATION_FAILURE_REASON_UNKNOWN = 0;
+    INITIALIZATION_FAILURE_REASON_INTERNAL_ERROR = 1;
+    INITIALIZATION_FAILURE_REASON_FUNCTION_ERROR = 2;
+}
+
+message InitializeResponse {
+    optional InitializationOutcomeCode outcome_code = 1;
+    optional InitializationFailureReason failure_reason = 2;
+    optional string stdout = 3;
+    optional string stderr = 4;
+}
+
+message SetInvocationStateRequest {
+    optional string key = 1;
+    optional SerializedObject value = 2;
+}
+
+message SetInvocationStateResponse {}
+
+message GetInvocationStateRequest {
+    optional string key = 1;
+}
+
+message GetInvocationStateResponse {
+    optional string key = 1;
+    optional SerializedObject value = 2;
+}
+
+// InvocationStateRequest is sent by RPC Server to the client
+// to perform actions on a task's graph invocation state.
+message InvocationStateRequest {
+    // The ID of the request sent by the client.
+    // Must be unique per Function Executor.
+    optional string request_id = 1;
+    // The ID of the task initiated the request.
+    optional string task_id = 2;
+    oneof request {
+        SetInvocationStateRequest set = 3;
+        GetInvocationStateRequest get = 4;
+    }
+}
+
+// InvocationStateResponse is sent by RPC client to the Server.
+// A response contains the result of the action performed on the
+// task's graph invocation state.
+message InvocationStateResponse {
+    // The id of the request this response is for.
+    optional string request_id = 1;
+    optional bool success = 2;
+    oneof response {
+        SetInvocationStateResponse set = 3;
+        GetInvocationStateResponse get = 4;
+    }
+}
+
+message ListTasksRequest {}
+
+message ListTasksResponse {
+  repeated Task tasks = 1;
+}
+
+message RunTaskRequest {
+    optional string namespace = 1;
+    optional string graph_name = 2;
+    optional string graph_version = 3;
+    optional string function_name = 4;
+    optional string graph_invocation_id = 5;
+    optional string task_id = 6;
+    optional string allocation_id = 9;
+    optional SerializedObject function_input = 7;
+    optional SerializedObject function_init_value = 8;
+}
+
+message Metrics {
+    map<string, float> timers = 1;
+    map<string, uint64> counters = 2;
+}
+
+enum TaskOutcomeCode {
+    TASK_OUTCOME_CODE_UNKNOWN = 0;
+    TASK_OUTCOME_CODE_SUCCESS = 1;
+    TASK_OUTCOME_CODE_FAILURE = 2;
+}
+
+enum TaskFailureReason {
+    TASK_FAILURE_REASON_UNKNOWN = 0;
+    TASK_FAILURE_REASON_INTERNAL_ERROR = 1;
+    TASK_FAILURE_REASON_FUNCTION_ERROR = 2;
+    TASK_FAILURE_REASON_INVOCATION_ERROR = 3;
+}
+
+message ProgressUpdate {
+    float current = 1;
+    float total = 2;
+}
+
+message AwaitTaskProgress {
+    oneof response {
+        ProgressUpdate progress = 1;
+        TaskResult task_result = 2;
+    }
+}
+
+message RunTaskResponse {
+    optional string task_id = 1;
+    repeated SerializedObject function_outputs = 2;
+    // Edges that the function wants the invocation to be routed to.
+    repeated string next_functions = 3;
+    optional string stdout = 4;
+    optional string stderr = 5;
+    optional bool is_reducer = 6;
+    optional Metrics metrics = 7;
+    optional TaskOutcomeCode outcome_code = 8;
+    optional TaskFailureReason failure_reason = 9;
+    // User payload for invocation error if task failed with invocation error.
+    optional SerializedObject invocation_error_output = 10;
+}
+
+// FunctionInputs contains the input data for task execution
+message FunctionInputs {
+    optional SerializedObject function_input = 1;
+    optional SerializedObject function_init_value = 2;
+}
+
+// TaskResult contains the execution outcome and outputs of a task
+message TaskResult {
+    repeated SerializedObject function_outputs = 1;
+    // Edges that the function wants the invocation to be routed to.
+    repeated string next_functions = 2;
+    optional string stdout = 3;
+    optional string stderr = 4;
+    optional bool is_reducer = 5;
+    optional Metrics metrics = 6;
+    optional TaskOutcomeCode outcome_code = 7;
+    optional TaskFailureReason failure_reason = 8;
+    // User payload for invocation error if task failed with invocation error.
+    optional SerializedObject invocation_error_output = 9;
+}
+
+// Task represents a task with its metadata and execution result
+message Task {
+    optional string task_id = 1;
+    optional string namespace = 2;
+    optional string graph_name = 3;
+    optional string graph_version = 4;
+    optional string function_name = 5;
+    optional string graph_invocation_id = 6;
+    optional string allocation_id = 7;
+    // Input data for task execution (not returned when getting/listing tasks)
+    optional FunctionInputs request = 8;
+    // Task execution result, initially empty when task is created
+    optional TaskResult result = 9;
+}
+
+message CreateTaskRequest {
+    optional Task task = 1;
+}
+
+message AwaitTaskRequest {
+    optional string task_id = 1;
+}
+
+message DeleteTaskRequest {
+    optional string task_id = 1;
+}
+
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+    optional bool healthy = 1;
+    optional string status_message = 2;
+}
+
+message InfoRequest {}
+
+message InfoResponse {
+    // Internal version of this Function Executor.
+    // Semantic versioning schema is used with format 0.0.0.
+    // Used to support migrations.
+    optional string version = 1;
+    // The version of the SDK used in this Function Executor to run customer code.
+    optional string sdk_version = 2;
+    // The language of the SDK. Currently supported values:
+    // - "python"
+    optional string sdk_language = 3;
+    // The version of the SDK language. The language's versioning format is used.
+    optional string sdk_language_version = 4;
+}
+
+service FunctionExecutor {
+    // Initializes the Function Executor to run tasks
+    // for a particular function. This method is called only
+    // once per Function Executor as it can only run a single function.
+    // It should be called before calling RunTask for the function.
+    rpc initialize(InitializeRequest) returns (InitializeResponse);
+    // Initializes a server that sends requests to the client to perform actions on
+    // a task's graph invocation state. This method is called only once per Function Executor
+    // It should be called before calling RunTask for the function.
+    rpc initialize_invocation_state_server(stream InvocationStateResponse) returns (stream InvocationStateRequest);
+    // Executes the task defined in the request.
+    // Multiple tasks can be running in parallel.
+    // This is logically equivalent to start_task / await_task / delete_task.
+    rpc run_task(RunTaskRequest) returns (RunTaskResponse);
+    // Lists the currently-running tasks.
+    rpc list_tasks(ListTasksRequest) returns (ListTasksResponse);
+    // Creates and starts the task specified in the request.
+    rpc create_task(CreateTaskRequest) returns (Task);
+    // Waits for the indicated task to reach a completed state
+    // (outcome != unknown), returning a stream of task progress
+    // updates.
+    rpc await_task(AwaitTaskRequest) returns (stream AwaitTaskProgress);
+    // Deletes the task.
+    rpc delete_task(DeleteTaskRequest) returns (Empty);
+    // Health check method to check if the FE is able to run tasks.
+    // The FE should be initialized before calling this method.
+    rpc check_health(HealthCheckRequest) returns (HealthCheckResponse);
+    // Information about this Function Executor.
+    rpc get_info(InfoRequest) returns (InfoResponse);
+}
