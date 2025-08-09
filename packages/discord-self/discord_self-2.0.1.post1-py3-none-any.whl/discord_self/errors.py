@@ -1,0 +1,31 @@
+from discord_self._vendor.discord.errors import (
+    AuthFailure,
+    CaptchaRequired,
+    ClientException,
+    ConnectionClosed,
+    DiscordException,
+    DiscordServerError,
+    Forbidden,
+    GatewayNotFound,
+    HTTPException,
+    InvalidData,
+    LoginFailure,
+    NotFound,
+    RateLimited,
+)
+
+__all__ = [
+    "AuthFailure",
+    "CaptchaRequired",
+    "ClientException",
+    "ConnectionClosed",
+    "DiscordException",
+    "DiscordServerError",
+    "Forbidden",
+    "GatewayNotFound",
+    "HTTPException",
+    "InvalidData",
+    "LoginFailure",
+    "NotFound",
+    "RateLimited",
+]
