@@ -1,0 +1,462 @@
+# {{ project_name|title }} API Test Suite
+
+Welcome to your TestAPIX test suite! This project was generated on {{ created_date }} using TestAPIX v{{ testapix_version }}.
+
+## Installation
+
+1. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. **Configure environment:**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your API credentials
+   ```
+
+## Quick Start
+
+**Run tests:**
+```bash
+pytest tests/ -v
+```
+
+## Project Structure
+
+```
+{{ project_name }}/
+├── configs/                 # Configuration files
+│   ├── base.yaml           # Base configuration
+│   ├── local.yaml          # Local development settings
+│   ├── test.yaml           # Test environment settings
+│   └── staging.yaml        # Staging environment settings
+├── tests/                  # Test files
+│   ├── functional/         # Functional/integration tests
+│   ├── contract/           # API contract tests
+│   ├── security/           # Security tests
+│   └── conftest.py         # Test fixtures and configuration
+├── test_data/              # Test data files
+├── reports/                # Test reports and artifacts
+├── .env.example            # Environment variable template
+├── .env                    # Your environment variables (not in git)
+├── requirements.txt        # Python dependencies
+└── README.md               # This file
+```
+
+## Configuration
+
+TestAPIX uses a layered configuration system:
+
+1. **Base configuration** (`configs/base.yaml`) - Default settings
+2. **Environment-specific** (`configs/local.yaml`, etc.) - Override base settings
+3. **Environment variables** (`TESTAPIX_*`) - Override all file settings
+4. **Runtime overrides** - Passed programmatically
+
+### Environment Selection
+
+Set the `TESTAPIX_ENVIRONMENT` variable to choose which configuration to load:
+
+```bash
+# Use local.yaml configuration
+export TESTAPIX_ENVIRONMENT=local
+
+# Use staging.yaml configuration
+export TESTAPIX_ENVIRONMENT=staging
+```
+
+{% if auth_type %}
+### Authentication
+
+This project is configured for **{{ auth_type }}** authentication.
+
+{% if auth_type == 'bearer' %}
+Set your bearer token in the `.env` file:
+```bash
+TESTAPIX_AUTH_TOKEN=your-bearer-token-here
+```
+
+{% elif auth_type == 'api_key' %}
+Set your API key in the `.env` file:
+```bash
+TESTAPIX_API_KEY=your-api-key-here
+```
+
+{% elif auth_type == 'oauth2' %}
+Configure OAuth2 credentials in the `.env` file:
+```bash
+TESTAPIX_CLIENT_ID=your-client-id
+TESTAPIX_CLIENT_SECRET=your-client-secret
+TESTAPIX_TOKEN_URL=https://auth.example.com/oauth/token
+```
+
+{% elif auth_type == 'basic' %}
+Set your basic auth credentials in the `.env` file:
+```bash
+TESTAPIX_AUTH_USERNAME=your-username
+TESTAPIX_AUTH_PASSWORD=your-password
+```
+{% endif %}
+{% endif %}
+
+## Writing Tests
+
+### Functional Tests
+
+Functional tests verify your API works correctly from a user perspective:
+
+```python
+import pytest
+from testapix import APIClient, assert_that
+
+async def test_create_user(api_client: APIClient):
+    response = await api_client.post("/users", json={
+        "name": "Test User",
+        "email": "test@example.com"
+    })
+
+    assert_that(response) \
+        .has_status(201) \
+        .has_json_path("id") \
+        .has_json_path("name", "Test User")
+```
+
+### Using Assertions
+
+TestAPIX provides fluent assertions for API responses:
+
+```python
+# Status codes
+assert_that(response).has_status(200)
+assert_that(response).has_success_status()  # 2xx codes
+assert_that(response).has_client_error()    # 4xx codes
+
+# Headers
+assert_that(response).has_header("content-type")
+assert_that(response).has_header("x-rate-limit", "1000")
+
+# JSON data
+assert_that(response).has_json_path("user.id")
+assert_that(response).has_json_path("user.name", "John Doe")
+
+# Response content
+assert_that(response).contains_text("success")
+assert_that(response).matches_regex(r"user-\d+")
+
+# Performance
+assert_that(response).response_time_less_than(2.0)
+```
+
+### Schema Validation
+
+TestAPIX provides comprehensive schema validation capabilities to ensure your API responses match expected structures. This helps catch breaking changes and validates data integrity.
+
+#### Pydantic Model Validation
+
+Use Pydantic models for type-safe validation with excellent error messages:
+
+```python
+from pydantic import BaseModel
+from typing import Optional
+
+class UserResponse(BaseModel):
+    id: str
+    name: str
+    email: str
+    status: str
+    created_at: str
+    updated_at: Optional[str] = None
+
+async def test_user_response_schema(api_client):
+    response = await api_client.get("/users/123")
+
+    # Validate response against Pydantic model
+    assert_that(response) \
+        .has_status(200) \
+        .matches_schema(UserResponse)
+```
+
+#### JSON Schema Validation
+
+Use JSON schemas for detailed validation rules and constraints:
+
+```python
+async def test_user_json_schema_validation(api_client):
+    user_schema = {
+        "type": "object",
+        "properties": {
+            "id": {"type": "string", "pattern": "^[a-zA-Z0-9-]+$"},
+            "name": {"type": "string", "minLength": 1, "maxLength": 100},
+            "email": {"type": "string", "format": "email"},
+            "age": {"type": "integer", "minimum": 0, "maximum": 150},
+            "status": {"type": "string", "enum": ["active", "inactive", "pending"]}
+        },
+        "required": ["id", "name", "email", "status"],
+        "additionalProperties": False
+    }
+
+    response = await api_client.get("/users/123")
+
+    # Validate against JSON schema
+    assert_that(response).matches_schema(user_schema, schema_type="jsonschema")
+```
+
+#### OpenAPI Schema Validation
+
+Validate responses against your OpenAPI specification:
+
+```python
+async def test_openapi_compliance(api_client):
+    openapi_spec = {
+        "openapi": "3.0.3",
+        "info": {"title": "User API", "version": "1.0.0"},
+        "paths": {
+            "/users": {
+                "get": {
+                    "responses": {
+                        "200": {
+                            "description": "List of users",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "data": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {"type": "string"},
+                                                        "name": {"type": "string"},
+                                                        "email": {"type": "string"}
+                                                    }
+                                                }
+                                            },
+                                            "pagination": {"type": "object"}
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    response = await api_client.get("/users")
+
+    # Validate against OpenAPI specification
+    assert_that(response).matches_openapi_schema(
+        openapi_spec, "/users", "get", 200
+    )
+```
+
+#### Chaining Schema Validation
+
+Combine schema validation with other assertions:
+
+```python
+async def test_comprehensive_validation(api_client):
+    response = await api_client.post("/users", json={
+        "name": "Test User",
+        "email": "test@example.com"
+    })
+
+    # Chain multiple validations including schema
+    assert_that(response) \
+        .has_status(201) \
+        .has_header("location") \
+        .has_json_path("id") \
+        .matches_schema(UserResponse) \
+        .response_time_less_than(2.0)
+```
+
+#### Error Handling
+
+Schema validation provides detailed error messages:
+
+```python
+async def test_schema_validation_errors(api_client):
+    try:
+        response = await api_client.get("/users/invalid")
+        assert_that(response).matches_schema(UserResponse)
+    except ResponseValidationError as e:
+        # Error includes specific validation failures
+        print(f"Schema validation failed: {e}")
+        # Error message shows exactly what fields failed validation
+```
+
+### Test Data Generation
+
+Use TestAPIX generators for realistic test data:
+
+```python
+from testapix.generators import BaseGenerator
+
+def test_with_generated_data(data_generator: BaseGenerator):
+    user_data = {
+        "name": data_generator.fake.name(),
+        "email": data_generator.fake.email(),
+        "phone": data_generator.fake.phone(),
+    }
+    # Use in your tests...
+```
+
+## Running Tests
+
+### Basic Test Execution
+
+```bash
+# Run all tests
+pytest
+
+# Run with verbose output
+pytest -v
+
+# Run specific test file
+pytest tests/functional/test_users.py
+
+# Run tests matching pattern
+pytest -k "test_create"
+```
+
+### Environment-Specific Testing
+
+```bash
+# Test against local environment
+TESTAPIX_ENVIRONMENT=local pytest
+
+# Test against staging
+TESTAPIX_ENVIRONMENT=staging pytest
+
+# Override base URL
+TESTAPIX_HTTP__BASE_URL=https://api.staging.example.com pytest
+```
+
+### Parallel Testing
+
+```bash
+# Run tests in parallel (requires pytest-xdist)
+pytest -n auto
+
+# Run with specific number of workers
+pytest -n 4
+```
+
+### Coverage Reports
+
+```bash
+# Generate coverage report
+pytest --cov=tests --cov-report=html
+
+# View coverage in browser
+open htmlcov/index.html
+```
+
+## Advanced Features
+
+### Custom Configuration
+
+Add project-specific settings to your configuration files:
+
+```yaml
+# configs/base.yaml
+custom:
+  api_version: "v1"
+  test_data_cleanup: true
+  special_endpoints:
+    - "/admin/users"
+    - "/internal/health"
+```
+
+Access in tests:
+```python
+from testapix.core.config import get_current_config
+
+def test_with_custom_config():
+    config = get_current_config()
+    api_version = config.custom.api_version
+    # Use in test...
+```
+
+### Database Integration
+
+Enable database features for test data cleanup:
+
+```yaml
+# configs/base.yaml
+database:
+  enabled: true
+  url: "${TESTAPIX_DATABASE_URL}"
+  cleanup_strategy: "immediate"
+```
+
+### Report Generation
+
+Configure detailed test reports:
+
+```yaml
+# configs/base.yaml
+reporting:
+  enabled: true
+  formats:
+    - "console"
+    - "html"
+    - "junit"
+  output_dir: "reports"
+  include_request_data: true
+  include_response_data: true
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Authentication failures:**
+   - Check your credentials in `.env`
+   - Verify the auth type matches your API
+   - Check token expiration
+
+2. **Connection errors:**
+   - Verify the base URL is correct
+   - Check network connectivity
+   - Verify SSL certificates (set `verify_ssl: false` for self-signed certs)
+
+3. **Test failures:**
+   - Run with `-v` for verbose output
+   - Check API response status and content
+   - Enable debug logging: `TESTAPIX_LOG_LEVEL=DEBUG`
+
+### Debug Mode
+
+Enable detailed logging:
+
+```bash
+TESTAPIX_LOG_LEVEL=DEBUG pytest -v -s
+```
+
+This shows:
+- Configuration loading
+- HTTP request/response details
+- Authentication flow
+- Error details
+
+### Getting Help
+
+- **TestAPIX Documentation:** https://testapix.readthedocs.io
+- **GitHub Issues:** https://github.com/testapix/testapix/issues
+- **API Testing Guide:** https://testapix.readthedocs.io/guides/api-testing
+
+## Next Steps
+
+1. **Customize tests:** Review generated tests and adapt them to your API
+2. **Add more test types:** Generate contract, security, or performance tests
+3. **Set up CI/CD:** Integrate tests into your deployment pipeline
+4. **Explore advanced features:** Database integration, custom assertions, reporting
+
+Happy testing! 🚀
+
+---
+
+*Generated by TestAPIX v{{ testapix_version }} - The comprehensive Python API testing framework*

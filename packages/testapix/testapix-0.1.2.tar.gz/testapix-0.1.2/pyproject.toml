@@ -1,0 +1,207 @@
+[tool.poetry]
+name = "testapix"
+version = "0.1.2"
+description = "A comprehensive Python API testing framework"
+authors = ["Your Name <your.email@example.com>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/yourusername/testapix"
+repository = "https://github.com/yourusername/testapix"
+documentation = "https://testapix.readthedocs.io"
+keywords = ["api", "testing", "framework", "pytest", "automation", "test"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Software Development :: Quality Assurance",
+    "Framework :: Pytest",
+]
+packages = [{include = "testapix", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+httpx = "^0.28.1"
+click = "^8.1.7"
+rich = "^14.1.0"
+pydantic = "^2.7.4"
+pydantic-settings = "^2.3.4"
+jinja2 = "^3.1.4"
+mimesis = "^18.0.0"
+pyyaml = "^6.0.1"
+pytest = "^8.2.2"
+jsonschema = "^4.25.0"
+prompt-toolkit = {version = "^3.0.0", optional = true}
+twine = "^6.1.0"
+
+[tool.poetry.extras]
+interactive = ["prompt-toolkit"]
+
+[tool.poetry.group.dev.dependencies]
+pytest-asyncio = "^1.1.0"
+pytest-cov = "^6.2.1"
+pytest-xdist = "^3.6.1"
+pytest-mock = "^3.14.0"
+pytest-benchmark = "^5.1.0"
+pytest-html = "^4.1.0"
+black = "^25.1.0"
+prompt-toolkit = "^3.0.0"
+ruff = "^0.12.7"
+mypy = "^1.10.1"
+pre-commit = "^4.2.0"
+ipython = "^9.4.0"
+types-pyyaml = "^6.0.12.20240311"
+responses = "^0.25.7"
+respx = "^0.22.0"
+interrogate = "^1.7.0"
+safety = "^3.6.0"
+pip-licenses = "^5.0.0"
+pip-audit = "^2.6.0"
+bandit = "^1.8.6"
+types-jsonschema = "^4.25.0.20250720"
+
+[tool.poetry.scripts]
+testapix = "testapix.cli.main:cli"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+# Ruff configuration
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort (import sorting)
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "ARG", # flake8-unused-arguments
+    "SIM", # flake8-simplify
+    "D",   # pydocstyle
+]
+ignore = [
+    "E501",  # line too long (handled by black)
+    "E722",  # bare except (sometimes needed for compatibility)
+    "B008",  # do not perform function calls in argument defaults
+    "B007",  # loop variable not used (sometimes OK in ranges)
+    "B904",  # raise from within except (not always needed)
+    "B011",  # assert False (OK in tests)
+    "E712",  # comparison to True/False (sometimes clearer)
+    "SIM105", # contextlib.suppress (sometimes try/except is clearer)
+    "SIM102", # nested if (sometimes clearer)
+    "SIM110", # all() vs loop (sometimes loop is clearer)
+    "SIM117", # nested with (sometimes necessary)
+    "UP038",  # isinstance with union types (compatibility)
+    "ARG002", # unused method argument (interface methods)
+    "F841",   # local variable assigned but never used (debugging)
+    # Docstring ignores for common patterns
+    "D100",   # Missing docstring in public module
+    "D104",   # Missing docstring in public package
+    "D107",   # Missing docstring in __init__
+    "D203",   # 1 blank line required before class docstring (conflicts with D211)
+    "D213",   # Multi-line docstring summary should start at the second line (conflicts with D212)
+    "D301",   # Use r""" if any backslashes in a docstring (often overly strict)
+    "D400",   # First line should end with a period (cosmetic)
+    "D401",   # First line should be in imperative mood (cosmetic)
+    "D415",   # First line should end with a period, question mark, or exclamation point
+    "D417",   # Missing argument descriptions in docstring (can be overly strict)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*" = ["S101", "ARG001", "ARG002", "F841", "D", "PLR2004"]  # Skip most docstring rules in tests
+"docs/**/*" = ["ARG001", "ARG002", "D"]  # Skip docstring rules in examples/docs
+"src/testapix/cli/**/*" = ["ARG001"]  # Click callbacks often have unused args
+
+# Black configuration
+[tool.black]
+line-length = 88
+target-version = ['py311']
+include = '\.pyi?$'
+
+# MyPy configuration
+[tool.mypy]
+python_version = "3.11"
+mypy_path = ["src"]
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = "mimesis.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_untyped_decorators = false
+
+[[tool.mypy.overrides]]
+module = "docs.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_untyped_decorators = false
+
+# Pytest configuration
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "auto"
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+    "--cov=src/testapix",
+    "--cov-branch",
+    "--cov-report=term-missing:skip-covered",
+    "--cov-report=html:reports/coverage",
+    "--cov-fail-under=80",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+# Bandit configuration
+[tool.bandit]
+exclude_dirs = ["tests"]
+skips = ["B101", "B311", "B110"]
+
+# Coverage configuration
+[tool.coverage.run]
+branch = true
+source = ["src/testapix"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if TYPE_CHECKING:",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "@(abc\\.)?abstractmethod",
+]
+precision = 2
+show_missing = true
