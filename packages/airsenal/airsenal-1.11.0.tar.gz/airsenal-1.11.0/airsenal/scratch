@@ -1,0 +1,43 @@
+from airsenal.tests.test_optimization import *
+t = generate_dummy_squad()
+position_points_dict = {
+        "GK": {0: 2, 1: 2, 100: 0, 101: 0, 200: 3, 201: 7},
+        "DEF": {
+            2: 2,
+            3: 2,
+            2: 2,
+            5: 2,
+            6: 2,
+            103: 0,
+            104: 0,
+            105: 5,
+            106: 2,
+            107: 2,
+            203: 0,
+            204: 0,
+            205: 1,
+            206: 2,
+            207: 2,
+        },
+        "MID": {
+            7: 2,
+            8: 2,
+            9: 2,
+            10: 2,
+            11: 2,
+            108: 2,
+            109: 2,
+            110: 3,
+            111: 3,
+            112: 0,
+            208: 2,
+            209: 2,
+            210: 3,
+            211: 3,
+            212: 0,
+        },
+        "FWD": {12: 2, 13: 2, 14: 2, 113: 6, 114: 3, 115: 8},
+}
+mock_pred_points = predicted_point_mock_generator(position_points_dict)
+with mock.patch("airsenal.framework.optimization_transfers.get_predicted_points",side_effect=mock_pred_points):
+        new_squad, pid_out, pid_in = make_optimum_double_transfer(t, "DUMMY", [1])
