@@ -1,0 +1,298 @@
+#!/usr/bin/env python
+'''
+Data processing controller module.
+'''
+
+import time
+import json
+import pvaccess as pva
+from .pvasDataPublisher import PvasDataPublisher
+from .pvaDataPublisher import PvaDataPublisher
+from .rpcDataPublisher import RpcDataPublisher
+from .ejfatDataPublisher import EjfatDataPublisher
+from ..utility.loggingManager import LoggingManager
+from ..utility.floatWithUnits import FloatWithUnits
+from ..utility.operationMode import OperationMode
+
+
+class DataProcessingController:
+    ''' Data processor controller class. '''
+
+    def __init__(self, configDict={}, userDataProcessor=None):
+        self.configDict = configDict
+
+        # Use data processor id for logging
+        self.processorId = configDict.get('processorId', 0)
+        self.logger = LoggingManager.getLogger(f'processor-{self.processorId}')
+        self.logger.debug('Config dict: %s', configDict)
+
+        self.userDataProcessor = userDataProcessor
+        self.logger.debug('User data processor: %s', userDataProcessor)
+
+        # Assume NTND Arrays if object id field is not passed in
+        self.objectIdField = configDict.get('objectIdField', 'uniqueId')
+        # Do not process first object by default
+        self.skipInitialUpdates = configDict.get('skipInitialUpdates', 1)
+        # Object id processing offset used for statistics calculation
+        self.objectIdOffset = int(configDict.get('objectIdOffset', 1))
+        # Number of sequential updates is used for statistics calculation
+        self.nSequentialUpdates = int(configDict.get('nSequentialUpdates', 1))
+        # Output channel is used for publishing processed objects
+        self.inputChannel = configDict.get('inputChannel', '')
+        self.inputMode = configDict.get('inputMode')
+        self.inputArgs = configDict.get('inputArgs')
+        self.outputChannel = configDict.get('outputChannel', '')
+        if self.outputChannel == '_':
+            self.outputChannel = f'{self.inputChannel}:processor-{self.processorId}'
+        self.outputMode = configDict.get('outputMode')
+        self.outputArgs = configDict.get('outputArgs')
+        self.dataPublisher = None
+        self.pvaServerStarted = False
+        self.pvaServer = None
+
+        # Defines all counters and sets them to zero
+        self.resetStats()
+
+    def setPvaServer(self, pvaServer):
+        self.pvaServer = pvaServer
+
+    def createDataPublisher(self, pvObject):
+        if not self.outputChannel or self.dataPublisher:
+            return
+        self.logger.debug('Creating data publisher, output mode %s, output args: %s', self.outputMode, self.outputArgs)
+        if self.outputMode == OperationMode.PVAS:
+            outputPvObject = self.userDataProcessor.getOutputPvObjectType(pvObject)
+            if outputPvObject:
+                self.dataPublisher = PvasDataPublisher(outputChannel=self.outputChannel, pvaServer=self.pvaServer, outputPvObject=outputPvObject)
+            else:
+                self.logger.debug('User data processor did not define output channel structure')
+        elif self.outputMode == OperationMode.PVA:
+            self.dataPublisher = PvaDataPublisher(outputChannel=self.outputChannel)
+        elif self.outputMode == OperationMode.RPC:
+            self.dataPublisher = RpcDataPublisher(outputChannel=self.outputChannel)
+        elif self.outputMode == OperationMode.EJFAT:
+            configDict = {}
+            if self.outputArgs:
+                configDict = json.loads(self.outputArgs)
+            configDict['processorId'] = self.processorId
+            self.dataPublisher = EjfatDataPublisher(outputChannel=self.outputChannel, configDict=configDict)
+        else:
+            raise pva.InvalidState(f'Unsupported output mode: {self.outputMode}')
+        if self.userDataProcessor:
+            self.userDataProcessor.dataPublisher = self.dataPublisher
+        if self.dataPublisher:
+            # Data publisher is created when the first input object
+            # is received, so it must be started here
+            self.dataPublisher.start()
+
+    def start(self):
+        if self.outputChannel and not self.pvaServer:
+            self.logger.debug('Starting pva server')
+            self.pvaServerStarted = True
+            self.pvaServer = pva.PvaServer()
+            self.pvaServer.start()
+        self.startTime = time.time()
+        # Call user interface method for startup
+        if self.userDataProcessor:
+            self.userDataProcessor.pvaServer = self.pvaServer
+            self.userDataProcessor.dataPublisher = self.dataPublisher
+            self.userDataProcessor.outputChannel = self.outputChannel
+            self.userDataProcessor.inputChannel = self.inputChannel
+            self.userDataProcessor.start()
+
+    def stop(self):
+        now = time.time()
+        self.endTime = now
+        self.updateStats(now)
+        if self.pvaServerStarted:
+            self.pvaServer.stop()
+        # Call user interface method for shutdown
+        if self.userDataProcessor:
+            self.userDataProcessor.stop()
+        if self.dataPublisher:
+            self.dataPublisher.stop()
+
+    def configure(self, configDict):
+        if isinstance(configDict, dict):
+            if 'skipInitialUpdates' in configDict:
+                self.skipInitialUpdates = int(configDict.get('skipInitialUpdates'))
+                self.logger.debug('Resetting processing of first update to %s', self.skipInitialUpdates)
+            if 'objectIdOffset' in configDict:
+                self.objectIdOffset = int(configDict.get('objectIdOffset', 1))
+                self.logger.debug('Resetting object id offset to %s', self.objectIdOffset)
+            if 'nSequentialUpdates' in configDict:
+                self.nSequentialUpdates = int(configDict.get('nSequentialUpdates', 1))
+                self.logger.debug('Resetting number of sequential updates to %s', self.nSequentialUpdates)
+        # Call user interface method for configuration
+        if self.userDataProcessor:
+            self.userDataProcessor.configure(configDict)
+
+    def process(self, pvObject):
+        now = time.time()
+        objectId = pvObject[self.objectIdField]
+        if self.lastObjectId is None:
+            self.lastObjectId = objectId
+
+            # First try to create user defined output record, and
+            # if that does not succeed, create output record based
+            # on input type
+            self.createDataPublisher(pvObject)
+        if self.skipInitialUpdates > 0:
+            self.skipInitialUpdates -= 1
+            self.logger.debug('Skipping initial update, %s remain to be skipped', self.skipInitialUpdates)
+            return None
+        if self.firstObjectId is None:
+            self.firstObjectId = objectId
+            self.firstObjectTime = now
+            self.lastObjectId = objectId
+            self.lastExpectedGroupUpdateId = objectId + self.nSequentialUpdates - 1
+
+        # Calculate number of missed objects
+        nMissed = 0
+        if self.nSequentialUpdates > 1:
+            # More than one sequential update
+            # Example:
+            #   4 consumers, 3 sequential updates: id offset 10
+            #   Consumer 1: ( 1, 2, 3) (13,14,15) (25,26,27) (37,38,39)
+            #   Consumer 2: ( 4, 5, 6) (16,17,18) (28,29,30) (40,41,42)
+            #   Consumer 3: ( 7, 8, 9) (19,20,21) (31,32,33) (43,44,45)
+            #   Consumer 4: (10,11,12) (22,23,24) (34,35,36) (46,47,48)
+            idDiff = objectId-self.lastObjectId
+            nOffsets = (idDiff+self.nSequentialUpdates-1) // (self.objectIdOffset+self.nSequentialUpdates-1)
+            if idDiff > 1:
+                # Potential miss
+                lastExpectedCurrentGroupUpdateId = self.lastExpectedGroupUpdateId
+                nMissedInCurrentGroup = min(objectId,lastExpectedCurrentGroupUpdateId) - self.lastObjectId - 1
+                nGroupsMissed = 0
+                nMissedInNewGroup = 0
+                firstExpectedNewGroupUpdateId = 0
+                lastExpectedNewGroupUpdateId = 0
+                if nOffsets > 0:
+                    nGroupsMissed = nOffsets - 1
+                    nMissedInCurrentGroup = lastExpectedCurrentGroupUpdateId - self.lastObjectId
+                    firstExpectedNewGroupUpdateId = lastExpectedCurrentGroupUpdateId + nOffsets*(self.objectIdOffset-1) + nGroupsMissed*self.nSequentialUpdates + 1
+                    self.lastExpectedGroupUpdateId = firstExpectedNewGroupUpdateId + self.nSequentialUpdates - 1
+                    lastExpectedNewGroupUpdateId = self.lastExpectedGroupUpdateId
+                    nMissedInNewGroup = objectId - firstExpectedNewGroupUpdateId
+                nMissed = nMissedInCurrentGroup + nGroupsMissed*self.nSequentialUpdates + nMissedInNewGroup
+                if nMissed > 0:
+                    self.logger.debug('Missed %s objects at id %s (nOffsets: %s, nGroupsMissed: %s, nMissedInCurrentGroup: %s, nMissedInNewGroup: %s, lastExpectedCurrentGroupUpdateId: %s, firstExpectedNewGroupUpdateId: %s, lastExpectedNewGroupUpdateId: %s', nMissed, objectId, nOffsets, nGroupsMissed, nMissedInCurrentGroup, nMissedInNewGroup, lastExpectedCurrentGroupUpdateId, firstExpectedNewGroupUpdateId, lastExpectedNewGroupUpdateId)
+        else:
+            # Single sequential update
+            # Example:
+            #   4 consumers, 1 update: id offset is 4
+            #   Consumer 1: (1) (5) ( 9)
+            #   Consumer 2: (2) (6) (10)
+            #   Consumer 3: (3) (7) (11)
+            #   Consumer 4: (4) (8) (12)
+            nMissed = (objectId-self.lastObjectId-self.objectIdOffset) // self.objectIdOffset
+        if nMissed > 0:
+            self.nMissed += nMissed
+        self.lastObjectId = objectId
+        self.lastObjectTime = now
+        self.statsNeedsUpdate = True
+        try:
+            # Call user interface method for processing
+            if self.userDataProcessor:
+                pvObject2 = self.userDataProcessor.process(pvObject)
+            else:
+                pvObject2 = pvObject
+            self.nProcessed += 1
+            return pvObject2
+        except Exception:
+            self.nErrors += 1
+            raise
+
+    def resetStats(self):
+        self.nProcessed = 0
+        self.nMissed = 0
+        self.nErrors = 0
+        self.firstObjectId = None
+        self.lastObjectId = None
+        self.lastExpectedGroupUpdateId = None
+        self.startTime = time.time()
+        self.firstObjectTime = 0
+        self.lastObjectTime = 0
+        self.endTime = 0
+        self.processorStats = {}
+        self.publisherStats = {}
+        self.statsNeedsUpdate = True
+        # Call user interface method for resetting stats
+        if self.userDataProcessor:
+            self.userDataProcessor.resetStats()
+
+    def getUserStats(self):
+        # Call user interface for retrieving stats
+        if self.userDataProcessor:
+            return self.userDataProcessor.getStats()
+        return {}
+
+    def getUserStatsPvaTypes(self):
+        # Call user interface for retrieving stats PVA types
+        if self.userDataProcessor:
+            return self.userDataProcessor.getStatsPvaTypes()
+        return {}
+
+    def getUserInputPvObjectType(self):
+        # Call user interface for retrieving input pv object
+        if self.userDataProcessor:
+            return self.userDataProcessor.getInputPvObjectType()
+        return None
+
+    def getPublisherStats(self):
+        if self.statsNeedsUpdate:
+            self.updateStats()
+        return self.publisherStats
+
+    def getProcessorStats(self):
+        if self.statsNeedsUpdate:
+            self.updateStats()
+        else:
+            runtime = time.time()-self.startTime
+            self.processorStats['runtime'] = FloatWithUnits(runtime, 's')
+        return self.processorStats
+
+    def updateStats(self, t=0):
+        if not self.statsNeedsUpdate:
+            return
+        self.statsNeedsUpdate = False
+        if not t:
+            t = time.time()
+        runtime = t-self.startTime
+        receivingTime = self.lastObjectTime-self.firstObjectTime
+        processedRate = 0
+        missedRate = 0
+        errorRate = 0
+        if receivingTime > 0:
+            processedRate = self.nProcessed/receivingTime
+            missedRate = self.nMissed/receivingTime
+            errorRate = self.nErrors/receivingTime
+        processorStats = {
+            'runtime' : FloatWithUnits(runtime, 's'),
+            'startTime' : FloatWithUnits(self.startTime, 's'),
+            'endTime' : FloatWithUnits(self.endTime, 's'),
+            'receivingTime' : FloatWithUnits(receivingTime, 's'),
+            'firstObjectTime' : FloatWithUnits(self.firstObjectTime, 's'),
+            'lastObjectTime' : FloatWithUnits(self.lastObjectTime, 's'),
+            'firstObjectId' : self.firstObjectId or 0,
+            'lastObjectId' : self.lastObjectId or 0,
+            'nProcessed' : self.nProcessed,
+            'processedRate' : FloatWithUnits(processedRate, 'Hz'),
+            'nMissed' : self.nMissed,
+            'missedRate' : FloatWithUnits(missedRate, 'Hz'),
+            'nErrors' : self.nErrors,
+            'errorRate' : FloatWithUnits(errorRate, 'Hz')
+        }
+        self.processorStats = processorStats
+        if self.dataPublisher:
+            publisherStats = self.dataPublisher.getStats()
+            nPublished = publisherStats.get('nPublished', 0)
+            nErrors = publisherStats.get('nErrors', 0)
+            publishedRate = 0
+            errorRate = 0
+            if receivingTime > 0:
+                publishedRate = nPublished/receivingTime
+                errorRate = nErrors/receivingTime
+            publisherStats['publishedRate'] = FloatWithUnits(publishedRate, 'Hz')
+            publisherStats['errorRate'] = FloatWithUnits(errorRate, 'Hz')
+            self.publisherStats = publisherStats
