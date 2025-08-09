@@ -1,0 +1,488 @@
+Metadata-Version: 2.4
+Name: servicetitan-pyapi
+Version: 1.0.0
+Summary: A comprehensive Python client library for the ServiceTitan API
+Home-page: https://github.com/n90-co/servicetitan-pyapi
+Author: Brian Handrigan
+Author-email: brian@n90.co
+Project-URL: Bug Reports, https://github.com/n90-co/servicetitan-pyapi/issues
+Project-URL: Source, https://github.com/n90-co/servicetitan-pyapi
+Project-URL: Documentation, https://github.com/n90-co/servicetitan-pyapi#readme
+Keywords: servicetitan api client hvac plumbing field-service crm
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Internet :: WWW/HTTP :: Dynamic Content
+Classifier: Topic :: Office/Business
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: requests>=2.28.0
+Requires-Dist: python-dateutil>=2.8.2
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0.0; extra == "dev"
+Requires-Dist: pytest-mock; extra == "dev"
+Requires-Dist: requests-mock; extra == "dev"
+Requires-Dist: pytest-cov>=3.0.0; extra == "dev"
+Requires-Dist: black>=22.0.0; extra == "dev"
+Requires-Dist: isort>=5.0.0; extra == "dev"
+Requires-Dist: flake8>=4.0.0; extra == "dev"
+Requires-Dist: mypy>=0.991; extra == "dev"
+Requires-Dist: bandit>=1.7.0; extra == "dev"
+Requires-Dist: safety>=2.0.0; extra == "dev"
+Provides-Extra: notebooks
+Requires-Dist: jupyter>=1.0.0; extra == "notebooks"
+Requires-Dist: pandas>=1.4.0; extra == "notebooks"
+Requires-Dist: matplotlib>=3.5.0; extra == "notebooks"
+Provides-Extra: testing
+Requires-Dist: pytest>=7.0.0; extra == "testing"
+Requires-Dist: pytest-mock; extra == "testing"
+Requires-Dist: requests-mock; extra == "testing"
+Requires-Dist: pytest-cov>=3.0.0; extra == "testing"
+Requires-Dist: pytest-xdist; extra == "testing"
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: keywords
+Dynamic: license-file
+Dynamic: project-url
+Dynamic: provides-extra
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+# ServiceTitan Python API Client
+
+A comprehensive Python client library for the ServiceTitan API, providing easy access to all major endpoints with built-in authentication handling and data pagination.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Tests](https://img.shields.io/badge/tests-58%20passed-green.svg)](https://github.com/n90-co/servicetitan-pyapi/actions)
+
+## � Analysis Notebooks
+
+The `notebooks/` directory contains comprehensive Jupyter notebooks for business analysis:
+
+- **[exploration.ipynb](notebooks/exploration.ipynb)** - Initial data exploration and API familiarization
+- **[reporting.ipynb](notebooks/reporting.ipynb)** - Comprehensive business reporting and KPI dashboards
+- **[marketing_analysis.ipynb](notebooks/marketing_analysis.ipynb)** - Marketing ROI and campaign performance analysis
+- **[performance_monitoring.ipynb](notebooks/performance_monitoring.ipynb)** - Operational performance and efficiency monitoring
+- **[customer_journey.ipynb](notebooks/customer_journey.ipynb)** - Customer lifecycle and experience analysis
+- **[financial_forecasting.ipynb](notebooks/financial_forecasting.ipynb)** - Financial analysis and business forecasting
+- **[data_quality.ipynb](notebooks/data_quality.ipynb)** - Data validation and API testing
+
+See the [notebooks README](notebooks/README.md) for detailed usage instructions.
+
+## 🏗️ Development
+
+- **Complete API Coverage**: Support for customers, jobs, invoices, estimates, appointments, and more
+- **Automatic Authentication**: OAuth2 handling with automatic token refresh
+- **Smart Pagination**: Seamless handling of large datasets with continuation tokens
+- **Type Safety**: Full type hints for better IDE support and fewer errors
+- **Comprehensive Testing**: 58 test cases covering all functionality
+- **Easy Configuration**: Simple JSON-based configuration
+- **Error Handling**: Robust error handling with meaningful messages
+
+## 📦 Installation
+
+### From PyPI (When Published)
+```bash
+pip install servicetitan-pyapi
+```
+
+### From GitHub (Public Repository)
+```bash
+# Install latest version from main branch
+pip install git+https://github.com/n90-co/servicetitan-pyapi.git
+
+# Install specific version/tag
+pip install git+https://github.com/n90-co/servicetitan-pyapi.git@v1.0.0
+
+# Install with notebook dependencies for analysis
+pip install "git+https://github.com/n90-co/servicetitan-pyapi.git[notebooks]"
+
+# Install with development tools
+pip install "git+https://github.com/n90-co/servicetitan-pyapi.git[dev]"
+```
+
+### Development Installation
+```bash
+# Clone repository and install in editable mode
+git clone https://github.com/n90-co/servicetitan-pyapi.git
+cd servicetitan-pyapi
+pip install -e ".[dev,notebooks]"
+
+# Run tests to verify installation
+python -m pytest tests/ -v
+```
+
+### In Requirements.txt
+```txt
+# For production use
+servicetitan-pyapi>=1.0.0
+
+# Or directly from GitHub
+git+https://github.com/n90-co/servicetitan-pyapi.git@v1.0.0
+```
+
+## Quick Start
+
+```python
+from servicetitan_pyapi import ServiceTitanAPI
+
+# Initialize with config file
+api = ServiceTitanAPI("config/servicetitan_config.json")
+
+# Get customers
+customers = api.customers.get_all()
+
+# Get recent jobs
+jobs = api.jobs.get_batch()
+
+# Get invoices for revenue tracking
+invoices = api.invoices.get_all()
+```
+
+## Configuration
+
+Create a `servicetitan_config.json` file:
+
+```json
+{
+    "client_id": "your_client_id",
+    "client_secret": "your_client_secret",
+    "app_key": "your_app_key",
+    "tenant_id": "your_tenant_id",
+    "_comment": "Production credentials"
+}
+```
+
+## Testing
+
+The ServiceTitan Python API client includes a comprehensive test suite to ensure reliability and functionality.
+
+### Prerequisites
+
+Install testing dependencies:
+
+```bash
+# Basic testing (required)
+pip install pytest>=7.0.0 pytest-mock requests-mock
+
+# Optional: For advanced features
+pip install pytest-cov pytest-xdist  # Coverage reporting and parallel execution
+```
+
+### Running Tests
+
+#### Run All Tests
+```bash
+# Basic test run
+python -m pytest tests/ -v
+
+# Run with detailed output
+python -m pytest tests/ -v --tb=long
+
+# Run tests in parallel (requires pytest-xdist)
+python -m pytest tests/ -n auto
+```
+
+#### Run Specific Test Categories
+```bash
+# Authentication tests
+python -m pytest tests/test_auth.py -v
+
+# Base client functionality
+python -m pytest tests/test_base.py -v
+
+# Customer API tests
+python -m pytest tests/test_customers.py -v
+
+# Jobs API tests  
+python -m pytest tests/test_jobs.py -v
+
+# Marketing Ads API tests
+python -m pytest tests/test_marketing_ads.py -v
+
+# Settings API tests
+python -m pytest tests/test_settings_simple.py -v
+```
+
+#### Run Tests with Coverage
+```bash
+# Install coverage tool (if not already installed)
+pip install pytest-cov
+
+# Run with coverage report
+python -m pytest tests/ --cov=servicetitan_pyapi --cov-report=html
+
+# View coverage in terminal
+python -m pytest tests/ --cov=servicetitan_pyapi --cov-report=term-missing
+```
+
+#### Run Specific Test Functions
+```bash
+# Test specific functionality
+python -m pytest tests/test_auth.py::TestServiceTitanAuth::test_token_refresh_success -v
+
+# Test integration scenarios
+python -m pytest tests/test_customers.py::TestCustomersClientIntegration -v
+```
+
+#### Basic Commands (No Additional Dependencies Required)
+```bash
+# These commands work with just pytest, pytest-mock, requests-mock:
+python -m pytest tests/ -v                    # Verbose output
+python -m pytest tests/ --tb=short           # Short traceback
+python -m pytest tests/ --maxfail=1          # Stop on first failure
+python -m pytest tests/test_auth.py          # Run specific file
+python -m pytest -k "test_auth"              # Run tests matching pattern
+```
+
+### Test Structure
+
+The test suite includes:
+
+- **Authentication Tests**: OAuth2 token management, expiry handling, configuration loading
+- **Base Client Tests**: HTTP request handling, pagination logic, error handling
+- **Service Client Tests**: All API endpoints including customers, jobs, marketing ads, settings
+- **Integration Tests**: End-to-end workflows and real API scenarios
+- **Mock Testing**: Comprehensive mocking of HTTP responses for reliable testing
+
+### Test Coverage
+
+Current test coverage includes:
+- ✅ **58 test cases** covering all major functionality
+- ✅ **Authentication & Configuration**: Token refresh, expiry, config file loading
+- ✅ **API Client Methods**: All GET endpoints, pagination, batch processing
+- ✅ **Error Handling**: HTTP errors, network failures, invalid responses
+- ✅ **ServiceTitan Patterns**: Export endpoints, custom URL handling, continuation tokens
+- ✅ **Integration Scenarios**: Multi-page data retrieval, complete API workflows
+
+### Running Tests in CI/CD
+
+For automated testing in CI/CD pipelines:
+
+```bash
+# Install all testing dependencies
+pip install -e ".[dev]" pytest-cov pytest-xdist
+
+# Run tests with XML output for CI (requires pytest-cov)
+python -m pytest tests/ --junitxml=test-results.xml --cov=servicetitan_pyapi --cov-report=xml
+
+# For GitHub Actions, GitLab CI, etc. (basic version)
+python -m pytest tests/ --tb=short --maxfail=1
+
+# Parallel execution in CI (requires pytest-xdist)
+python -m pytest tests/ -n auto --tb=short
+```
+
+## Features
+
+- ✅ Full authentication handling with automatic token refresh
+- ✅ Support for all major ServiceTitan endpoints
+- ✅ Automatic pagination for large datasets
+- ✅ Incremental sync support with continuation tokens
+- ✅ Built-in reference data resolution
+- ✅ Type hints for better IDE support
+
+## Available Clients
+
+- **CRM**: Customers, Locations, Bookings, Leads
+- **Operations**: Jobs, Estimates, Appointments
+- **Communications**: Calls
+- **Financial**: Invoices
+- **Marketing**: Campaigns, Categories, Attribution
+- **Settings**: Business Units, Employees, Technicians, Tags
+
+## Examples
+
+See the `examples/` directory for detailed usage examples:
+- Basic usage and authentication
+- Revenue analysis and reporting
+- Marketing ROI calculation
+- Performance tracking
+
+## Development
+
+### Running Tests
+```bash
+pytest tests/
+```
+
+### Code Formatting
+```bash
+black servicetitan_api/
+flake8 servicetitan_api/
+```
+
+## License
+
+MIT License - See LICENSE file for details
+
+### `examples/basic_usage.py`
+```python
+#!/usr/bin/env python3
+"""
+Basic usage examples for the ServiceTitan Python API client.
+"""
+
+from servicetitan_pyapi import ServiceTitanAPI
+from datetime import datetime, timedelta
+
+
+def main():
+    # Initialize API
+    api = ServiceTitanAPI("config/servicetitan_config.json")
+    
+    # Get reference data for lookups
+    print("Loading reference data...")
+    lookups = api.settings.create_lookup_tables()
+    
+    # Get recent customers
+    print("\nFetching recent customers...")
+    customers = api.customers.get_test()
+    print(f"Found {len(customers)} customers")
+    
+    # Get jobs from last 7 days
+    print("\nFetching recent jobs...")
+    jobs = api.jobs.get_batch()
+    
+    # Display jobs with business unit names
+    for job in jobs.data[:5]:
+        bu_id = job.get('businessUnitId')
+        bu_name = lookups['business_units'].get(bu_id, 'Unknown')
+        print(f"  Job {job['id']}: {bu_name}")
+    
+    # Track conversions
+    print("\nAnalyzing conversions...")
+    leads = api.leads.get_batch()
+    estimates = api.estimates.get_batch()
+    invoices = api.invoices.get_batch()
+    
+    print(f"  Leads: {len(leads)}")
+    print(f"  Estimates: {len(estimates)}")
+    print(f"  Invoices: {len(invoices)}")
+    
+    # Calculate revenue
+    total_revenue = sum(i.get('total', 0) for i in invoices.data)
+    print(f"  Total Revenue: ${total_revenue:,.2f}")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## How to Use This Structure
+
+### 1. Create the directory structure:
+```bash
+mkdir -p servicetitan-pyapi/{servicetitan_pyapi/{clients,models,utils},config,examples,tests,notebooks}
+```
+
+### 2. Move your existing code:
+- Move each client class to its own file in `servicetitan_pyapi/clients/`
+- Move `ServiceTitanConfig` and `ServiceTitanAuth` to `servicetitan_pyapi/auth.py`
+- Move `BaseClient` and `ExportResponse` to `servicetitan_pyapi/base.py`
+
+### 3. Install the package locally:
+```bash
+cd servicetitan-pyapi
+pip install -e .
+```
+
+### 4. Use in any project:
+```python
+from servicetitan_pyapi import ServiceTitanAPI
+
+api = ServiceTitanAPI("path/to/config.json")
+customers = api.customers.get_all()
+```
+
+### 5. Use in Jupyter notebooks:
+```python
+# In any notebook, after installing the package
+from servicetitan_pyapi import ServiceTitanAPI
+import pandas as pd
+
+api = ServiceTitanAPI()
+jobs_data = api.jobs.get_all().data
+df = pd.DataFrame(jobs_data)
+```
+
+## Benefits of This Structure
+
+1. **Reusable**: Install once, use in any project
+2. **Maintainable**: Clear separation of concerns
+3. **Testable**: Comprehensive test suite with 58 test cases covering all functionality
+4. **Reliable**: Fully tested authentication, pagination, and error handling
+5. **Documentable**: Clear structure for documentation
+6. **Extensible**: Easy to add new endpoints
+7. **Professional**: Follows Python packaging best practices
+
+This structure makes your ServiceTitan API client a proper Python package that you can:
+- Import in any project
+- Share with team members
+- Version control properly
+- Extend with new features
+- Test thoroughly (58 automated tests included)
+- Document clearly
+- Deploy with confidence
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+
+### Quick Start for Contributors
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Make your changes and add tests
+4. Run tests: `python -m pytest tests/ -v`
+5. Commit your changes: `git commit -m 'feat: add amazing feature'`
+6. Push to the branch: `git push origin feature/amazing-feature`
+7. Open a Pull Request
+
+### Areas Where We Need Help
+
+- 🌟 **New ServiceTitan API endpoints**
+- 🐛 **Bug fixes and improvements**
+- 📚 **Documentation and examples**
+- 🧪 **Additional test coverage**
+- ⚡ **Performance optimizations**
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🛡️ Security
+
+For security concerns, please see our [Security Policy](SECURITY.md).
+
+## 📞 Support
+
+- 📚 **Documentation**: Check the README and examples
+- 🐛 **Bug Reports**: [Create an issue](https://github.com/n90-co/servicetitan-pyapi/issues/new?template=bug_report.md)
+- 💡 **Feature Requests**: [Request a feature](https://github.com/n90-co/servicetitan-pyapi/issues/new?template=feature_request.md)
+- 🔌 **New API Endpoints**: [Request endpoint support](https://github.com/n90-co/servicetitan-pyapi/issues/new?template=api_endpoint.md)
+
+## 🙏 Contributors
+
+Thanks to all the amazing people who have contributed to this project! 
+
+<!-- Contributors will be automatically added here via GitHub -->
+
+## ⭐ Star History
+
+If this project helps you, please consider giving it a star! ⭐
