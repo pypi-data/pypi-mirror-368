@@ -1,0 +1,161 @@
+Metadata-Version: 2.4
+Name: minichain-ai
+Version: 7.0.0
+Summary: A micro-framework for building with LLMs, inspired by LangChain.
+Author-email: Fady <contact@fadymohamed.com>
+License: MIT License
+        
+        Copyright (c) 2025 [Your Name or Alias, e.g., Fady]
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE.
+Project-URL: Homepage, https://github.com/fady17/minichain
+Project-URL: Issues, https://github.com/fady17/minichain/issues
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: pydantic>=2.0
+Requires-Dist: jinja2>=3.0
+Requires-Dist: openai>=1.0
+Requires-Dist: python-dotenv
+Requires-Dist: langchain-text-splitters
+Provides-Extra: local
+Requires-Dist: faiss-cpu<1.12,>=1.7.4; extra == "local"
+Requires-Dist: numpy<2.0,>=1.22; extra == "local"
+Provides-Extra: gpu
+Requires-Dist: faiss-gpu<1.12,>=1.7.4; extra == "gpu"
+Requires-Dist: numpy<2.0,>=1.22; extra == "gpu"
+Provides-Extra: azure
+Requires-Dist: azure-search-documents; extra == "azure"
+Requires-Dist: azure-core; extra == "azure"
+Provides-Extra: all
+Requires-Dist: minichain-ai[local]; extra == "all"
+Requires-Dist: minichain-ai[azure]; extra == "all"
+Dynamic: license-file
+
+# Mini-Chain
+
+**Mini-Chain** is a micro-framework for building applications with Large Language Models, inspired by LangChain. Its core principle is transparency and modularity, providing a "glass-box" design for engineers who value control and clarity.
+
+## Core Features
+
+- **Modular Components**: Swappable classes for Chat Models, Embeddings, Memory, and more.
+- **Local & Cloud Ready**: Supports both local models (via LM Studio) and cloud services (Azure).
+- **Modern Tooling**: Built with Pydantic for type-safety and Jinja2 for powerful templating.
+- **GPU Acceleration**: Optional `faiss-gpu` support for high-performance indexing.
+
+## Installation
+
+```bash
+pip install minichain-ai
+#For Local FAISS (CPU) Support:
+pip install minichain-ai[local]
+#For NVIDIA GPU FAISS Support:
+pip install minichain-ai[gpu]
+#For Azure Support (Azure AI Search, Azure OpenAI):
+pip install minichain-ai[azure]
+#To install everything:
+pip install minichain-ai[all]
+```
+Quick Start
+Here is the simplest possible RAG pipeline with Mini-Chain:
+```bash
+pip install minichain-ai[local]
+
+from minichain.rag_runner import create_rag_from_files
+
+# Load knowledge from files
+rag = create_rag_from_files(
+    file_paths=["path/manual.txt", "README.md"],
+    system_prompt="You are a documentation assistant.",
+    chunk_size=500,
+    retrieval_k=3
+)
+rag.run_chat()
+```
+### To Read the full directory
+```bash
+from minichain.rag_runner import create_rag_from_directory
+
+# Load all Python files from a directory
+rag = create_rag_from_directory(
+    directory="./src",
+    file_extensions=['.py', '.md'],
+    system_prompt="You are a code assistant."
+)
+rag.run_chat()
+```
+
+### Custom RAG Configuration
+```bash
+from minichain.rag_runner import RAGRunner, RAGConfig
+
+config = RAGConfig(
+    knowledge_texts=["Your knowledge here..."],
+    knowledge_files=["file1.txt", "file2.md"],
+    
+    # Chunking settings
+    chunk_size=1000,
+    chunk_overlap=200,
+    
+    # Retrieval settings
+    retrieval_k=4,
+    similarity_threshold=0.7,  # Only include high-similarity results
+    
+    # Chat settings
+    system_prompt="Custom system prompt...",
+    conversation_keywords=["custom", "keywords", "for", "conversation", "detection"],
+    
+    # Components (optional - uses defaults if not provided)
+    chat_model=None,  # Will use LocalChatModel
+    embeddings=None,  # Will use LocalEmbeddings
+    text_splitter=None,  # Will use RecursiveCharacterTextSplitter
+    vector_store=None,  # Will create FAISSVectorStore
+    
+    debug=True  # Enable debug output
+)
+
+rag = RAGRunner(config).setup()
+rag.run_chat()
+```
+### Using Custom Components
+```bash
+from minichain.rag_runner import RAGConfig, RAGRunner
+from minichain.chat_models import LocalChatModel, LocalChatConfig
+from minichain.embeddings import LocalEmbeddings
+from minichain.text_splitters import RecursiveCharacterTextSplitter
+
+# Custom components
+custom_model = LocalChatModel(LocalChatConfig(temperature=0.7))
+custom_embeddings = LocalEmbeddings()
+custom_splitter = RecursiveCharacterTextSplitter(chunk_size=800)
+
+config = RAGConfig(
+    knowledge_texts=["Your knowledge..."],
+    chat_model=custom_model,
+    embeddings=custom_embeddings,
+    text_splitter=custom_splitter,
+)
+
+rag = RAGRunner(config).setup()
+rag.run_chat()
+```
+
+
+for azure
+pip install minichain-ai[azure]
