@@ -1,0 +1,136 @@
+[project]
+name = "AIUnitTest"
+dynamic = ["version"]
+description = "CLI to generate and update Python unit tests automatically using coverage and AI"
+authors = [{ name = "Ofido" }]
+readme = "README.md"
+requires-python = ">=3.10"
+keywords = ["testing", "coverage", "openai", "automation"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Testing",
+  "Topic :: Utilities",
+]
+license-files = ["LICENSE"]
+dependencies = ["openai", "coverage", "typer", "tomli"]
+
+[project.urls]
+"Homepage" = "https://github.com/ofido/AIUnitTest"
+"Bug Tracker" = "https://github.com/ofido/AIUnitTest/issues"
+
+[project.optional-dependencies]
+dev = [
+  "black",
+  "isort",
+  "flake8",
+  "flake8-bugbear",
+  "flake8-annotations",
+  "mypy",
+  "pymarkdown",
+  "pre-commit",
+  "pytest",
+  "pytest-cov",
+  "pytest-asyncio",
+]
+
+[tool.black]
+line-length = 120
+target-version = ["py313"]
+exclude = "src/ai_unit_test/_version.py"
+
+[tool.isort]
+profile = "black"
+line_length = 120
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+known_third_party = [
+  "openai",
+  "typer",
+  "isort",
+  "black",
+  "flake8",
+  "mypy",
+  "pytest",
+]
+known_first_party = ["ai_unit_test"]
+
+default_section = "THIRDPARTY"
+skip = ["build", "dist", ".venv", "env", "src/ai_unit_test/_version.py"]
+
+[tool.flake8-annotations]
+suppress-none-returning = true
+suppress-dummy-args = true
+allow-untyped-defs = true
+
+[tool.bandit]
+skips = ["B101"]
+exclude_dirs = [
+  ".git",
+  ".hg",
+  ".mypy_cache",
+  ".tox",
+  ".venv",
+  "_build",
+  "buck-out",
+  "build",
+  "dist",
+  "env",
+  "examples",
+  "node_modules",
+]
+
+[tool.mypy]
+python_version = "3.13"
+check_untyped_defs = true
+ignore_missing_imports = false
+warn_redundant_casts = true
+warn_unused_ignores = true
+disallow_any_generics = true
+allow_redefinition = false
+allow_untyped_globals = false
+follow_imports_for_stubs = true
+disallow_untyped_defs = true
+strict = true
+exclude = ["env", "src/ai_unit_test/_version.py"]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+asyncio_mode = "auto"
+addopts = "-ra -q --strict-markers --tb=short --cov=src --cov-report=term-missing"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+norecursedirs = ["tests/fake_project"]
+markers = [
+  "slow: marks slow tests",
+  "integration: marks integration tests",
+  "benchmark: marks benchmarks",
+  "asyncio: marks asyncio tests",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["src"]
+omit = ["tests/*", "main.py", "src/ai_unit_test/_version.py"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+fail_under = 80
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+write_to = "src/ai_unit_test/_version.py"
+
+[tool.setuptools.packages.find]
+where = ["src"]
