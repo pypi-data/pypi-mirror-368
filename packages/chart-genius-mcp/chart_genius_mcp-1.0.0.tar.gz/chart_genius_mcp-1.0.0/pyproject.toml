@@ -1,0 +1,225 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "chart-genius-mcp"
+version = "1.0.0"
+description = "The Ultimate Chart Generation MCP Server - Built for Performance, Powered by AI"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+authors = [
+    { name = "ChartGenius Team", email = "team@chart-genius.com" }
+]
+keywords = [
+    "mcp", "charts", "visualization", "plotly", "matplotlib", 
+    "performance", "ai", "data-analysis", "dashboard"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+]
+
+dependencies = [
+    # Core MCP and server dependencies
+    "mcp>=1.0.0",
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "httpx>=0.25.0",
+    
+    # High-performance data processing
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "polars>=0.20.0",  # Ultra-fast data processing
+    "orjson>=3.9.0",   # Fast JSON serialization
+    
+    # Chart generation engines
+    "plotly>=5.17.0",
+    "matplotlib>=3.7.0",
+    "seaborn>=0.12.0",
+    "bokeh>=3.2.0",
+    
+    # AI and data analysis
+    "scikit-learn>=1.3.0",
+    "scipy>=1.11.0",
+    "statsmodels>=0.14.0",
+    
+    # Performance optimizations
+    "redis>=5.0.0",
+    "aioredis>=2.0.1",
+    "asyncio-throttle>=1.0.2",
+    "psutil>=5.9.0",
+    
+    # Image processing and export
+    "Pillow>=10.0.0",
+    "kaleido>=0.2.1",  # Static image export for Plotly
+    "reportlab>=4.0.0",  # PDF generation
+    
+    # Utility libraries
+    "pydantic>=2.0.0",
+    "typer>=0.9.0",
+    "rich>=13.0.0",
+    "loguru>=0.7.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    # Development and testing
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-benchmark>=4.0.0",
+    "pytest-cov>=4.1.0",
+    
+    # Code quality
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "flake8>=6.0.0",
+    "mypy>=1.5.0",
+    "bandit>=1.7.5",
+    
+    # Documentation
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.2.0",
+    "mkdocs-mermaid2-plugin>=1.1.0",
+    
+    # Debugging and profiling
+    "memory-profiler>=0.61.0",
+    "line-profiler>=4.1.0",
+    "py-spy>=0.3.14",
+]
+
+performance = [
+    # High-performance additions
+    "uvloop>=0.19.0",
+    "ujson>=5.8.0",
+    "numba>=0.58.0",
+    "cython>=3.0.0",
+]
+
+ai = [
+    # AI-powered features
+    "openai>=1.0.0",
+    "transformers>=4.35.0",
+    "torch>=2.1.0",
+    "sentence-transformers>=2.2.0",
+]
+
+all = [
+    "chart-genius-mcp[dev,performance,ai]"
+]
+
+[project.urls]
+Homepage = "https://github.com/your-org/chart-genius-mcp"
+Documentation = "https://chart-genius.readthedocs.io"
+Repository = "https://github.com/your-org/chart-genius-mcp"
+"Bug Reports" = "https://github.com/your-org/chart-genius-mcp/issues"
+"Feature Requests" = "https://github.com/your-org/chart-genius-mcp/discussions"
+
+[project.scripts]
+chart-genius = "chart_genius_mcp.__main__:cli_main"
+chart-genius-server = "chart_genius_mcp.server:run_server"
+chart-genius-benchmark = "chart_genius_mcp.__main__:benchmark_main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/chart_genius_mcp"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/tests",
+    "/docs",
+    "/benchmarks",
+    "/examples",
+    "README.md",
+    "LICENSE",
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py39']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["chart_genius_mcp"]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = true
+disallow_untyped_decorators = false
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_functions = "test_*"
+addopts = [
+    "--strict-markers",
+    "--disable-warnings",
+    "--cov=chart_genius_mcp",
+    "--cov-report=term-missing",
+    "--cov-report=html"
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "benchmark: marks tests as benchmarks",
+    "ai: marks tests that require AI features",
+]
+
+[tool.coverage.run]
+source = ["src/chart_genius_mcp"]
+omit = [
+    "*/tests/*",
+    "*/benchmarks/*",
+    "*/examples/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+] 
