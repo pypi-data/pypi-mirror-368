@@ -1,0 +1,100 @@
+{% extends 'generic/object.html' %}
+{% load buttons %}
+{% load static %}
+{% load helpers %}
+{% load plugins %}
+{% load i18n %}
+
+{% block extra_controls %}
+  <a href="{% url 'plugins:adestis_netbox_plugin_account_management:logincredentials_add' %}?system={{ object.pk }}" class="btn btn-primary"> 
+    <span class="mdi mdi-plus-thick" aria-hidden="true"></span> Create Login Credentials
+  </a>
+{% endblock %}
+
+{% load render_table from django_tables2 %}
+
+{% block content %}
+  <div class="row my-3">
+    <div class="col col-md-6">
+      <div class="card">
+        <h5 class="card-header">System</h5>
+        <div class="card-body">
+          <table class="table table-hover attr-table">
+            <tr>
+              <th scope="row">Name</th>
+              <td>{{ object.name }}</td>
+            </tr>
+            <tr>
+              <th scope="row">URL / Identification</th>
+              <td>{{ object.system_url }}</td>
+            </tr>
+            <tr>
+              <th scope="row">Status</th>
+              <td>{% badge object.get_system_status_display bg_color=object.get_system_status_color %}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <h5 class="card-header">Computing</h5>
+        <div class="card-body">
+          <table class="table table-hover attr-table">
+            <tr>
+              <th scope="row">Group</th>
+              <td>
+                {{ object.group|linkify|placeholder }}
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Tenant</th>
+              <td>
+                {{ object.tenant|linkify|placeholder }}
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Cluster Group</th>
+              <td>
+                {{ object.cluster_group|linkify|placeholder }}
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Cluster</th>
+              <td>
+                {{ object.cluster|linkify|placeholder }}
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Device</th>
+              <td>
+                {{ object.device|linkify|placeholder }}
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Virtual Machine</th>
+              <td>
+                {{ object.virtual_machine|linkify|placeholder }}
+              </td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col col-md-6">
+      {% include 'inc/panels/custom_fields.html' %}
+      {% include 'inc/panels/tags.html' %}
+      {% include 'inc/panels/comments.html' %}
+    </div>
+
+  </div>
+  <div class="row mb-3">
+    <div class="col col-md-12">
+      <div class="card">
+        <h5 class="card-header">Connected Systems</h5>
+        <div class="card-body table-responsive">
+          {% render_table systemview_filtered_table 'inc/table.html' %}
+          {% include 'inc/paginator.html' with paginator=systemview_filtered_table.paginator page=systemview_filtered_table.page %}
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock content %}

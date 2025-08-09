@@ -1,0 +1,34 @@
+{% extends 'generic/object_edit.html' %}
+{% load static %}
+{% load form_helpers %}
+{% load i18n %}
+
+{% render_errors form %}
+
+{% block title %}
+  {% blocktrans trimmed %}
+    Assign SSH Keys to Login Credentials {{ loginCredentials }}
+  {% endblocktrans %}
+{% endblock %}
+
+{% block content %}
+    <form action="{{ edit_url }}" method="post">
+        {% csrf_token %}
+        {% for field in form.hidden_fields %}
+            {{ field }}
+        {% endfor %}
+        <div class="row">
+            <div class="col col-md-6 offset-md-3">
+                <div class="field-group">
+                    {% render_form form %}
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col col-md-6 offset-md-3 text-end d-print-none">
+                <a href="{{ return_url }}" class="btn btn-outline-secondary">Cancel</a>
+                <button type="submit" name="_add" class="btn btn-primary">Assign SSH Keys</button>
+            </div>
+        </div>
+    </form>
+{% endblock %}
