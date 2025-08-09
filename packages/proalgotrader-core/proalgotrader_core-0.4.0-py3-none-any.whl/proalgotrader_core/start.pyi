@@ -1,0 +1,3 @@
+from proalgotrader_core.application import Application as Application
+
+def start() -> None: ...

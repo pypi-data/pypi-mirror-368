@@ -1,0 +1,3 @@
+from proalgotrader_core.broker_symbol import BrokerSymbol as BrokerSymbol
+
+def get_strike_price(broker_symbol: BrokerSymbol, strike_price_input: int = 0) -> int: ...
