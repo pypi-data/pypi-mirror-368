@@ -1,0 +1,41 @@
+[build-system]                  # tells pip how to build
+requires = [
+  "scikit-build-core>=0.8",
+  "cmake>=3.23"
+]
+build-backend = "scikit_build_core.build"
+
+[project]
+name    = "jalansim"
+version = "0.0.1"
+authors = [
+  { name="Joshua J. Damanik", email="joshuajdmk@gmail.com" },
+]
+description = "GPU-accelerated 2D navigation simulator."
+readme = "README.md"
+requires-python = ">=3.8,<=3.13"
+
+[project.urls]
+Homepage = "https://github.com/damanikjosh/jalansim"
+
+[tool.cibuildwheel]
+skip = "pp* *-musllinux_*"
+manylinux-x86_64-image = "manylinux2014"
+manylinux-aarch64-image = "manylinux2014"
+
+[tool.cibuildwheel.linux]
+before-all = "sed -i s/mirror.centos.org/vault.centos.org/g /etc/yum.repos.d/*.repo && sed -i s/^#.*baseurl=http/baseurl=https/g /etc/yum.repos.d/*.repo && sed -i s/^mirrorlist=http/#mirrorlist=https/g /etc/yum.repos.d/*.repo && yum-config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-rhel7.repo && yum clean all && yum -y install cuda-nvcc-12-2 cuda-cudart-12-2 cuda-cudart-devel-12-2 libcurand-devel-12-2"
+
+[tool.cibuildwheel.macos]
+# Install llvm and libomp for macOS builds
+before-all = "brew install llvm libomp"
+
+[tool.cibuildwheel.linux.environment]
+CUDA_HOME          = "/usr/local/cuda-12.8"
+CUDACXX            = "/usr/local/cuda/bin/nvcc"
+PATH               = "{CUDA_HOME}/bin:$PATH"
+LD_LIBRARY_PATH    = "{CUDA_HOME}/lib64:$LD_LIBRARY_PATH"
+CMAKE_ARGS         = "-DWITH_CUDA=ON"
+
+[tool.cibuildwheel.macos.environment]
+MACOSX_DEPLOYMENT_TARGET = "14.0"
