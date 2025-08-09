@@ -1,0 +1,41 @@
+{% extends "workflows/map_view/map_view.html" %}
+{% load tethys_gizmos static %}
+
+{# OVERRIDE DEFAULT ACTIVE TAB #}
+{% block disable_default_tab %}{% endblock %}
+{% block disable_default_tab_panel %}{% endblock %}
+
+{% block after_nav_header %}
+{% endblock %}
+
+{% block custom_map_tabs %}
+  {# WORKFLOW TAB #}
+  {% include 'workflows/workflows/components/workflow_tab.html' %}
+{% endblock %}
+
+{% block custom_map_tab_panels %}
+  {# WORKFLOW TAB PANEL #}
+  {% include 'workflows/workflows/components/workflow_tab_content.html' %}
+{% endblock %}
+
+{% block map %}
+  <form id="workflow-form" class="map-form" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input name="method" value="save-step-data" hidden>
+    {{ block.super }}
+  </form>
+{% endblock %}
+
+{% block tab_data %}
+{% endblock %}
+
+{% block app_actions %}
+  {% include 'workflows/workflows/components/workflow_actions.html' %}
+  {{ block.super }}
+{% endblock %}
+
+{% block content_dependent_styles %}
+  {{ block.super }}
+  <link href="{% static 'workflows/workflows/workflow_steps.css' %}" rel="stylesheet"/>
+  <link href="{% static 'workflows/workflows/workflows_map_workflow.css' %}" rel="stylesheet"/>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% load static %}
+{# NAV HEADER #}
+{% comment %}
+Include to add Previous and Next buttons to a workflow page. Must create a form with id "workflow-form" for the buttons to work.
+
+Required Context:
+  previous_title(str): Title of the previous button.
+  next_title(str): Title of the next button.
+  finish_title(str): Title of next button when there is no next step.
+  previous_step(Step): The previous step.
+  next_step(Step): The next step.
+
+{% endcomment %}
+
+{% block workflow_actions %}
+  {% block workflow_info_button %}
+    {% if workflow_info_text %}
+      <link href="{% static 'workflows/css/workflow_popup.css' %}" rel="stylesheet"/>
+      <button id="popupButton-Info" class="btn btn-info btn-workflow-info" type="button" data-toggle="modal">Info</button>
+
+      <!-- The pop-up text container -->
+      <div id="popupText-Info" class="popup-text">
+        {{ workflow_info_text|safe }}
+      </div>
+      <script>
+        // Get references to the button and the pop-up text element
+        const popupButtonInfo = document.getElementById('popupButton-Info');
+        const popupTextInfo = document.getElementById('popupText-Info');
+
+        // Add a click event listener to the button
+        popupButtonInfo.addEventListener('click', () => {
+            // Toggle the 'show' class to display/hide the text with animation
+            popupTextInfo.classList.toggle('show');
+        });
+
+        // Optional: Hide the pop-up if clicked anywhere outside of it or the button
+        document.addEventListener('click', (event) => {
+            if (!popupButtonInfo.contains(event.target) && !popupTextInfo.contains(event.target) && popupTextInfo.classList.contains('show')) {
+                popupTextInfo.classList.remove('show');
+            }
+        });
+      </script>
+    {% endif %}
+  {% endblock %}
+
+  {% block reset_step_button %}
+    <button class="btn btn-warning btn-reset" name="reset-submit" type='submit' form="workflow-form">Reset</button>
+  {% endblock %}
+  {% block previous_step_button %}
+    {% if previous_step %}
+    <button class="btn btn-light btn-previous" name="previous-submit" type='submit' form="workflow-form">{{ previous_title }}</button>
+    {% endif %}
+  {% endblock %}
+
+  {% block next_step_button %}
+    {% if next_step %}
+    <button class="btn btn-light btn-next" name="next-submit" type='submit' form="workflow-form">{{ next_title }}</button>
+    {% else %}
+    <button class="btn btn-light btn-next" name="next-submit" type='submit' form="workflow-form">{{ finish_title }}</button>
+    {% endif %}
+  {% endblock %}
+{% endblock %}
