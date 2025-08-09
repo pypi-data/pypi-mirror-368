@@ -1,0 +1,113 @@
+"""{{ component_name }} domain exception for {{ module_name }} module.
+
+Generated at: {{ generated_at }}
+Generator version: {{ generator_version }}
+"""
+from typing import Any, Dict, Optional
+
+
+class {{ ComponentName }}(Exception):
+    """{{ ComponentName }} domain exception.
+    
+    This exception represents {{ entity_description }} in the {{ module_name }} domain.
+    Domain exceptions represent business rule violations or domain-specific
+    error conditions that can occur during business operations.
+    
+    Following Clean Architecture principles, this exception contains only
+    domain-relevant information and has no dependencies on external
+    frameworks or infrastructure.
+    """
+    
+    def __init__(
+        self,
+        message: str,
+        *,
+        error_code: Optional[str] = None,
+        context: Optional[Dict[str, Any]] = None,
+        cause: Optional[Exception] = None
+    ) -> None:
+        """Initialize the domain exception.
+        
+        Args:
+            message: Human-readable error message
+            error_code: Optional machine-readable error code
+            context: Optional context information for debugging
+            cause: Optional underlying exception that caused this error
+        """
+        super().__init__(message)
+        self.message = message
+        self.error_code = error_code or self.__class__.__name__.upper()
+        self.context = context or {}
+        self.cause = cause
+    
+    def __str__(self) -> str:
+        """String representation of the exception.
+        
+        Returns:
+            Formatted error message
+        """
+        if self.error_code:
+            return f"[{self.error_code}] {self.message}"
+        return self.message
+    
+    def __repr__(self) -> str:
+        """Developer representation of the exception.
+        
+        Returns:
+            Detailed exception representation
+        """
+        return (
+            f"{self.__class__.__name__}("
+            f"message='{self.message}', "
+            f"error_code='{self.error_code}', "
+            f"context={self.context}"
+            f")"
+        )
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert exception to dictionary for serialization.
+        
+        Returns:
+            Dictionary representation of the exception
+        """
+        return {
+            'exception_type': self.__class__.__name__,
+            'message': self.message,
+            'error_code': self.error_code,
+            'context': self.context,
+            'cause': str(self.cause) if self.cause else None,
+        }
+
+
+# Example specific domain exceptions
+# Uncomment and customize as needed:
+
+# class {{ ExceptionName }}NotFound({{ ExceptionName }}):
+#     """Raised when {{ entity_name }} is not found."""
+#     
+#     def __init__(self, identifier: Any) -> None:
+#         super().__init__(
+#             f"{{ ExceptionName }} with identifier '{identifier}' not found",
+#             error_code="{{ EXCEPTION_NAME }}_NOT_FOUND",
+#             context={"identifier": identifier}
+#         )
+
+# class {{ ExceptionName }}AlreadyExists({{ ExceptionName }}):
+#     """Raised when {{ entity_name }} already exists."""
+#     
+#     def __init__(self, identifier: Any) -> None:
+#         super().__init__(
+#             f"{{ ExceptionName }} with identifier '{identifier}' already exists",
+#             error_code="{{ EXCEPTION_NAME }}_ALREADY_EXISTS",
+#             context={"identifier": identifier}
+#         )
+
+# class Invalid{{ ExceptionName }}({{ ExceptionName }}):
+#     """Raised when {{ entity_name }} data is invalid."""
+#     
+#     def __init__(self, reason: str, **context: Any) -> None:
+#         super().__init__(
+#             f"Invalid {{ entity_name }}: {reason}",
+#             error_code="INVALID_{{ EXCEPTION_NAME }}",
+#             context=context
+#         )

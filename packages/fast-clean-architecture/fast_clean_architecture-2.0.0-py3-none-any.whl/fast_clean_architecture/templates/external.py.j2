@@ -1,0 +1,138 @@
+"""{{ external_service_name }} client for {{ module_name }} module.
+
+SECURITY WARNING:
+- Never log API keys or include them in error messages
+- Store API keys securely using environment variables or secret management
+- Ensure API keys are not committed to version control
+"""
+import httpx
+import logging
+from typing import Any, Dict, Optional
+from pydantic import BaseModel, Field, validator
+
+
+class {{ ExternalServiceName }}Config(BaseModel):
+    """Configuration for {{ ExternalServiceName }} client.
+    
+    Security Note:
+    - API keys should be loaded from environment variables
+    - Never hardcode API keys in configuration files
+    """
+    
+    base_url: str
+    api_key: Optional[str] = Field(None, description="API key for authentication (use environment variables)")
+    timeout: int = 30
+    
+    @validator('api_key')
+    def validate_api_key(cls, v):
+        """Validate API key without exposing it in logs."""
+        if v and len(v.strip()) == 0:
+            raise ValueError("API key cannot be empty")
+        return v
+    
+    def __repr__(self) -> str:
+        """Safe representation that doesn't expose API key."""
+        return f"{{ ExternalServiceName }}Config(base_url='{self.base_url}', api_key={'***' if self.api_key else None}, timeout={self.timeout})"
+    
+    def __str__(self) -> str:
+        """Safe string representation that doesn't expose API key."""
+        return self.__repr__()
+
+
+class {{ ExternalServiceName }}Client:
+    """Client for {{ external_service_name }} external service.
+    
+    Security Features:
+    - API keys are sanitized from error messages
+    - Logging excludes sensitive information
+    - Safe error handling prevents key exposure
+    """
+    
+    def __init__(self, config: {{ ExternalServiceName }}Config):
+        self._config = config
+        self._logger = logging.getLogger(__name__)
+        self._client = httpx.AsyncClient(
+            base_url=config.base_url,
+            timeout=config.timeout,
+        )
+        
+        # Log initialization without exposing API key
+        self._logger.info(f"Initialized {{ ExternalServiceName }}Client for {config.base_url}")
+    
+    def _sanitize_error_message(self, error_msg: str) -> str:
+        """Remove API key from error messages to prevent exposure."""
+        if self._config.api_key:
+            # Replace API key with placeholder in error messages
+            sanitized = error_msg.replace(self._config.api_key, "***API_KEY***")
+            return sanitized
+        return error_msg
+    
+    def _get_safe_headers(self) -> Dict[str, str]:
+        """Get headers with API key, ensuring safe error handling."""
+        headers = {}
+        if self._config.api_key:
+            headers["Authorization"] = f"Bearer {self._config.api_key}"
+        return headers
+    
+    async def __aenter__(self):
+        return self
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self._client.aclose()
+    
+    async def get_data(self, endpoint: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Get data from external service with secure error handling."""
+        try:
+            headers = self._get_safe_headers()
+            
+            # Log request without exposing sensitive data
+            self._logger.debug(f"Making GET request to {endpoint}")
+            
+            response = await self._client.get(
+                endpoint,
+                params=params,
+                headers=headers,
+            )
+            response.raise_for_status()
+            
+            return response.json()
+            
+        except httpx.HTTPError as e:
+            # Sanitize error message to prevent API key exposure
+            safe_error_msg = self._sanitize_error_message(str(e))
+            self._logger.error(f"HTTP error in get_data: {safe_error_msg}")
+            raise httpx.HTTPError(safe_error_msg) from e
+        except Exception as e:
+            # Sanitize any other errors
+            safe_error_msg = self._sanitize_error_message(str(e))
+            self._logger.error(f"Unexpected error in get_data: {safe_error_msg}")
+            raise Exception(safe_error_msg) from e
+    
+    async def post_data(self, endpoint: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Post data to external service with secure error handling."""
+        try:
+            headers = {"Content-Type": "application/json"}
+            headers.update(self._get_safe_headers())
+            
+            # Log request without exposing sensitive data
+            self._logger.debug(f"Making POST request to {endpoint}")
+            
+            response = await self._client.post(
+                endpoint,
+                json=data,
+                headers=headers,
+            )
+            response.raise_for_status()
+            
+            return response.json()
+            
+        except httpx.HTTPError as e:
+            # Sanitize error message to prevent API key exposure
+            safe_error_msg = self._sanitize_error_message(str(e))
+            self._logger.error(f"HTTP error in post_data: {safe_error_msg}")
+            raise httpx.HTTPError(safe_error_msg) from e
+        except Exception as e:
+            # Sanitize any other errors
+            safe_error_msg = self._sanitize_error_message(str(e))
+            self._logger.error(f"Unexpected error in post_data: {safe_error_msg}")
+            raise Exception(safe_error_msg) from e

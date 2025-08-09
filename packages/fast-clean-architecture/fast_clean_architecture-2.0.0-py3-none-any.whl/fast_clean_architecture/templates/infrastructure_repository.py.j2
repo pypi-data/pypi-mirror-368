@@ -1,0 +1,69 @@
+"""
+SQLAlchemy {{ repository_name }} repository implementation for {{ module_name }} module.
+"""
+from typing import List, Optional
+from sqlalchemy.orm import Session
+from ...domain.entities.{{ entity_file }} import {{ EntityName }}
+from ...domain.interfaces.{{ repository_file }} import {{ RepositoryName }}Repository
+from ..models.{{ model_file }} import {{ ModelName }}Model
+
+
+class SQLAlchemy{{ RepositoryName }}Repository({{ RepositoryName }}Repository):
+    """SQLAlchemy implementation of {{ RepositoryName }}Repository."""
+    
+    def __init__(self, session: Session):
+        self._session = session
+    
+    async def get_by_id(self, id: str) -> Optional[{{ EntityName }}]:
+        """Retrieve {{ entity_name }} by ID."""
+        model = self._session.query({{ ModelName }}Model).filter(
+            {{ ModelName }}Model.id == id
+        ).first()
+        
+        return model.to_entity() if model else None
+    
+    async def save(self, entity: {{ EntityName }}) -> {{ EntityName }}:
+        """Save {{ entity_name }} entity."""
+        if entity.id:
+            # Update existing
+            model = self._session.query({{ ModelName }}Model).filter(
+                {{ ModelName }}Model.id == entity.id
+            ).first()
+            
+            if model:
+                # Update model from entity
+                for key, value in entity.__dict__.items():
+                    if hasattr(model, key) and key != 'id':
+                        setattr(model, key, value)
+            else:
+                model = {{ ModelName }}Model.from_entity(entity)
+                self._session.add(model)
+        else:
+            # Create new
+            import uuid
+            entity.id = str(uuid.uuid4())
+            model = {{ ModelName }}Model.from_entity(entity)
+            self._session.add(model)
+        
+        self._session.commit()
+        self._session.refresh(model)
+        
+        return model.to_entity()
+    
+    async def delete(self, id: str) -> bool:
+        """Delete {{ entity_name }} by ID."""
+        model = self._session.query({{ ModelName }}Model).filter(
+            {{ ModelName }}Model.id == id
+        ).first()
+        
+        if model:
+            self._session.delete(model)
+            self._session.commit()
+            return True
+        
+        return False
+    
+    async def list_all(self) -> List[{{ EntityName }}]:
+        """List all {{ entity_name }} entities."""
+        models = self._session.query({{ ModelName }}Model).all()
+        return [model.to_entity() for model in models]

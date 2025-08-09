@@ -1,0 +1,923 @@
+Metadata-Version: 2.4
+Name: fast-clean-architecture
+Version: 2.0.0
+Summary: CLI tool for scaffolding clean architecture in FastAPI projects
+Project-URL: Homepage, https://github.com/alden-technologies/fast-clean-architecture
+Project-URL: Repository, https://github.com/alden-technologies/fast-clean-architecture
+Project-URL: Documentation, https://fast-clean-architecture.readthedocs.io
+Project-URL: Bug Tracker, https://github.com/alden-technologies/fast-clean-architecture/issues
+Project-URL: Changelog, https://github.com/alden-technologies/fast-clean-architecture/blob/main/CHANGELOG.md
+Author-email: Adegbenga Agoro <adegbenga@aldentechnologies.com>
+License: MIT
+License-File: LICENSE
+Keywords: clean-architecture,cli,ddd,domain-driven-design,fastapi,scaffold
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Framework :: FastAPI
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Software Development :: Code Generators
+Classifier: Topic :: Software Development :: Libraries :: Application Frameworks
+Requires-Python: >=3.9
+Requires-Dist: jinja2<4.0.0,>=3.1.0
+Requires-Dist: pathlib-mate<2.0.0,>=1.0.0
+Requires-Dist: portalocker<3.0.0,>=2.0.0
+Requires-Dist: psutil>=5.9.0
+Requires-Dist: pydantic<3.0.0,>=2.0.0
+Requires-Dist: pyyaml<7.0.0,>=6.0
+Requires-Dist: rich<14.0.0,>=13.0.0
+Requires-Dist: structlog<24.0.0,>=23.0.0
+Requires-Dist: tomli>=1.2.0; python_version < '3.11'
+Requires-Dist: typer[all]<1.0.0,>=0.9.0
+Description-Content-Type: text/markdown
+
+# Fast Clean Architecture
+
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
+A powerful CLI tool that transforms how you build FastAPI applications by automatically generating clean architecture scaffolding with domain-driven design patterns. Say goodbye to boilerplate code and hello to maintainable, scalable applications.
+
+## 🎯 What is Fast Clean Architecture?
+
+Fast Clean Architecture (FCA) is a sophisticated code generation tool that creates well-structured FastAPI projects following clean architecture principles. It generates complete application scaffolding including entities, repositories, services, API controllers, and more—all organized in a clean, maintainable structure.
+
+### The Problem It Solves
+
+- **Boilerplate Fatigue**: Eliminates repetitive setup code for FastAPI projects
+- **Architecture Inconsistency**: Enforces clean architecture patterns across your entire codebase
+- **Scaling Challenges**: Provides a scalable foundation that grows with your application
+- **Team Alignment**: Ensures all developers follow the same architectural patterns
+- **Time to Market**: Accelerates development by generating production-ready code structure
+
+## 🚀 Key Features
+
+### Core Architecture Features
+- **🏗️ Clean Architecture**: Enforces separation of concerns with distinct layers (Domain, Application, Infrastructure, Presentation)
+- **🎯 Domain-Driven Design**: Supports bounded contexts and domain modeling patterns
+- **📦 Modular Structure**: Organizes code into systems and modules for better maintainability
+- **🔄 CQRS Support**: Built-in command and query separation patterns
+- **🎨 API Versioning**: Native support for versioned APIs (v1, v2, v3) with proper routing
+
+### Code Generation & Templates
+- **⚡ Automated Scaffolding**: Generate entities, repositories, services, controllers, and schemas
+- **🎨 Customizable Templates**: Jinja2-powered templates that you can modify to fit your needs
+- **📋 Batch Operations**: Create multiple components from YAML specifications
+- **🔧 Enhanced Validation**: Centralized validation system with layer-aware component type checking
+- **🛡️ Security-First**: Template validation, input sanitization, and secure file operations
+
+### Developer Experience
+- **💻 Intuitive CLI**: Rich command-line interface with helpful output and error messages
+- **📊 Project Monitoring**: Built-in analytics, error tracking, and health monitoring
+- **🔒 Security Features**: Template validation, input sanitization, and secure file operations
+- **⚙️ Configuration Management**: YAML-based project configuration with versioning
+
+### Modern Python & FastAPI Integration
+- **🐍 Modern Python**: Built for Python 3.9+ with full async/await support
+- **🔍 Type Safety**: Complete type hints and Pydantic validation throughout
+- **📦 Dependency Management**: Support for both Poetry and pip workflows
+- **🚀 FastAPI Ready**: Generated code integrates seamlessly with FastAPI applications
+
+## 🏗️ Architecture Overview
+
+FCA generates a clean, layered architecture that follows industry best practices:
+
+```
+📁 project_root/
+├── 📁 systems/                    # Bounded contexts (business domains)
+│   └── 📁 {system_name}/           # e.g., user_management, order_processing
+│       └── 📁 {module_name}/       # e.g., users, authentication
+│           ├── 📁 domain/          # 🎯 Business Logic Layer
+│           │   ├── 📁 entities/    # Core business entities
+│           │   ├── 📁 enums/       # Domain enumerations
+│           │   ├── 📁 events/      # Domain events for decoupling
+│           │   ├── 📁 exceptions/  # Domain-specific exceptions
+│           │   ├── 📁 interfaces/  # Repository & service contracts
+│           │   └── 📁 value_objects/ # Immutable value objects
+│           ├── 📁 application/     # 🔄 Use Cases & Application Services
+│           │   ├── 📁 dtos/        # Data Transfer Objects
+│           │   ├── 📁 services/    # Application services
+│           │   └── 📁 use_cases/   # Use case implementations
+│           │       ├── 📁 commands/ # Command handlers (CQRS)
+│           │       └── 📁 queries/  # Query handlers (CQRS)
+│           ├── 📁 infrastructure/  # 🔧 External Concerns
+│           │   ├── 📁 config/      # Configuration management
+│           │   ├── 📁 external/    # External service integrations
+│           │   └── 📁 database/    # Database layer
+│           │       ├── 📁 migrations/ # Database migrations
+│           │       ├── 📁 models/    # ORM models
+│           │       └── 📁 repositories/ # Repository implementations
+│           ├── 📁 presentation/    # 🌐 API Layer (Versioned)
+│           │   ├── 📁 controllers/ # API controllers
+│           │   │   ├── 📁 v1/      # Version 1 controllers
+│           │   │   ├── 📁 v2/      # Version 2 controllers
+│           │   │   └── 📁 v3/      # Version 3 controllers
+│           │   ├── 📁 middleware/  # Custom middleware
+│           │   ├── 📁 routes/      # FastAPI routers
+│           │   │   ├── 📁 v1/      # Version 1 routes
+│           │   │   ├── 📁 v2/      # Version 2 routes
+│           │   │   └── 📁 v3/      # Version 3 routes
+│           │   └── 📁 schemas/     # Pydantic schemas
+│           │       ├── 📁 v1/      # Version 1 schemas
+│           │       ├── 📁 v2/      # Version 2 schemas
+│           │       └── 📁 v3/      # Version 3 schemas
+│           └── 📄 {module_name}_module_api.py # Module API entry point
+└── 📄 fca_config.yaml            # Project configuration
+```
+
+### Layer Responsibilities
+
+| Layer | Purpose | Components |
+|-------|---------|------------|
+| **🎯 Domain** | Core business logic and rules | Entities, Value Objects, Domain Events, Interfaces, Exceptions, Enums |
+| **🔄 Application** | Use cases and application services | Services, Commands, Queries, DTOs |
+| **🔧 Infrastructure** | External concerns and implementations | Config, External Services, Database (Migrations, Models, Repositories) |
+| **🌐 Presentation** | API layer with versioning support | Controllers, Routes, Schemas, Middleware |
+
+## 📋 Prerequisites
+
+Before you start, ensure you have:
+
+- **Python 3.9+** installed on your system
+- **Basic understanding of FastAPI** and web API development
+- **Familiarity with clean architecture principles** (helpful but not required)
+- **A directory** where you want to create your FastAPI project
+- **Package Manager**: pip or Poetry
+
+> **💡 Note**: FCA generates the architectural foundation for your FastAPI application. You'll create the main FastAPI app instance and wire dependencies together.
+
+## 📦 Installation
+
+### Quick Installation
+
+```bash
+# Using pip (recommended)
+pip install fast-clean-architecture
+
+# Using Poetry
+poetry add fast-clean-architecture
+```
+
+### Verify Installation
+
+```bash
+fca-scaffold --version
+fca-scaffold --help
+```
+
+## 🚀 Quick Start Guide
+
+Let's build a complete user management API from scratch:
+
+### Step 1: Create Your FastAPI Project Foundation
+
+```bash
+# Create a new directory for your project
+mkdir my-clean-api && cd my-clean-api
+
+# Option A: Using Poetry (Recommended)
+poetry init --name my-clean-api
+poetry add fastapi uvicorn
+
+# Option B: Using pip
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install fastapi uvicorn
+```
+
+### Step 2: Initialize FCA in Your Project
+
+```bash
+# Interactive initialization (recommended for beginners)
+fca-scaffold init
+
+# Or specify details directly
+fca-scaffold init --name "my-clean-api" --description "A clean architecture FastAPI project"
+```
+
+This creates the `fca_config.yaml` configuration file that tracks your project structure.
+
+### Step 3: Create Your First System (Bounded Context)
+
+```bash
+# Create a user management system
+fca-scaffold create-system-context user-management --description "User management and authentication"
+```
+
+### Step 4: Create a Module Within the System
+
+```bash
+# Create a users module
+fca-scaffold create-module user-management users --description "User domain logic"
+```
+
+### Step 5: Generate Domain Components
+
+```bash
+# Generate core domain components
+fca-scaffold create-component user-management users entities user
+fca-scaffold create-component user-management users value_objects user_email
+fca-scaffold create-component user-management users interfaces user_repository
+fca-scaffold create-component user-management users exceptions user_not_found
+```
+
+### Step 6: Generate Application Layer
+
+```bash
+# Generate application services and use cases
+fca-scaffold create-component user-management users services user_service
+fca-scaffold create-component user-management users use_cases/commands create_user_command
+fca-scaffold create-component user-management users use_cases/queries get_user_query
+fca-scaffold create-component user-management users dtos user_dto
+```
+
+### Step 7: Generate Infrastructure Layer
+
+```bash
+# Generate infrastructure components
+fca-scaffold create-component user-management users infrastructure/repositories user_repository
+fca-scaffold create-component user-management users infrastructure/models user_model
+```
+
+### Step 8: Generate API Layer (Versioned)
+
+```bash
+# Generate versioned API components
+fca-scaffold create-component user-management users controllers/v1 user_controller
+fca-scaffold create-component user-management users routes/v1 user_routes
+fca-scaffold create-component user-management users schemas/v1 user_schema
+```
+
+### Step 9: Create Your FastAPI Application
+
+Create a `main.py` file to wire everything together:
+
+```python
+# main.py
+from fastapi import FastAPI
+from systems.user_management.users.presentation.routes.v1.user_routes import router as user_router_v1
+
+app = FastAPI(
+    title="My Clean Architecture API",
+    description="FastAPI application with clean architecture",
+    version="1.0.0"
+)
+
+# Include versioned routers
+app.include_router(user_router_v1, prefix="/api/v1", tags=["users-v1"])
+
+@app.get("/")
+async def root():
+    return {"message": "Clean Architecture API is running!", "version": "1.0.0"}
+
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "service": "my-clean-api"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+```
+
+### Step 10: Run Your Application
+
+```bash
+# Run the development server
+uvicorn main:app --reload
+
+# Or run directly
+python main.py
+```
+
+Your API is now running at:
+- **Application**: http://localhost:8000
+- **Interactive Docs**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
+
+## 📚 Comprehensive CLI Reference
+
+### Project Initialization Commands
+
+```bash
+# Initialize a new FCA project
+fca-scaffold init [OPTIONS]
+  --name TEXT         Project name
+  --description TEXT  Project description
+  --version TEXT      Initial version (default: 0.1.0)
+
+# Create a complete scalable baseline project
+fca-scaffold create-scalable-baseline PROJECT_NAME [OPTIONS]
+  --description TEXT  Project description
+  --version TEXT      Project version
+  --deps [poetry|pip] Dependency manager (default: poetry)
+```
+
+### System and Module Management
+
+```bash
+# Create a new system (bounded context)
+fca-scaffold create-system-context SYSTEM_NAME [OPTIONS]
+  --description TEXT  System description
+
+# Create a module within a system
+fca-scaffold create-module SYSTEM_NAME MODULE_NAME [OPTIONS]
+  --description TEXT  Module description
+
+# Migrate existing modules to API versioning
+fca-scaffold migrate-to-api-versioning [OPTIONS]
+  --system TEXT   Target system
+  --module TEXT   Target module
+```
+
+### Component Generation
+
+```bash
+# Create individual components
+fca-scaffold create-component SYSTEM MODULE COMPONENT_TYPE COMPONENT_NAME [OPTIONS]
+  --template-dir PATH  Custom template directory
+  --force             Overwrite existing files
+  --dry-run           Preview without creating files
+```
+
+#### Available Component Types
+
+| Layer | Component Types | Examples |
+|-------|----------------|----------|
+| **Domain** | `entities`, `value_objects`, `interfaces`, `events`, `exceptions` | `user`, `user_email`, `user_repository` |
+| **Application** | `services`, `dtos`, `use_cases/commands`, `use_cases/queries` | `user_service`, `user_dto`, `create_user` |
+| **Infrastructure** | `config`, `external`, `database/migrations`, `database/models`, `database/repositories` | `app_config`, `payment_service`, `user_model` |
+| **Presentation** | `controllers/v1`, `routes/v1`, `schemas/v1`, `middleware` | `user_controller`, `user_routes` |
+
+### Batch Operations
+
+```bash
+# Create multiple components from YAML specification
+fca-scaffold batch-create SPEC_FILE [OPTIONS]
+  --dry-run   Preview changes
+  --force     Overwrite existing files
+  --verbose   Detailed output
+```
+
+#### YAML Specification Example
+
+```yaml
+# components_spec.yaml
+systems:
+  - name: ecommerce
+    description: "E-commerce system"
+    modules:
+      - name: products
+        description: "Product catalog module"
+        components:
+          domain:
+            entities: [Product, Category]
+            value_objects: [ProductPrice, ProductSKU]
+            interfaces: [ProductRepository, CategoryRepository]
+          application:
+            services: [ProductService, CategoryService]
+            commands: [CreateProduct, UpdateProduct]
+            queries: [GetProduct, ListProducts]
+          infrastructure:
+            repositories: [ProductRepository, CategoryRepository]
+            models: [ProductModel, CategoryModel]
+          presentation:
+            controllers/v1: [ProductController, CategoryController]
+            routes/v1: [ProductRoutes, CategoryRoutes]
+            schemas/v1: [ProductSchema, CategorySchema]
+```
+
+### Project Management & Monitoring
+
+```bash
+# Project status and information
+fca-scaffold status              # Show project overview
+fca-scaffold config show         # Display current configuration
+fca-scaffold config validate     # Validate configuration file
+fca-scaffold system-status       # System health and analytics
+fca-scaffold version            # Show version information
+```
+
+### Global Options
+
+These options work with most commands:
+
+```bash
+--dry-run     # Preview changes without writing files
+--force       # Overwrite existing files
+--verbose     # Show detailed output
+--config PATH # Use custom config file
+--help        # Show command help
+```
+
+## 🔧 Advanced Features
+
+### API Versioning Strategy
+
+FCA provides built-in support for API versioning, allowing you to maintain multiple API versions simultaneously:
+
+```bash
+# Generate components for different API versions
+fca-scaffold create-component user-management users controllers/v1 user_controller
+fca-scaffold create-component user-management users controllers/v2 user_controller
+fca-scaffold create-component user-management users controllers/v3 user_controller
+
+# Each version can have different schemas and routes
+fca-scaffold create-component user-management users schemas/v1 user_schema
+fca-scaffold create-component user-management users schemas/v2 user_schema  # Enhanced schema
+fca-scaffold create-component user-management users schemas/v3 user_schema  # Latest schema
+```
+
+### Configuration Management
+
+The `fca_config.yaml` file tracks your entire project structure:
+
+```yaml
+project:
+  name: my-clean-api
+  description: A clean architecture FastAPI project
+  version: 1.0.0
+  created_at: 2024-01-15T10:30:00Z
+  updated_at: 2024-01-15T10:30:00Z
+  
+systems:
+  user-management:
+    description: User management and authentication
+    created_at: 2024-01-15T10:35:00Z
+    updated_at: 2024-01-15T10:35:00Z
+    modules:
+      users:
+        description: User domain logic
+        created_at: 2024-01-15T10:40:00Z
+        updated_at: 2024-01-15T10:40:00Z
+        components:
+          domain:
+            entities: ["user"]
+            value_objects: ["user_email"]
+            interfaces: ["user_repository"]
+          application:
+            services: ["user_service"]
+            commands: ["create_user_command"]
+            queries: ["get_user_query"]
+          infrastructure:
+            repositories: ["user_repository"]
+            models: ["user_model"]
+          presentation:
+            controllers:
+              v1: ["user_controller"]
+            routes:
+              v1: ["user_routes"]
+            schemas:
+              v1: ["user_schema"]
+```
+
+### System Monitoring & Analytics
+
+FCA includes built-in monitoring capabilities:
+
+```bash
+# View comprehensive system status
+fca-scaffold system-status --verbose
+```
+
+**Monitoring Features:**
+- **📊 Usage Analytics**: Track command usage patterns and component creation frequency
+- **🐛 Error Tracking**: Monitor and log errors with detailed context and stack traces
+- **💾 Health Monitoring**: System resource usage, performance metrics, and disk space
+- **🔒 Security Monitoring**: Template validation results and input sanitization tracking
+- **📈 Performance Metrics**: Command execution times and system responsiveness
+
+### Dependency Management Options
+
+FCA supports both modern and traditional Python dependency management:
+
+#### Poetry (Recommended)
+```bash
+# Create project with Poetry
+fca-scaffold create-scalable-baseline my-api --deps poetry
+
+# Generates:
+# - pyproject.toml with dependencies
+# - Poetry-specific README sections
+# - Modern Python project structure
+```
+
+#### Pip (Traditional)
+```bash
+# Create project with pip
+fca-scaffold create-scalable-baseline my-api --deps pip
+
+# Generates:
+# - requirements.txt and requirements-dev.txt
+# - pip-specific README sections
+# - Traditional Python project structure
+```
+
+## 🎨 Customization & Templates
+
+### Understanding the Template System
+
+FCA uses Jinja2 templates to generate code. You can customize these templates to match your coding standards and preferences.
+
+### Copying Default Templates
+
+```bash
+# Copy default templates to your project
+cp -r $(python -c "import fast_clean_architecture; print(fast_clean_architecture.__path__[0])")/templates ./custom_templates
+```
+
+### Template Structure
+
+```
+custom_templates/
+├── domain/
+│   ├── entities/
+│   │   └── entity.py.j2
+│   ├── value_objects/
+│   │   └── value_object.py.j2
+│   └── interfaces/
+│       └── repository.py.j2
+├── application/
+│   ├── services/
+│   │   └── service.py.j2
+│   └── use_cases/
+│       ├── commands/
+│       │   └── command.py.j2
+│       └── queries/
+│           └── query.py.j2
+├── infrastructure/
+│   ├── repositories/
+│   │   └── repository.py.j2
+│   └── models/
+│       └── model.py.j2
+└── presentation/
+    ├── controllers/
+    │   └── controller.py.j2
+    ├── routes/
+    │   └── routes.py.j2
+    └── schemas/
+        └── schema.py.j2
+```
+
+### Available Template Variables
+
+Templates have access to these variables:
+
+```jinja2
+{# System context #}
+{{ system_name }}        # snake_case: user_management
+{{ SystemName }}         # PascalCase: UserManagement
+{{ system_name_camel }}  # camelCase: userManagement
+
+{# Module context #}
+{{ module_name }}        # snake_case: users
+{{ ModuleName }}         # PascalCase: Users
+{{ module_name_camel }}  # camelCase: users
+
+{# Component context #}
+{{ component_name }}     # snake_case: user_service
+{{ ComponentName }}      # PascalCase: UserService
+{{ component_name_camel }}# camelCase: userService
+
+{# Import paths #}
+{{ entity_import }}      # Relative import path
+{{ repository_import }}  # Relative import path
+{{ service_import }}     # Relative import path
+
+{# Metadata #}
+{{ generated_at }}       # ISO timestamp
+{{ generator_version }}  # Tool version
+{{ project_name }}       # Project name
+{{ project_description }}# Project description
+```
+
+### Using Custom Templates
+
+```bash
+# Use your custom templates
+fca-scaffold create-component --template-dir ./custom_templates user-management users entities user
+```
+
+### Example Custom Template
+
+```python
+# custom_templates/domain/entities/entity.py.j2
+"""{{ ComponentName }} entity for {{ project_name }}.
+
+Generated at: {{ generated_at }}
+Generator version: {{ generator_version }}
+"""
+
+from datetime import datetime
+from typing import Optional
+from uuid import UUID, uuid4
+
+from pydantic import BaseModel, Field
+
+
+class {{ ComponentName }}(BaseModel):
+    """{{ ComponentName }} domain entity.
+    
+    This entity represents the core business logic for {{ component_name }}s
+    in the {{ system_name }} system.
+    """
+    
+    id: UUID = Field(default_factory=uuid4, description="Unique identifier")
+    created_at: datetime = Field(default_factory=datetime.utcnow, description="Creation timestamp")
+    updated_at: Optional[datetime] = Field(default=None, description="Last update timestamp")
+    
+    # Add your domain-specific fields here
+    
+    class Config:
+        """Pydantic configuration."""
+        
+        json_encoders = {
+            datetime: lambda v: v.isoformat(),
+            UUID: lambda v: str(v)
+        }
+        
+    def update_timestamp(self) -> None:
+        """Update the last modified timestamp."""
+        self.updated_at = datetime.utcnow()
+```
+
+## 📖 Real-World Examples
+
+### Complete E-commerce System
+
+Let's build a comprehensive e-commerce system:
+
+```bash
+# Initialize the project
+fca-scaffold init --name "ecommerce-api" --description "E-commerce platform with clean architecture"
+
+# Create bounded contexts (systems)
+fca-scaffold create-system-context catalog --description "Product catalog management"
+fca-scaffold create-system-context orders --description "Order processing and management"
+fca-scaffold create-system-context payments --description "Payment processing"
+fca-scaffold create-system-context users --description "User management and authentication"
+
+# Create modules for catalog system
+fca-scaffold create-module catalog products --description "Product management"
+fca-scaffold create-module catalog categories --description "Category management"
+fca-scaffold create-module catalog inventory --description "Inventory tracking"
+
+# Create modules for orders system
+fca-scaffold create-module orders orders --description "Order processing"
+fca-scaffold create-module orders cart --description "Shopping cart"
+fca-scaffold create-module orders shipping --description "Shipping management"
+
+# Generate complete product module
+fca-scaffold create-component catalog products entities product
+fca-scaffold create-component catalog products value_objects product_price
+fca-scaffold create-component catalog products value_objects product_sku
+fca-scaffold create-component catalog products interfaces product_repository
+fca-scaffold create-component catalog products services product_service
+fca-scaffold create-component catalog products use_cases/commands create_product
+fca-scaffold create-component catalog products use_cases/queries get_product
+fca-scaffold create-component catalog products infrastructure/repositories product_repository
+fca-scaffold create-component catalog products infrastructure/models product_model
+fca-scaffold create-component catalog products controllers/v1 product_controller
+fca-scaffold create-component catalog products routes/v1 product_routes
+fca-scaffold create-component catalog products schemas/v1 product_schema
+
+# Generate order processing components
+fca-scaffold create-component orders orders entities order
+fca-scaffold create-component orders orders entities order_item
+fca-scaffold create-component orders orders value_objects order_status
+fca-scaffold create-component orders orders services order_service
+fca-scaffold create-component orders orders use_cases/commands create_order
+fca-scaffold create-component orders orders use_cases/commands update_order_status
+fca-scaffold create-component orders orders use_cases/queries get_order
+fca-scaffold create-component orders orders controllers/v1 order_controller
+fca-scaffold create-component orders orders routes/v1 order_routes
+fca-scaffold create-component orders orders schemas/v1 order_schema
+```
+
+### Blog Platform with Multi-tenancy
+
+```bash
+# Initialize blog platform
+fca-scaffold init --name "blog-platform" --description "Multi-tenant blog platform"
+
+# Create systems
+fca-scaffold create-system-context content --description "Content management"
+fca-scaffold create-system-context users --description "User and tenant management"
+fca-scaffold create-system-context analytics --description "Analytics and reporting"
+
+# Create content modules
+fca-scaffold create-module content posts --description "Blog post management"
+fca-scaffold create-module content comments --description "Comment system"
+fca-scaffold create-module content media --description "Media management"
+fca-scaffold create-module content tags --description "Tagging system"
+
+# Generate complete post management
+fca-scaffold create-component content posts entities post
+fca-scaffold create-component content posts entities post_revision
+fca-scaffold create-component content posts value_objects post_status
+fca-scaffold create-component content posts value_objects post_slug
+fca-scaffold create-component content posts services post_service
+fca-scaffold create-component content posts use_cases/commands create_post
+fca-scaffold create-component content posts use_cases/commands publish_post
+fca-scaffold create-component content posts use_cases/queries get_published_posts
+fca-scaffold create-component content posts controllers/v1 post_controller
+fca-scaffold create-component content posts routes/v1 post_routes
+fca-scaffold create-component content posts schemas/v1 post_schema
+```
+
+### Microservices Architecture
+
+FCA is perfect for microservices where each service follows clean architecture:
+
+```bash
+# User Service
+fca-scaffold init --name "user-service"
+fca-scaffold create-system-context users
+fca-scaffold create-module users authentication
+fca-scaffold create-module users profiles
+
+# Order Service
+fca-scaffold init --name "order-service"
+fca-scaffold create-system-context orders
+fca-scaffold create-module orders processing
+fca-scaffold create-module orders fulfillment
+
+# Notification Service
+fca-scaffold init --name "notification-service"
+fca-scaffold create-system-context notifications
+fca-scaffold create-module notifications email
+fca-scaffold create-module notifications sms
+fca-scaffold create-module notifications push
+```
+
+## 🧪 Testing Your Generated Code
+
+FCA generates testable code. Here's how to add tests:
+
+### Test Structure
+
+```
+tests/
+├── unit/
+│   ├── domain/
+│   │   ├── test_entities.py
+│   │   └── test_value_objects.py
+│   ├── application/
+│   │   ├── test_services.py
+│   │   └── test_use_cases.py
+│   └── infrastructure/
+│       └── test_repositories.py
+├── integration/
+│   ├── test_api_endpoints.py
+│   └── test_database.py
+└── e2e/
+    └── test_user_workflows.py
+```
+
+### Running Tests
+
+```bash
+# Install testing dependencies
+pip install pytest pytest-cov pytest-asyncio httpx
+
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=systems --cov-report=html
+
+# Run specific test categories
+pytest tests/unit/          # Unit tests only
+pytest tests/integration/   # Integration tests only
+pytest tests/e2e/          # End-to-end tests only
+```
+
+## 🔧 Development & Contributing
+
+### Setting Up Development Environment
+
+```bash
+# Clone the repository
+git clone https://github.com/alden-technologies/fast-clean-architecture.git
+cd fast-clean-architecture
+
+# Install with development dependencies
+poetry install --with dev
+
+# Activate the virtual environment
+poetry shell
+
+# Install pre-commit hooks
+pre-commit install
+```
+
+### Code Quality Standards
+
+```bash
+# Format code
+black fast_clean_architecture tests
+
+# Sort imports
+isort fast_clean_architecture tests
+
+# Type checking
+mypy fast_clean_architecture
+
+# Linting
+flake8 fast_clean_architecture
+
+# Security scanning
+bandit -r fast_clean_architecture
+
+# Dependency vulnerability scanning
+safety check
+
+# Run all quality checks
+make quality  # or poetry run poe quality
+```
+
+### Security & Dependency Management
+
+This project maintains high security standards:
+
+- **🔒 Dependency Pinning**: All dependencies pinned with SHA256 hashes
+- **🛡️ Security Patches**: Regular updates for security vulnerabilities
+- **🔍 Vulnerability Scanning**: Automated scanning with Safety and Bandit
+- **📋 Supply Chain Security**: Verified package integrity
+
+**Recent Security Updates:**
+- **Black 24.3.0+**: Fixes CVE-2024-21503 (ReDoS vulnerability)
+- **Pip 25.0+**: Fixes PVE-2025-75180 (malicious wheel execution)
+- **Setuptools 78.1.1+**: Fixes CVE-2025-47273 (path traversal vulnerability)
+
+### Contributing Workflow
+
+1. **Fork** the repository
+2. **Create** a feature branch: `git checkout -b feature/amazing-feature`
+3. **Make** your changes following the coding standards
+4. **Add** tests for your changes
+5. **Run** the test suite: `pytest`
+6. **Run** code quality checks: `make quality`
+7. **Commit** your changes: `git commit -m 'Add amazing feature'`
+8. **Push** to the branch: `git push origin feature/amazing-feature`
+9. **Open** a Pull Request
+
+## 📚 Documentation
+
+### Project Governance
+- [Contributing Guide](docs/CONTRIBUTING.md) - Guidelines for contributing to the project
+- [Code of Conduct](docs/CODE_OF_CONDUCT.md) - Community standards and behavior expectations
+- [Changelog](docs/CHANGELOG.md) - Version history and release notes
+
+### User Guides
+- [Getting Started](docs/guides/GETTING_STARTED.md) - Complete setup and usage guide
+- [Dependency Injection Guide](docs/guides/DEPENDENCY_INJECTION_GUIDE.md) - Implementation patterns for DI and factory patterns
+- [Template Validation Guide](docs/guides/TEMPLATE_VALIDATION_GUIDE.md) - Enhanced template validation system overview
+
+### Technical Documentation
+- [Enhanced Type Safety](docs/technical/ENHANCED_TYPE_SAFETY.md) - Protocol-based design and type constraints
+- [FCA Backup System](docs/technical/FCA_BACKUP_SYSTEM.md) - Configuration backup and restore functionality
+- [Template Validation Refactor](docs/technical/TEMPLATE_VALIDATION_REFACTOR.md) - Modular validation architecture
+
+## 🤝 Community & Support
+
+### Getting Help
+
+- 📧 **Email**: [opensource@aldentechnologies.com](mailto:opensource@aldentechnologies.com)
+- 🐛 **Issues**: [GitHub Issues](https://github.com/alden-technologies/fast-clean-architecture/issues)
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/alden-technologies/fast-clean-architecture/discussions)
+- 📖 **Documentation**: [Official Docs](https://github.com/alden-technologies/fast-clean-architecture/docs)
+
+### Contributing
+
+We welcome contributions! Please see our [Contributing Guide](docs/CONTRIBUTING.md) for details on:
+
+- 🐛 **Bug Reports**: How to report issues effectively
+- ✨ **Feature Requests**: Proposing new features
+- 🔧 **Code Contributions**: Development workflow and standards
+- 📖 **Documentation**: Improving docs and examples
+- 🧪 **Testing**: Adding and improving tests
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- **🏗️ Architecture**: Inspired by Uncle Bob's Clean Architecture principles
+- **⚡ CLI Framework**: Built with [Typer](https://typer.tiangolo.com/) for excellent developer experience
+- **🎨 Templates**: Powered by [Jinja2](https://jinja.palletsprojects.com/) for flexible code generation
+- **🔧 Configuration**: [Pydantic](https://pydantic-docs.helpmanual.io/) for robust configuration management
+- **🚀 FastAPI**: Designed specifically for [FastAPI](https://fastapi.tiangolo.com/) applications
+- **🐍 Python Community**: For the amazing ecosystem and tools
+
+---
+
+**Made with ❤️ by [Adegbenga Agoro](https://www.adegbengaagoro.co), [Founder of Alden Technologies](https://www.aldentechnologies.com)**
+
+*Fast Clean Architecture - Transforming how you build FastAPI applications, one component at a time.*
