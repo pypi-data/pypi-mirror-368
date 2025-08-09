@@ -1,0 +1,168 @@
+Metadata-Version: 2.4
+Name: trcks
+Version: 0.3.4
+Summary: Type-safe railway-oriented programming (ROP)
+Keywords: composition,control flow,error handling,fp,functional programming,monad,object-oriented programming,oop,pipeline,railway-oriented programming,result type,rop,static typing,type safety
+Author: Christoph Gietl
+Maintainer: Christoph Gietl
+License-Expression: MIT
+License-File: LICENSE
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Typing :: Typed
+Project-URL: Documentation, https://christophgietl.github.io/trcks/
+Project-URL: Issues, https://github.com/christophgietl/trcks/issues
+Project-URL: Repository, https://github.com/christophgietl/trcks.git
+Requires-Python: >=3.9
+Requires-Dist: typing-extensions>=4.12; python_full_version < "3.13"
+Provides-Extra: mypy
+Requires-Dist: mypy>=1.7; extra == "mypy"
+Provides-Extra: pyright
+Requires-Dist: pyright>=1.1.387; extra == "pyright"
+Provides-Extra: pyright-nodejs
+Requires-Dist: pyright[nodejs]>=1.1.387; extra == "pyright-nodejs"
+Description-Content-Type: text/markdown
+
+# trcks 🚂
+
+`trcks` is a Python library that allows
+[railway-oriented programming (ROP)](https://fsharpforfunandprofit.com/rop/)
+in two different type-safe programming styles.
+
+## Railway-oriented programming (ROP) styles
+
+### Object-oriented style
+
+The object-oriented style is based on method chaining.
+In the following example,
+
+- the generic type `trcks.Result` allows domain errors to become part of
+  a function's return type (subject to static type checking) while
+- the class `trcks.oop.Wrapper` provides a convenient way to chain
+  `trcks.Result`-returning functions and "regular" functions (in a type-safe way).
+
+```pycon
+>>> from typing import Literal, Union
+>>> from trcks import Result
+>>> from trcks.oop import Wrapper
+>>>
+>>> UserDoesNotExist = Literal["User does not exist"]
+>>> UserDoesNotHaveASubscription = Literal["User does not have a subscription"]
+>>> FailureDescription = Union[UserDoesNotExist, UserDoesNotHaveASubscription]
+>>>
+>>> def get_user_id(user_email: str) -> Result[UserDoesNotExist, int]:
+...     if user_email == "erika.mustermann@domain.org":
+...         return "success", 1
+...     if user_email == "john_doe@provider.com":
+...         return "success", 2
+...     return "failure", "User does not exist"
+...
+>>> def get_subscription_id(
+...     user_id: int
+... ) -> Result[UserDoesNotHaveASubscription, int]:
+...     if user_id == 1:
+...         return "success", 42
+...     return "failure", "User does not have a subscription"
+...
+>>> def get_subscription_fee(subscription_id: int) -> float:
+...     return subscription_id * 0.1
+...
+>>> def get_subscription_fee_by_email(
+...     user_email: str
+... ) -> Result[FailureDescription, float]:
+...     return (
+...         Wrapper(core=user_email)
+...         .map_to_result(get_user_id)
+...         .map_success_to_result(get_subscription_id)
+...         .map_success(get_subscription_fee)
+...         .core
+...     )
+...
+>>> get_subscription_fee_by_email("erika.mustermann@domain.org")
+('success', 4.2)
+>>> get_subscription_fee_by_email("john_doe@provider.com")
+('failure', 'User does not have a subscription')
+>>> get_subscription_fee_by_email("jane_doe@provider.com")
+('failure', 'User does not exist')
+
+```
+
+### Functional style
+
+The functional style is based on function composition.
+In the following example,
+
+- the generic type `trcks.Result` allows domain errors to become part of
+  a function's return type (subject to static type checking) while
+- the modules `trcks.fp.composition` and `trcks.fp.monads.result` provide a convenient way to chain
+  `trcks.Result`-returning functions and "regular" functions (in a type-safe way).
+
+```pycon
+>>> from typing import Literal, Union
+>>> from trcks import Result
+>>> from trcks.fp.composition import Pipeline3, pipe
+>>> from trcks.fp.monads import result as r
+>>>
+>>> UserDoesNotExist = Literal["User does not exist"]
+>>> UserDoesNotHaveASubscription = Literal["User does not have a subscription"]
+>>> FailureDescription = Union[UserDoesNotExist, UserDoesNotHaveASubscription]
+>>>
+>>> def get_user_id(user_email: str) -> Result[UserDoesNotExist, int]:
+...     if user_email == "erika.mustermann@domain.org":
+...         return "success", 1
+...     if user_email == "john_doe@provider.com":
+...         return "success", 2
+...     return "failure", "User does not exist"
+...
+>>> def get_subscription_id(
+...     user_id: int
+... ) -> Result[UserDoesNotHaveASubscription, int]:
+...     if user_id == 1:
+...         return "success", 42
+...     return "failure", "User does not have a subscription"
+...
+>>> def get_subscription_fee(subscription_id: int) -> float:
+...     return subscription_id * 0.1
+...
+>>> def get_subscription_fee_by_email(
+...     user_email: str
+... ) -> Result[FailureDescription, float]:
+...     # Explicitly assigning a type to `pipeline` might
+...     # help your static type checker understand that
+...     # `pipeline` is a valid argument for `pipe`:
+...     pipeline: Pipeline3[
+...         str,
+...         Result[UserDoesNotExist, int],
+...         Result[FailureDescription, int],
+...         Result[FailureDescription, float],
+...     ] = (
+...         user_email,
+...         get_user_id,
+...         r.map_success_to_result(get_subscription_id),
+...         r.map_success(get_subscription_fee),
+...     )
+...     return pipe(pipeline)
+...
+>>> get_subscription_fee_by_email("erika.mustermann@domain.org")
+('success', 4.2)
+>>> get_subscription_fee_by_email("john_doe@provider.com")
+('failure', 'User does not have a subscription')
+>>> get_subscription_fee_by_email("jane_doe@provider.com")
+('failure', 'User does not exist')
+
+```
+
+## Setup
+
+`trcks` is [available on PyPI](https://pypi.org/project/trcks/).
+Use your favorite package manager (e.g. `pip`, `poetry` or `uv`) to install it.
