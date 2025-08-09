@@ -1,0 +1,26 @@
+## YAML Template.
+---
+version: "2.1"
+
+services:
+
+  uta_database:
+    container_name: uta_database
+    image: docker.gitlab.gwdg.de/medbioinf/mtb/seqcat/seqcat-database:main
+    expose:
+      - "5432"
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=psql
+      - PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin/:/sbin:/bin:/usr/lib/postgresql/12/bin
+      - PGDATA=/var/lib/postgresql/data
+    volumes:
+      - ./../data/uta/db_data:/var/lib/postgresql/data
+    networks:
+      - coordinate_converter_network
+    restart: "always"
+
+networks:
+    coordinate_converter_network:
+      external: true

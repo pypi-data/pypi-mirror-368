@@ -1,0 +1,30 @@
+## YAML Template.
+---
+version: "2.1"
+
+services:
+
+  clinvar:
+    container_name: clinvar
+    ports:
+      - "8092:8092"
+    expose:
+      - "8092"
+    image: docker.gitlab.gwdg.de/medbioinf/mtb/onkopus/modules/clinvar-adapter:main
+    restart: "always"
+    volumes:
+      - ./../data/clinvar:/mnt
+    environment:
+      - MTB_SERVER=localhost
+      - MTB_PROTOCOL=http
+      - FILEPATH_HG38=/mnt/grch38/
+      - FILENAME_HG38=clinvar_hg38.vcf.gz
+      - FILEPATH_HG37=/mnt/grch37/
+      - FILENAME_HG37=clinvar_hg37.vcf.gz
+      - ACCESSOR_FILE=/mnt/chromosome_accessors
+      - PORT_UTAADAPTER=8084
+      - URL_UTAADAPTER_LIFTOVER=/CCS/v1/liftover
+      - VERSION=20250306
+      - DATA_PATH=/mnt
+      - DB_FILENAME_HG38=clinvar_20250306.vcf.gz
+      - DB_FILENAME_HG19=clinvar_20250306.vcf.gz
