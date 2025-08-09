@@ -1,0 +1,215 @@
+"""AppServer SDK Python AI - SDK para serviços de IA."""
+
+from __future__ import annotations
+
+# Version info - sempre disponível
+__version__ = "0.0.3"
+__author__ = "AppServer Team"
+__email__ = "suporte@appserver.com.br"
+__description__ = "SDK Python para serviços de IA da AppServer"
+__url__ = "https://appserver.com.br"
+
+
+def get_user_agent() -> str:
+    """Retorna User-Agent para requisições."""
+    return f"appserver-sdk-python-ai/{__version__}"
+
+
+# Exports básicos sempre disponíveis
+__all__ = [
+    "__version__",
+    "__author__",
+    "__email__",
+    "__description__",
+    "__url__",
+    "get_user_agent",
+]
+
+# Variáveis para controlar imports
+_imports_successful = False
+_import_error_message = ""
+
+# Tentar importar funcionalidades principais
+try:
+    # Importar enums primeiro
+    from src.appserver_sdk_python_ai.llm.core.enums import (
+        HuggingFaceModelEnum,
+        OpenAIModelEnum,
+        TokenizerTypeEnum,
+    )
+
+    # Importar serviços
+    from src.appserver_sdk_python_ai.llm.service.token_service import (
+        get_model_info,
+        get_portuguese_models,
+        get_token_count,
+        get_token_count_with_model,
+        is_model_registered,
+        list_available_models,
+        register_custom_model,
+    )
+
+    # Marcar como sucesso
+    _imports_successful = True
+
+    # Adicionar aos exports
+    __all__.extend(
+        [
+            "HuggingFaceModelEnum",
+            "OpenAIModelEnum",
+            "TokenizerTypeEnum",
+            "get_token_count",
+            "get_token_count_with_model",
+            "register_custom_model",
+            "list_available_models",
+            "get_model_info",
+            "is_model_registered",
+            "get_portuguese_models",
+        ]
+    )
+
+except ImportError as e:
+    _import_error_message = str(e)
+    _imports_successful = False
+
+    # Criar funções stub que sempre funcionam
+    def get_token_count(text: str) -> int:
+        """Conta tokens usando método básico (fallback).
+
+        Args:
+            text: Texto para análise.
+
+        Returns:
+            Número de tokens estimado.
+
+        Note:
+            Esta é uma implementação fallback básica.
+            Para funcionalidades completas, instale: pip install 'appserver-sdk-python-ai[full]'
+        """
+        if not text:
+            return 0
+        # Estimativa básica: ~4 caracteres por token
+        return max(1, len(text.strip()) // 4)
+
+    def get_token_count_with_model(text: str, model=None, max_tokens=None):
+        """Conta tokens com fallback básico.
+
+        Args:
+            text: Texto para análise.
+            model: Modelo (ignorado no fallback).
+            max_tokens: Limite máximo de tokens.
+
+        Returns:
+            Dicionário com resultado básico.
+
+        Note:
+            Esta é uma implementação fallback básica.
+            Para funcionalidades completas, instale: pip install 'appserver-sdk-python-ai[full]'
+        """
+        if not text:
+            return {
+                "token_count": 0,
+                "model": str(model) if model else "fallback",
+                "type": "fallback",
+                "max_tokens": max_tokens,
+                "truncated": False,
+                "text_preview": "",
+                "warning": "Usando implementação fallback básica. Instale dependências completas para funcionalidade total.",
+            }
+
+        token_count = max(1, len(text.strip()) // 4)
+        truncated = bool(max_tokens and token_count > max_tokens)
+
+        return {
+            "token_count": token_count,
+            "model": str(model) if model else "fallback",
+            "type": "fallback",
+            "max_tokens": max_tokens,
+            "truncated": truncated,
+            "text_preview": text[:100] + "..." if len(text) > 100 else text,
+            "warning": "Usando implementação fallback básica. Instale dependências completas para funcionalidade total.",
+        }
+
+    def register_custom_model(name: str, **kwargs) -> None:
+        """Stub para registro de modelo customizado."""
+        import warnings
+
+        warnings.warn(
+            f"register_custom_model('{name}') não disponível no modo fallback. "
+            "Instale dependências completas: pip install 'appserver-sdk-python-ai[full]'",
+            UserWarning,
+            stacklevel=2,
+        )
+
+    def list_available_models(tokenizer_type=None) -> list[str]:
+        """Stub para listagem de modelos."""
+        return []
+
+    def get_model_info(model_name: str) -> dict | None:
+        """Stub para informações de modelo."""
+        return None
+
+    def is_model_registered(model_name: str) -> bool:
+        """Stub para verificação de modelo."""
+        return False
+
+    def get_portuguese_models() -> list[str]:
+        """Stub para modelos portugueses."""
+        return []
+
+    # Criar enums stub
+    class _StubEnum:
+        """Enum stub para compatibilidade."""
+
+        def __init__(self, name):
+            self._name = name
+
+        def __str__(self):
+            return f"<StubEnum:{self._name}>"
+
+        def __repr__(self):
+            return self.__str__()
+
+    OpenAIModelEnum = _StubEnum("OpenAI")
+    HuggingFaceModelEnum = _StubEnum("HuggingFace")
+    TokenizerTypeEnum = _StubEnum("Tokenizer")
+
+    # Adicionar stubs aos exports
+    __all__.extend(
+        [
+            "get_token_count",
+            "get_token_count_with_model",
+            "register_custom_model",
+            "list_available_models",
+            "get_model_info",
+            "is_model_registered",
+            "get_portuguese_models",
+            "OpenAIModelEnum",
+            "HuggingFaceModelEnum",
+            "TokenizerTypeEnum",
+        ]
+    )
+
+
+def get_sdk_info() -> dict[str, any]:
+    """Retorna informações sobre o estado do SDK.
+
+    Returns:
+        Dicionário com informações do SDK.
+    """
+    return {
+        "version": __version__,
+        "imports_successful": _imports_successful,
+        "import_error": _import_error_message if not _imports_successful else None,
+        "available_functions": [func for func in __all__ if not func.startswith("__")],
+        "mode": "full" if _imports_successful else "fallback",
+        "recommendation": (
+            "SDK funcionando completamente!"
+            if _imports_successful
+            else "Instale dependências completas: pip install 'appserver-sdk-python-ai[full]'"
+        ),
+    }
+
+
+# Adicionar função de diagnóstico aos exports
+__all__.append("get_sdk_info")
