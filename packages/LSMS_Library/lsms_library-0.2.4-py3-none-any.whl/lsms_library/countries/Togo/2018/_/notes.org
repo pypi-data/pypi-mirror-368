@@ -1,0 +1,532 @@
+* Extract food labels
+#+begin_src python :results output raw table
+import pandas as pd
+from cfe.df_utils import df_to_orgtbl
+
+food=pd.read_stata('../Data/Togo_survey2018_fooditems_forEthan.dta')
+items = food.food_item.value_counts().reset_index()
+
+df = pd.DataFrame({'Code':items['index'].cat.codes,'Label':items['index'],'Frequency':items.food_item}).set_index('Code')
+df.sort_index(inplace=True)
+
+print(df_to_orgtbl(df,float_fmt='%d'))
+#+end_src
+
+#+results:
+| Code | Label                                                                   | Frequency |
+|------+-------------------------------------------------------------------------+-----------|
+|    0 | Riz local longs grains                                                  |      1916 |
+|    1 | Riz local (KoviÃ©)                                                      |       222 |
+|    2 | Riz importÃ© longs grains                                               |      1852 |
+|    3 | Riz importÃ© brisÃ©                                                     |       179 |
+|    4 | MaÃ¯s en Ã©pis                                                          |       309 |
+|    5 | MaÃ¯s en grains                                                         |      5225 |
+|    6 | Mil                                                                     |       114 |
+|    7 | Sorgho                                                                  |       197 |
+|    8 | BlÃ©                                                                    |         1 |
+|    9 | Fonio                                                                   |        49 |
+|   10 | 11                                                                      |         6 |
+|   11 | Farine de maÃ¯s                                                         |       511 |
+|   12 | Farine de mil                                                           |        24 |
+|   13 | Farine de blÃ© local ou importÃ©                                        |         4 |
+|   14 | 15                                                                      |         6 |
+|   15 | PÃ¢tes alimentaires                                                     |      1868 |
+|   16 | Pain moderne                                                            |       335 |
+|   17 | Pain traditionnel                                                       |      1121 |
+|   18 | Croissants                                                              |        11 |
+|   19 | Biscuits                                                                |       236 |
+|   20 | GÃ¢teaux                                                                |        66 |
+|   21 | Beignets, galettes                                                      |       695 |
+|   22 | Viande de bÅuf                                                      |       877 |
+|   23 | Viande de chameau                                                       |         1 |
+|   24 | Viande de mouton                                                        |       140 |
+|   25 | Viande de chÃ¨vre                                                       |       178 |
+|   26 | Abats et tripes (foie, rognon, etc.)                                    |        28 |
+|   27 | Viande de porc                                                          |       295 |
+|   28 | Poulet sur pied                                                         |       647 |
+|   29 | Viande de poulet                                                        |       587 |
+|   30 | Viande d'autres volailles domestiques                                   |        55 |
+|   31 | Charcuterie (jambon, saucisson), conserves de viandes                   |        18 |
+|   32 | Gibiers                                                                 |       108 |
+|   33 | Autres viandes n.d.a                                                    |        76 |
+|   34 | Chinchard frais                                                         |       469 |
+|   35 | Carpe fraÃ®che                                                          |        90 |
+|   36 | Dorade fraiche                                                          |        31 |
+|   37 | Maquereau frais                                                         |        33 |
+|   38 | Chinchard fumÃ©                                                         |      2599 |
+|   39 | Anchois fumÃ©                                                           |      4027 |
+|   40 | Poisson sÃ©chÃ©                                                         |       647 |
+|   41 | Crabes, crevettes et autres fruits de mer                               |       175 |
+|   42 | Conserves de poisson                                                    |       209 |
+|   43 | Lait frais                                                              |       243 |
+|   44 | Lait caillÃ©, yaourt                                                    |        62 |
+|   45 | Lait concentrÃ© sucrÃ©                                                  |       179 |
+|   46 | Lait concentrÃ© non-sucrÃ©                                              |       181 |
+|   47 | Lait en poudre                                                          |       378 |
+|   48 | Fromage local                                                           |       532 |
+|   49 | Lait et farines pour bÃ©bÃ©                                             |        44 |
+|   50 | Autres produits laitiers                                                |        25 |
+|   51 | Oeufs                                                                   |       934 |
+|   52 | Beurre                                                                  |        54 |
+|   53 | Beurre de karitÃ©                                                       |       146 |
+|   54 | Huile de palme rouge                                                    |      2766 |
+|   55 | Huile d'arachide                                                        |      2236 |
+|   56 | Huile de coton                                                          |       902 |
+|   57 | Huile de palme raffinÃ©e                                                |      1046 |
+|   58 | Autres huiles n.d.a. (maÃ¯s, soja, huile palmiste, etc.)                |       378 |
+|   59 | Mangue                                                                  |      1781 |
+|   60 | Ananas                                                                  |       259 |
+|   61 | Orange                                                                  |      1868 |
+|   62 | Banane douce                                                            |       965 |
+|   63 | Citrons                                                                 |       339 |
+|   64 | Autres agrumes                                                          |        14 |
+|   65 | Avocats                                                                 |       305 |
+|   66 | PastÃ¨que, Melon                                                        |        79 |
+|   67 | Dattes                                                                  |        65 |
+|   68 | Noix de coco                                                            |       190 |
+|   69 | Canne Ã  sucre                                                          |       131 |
+|   70 | Autres fruits (pommes, raisin, etc.)                                    |       218 |
+|   71 | Salade (laitue)                                                         |       140 |
+|   72 | Choux                                                                   |       118 |
+|   73 | Carotte                                                                 |       145 |
+|   74 | Haricot vert                                                            |        98 |
+|   75 | Concombre                                                               |        81 |
+|   76 | Aubergine, Courge/Courgette                                             |       404 |
+|   77 | Poivron frais                                                           |        91 |
+|   78 | Tomate fraÃ®che                                                         |      3675 |
+|   79 | Tomate sÃ©chÃ©e                                                         |        21 |
+|   80 | Gombo frais                                                             |      2897 |
+|   81 | Gombo sec                                                               |      2562 |
+|   82 | Oignon frais                                                            |      4591 |
+|   83 | Ail                                                                     |      1782 |
+|   84 | Feuilles d'oseille (dakoumou, bissap/floerÃ¨)                           |      1282 |
+|   85 | Feuilles de baobab                                                      |      2030 |
+|   86 | Gboma                                                                   |      1350 |
+|   87 | AdÃ©mÃ¨ (Feuilles crin-crin)                                            |      2621 |
+|   88 | Moringa, feuilles de manioc, feuilles de taro et autres feuilles        |       372 |
+|   89 | Autre lÃ©gumes frais n.d.a                                              |       166 |
+|   90 | ConcentrÃ© de tomate                                                    |      2281 |
+|   91 | Petits pois                                                             |        23 |
+|   92 | Petit pois secs                                                         |         2 |
+|   93 | Autres lÃ©gumes secs n.d.a                                              |        65 |
+|   94 | NiÃ©bÃ©/Haricots secs                                                   |      3118 |
+|   95 | Arachides fraÃ®ches en coques                                           |       359 |
+|   96 | Arachides sÃ©chÃ©es en coques                                           |       186 |
+|   97 | Arachides dÃ©cortiquÃ©es ou pilÃ©es                                     |       457 |
+|   98 | Arachide grillÃ©e                                                       |       423 |
+|   99 | PÃ¢te d'arachide                                                        |       600 |
+|  100 | SÃ©same                                                                 |      1061 |
+|  101 | Noix de cajou                                                           |         3 |
+|  102 | Noix de karitÃ©                                                         |         6 |
+|  103 | Manioc                                                                  |       819 |
+|  104 | Igname                                                                  |      2172 |
+|  105 | Plantain                                                                |       218 |
+|  106 | Pomme de terre                                                          |        59 |
+|  107 | Taro, macabo                                                            |       227 |
+|  108 | Patate douce                                                            |       234 |
+|  109 | Autres tubercules n.d.a                                                 |         4 |
+|  110 | Farines de manioc                                                       |       316 |
+|  111 | Gari, tapioca                                                           |      2578 |
+|  112 | AttiÃ©ke                                                                |        26 |
+|  113 | Sucre (poudre ou morceaux)                                              |      3121 |
+|  114 | Miel                                                                    |       228 |
+|  115 | Chocolat Ã  croquer, pÃ¢te Ã  tartiner                                  |        23 |
+|  116 | Caramel, bonbons, confiseries, etc                                      |        31 |
+|  117 | Sel                                                                     |      5955 |
+|  118 | Piment                                                                  |      5828 |
+|  119 | Gingembre                                                               |      2690 |
+|  120 | Cube alimentaire (Maggi, Jumbo, )                                       |      5425 |
+|  121 | ArÃ´me (Maggi, Jumbo, etc.)                                             |        88 |
+|  122 | Afintin (Moutarde africaine)                                            |      3099 |
+|  123 | Mayonnaise                                                              |       170 |
+|  124 | Vinaigre /moutarde                                                      |        76 |
+|  125 | Autres condiments (poivre etc.)                                         |        97 |
+|  126 | Noix de cola                                                            |       364 |
+|  127 | Autres produits alimentaires                                            |        82 |
+|  128 | CafÃ©                                                                   |       112 |
+|  129 | ThÃ©                                                                    |       149 |
+|  130 | Chocolat en poudre                                                      |       131 |
+|  131 | Autres tisanes et infusions n.d.a. (quinquelibat, citronelle, etc.)     |       151 |
+|  132 | Jus de fruits (orange, bissap, gingembre, jus de cajou,etc.)            |       278 |
+|  133 | Eau minÃ©rale/ filtrÃ©e                                                 |       265 |
+|  134 | Boissons gazeuses (coca, etc.)                                          |       129 |
+|  135 | Jus en poudre                                                           |        22 |
+|  136 | BiÃ¨res et vins traditionnels (dolo, vin de palme, vin de raphia, etc.) |      1135 |
+|  137 | BiÃ¨res industrielles                                                   |       222 |
+
+** Second try on food labels
+#+name: food_labels
+| Code | Preferred Label         | French                                                                 | English                                                                                  | Frequency | File                                                                    |
+|------+-------------------------+------------------------------------------------------------------------+------------------------------------------------------------------------------------------+-----------+-------------------------------------------------------------------------|
+|    0 | Local Rice              | Riz local longs grains                                                 | Local long grain rice                                                                    |      1916 | Riz local longs grains                                                  |
+|    1 | Local Rice              | Riz local (Kovié)                                                      | Local rice (Kovié)                                                                       |       222 | Riz local (KoviÃ©)                                                      |
+|    2 | Imported Rice           | Riz importé longs grains                                               | Imported long grain rice                                                                 |      1852 | Riz importÃ© longs grains                                               |
+|    3 | Imported Rice           | Riz importé brisé                                                      | Imported broken rice                                                                     |       179 | Riz importÃ© brisÃ©                                                     |
+|    4 | Maize                   | Maïs en épis                                                           | Ears of corn                                                                             |       309 | MaÃ¯s en Ã©pis                                                          |
+|    5 | Maize                   | Maïs en grains                                                         | Grain corn                                                                               |      5225 | MaÃ¯s en grains                                                         |
+|    6 | Millet                  | Mil                                                                    | Millet                                                                                   |       114 | Mil                                                                     |
+|    7 | Sorghum                 | Sorgho                                                                 | Sorghum                                                                                  |       197 | Sorgho                                                                  |
+|    8 | Wheat                   | Blé                                                                    | Wheat                                                                                    |         1 | BlÃ©                                                                    |
+|    9 | Fonio                   | Fonio                                                                  | Fonio                                                                                    |        49 | Fonio                                                                   |
+|   10 | Other Grains            | Other Grains                                                           | Other grains                                                                             |         6 | 11                                                                      |
+|   11 | Ground Maize            | Farine de maïs                                                         | Corn flour                                                                               |       511 | Farine de maÃ¯s                                                         |
+|   12 | Millet                  | Farine de mil                                                          | Millet flour                                                                             |        24 | Farine de mil                                                           |
+|   13 | Wheat Flour             | Farine de blé local ou importé                                         | Wheat flour                                                                              |         4 | Farine de blÃ© local ou importÃ©                                        |
+|   14 | Other Flours            | Other cereal flours                                                    | Other cereal flours                                                                      |         6 | 15                                                                      |
+|   15 | Pasta                   | Pâtes alimentaires                                                     | Pasta                                                                                    |      1868 | PÃ¢tes alimentaires                                                     |
+|   16 | Bread                   | Pain moderne                                                           | Modern bread                                                                             |       335 | Pain moderne                                                            |
+|   17 | Bread                   | Pain traditionnel                                                      | Traditional bread                                                                        |      1121 | Pain traditionnel                                                       |
+|   18 | Bread                   | Croissants                                                             | Croissants                                                                               |        11 | Croissants                                                              |
+|   19 | Biscuits                | Biscuits                                                               | Biscuits (cookies)                                                                       |       236 | Biscuits                                                                |
+|   20 | Cakes                   | Gâteaux                                                                | Cakes                                                                                    |        66 | GÃ¢teaux                                                                |
+|   21 | Donuts                  | Beignets, galettes                                                     | Donuts, galettes                                                                         |       695 | Beignets, galettes                                                      |
+|   22 | Beef                    | Viande de bœuf                                                         | Beef meat                                                                                |       877 | Viande de bÅuf                                                      |
+|   23 | Camel Meat              | Viande de chameau                                                      | Camel Meat                                                                               |         1 | Viande de chameau                                                       |
+|   24 | Mutton                  | Viande de mouton                                                       | Mutton meat                                                                              |       140 | Viande de mouton                                                        |
+|   25 | Goat Meat               | Viande de chèvre                                                       | Goat meat                                                                                |       178 | Viande de chÃ¨vre                                                       |
+|   26 | Offal                   | Abats et tripes (foie, rognon, etc.)                                   | Offal and tripe (liver, kidney, etc.)                                                    |        28 | Abats et tripes (foie, rognon, etc.)                                    |
+|   27 | Pork                    | Viande de porc                                                         | Pork meat                                                                                |       295 | Viande de porc                                                          |
+|   28 | Chicken/Guinea fowl     | Poulet sur pied                                                        | Chicken feet                                                                             |       647 | Poulet sur pied                                                         |
+|   29 | Chicken/Guinea fowl     | Viande de poulet                                                       | Chicken meat                                                                             |       587 | Viande de poulet                                                        |
+|   30 | Other Meat              | Viande d'autres volailles domestiques                                  | Meat from other domestic poultry                                                         |        55 | Viande d'autres volailles domestiques                                   |
+|   31 | Other Meat              | Charcuterie (jambon, saucisson), conserves de viandes                  | Cold cuts (ham, sausage), canned meat                                                    |        18 | Charcuterie (jambon, saucisson), conserves de viandes                   |
+|   32 | Bush Meat               | Gibiers                                                                | Game                                                                                     |       108 | Gibiers                                                                 |
+|   33 | Other Meat              | Autres viandes n.d.a                                                   | Other meat not elsewhere specified                                                       |        76 | Autres viandes n.d.a                                                    |
+|   34 | Fish                    | Chinchard frais                                                        | Fresh mackerel                                                                           |       469 | Chinchard frais                                                         |
+|   35 | Fish                    | Carpe fraiche                                                          | Fresh carp                                                                               |        90 | Carpe fraÃ®che                                                          |
+|   36 | Fish                    | Dorade fraiche                                                         | Fresh dorade                                                                             |        31 | Dorade fraiche                                                          |
+|   37 | Fish                    | Maquereau frais                                                        | Other fresh fish and small fresh fish                                                    |        33 | Maquereau frais                                                         |
+|   38 | Fish                    | Chinchard fumé                                                         | Smoked mackerel                                                                          |      2599 | Chinchard fumÃ©                                                         |
+|   39 | Fish                    | Anchois fumé                                                           | Smoked anchovies                                                                         |      4027 | Anchois fumÃ©                                                           |
+|   40 | Fish                    | Poisson séché                                                          | Dried fish                                                                               |       647 | Poisson sÃ©chÃ©                                                         |
+|   41 | Crab                    | Crabes, crevettes et autres fruits de mer                              | Crabs, shrimp and other seafood                                                          |       175 | Crabes, crevettes et autres fruits de mer                               |
+|   42 | Canned Fish             | Conserves de poisson                                                   | Canned fish                                                                              |       209 | Conserves de poisson                                                    |
+|   43 | Milk (Fresh)            | Lait frais                                                             | Fresh milk                                                                               |       243 | Lait frais                                                              |
+|   44 | Other Dairy             | Lait caillé, yaourt                                                    | Milk curd, yoghurt                                                                       |        62 | Lait caillÃ©, yaourt                                                    |
+|   45 | Other Dairy             | Lait concentré sucré                                                   | Sweetened condensed milk                                                                 |       179 | Lait concentrÃ© sucrÃ©                                                  |
+|   46 | Other Dairy             | Lait concentré non-sucré                                               | Un-sweetened condensed milk                                                              |       181 | Lait concentrÃ© non-sucrÃ©                                              |
+|   47 | Milk (Powder)           | Lait en poudre                                                         | Powdered milk                                                                            |       378 | Lait en poudre                                                          |
+|   48 | Other Diary             | Fromage local                                                          | Cheese                                                                                   |       532 | Fromage local                                                           |
+|   49 | Baby Milk               | Lait et farines pour bébé                                              | Milk and flour for babies                                                                |        44 | Lait et farines pour bÃ©bÃ©                                             |
+|   50 | Other Diary             | Autres produits laitiers                                               | Other dairy products                                                                     |        25 | Autres produits laitiers                                                |
+|   51 | Eggs                    | Oeufs                                                                  | Eggs                                                                                     |       934 | Oeufs                                                                   |
+|   52 | Margarine/Butter        | Beurre                                                                 | Butter                                                                                   |        54 | Beurre                                                                  |
+|   53 | Margarine/Butter        | Beurre de karité                                                       | Shea Butter                                                                              |       146 | Beurre de karitÃ©                                                       |
+|   54 | Palm Oil                | Huile de palme rouge                                                   | Red palm oil                                                                             |      2766 | Huile de palme rouge                                                    |
+|   55 | Groundnut Oil           | Huile d'arachide                                                       | Peanut oil                                                                               |      2236 | Huile d'arachide                                                        |
+|   56 | Other Vegetable Oils    | Huile de coton                                                         | Cottonseed oil                                                                           |       902 | Huile de coton                                                          |
+|   57 | Palm Oil                | Huile de palme raffinée                                                | Refined palm oil                                                                         |      1046 | Huile de palme raffinÃ©e                                                |
+|   58 | Other Vegetable Oils    | Autres huiles n.d.a. (maïs, soja, huile palmiste, etc.)                | Other oils not elsewhere specified (corn, palm oil, soybean oil, etc.)                   |       378 | Autres huiles n.d.a. (maÃ¯s, soja, huile palmiste, etc.)                |
+|   59 | Mango                   | Mangue                                                                 | Mango                                                                                    |      1781 | Mangue                                                                  |
+|   60 | Pineapple               | Ananas                                                                 | Pineapple                                                                                |       259 | Ananas                                                                  |
+|   61 | Orange/Tangerine        | Orange                                                                 | Orange                                                                                   |      1868 | Orange                                                                  |
+|   62 | Banana                  | Banane douce                                                           | Sweet banana                                                                             |       965 | Banane douce                                                            |
+|   63 | Other Fruits            | Citrons                                                                | Lemons                                                                                   |       339 | Citrons                                                                 |
+|   64 | Other Fruits            | Autres agrumes                                                         | Other citrus                                                                             |        14 | Autres agrumes                                                          |
+|   65 | Avocado/Pear            | Avocats                                                                | Avocado                                                                                  |       305 | Avocats                                                                 |
+|   66 | Watermelon              | Pastèque, Melon                                                        | Watermelon                                                                               |        79 | PastÃ¨que, Melon                                                        |
+|   67 | Other Fruits            | Dattes                                                                 | Dates                                                                                    |        65 | Dattes                                                                  |
+|   68 | Coconut                 | Noix de coco                                                           | Coconut                                                                                  |       190 | Noix de coco                                                            |
+|   69 | Sugarcane               | Canne à sucre                                                          | Sugar cane                                                                               |       131 | Canne Ã  sucre                                                          |
+|   70 | Other Fruits            | Autres fruits (pommes, raisin, etc.)                                   | Other fruits (apples, grapes, etc.)                                                      |       218 | Autres fruits (pommes, raisin, etc.)                                    |
+|   71 | Lettuce                 | Salade (laitue)                                                        | Salad (lettuce)                                                                          |       140 | Salade (laitue)                                                         |
+|   72 | Cabbage                 | Choux                                                                  | Cabbage                                                                                  |       118 | Choux                                                                   |
+|   73 | Carrots                 | Carotte                                                                | Carrot                                                                                   |       145 | Carotte                                                                 |
+|   74 | Other Beans             | Haricot vert                                                           | Green bean                                                                               |        98 | Haricot vert                                                            |
+|   75 | Cucumbers               | Concombre                                                              | Cucumber                                                                                 |        81 | Concombre                                                               |
+|   76 | Garden Eggs             | Aubergine, Courge/Courgette                                            | Eggplant, Squash / Zucchini                                                              |       404 | Aubergine, Courge/Courgette                                             |
+|   77 | Pepper (fresh or dried) | Poivron frais                                                          | Fresh pepper                                                                             |        91 | Poivron frais                                                           |
+|   78 | Tomatoes (fresh)        | Tomate fraiche                                                         | Fresh tomato                                                                             |      3675 | Tomate fraÃ®che                                                         |
+|   79 | Tomatoes (dried)        | Tomate séchée                                                          | Dried tomato                                                                             |        21 | Tomate sÃ©chÃ©e                                                         |
+|   80 | Okro                    | Gombo frais                                                            | Fresh okra                                                                               |      2897 | Gombo frais                                                             |
+|   81 | Okro                    | Gombo sec                                                              | Dry okra                                                                                 |      2562 | Gombo sec                                                               |
+|   82 | Onions                  | Oignon frais                                                           | Fresh onion                                                                              |      4591 | Oignon frais                                                            |
+|   83 | Garlic                  | Ail                                                                    | Garlic                                                                                   |      1782 | Ail                                                                     |
+|   84 | Sorrel                  | Feuilles d'oseille (dakoumou, bissap/floerè)                           | Sorrel leaves                                                                            |      1282 | Feuilles d'oseille (dakoumou, bissap/floerÃ¨)                           |
+|   85 | Boabab                  | Feuilles de baobab                                                     | Baobab leaves                                                                            |      2030 | Feuilles de baobab                                                      |
+|   86 | Gboma                   | Gboma                                                                  | Gboma (Leaves of eggplant)                                                               |      1350 | Gboma                                                                   |
+|   87 | Ademe                   | Adémè (Feuilles crin-crin)                                             | Ademe (Leaves crin-crin)                                                                 |      2621 | AdÃ©mÃ¨ (Feuilles crin-crin)                                            |
+|   88 | Cassava Leaves          | Moringa, feuilles de manioc, feuilles de taro et autres feuilles       | Moringa, cassava leaves, taro leaves, bean leaves, aloma, other leaves                   |       372 | Moringa, feuilles de manioc, feuilles de taro et autres feuilles        |
+|   89 | Other Vegetables        | Autre légumes frais n.d.a                                              | Other vegetables not specified elsewhere                                                 |       166 | Autre lÃ©gumes frais n.d.a                                              |
+|   90 | Tomatoes (dried)        | Concentré de tomate                                                    | Tomato concentrate                                                                       |      2281 | ConcentrÃ© de tomate                                                    |
+|   91 | Peas                    | Petits pois                                                            | Peas                                                                                     |        23 | Petits pois                                                             |
+|   92 | Peas                    | Petit pois secs                                                        | Dried peas                                                                               |         2 | Petit pois secs                                                         |
+|   93 | Other Vegetables        | Autres légumes secs n.d.a                                              | Other dried vegetables not specified elsewhere                                           |        65 | Autres lÃ©gumes secs n.d.a                                              |
+|   94 | Cowpea Beans            | Niébé/Haricots secs                                                    | Cowpea / Beans                                                                           |      3118 | NiÃ©bÃ©/Haricots secs                                                   |
+|   95 | Groundnuts              | Arachides fraiches en coques                                           | Fresh peanuts in shell                                                                   |       359 | Arachides fraÃ®ches en coques                                           |
+|   96 | Groundnuts              | Arachides séchées en coques                                            | Dried peanuts in shell                                                                   |       186 | Arachides sÃ©chÃ©es en coques                                           |
+|   97 | Groundnuts              | Arachides décortiquées ou pilées                                       | Shelled or pounded peanuts                                                               |       457 | Arachides dÃ©cortiquÃ©es ou pilÃ©es                                     |
+|   98 | Groundnuts              | Arachide grillée                                                       | Grilled peanuts                                                                          |       423 | Arachide grillÃ©e                                                       |
+|   99 | Groundnuts              | Pâte d'arachide                                                        | Peanut paste                                                                             |       600 | PÃ¢te d'arachide                                                        |
+|  100 | Sesame                  | Sésame                                                                 | Sesame                                                                                   |      1061 | SÃ©same                                                                 |
+|  101 | Cashews                 | Noix de cajou                                                          | Cashew nuts                                                                              |         3 | Noix de cajou                                                           |
+|  102 | Shea Nuts               | Noix de karité                                                         | Shea nuts                                                                                |         6 | Noix de karitÃ©                                                         |
+|  103 | Cassava                 | Manioc                                                                 | Cassava                                                                                  |       819 | Manioc                                                                  |
+|  104 | Yam                     | Igname                                                                 | Yam                                                                                      |      2172 | Igname                                                                  |
+|  105 | Plantain                | Plantain                                                               | Plantain                                                                                 |       218 | Plantain                                                                |
+|  106 | Potato                  | Pomme de terre                                                         | Potato                                                                                   |        59 | Pomme de terre                                                          |
+|  107 | Cocoyam                 | Taro, macabo                                                           | Taro, cocoyam                                                                            |       227 | Taro, macabo                                                            |
+|  108 | Sweet Potato            | Patate douce                                                           | Sweet potato                                                                             |       234 | Patate douce                                                            |
+|  109 | Potato                  | Autres tubercules n.d.a                                                | Other tubers not specified elsewhere                                                     |         4 | Autres tubercules n.d.a                                                 |
+|  110 | Cassava Flour           | Farines de manioc                                                      | Cassava flour                                                                            |       316 | Farines de manioc                                                       |
+|  111 | Gari                    | Gari, tapioca                                                          | Gari, tapioca                                                                            |      2578 | Gari, tapioca                                                           |
+|  112 | Cassava                 | Attiéke                                                                | Attiéké                                                                                  |        26 | AttiÃ©ke                                                                |
+|  113 | Sugar                   | Sucre (poudre ou morceaux)                                             | Sugar (powder or pieces)                                                                 |      3121 | Sucre (poudre ou morceaux)                                              |
+|  114 | Honey                   | Miel                                                                   | Honey                                                                                    |       228 | Miel                                                                    |
+|  115 | Chocolate               | Chocolat à croquer, pâte à tartiner                                    | Plain chocolate, chocolate spread                                                        |        23 | Chocolat Ã  croquer, pÃ¢te Ã  tartiner                                  |
+|  116 | Sweets                  | Caramel, bonbons, confiseries, etc                                     | Caramel, candy, sweets, etc.                                                             |        31 | Caramel, bonbons, confiseries, etc                                      |
+|  117 | Salt                    | Sel                                                                    | Salt                                                                                     |      5955 | Sel                                                                     |
+|  118 | Pepper (fresh or dried) | Piment                                                                 | Chilli pepper                                                                            |      5828 | Piment                                                                  |
+|  119 | Ginger                  | Gingembre                                                              | Ginger                                                                                   |      2690 | Gingembre                                                               |
+|  120 | Maggi                   | Cube alimentaire (Maggi, Jumbo, )                                      | Food Cube (Maggi, Jumbo)                                                                 |      5425 | Cube alimentaire (Maggi, Jumbo, )                                       |
+|  121 | Maggi                   | Arôme (Maggi, Jumbo, etc.)                                             | Arome (Maggi, Jumbo, etc.)                                                               |        88 | ArÃ´me (Maggi, Jumbo, etc.)                                             |
+|  122 | Afiti                   | Afintin (Moutarde africaine)                                           | Afiti (African mustard)                                                                  |      3099 | Afintin (Moutarde africaine)                                            |
+|  123 | Mayonnaise              | Mayonnaise                                                             | Mayonnaise                                                                               |       170 | Mayonnaise                                                              |
+|  124 | Vinegar                 | Vinaigre /moutarde                                                     | Vinegar / mustard                                                                        |        76 | Vinaigre /moutarde                                                      |
+|  125 | Other Condiments        | Autres condiments (poivre etc.)                                        | Other condiments (pepper etc.)                                                           |        97 | Autres condiments (poivre etc.)                                         |
+|  126 | Kola Nuts               | Noix de cola                                                           | Kola nuts                                                                                |       364 | Noix de cola                                                            |
+|  127 | Other Food              | Autres produits alimentaires                                           | Other food products                                                                      |        82 | Autres produits alimentaires                                            |
+|  128 | Coffee                  | Café                                                                   | Coffee                                                                                   |       112 | CafÃ©                                                                   |
+|  129 | Tea                     | Thé                                                                    | Tea                                                                                      |       149 | ThÃ©                                                                    |
+|  130 | Chocolate               | Chocolat en poudre                                                     | Chocolate powder                                                                         |       131 | Chocolat en poudre                                                      |
+|  131 | Tea                     | Autres tisanes et infusions n.d.a. (quinquelibat, citronelle, etc.)    | Other herbal teas and infusions not specified elsewhere (quinquelibat, lemongrass, etc.) |       151 | Autres tisanes et infusions n.d.a. (quinquelibat, citronelle, etc.)     |
+|  132 | Fruit Juice             | Jus de fruits (orange, bissap, gingembre, jus de cajou,etc.)           | Fruit juices (orange, hibiscus, ginger, cashew juice, etc.)                              |       278 | Jus de fruits (orange, bissap, gingembre, jus de cajou,etc.)            |
+|  133 | Bottled Water           | Eau minérale/ filtrée                                                  | Mineral/filtered water                                                                   |       265 | Eau minÃ©rale/ filtrÃ©e                                                 |
+|  134 | Soft Drinks             | Boissons gazeuses (coca, etc.)                                         | Soft drinks (Coke, etc.)                                                                 |       129 | Boissons gazeuses (coca, etc.)                                          |
+|  135 | Juice Powder            | Jus en poudre                                                          | Juice powder                                                                             |        22 | Jus en poudre                                                           |
+|  136 | Alcoholic Beverages     | Bières et vins traditionnels (dolo, vin de palme, vin de raphia, etc.) | Traditional beer and wines (Dolo, palm wine, raffia wine, etc.)                          |      1135 | BiÃ¨res et vins traditionnels (dolo, vin de palme, vin de raphia, etc.) |
+|  137 | Beer                    | Bières industrielles                                                   | Industrial beers                                                                         |       222 | BiÃ¨res industrielles                                                   |
+|  138 | Missing                 | Missing                                                                | Missing                                                                                  |           |                                                                         |
+
+** Non-food expenditure labels
+We can extract label information directly from the survey instrument.
+#+begin_src python :results output raw table :tangle /tmp/foo.py
+import pandas as pd
+from cfe.df_utils import df_to_orgtbl
+
+S9 = []
+S9.append(pd.read_excel('../Documentation/EHCVM_UEMOA_MEN_TOGO_V2.xls',sheet_name='S9b__Conso_NA',skiprows=6).iloc[:,0:2].dropna())
+S9[-1].columns = ['Code','Label']
+S9.append(pd.read_excel('../Documentation/EHCVM_UEMOA_MEN_TOGO_V2.xls',sheet_name='S9c__Conso_NA',skiprows=4).iloc[:,0:2].dropna())
+S9[-1].columns = ['Code','Label']
+S9.append(pd.read_excel('../Documentation/EHCVM_UEMOA_MEN_TOGO_V2.xls',sheet_name='S9d___Conso_NA',skiprows=4).iloc[:,0:2].dropna())
+S9[-1].columns = ['Code','Label']
+S9.append(pd.read_excel('../Documentation/EHCVM_UEMOA_MEN_TOGO_V2.xls',sheet_name='S9e__Conso_NA',skiprows=4).iloc[:,0:2].dropna())
+S9[-1].columns = ['Code','Label']
+S9.append(pd.read_excel('../Documentation/EHCVM_UEMOA_MEN_TOGO_V2.xls',sheet_name='S9f__Conso_NA',skiprows=4).iloc[:,0:2].dropna())
+S9[-1].columns = ['Code','Label']
+
+s9 = pd.concat(S9)
+s9['Code'] = s9['Code'].astype(int)
+s9.set_index('Code',inplace=True)
+
+s9.sort_index(inplace=True)
+
+print(df_to_orgtbl(s9,float_fmt='%d'))
+#+end_src
+
+#+name: nonfood_labels
+| Code | Label                                                                                                                                                                                                                                                                 |
+|------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|  201 | Cigarettes, Tabac                                                                                                                                                                                                                                                     |
+|  202 | Pétrole lampant                                                                                                                                                                                                                                                       |
+|  203 | Charbon de bois/Charbon minéral                                                                                                                                                                                                                                       |
+|  204 | Bois de chauffe acheté                                                                                                                                                                                                                                                |
+|  205 | Bois de chauffe ramassé (estimer la valeur)                                                                                                                                                                                                                           |
+|  206 | Bougies                                                                                                                                                                                                                                                               |
+|  207 | Allumettes                                                                                                                                                                                                                                                            |
+|  208 | Carburant pour véhicule                                                                                                                                                                                                                                               |
+|  209 | Carburant pour motocyclette                                                                                                                                                                                                                                           |
+|  210 | Transport urbain en taxi                                                                                                                                                                                                                                              |
+|  211 | Transport urbain en bus                                                                                                                                                                                                                                               |
+|  212 | Transport urbain / rural en moto-taxi                                                                                                                                                                                                                                 |
+|  213 | Transport urbain en train                                                                                                                                                                                                                                             |
+|  214 | Transport urbain / rural par voie fluviale                                                                                                                                                                                                                            |
+|  215 | Transport urbain / rural par traction animale                                                                                                                                                                                                                         |
+|  216 | Journaux                                                                                                                                                                                                                                                              |
+|  217 | Frais de mouture des céréales                                                                                                                                                                                                                                         |
+|  301 | Whisky et autres liqueurs                                                                                                                                                                                                                                             |
+|  302 | Vins modernes                                                                                                                                                                                                                                                         |
+|  303 | Gaz domestique                                                                                                                                                                                                                                                        |
+|  304 | Carburant pour groupe electrogène à usage domestique                                                                                                                                                                                                                  |
+|  305 | Piles électriques,                                                                                                                                                                                                                                                    |
+|  306 | Savon de ménage, lessive en poudre, détergents (eau de javel, etc.)                                                                                                                                                                                                   |
+|  307 | Insecticide, tortillon anti-moustique                                                                                                                                                                                                                                 |
+|  308 | Salaire du personnel de maison (gardien, boy, chauffeur, cuisinier, etc.)                                                                                                                                                                                             |
+|  309 | Frais de blanchiment des vêtements, linge, etc. (Pressing)                                                                                                                                                                                                            |
+|  310 | Frais de ramassage des ordures ménagères                                                                                                                                                                                                                              |
+|  311 | Lavage de véhicules                                                                                                                                                                                                                                                   |
+|  312 | Frais de parking                                                                                                                                                                                                                                                      |
+|  313 | Frais de communication téléphonique dans une cabine / télécentre                                                                                                                                                                                                      |
+|  314 | Billet de lotterie nationale, billet de PMU                                                                                                                                                                                                                           |
+|  315 | Revues, journal ou magazine mensuel etc.                                                                                                                                                                                                                              |
+|  316 | Frais de coiffure homme et femme (salon, tressage, mèches, coupe, etc.), manucure, pédicure                                                                                                                                                                           |
+|  317 | Savon de toilette, Shampoing                                                                                                                                                                                                                                          |
+|  318 | Pâte dentifrice                                                                                                                                                                                                                                                       |
+|  319 | Papier toilette                                                                                                                                                                                                                                                       |
+|  320 | Serviettes hygiéniques, couches jetables pour bébé, etc.                                                                                                                                                                                                              |
+|  321 | Lait, lotion de toilette corporelle (glycérine, vaseline, etc.)                                                                                                                                                                                                       |
+|  322 | Autres produits de toilettes (rasoir, coton, crème / mousse à raser, etc.)                                                                                                                                                                                            |
+|  401 | Frais d'entretien et de réparation de chaussures: cirage, ressemelage, etc.                                                                                                                                                                                           |
+|  402 | Ampoules électriques pour le logement                                                                                                                                                                                                                                 |
+|  403 | Lubrifiants (huile moteur; huile de frein; liquide batterie (acide); graisses; autres lubrifiants n.d.a.)                                                                                                                                                             |
+|  404 | Services de réparation et d'entretien (vidange, graissage, etc.) de moyens de transport personnel (voitures, motos, bicyclette, etc.)                                                                                                                                 |
+|  405 | Transport inter-localité par voitures                                                                                                                                                                                                                                 |
+|  406 | Transport inter-locaité à traction animale                                                                                                                                                                                                                            |
+|  407 | Transport  interlocalité par eau (bateau, pirogue, pinasse)                                                                                                                                                                                                           |
+|  408 | Frais de timbre postaux, d'expédition de mandat, etc                                                                                                                                                                                                                  |
+|  409 | Frais d'envoi de fax                                                                                                                                                                                                                                                  |
+|  410 | Produits pour le jardinage (plantes et fleurs ornementales), pas pour l'agriculture                                                                                                                                                                                   |
+|  411 | Aliments, frais d'entretien, frais de vétérinaire des animaux de compagnie (chiens, chats, etc.)                                                                                                                                                                      |
+|  412 | Droit d'entrée (achat d'un ticket) à des manifestations sportives.                                                                                                                                                                                                    |
+|  413 | Droit d'entrée (achat d'un ticket) pour cinéma, concert, pièce de théâtre, musée, expositions, etc                                                                                                                                                                    |
+|  414 | Autres services récréatifs: services de photographe (développement, tirage), photo d'identité, etc.                                                                                                                                                                   |
+|  415 | Parfums                                                                                                                                                                                                                                                               |
+|  416 | Brosse à dents                                                                                                                                                                                                                                                        |
+|  417 | Contraceptifs                                                                                                                                                                                                                                                         |
+|  418 | Frais de photocopies de document                                                                                                                                                                                                                                      |
+|  501 | Tissus d'habillement: tissus pagne, tissu pagne du tisserand, tissu synthétique, etc.                                                                                                                                                                                 |
+|  502 | Vêtements femmes (15 ans et plus): robe, jupe, pantalon, ensemble, etc.                                                                                                                                                                                               |
+|  503 | Sous-vêtements femme (15 ans et plus): slip, jupon, tee shirt,soutien gorge, collant, etc.                                                                                                                                                                            |
+|  504 | Vêtements enfants (0-14 ans): layette pour bébé, chemise, pantalon garçon, robe fillette, slip enfant, blouses, etc. (Pas inclure les uniformes scolaires)                                                                                                            |
+|  505 | Vêtements hommes (15 ans et plus): chemise, pantalon, veste, ensemble, vêtements de travail, etc.                                                                                                                                                                     |
+|  506 | Sous-vêtements homme (15 ans et plus): slip, chaussettes, tee shirt et maillot de corps, etc.                                                                                                                                                                         |
+|  507 | Frais de confection et de réparation de vêtements homme: ensemble, pantalon, chemise, réparation, location vêtement, etc.                                                                                                                                             |
+|  508 | Frais de confection et de réparation de vêtements femme: robe, pantalon, jupe, ensemble, réparation, location, etc.                                                                                                                                                   |
+|  509 | Frais de confection et de réparation de vêtements enfants                                                                                                                                                                                                             |
+|  510 | Chaussures hommes                                                                                                                                                                                                                                                     |
+|  511 | Chaussures femmes                                                                                                                                                                                                                                                     |
+|  512 | Chaussures enfants                                                                                                                                                                                                                                                    |
+|  601 | Matériel pour l'entretien et les petites réparations du logement (remplacement d'une tôle, d'une vitre, d'une ampoule, etc.)                                                                                                                                          |
+|  602 | Main-d'oeuvre et services d'entretien et de réparation courante du logement  (vidange fosse septique,main d'œuvre pour l'entretien du logement, etc.)                                                                                                                 |
+|  603 | Matériaux de maçonnerie pour la construction ou les grosses réparations de logement: ciment, briques, fer à béton, sable, gravier, parpaings, etc.                                                                                                                    |
+|  604 | Autres matériaux pour la construction ou les grosses réparations de logement: tôles, bois de charpente, planches, lattes, contre-plaqués, matériaux d'électricité, matériaux de plomberie, matériaux de peinture, carreaux, tapis et revêtement du sol, etc.          |
+|  605 | Main-d'oeuvre pour la construction et les grosses réparation de logement (maçonnerie, toiture et charpente, électricité, plomberie, menuiserie, peinture et revêtement du sol), etc.                                                                                  |
+|  606 | Frais d'acquisition d'un terrain ou d'un logement                                                                                                                                                                                                                     |
+|  607 | Frais d'études et d'architecte                                                                                                                                                                                                                                        |
+|  608 | Frais d'abonnement au réseau de distribution d'eau                                                                                                                                                                                                                    |
+|  609 | Frais d'abonnement au réseau de distribution d'électricité                                                                                                                                                                                                            |
+|  610 | Frais de connexion au réseau de distribution d'eau                                                                                                                                                                                                                    |
+|  611 | Frais de connexion au réseau de distribution d'électricité                                                                                                                                                                                                            |
+|  612 | Meubles de salon et de salle à manger (fauteuils, table, chaises, armoires, etc.)                                                                                                                                                                                     |
+|  613 | Lit, matelas, armoire et autres meubles de chambre à coucher                                                                                                                                                                                                          |
+|  614 | Réparation de meubles (fauteuils, chaises, lits, armoires, etc.)                                                                                                                                                                                                      |
+|  615 | Linge de maison et articles associés (serviettes de bain, drap, couverture, couvre-lit, oreillers, moustiquaire, nattes, tapis, rideaux, éventail, etc.)                                                                                                              |
+|  616 | Appareils électro-ménagers: frigo, climatiseurs, réchaud, four, cuisinière, lave-linge, chauffe-eau, fer à repasser, etc.                                                                                                                                             |
+|  617 | Réparation d'appareils électro-ménagers (fer à repasser, frigo, cuisinière, four, réchaud, climatiseur, ventilateur, chauffe-eau, etc.)                                                                                                                               |
+|  618 | Vaisselle: assiettes, couteau, fourchette, cuillère, gobelets, verres, etc.                                                                                                                                                                                           |
+|  619 | Ustensiles de cuisine: casserole, marmite, tamis local, réparation d'ustensiles de cuisine, etc.                                                                                                                                                                      |
+|  620 | Autres ustensiles de ménage: seau, bouilloire, biberon, poubelle, tasses, cafétière non électrique, théière, calebasse, louche, jarre, canari, mortier, pilon, etc.                                                                                                   |
+|  621 | Outillage de maison: outils de bricolage (marteau, tournevis, etc.); outil de jardinage (pelle, râteau, brouette, etc.);                                                                                                                                              |
+|  622 | Lampes électriques, lampes tempêtes, torches                                                                                                                                                                                                                          |
+|  623 | Achat d'une voiture pour usage personnel                                                                                                                                                                                                                              |
+|  624 | Achat d'un motocycle (vélo, moto) pour usage personnel                                                                                                                                                                                                                |
+|  625 | Pièces détachées de moyens de transport individuel: pneu, batterie, bougie, carburateur, etc.                                                                                                                                                                         |
+|  626 | Frais d'assurance d'un moyen de transport individuel (auto, moto, etc.), assurance de voyage                                                                                                                                                                          |
+|  627 | Vignette automobile/ moto                                                                                                                                                                                                                                             |
+|  628 | Location d'un véhicule pour usage personnel: voiture, moto/vélo, etc.                                                                                                                                                                                                 |
+|  629 | Transport inter-urbain en train dans le pays et à l'étranger                                                                                                                                                                                                          |
+|  630 | Transport en avion dans le pays et à l'étranger                                                                                                                                                                                                                       |
+|  631 | Frais de déménagement                                                                                                                                                                                                                                                 |
+|  632 | Frais de visa, taxes d'aéroport                                                                                                                                                                                                                                       |
+|  633 | Achat d'un téléphone portable                                                                                                                                                                                                                                         |
+|  634 | Appareils de musique et d'images: radio, radio-cassette, chaîne de musique, TV, lecteur CD/DVD, MP3, MP4, caméra, camescope, etc.                                                                                                                                     |
+|  635 | Ordinateur, imprimante, tablette,machine à écrire, etc.                                                                                                                                                                                                               |
+|  636 | Réparation d'appareils électroniques: radio, radio-cassettes, TV, camera, lecteur CD/DVD, ordinateur, etc.                                                                                                                                                            |
+|  637 | Petit matériel électronique à usage personnel: cassettes, CD/DVD, clé USB, encre pour imprimante, papier d'impression photos, pellicule photos, etc.                                                                                                                  |
+|  638 | Articles de sport et de détente: ballon, jeu ludo, poids (pétanque), jeu de carte, jouets pour enfants, jeux vidéo, petits instruments de musique, etc.                                                                                                               |
+|  639 | Livres non scolaires, bande dessinée                                                                                                                                                                                                                                  |
+|  640 | Papier rame, enveloppes, articles de dessin (pinceaux, papier, peinture etc.), etc.                                                                                                                                                                                   |
+|  641 | Frais de pélérinage                                                                                                                                                                                                                                                   |
+|  642 | Formation professionnelle (en particulier directement auprès des ateliers, maîtres, etc.)                                                                                                                                                                             |
+|  643 | Frais de cours particuliers pour adultes (alphabétisation) et personnes non scolarisées                                                                                                                                                                               |
+|  644 | Services d'hébergement: chambres d'hôtel, etc.                                                                                                                                                                                                                        |
+|  645 | Montres, réveils                                                                                                                                                                                                                                                      |
+|  646 | Boucle d'oreilles, colliers, bracelets, bijoux, autres articles de bijouterie et joaillerie n.d.a.                                                                                                                                                                    |
+|  647 | Autres effets personnels: valise, sac de voyage, sac à main, perruques, chapeau, lunettes solaires, parapluies, parasol, canne, porte-monnaie, portefeuille, articles pour fumeurs (cendrier etc.); articles pour bébé (poussette, sièges), articles funéraires, etc. |
+|  648 | Frais d'assurance d'une maison ou tout autre bien qu'un moyen de transport                                                                                                                                                                                            |
+|  649 | Taxes d'habitation (immeubles bâties et non bâties), taxes de voiries                                                                                                                                                                                                 |
+|  650 | Frais d'assurance vie                                                                                                                                                                                                                                                 |
+|  651 | Frais d'assurance maladie                                                                                                                                                                                                                                             |
+|  652 | Frais de légalisation (confection) de documents administratifs (actes d'Etat-civil, diplômes, etc.)                                                                                                                                                                   |
+|  653 | Autres services: annonce à la radio, dans un journal/à la télévision, pompe funèbre, etc.                                                                                                                                                                             |
+
+                                                                                                                                                                         
+
+** Create dictionary for food items
+#+begin_src python :var food_labels=food_labels nonfood_labels=nonfood_labels
+import json
+
+d={}
+for row in food_labels:
+    d[row[-1]]=row[2] 
+
+for row in nonfood_labels:
+    d[row[0]]=row[1] 
+
+with open('food_items.json','w') as f:
+    json.dump(d,f)
+#+end_src
+
+#+results:
+: None
+
+* Calculate value of consumption
+  The elicitation of food expenditures has an unusual structure in
+  this survey.  First, the enumerator elicits the total /quantity consumed/ for
+  each item in the last seven days, then elicits the quantity and cost
+  of the last /purchase/ over the previous 30 days.
+
+  Units of quantities consumed need not be the same as the units
+  purchased.
+** Unit Values
+  Our strategy here is to use the data on purchases to construct unit
+  values.  These can be computed for every household that reports a
+  purchase, but these will be the /wrong/ unit values for consumption
+  if the latter is measured using different units, and is
+  /missing/ for many households that report consumption but no recent
+  purchase.   
+
+  So: we construct unit values for every good x region x observed
+  purchase units; typically there will be several (or sometimes many)
+  unit values observed at this level of dis-aggregation.  We take the
+  median unit value for a given good-region-unit.
+
+** Value of consumption
+   Recall that the survey elicits /quantities consumed/ over the last
+   seven days.  To turn this into a value, we simply find the
+   corresponding unit value, and take the product.
+
+** Outcome
+   Using unit values inferred from other local consumers allows for a
+   43% increase in the number of items consumed that we can assign a
+   value to; a total of over 110,000.  Even more important, it
+   increases the number of households with enough observed items
+   consumed (and valued) to include them in the demand estimation from
+   46% to 79%. 
+
+* Estimate demand system
+#+begin_src python :tangle /tmp/estimate_togo.py
+import cfe
+import pandas as pd
+import numpy as np
+
+food = pd.read_parquet('./food_expenditures.parquet')
+#nonfood = pd.read_parquet('./nonfood_expenditures.parquet')
+
+x = food #.join(nonfood,how='outer')
+
+y = np.log(x.stack())
+y.index.names = ['i','t','m','j']
+
+z = pd.read_parquet('../_/household_characteristics.parquet')
+z.index.names = ['i','t','m']
+
+r = cfe.Regression(y=y,d=z)
+
+r.predicted_expenditures()
+
+print(cfe.df_utils.df_to_orgtbl(r.get_beta().sort_values(ascending=False),float_fmt='%3.2'))
+#+end_src
+
+#+results:
