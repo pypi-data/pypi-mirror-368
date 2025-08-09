@@ -1,0 +1,39 @@
+# Copyright 2025 West University of Timisoara
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import click
+
+
+@click.group()
+def geospatialorg():
+    pass
+
+
+def register(cli):
+    try:
+        from .uat import UAT
+        from .uat import (
+            get_county_by_name_cli,
+            get_county_by_mnemonic_cli,
+            get_administrative_unit_by_name_cli,
+            get_administrative_unit_by_code_cli,
+        )
+
+        cli.add_command(geospatialorg)
+        geospatialorg.add_command(get_county_by_name_cli)
+        geospatialorg.add_command(get_county_by_mnemonic_cli)
+        geospatialorg.add_command(get_administrative_unit_by_name_cli)
+        geospatialorg.add_command(get_administrative_unit_by_code_cli)
+    except ImportError:
+        pass

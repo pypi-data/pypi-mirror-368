@@ -1,0 +1,80 @@
+[tool.poetry]
+name = "eocube"
+version = "0.0.14"
+description = "Support tool and library for EOCube.Ro"
+license = "Apache-2.0"
+authors = [
+    "Marian Neagul <marian.neagul@e-uvt.ro>"
+]
+readme = "README.md"
+homepage = "https://eocube.ro"
+repository = "https://gitlab.dev.info.uvt.ro/rocs/tools/eocube-tools"
+documentation = "https://rocs.pages.dev.info.uvt.ro/tools/eocube-tools/"
+keywords = ["earth observation", "cube", "geospatial", "cli", "s3", "cloudnative", "stac"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: GIS"
+]
+
+[tool.poetry.group.dev.dependencies]
+black = "*"
+pip-tools = "*"
+pip-audit = "*"
+safety = "*"
+pip-licenses = "*"
+twine = "*"
+mkdocs = "^1.6.1"
+mkdocs-material = "^9.6.9"
+
+
+[tool.poetry.group.cli.dependencies]
+rich = "^14.0.0"
+
+[tool.poetry.group.cube.dependencies]
+dask-gateway = "^2024.1.0"
+
+[tool.poetry.dependencies]
+rich = "*"
+python = "^3.10"
+click = "*"
+requests = "*"
+python-dateutil = "*"
+s3fs = "*"
+fsspec = "*"
+pystac = "*"
+pystac-client = "*"
+python-i18n = "*"
+authlib = "*"
+flask = { version = "*", optional = false }
+keyring = { version = "*", optional = false }
+numpy = { version = "*", optional = true }
+rasterio = { version = "*", optional = false }
+xarray = { version = "*", optional = true }
+dask = { version = "*", optional = true }
+owslib = { version = "*", optional = false }
+geopandas = { version = "*", optional = true }
+ascii-magic = { version = "*", optional = true }
+matplotlib = { version = "*", optional = true }
+backoff = "*"
+
+[tool.poetry.extras]
+auth = ["authlib", "requests"]
+cli = ["keyring", "authlib", "flask", "requests", "ascii-magic", "matplotlib", "rich"]
+raster = ["numpy", "rasterio", "xarray"]
+cube = ["numpy", "rasterio", "xarray", "authlib", "dask", "owslib", "geopandas", "dask-gateway"]
+services = ["owslib", "geopandas"]
+
+[tool.poetry.scripts]
+eocube = "eocube.cli.main:cli"
+
+[build-system]
+requires = ["poetry-core>=1.1.0"]
+build-backend = "poetry.core.masonry.api"
