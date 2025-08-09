@@ -1,0 +1,72 @@
+[project]
+authors = [
+    { name = "Sebastian B. Mohr", email = "sebastian@mohrenclan.de" },
+    { name = "Paul Spitzner" },
+]
+name = "beets-aisauce"
+version = "0.0.1"
+description = "AI autotagger source for beets (http://beets.io)."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9, <4"
+
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: OS Independent",
+    "Topic :: Multimedia :: Sound/Audio",
+    "Topic :: Text Processing :: General",
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    #"beets >= 2.4.2", # Future version with metadata_plugins support (not released yet, we should pin to master)
+    "beets",
+    "openai >= 1.98.0",
+    "instructor >= 1.10.0",
+    "eval-type-backport; python_version == '3.9'",
+]
+
+[project.urls]
+homepage = "https://github.com/metasauce/beets-aisauce"
+repository = "https://github.com/metasauce/beets-aisauce"
+changelog = "https://github.com/metasauce/beets-aisauce/blob/master/CHANGELOG.md"
+"Bug Tracker" = "https://github.com/metasauce/beets-aisauce/issues"
+
+
+[project.optional-dependencies]
+typed = ["mypy"]
+test = ["pytest", "pytest-cov", "responses"]
+dev = ["ruff", "pre-commit"]
+
+# compatibility problem of tools (but works with setuptools):
+# namespaced packages cause issues with hatchling/pdm + editable installs + pytest
+# - pytest import not found
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.hatch.build.targets.wheel]
+only-include = ["beetsplug"]
+
+[tool.ruff]
+include = ["pyproject.toml", "beetsplug/**/*.py", "tests/**/*.py"]
+
+[tool.ruff.lint]
+fixable = ["ALL"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.mypy]
+check_untyped_defs = true
+disallow_untyped_decorators = true
+
+
+[tool.hatch.metadata]
+# TODO: remove with next beets release
+allow-direct-references = true
+
+[[tool.mypy.overrides]]
+# Suppresses error messages about imports that cannot be resolved.
+module = ["beets.*", "confuse.*"]
+ignore_missing_imports = true
