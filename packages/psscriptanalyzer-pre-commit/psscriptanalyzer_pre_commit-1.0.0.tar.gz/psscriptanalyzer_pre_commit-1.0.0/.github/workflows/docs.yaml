@@ -1,0 +1,89 @@
+name: Documentation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "pyproject.toml"
+      - ".github/workflows/docs.yaml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "pyproject.toml"
+      - ".github/workflows/docs.yaml"
+
+jobs:
+  build:
+    name: Build documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Install documentation dependencies
+        run: uv sync --group docs
+
+      - name: Update docs version from pyproject.toml
+        run: |
+          import tomllib
+          import re
+
+          # Read version from pyproject.toml
+          with open('pyproject.toml', 'rb') as f:
+              data = tomllib.load(f)
+              version = data['project']['version']
+
+          # Update docs/conf.py
+          with open('docs/conf.py', 'r') as f:
+              content = f.read()
+
+          # Replace the release line
+          updated_content = re.sub(
+              r'^release = "[^"]*"',
+              f'release = "{version}"',
+              content,
+              flags=re.MULTILINE
+          )
+
+          with open('docs/conf.py', 'w') as f:
+              f.write(updated_content)
+
+          print(f"Updated docs version to {version}")
+        shell: python
+
+      - name: Build documentation
+        run: |
+          mkdir -p docs/_static
+          uv run sphinx-build -b html docs docs/_build/html --keep-going
+
+      - name: Upload documentation artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation
+          path: docs/_build/html/
+          retention-days: 30
+
+  deploy:
+    name: Deploy to ReadTheDocs
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Trigger ReadTheDocs build
+        run: |
+          curl -X POST \
+            -H "Authorization: Token ${{ secrets.READTHEDOCS_TOKEN }}" \
+            https://readthedocs.org/api/v3/projects/psscriptanalyzer-pre-commit/versions/latest/builds/
+        continue-on-error: true # Don't fail the workflow if RTD webhook fails

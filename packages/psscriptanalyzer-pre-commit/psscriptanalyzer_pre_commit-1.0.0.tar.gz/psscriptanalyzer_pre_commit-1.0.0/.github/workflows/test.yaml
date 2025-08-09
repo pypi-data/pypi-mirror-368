@@ -1,0 +1,112 @@
+name: Test PSScriptAnalyzer Hook
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.9", "3.12", "3.13"]
+        exclude:
+          # Reduce matrix size - test fewer combinations
+          - os: macos-latest
+            python-version: "3.9"
+          - os: ubuntu-latest
+            python-version: "3.9"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Install dependencies
+        run: |
+          uv sync --group dev
+
+      - name: Install PowerShell (Ubuntu/macOS)
+        if: matrix.os != 'windows-latest'
+        shell: bash
+        run: |
+          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+            # Use snap for faster installation
+            sudo snap install powershell --classic
+          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            brew install --cask powershell
+          fi
+
+      - name: Verify PowerShell installation
+        shell: bash
+        run: |
+          if command -v pwsh >/dev/null 2>&1; then
+            echo "PowerShell Core (pwsh) found"
+            pwsh -Command '$PSVersionTable.PSVersion'
+          elif command -v powershell >/dev/null 2>&1; then
+            echo "Windows PowerShell found"
+            powershell -Command '$PSVersionTable.PSVersion'
+          else
+            echo "No PowerShell found"
+            exit 1
+          fi
+
+      - name: Build package
+        run: uv build
+
+      - name: Check package
+        run: uv run twine check dist/*
+
+      - name: Install hook locally
+        run: uv pip install --editable .
+
+      - name: Test hook with pre-commit
+        shell: bash
+        run: |
+          cat > .pre-commit-config.yaml << 'EOF'
+          repos:
+            - repo: local
+              hooks:
+                - id: psscriptanalyzer-local
+                  name: PSScriptAnalyzer (local)
+                  entry: psscriptanalyzer-hook
+                  language: system
+                  files: \.(ps1|psm1|psd1)$
+          EOF
+          uv run pre-commit install
+
+          echo "=== Test 1: Verify hook finds issues in bad PowerShell files ==="
+          # Test that the hook correctly finds issues in bad PowerShell files
+          if uv run pre-commit run --all-files; then
+            echo "❌ FAIL: Pre-commit hook should have failed on intentionally bad PowerShell files!"
+            echo "This indicates the hook is not working correctly."
+            exit 1
+          else
+            echo "✅ PASS: Pre-commit hook correctly found issues in PowerShell files."
+          fi
+
+          echo "=== Test 2: Verify hook passes on clean PowerShell files ==="
+          # Test that the hook passes on clean files
+          if uv run pre-commit run --files test-good.ps1; then
+            echo "✅ PASS: Pre-commit hook correctly passed on clean PowerShell file."
+          else
+            echo "❌ FAIL: Pre-commit hook should have passed on clean PowerShell file!"
+            echo "This indicates the hook may have false positives."
+            exit 1
+          fi
+
+          echo "🎉 All tests passed! PSScriptAnalyzer hook is working correctly."
