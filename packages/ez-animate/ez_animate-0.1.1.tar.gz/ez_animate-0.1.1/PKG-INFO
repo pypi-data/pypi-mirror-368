@@ -1,0 +1,203 @@
+Metadata-Version: 2.4
+Name: ez-animate
+Version: 0.1.1
+Summary: A simple package to streamline Matplotlib animations.
+Project-URL: Homepage, https://github.com/SantiagoEnriqueGA/ez-animate
+Project-URL: Repository, https://github.com/SantiagoEnriqueGA/ez-animate
+Author-email: Santiago Gonzalez <sega97@gmail.com>
+License: MIT License
+        
+        Copyright (c) [2025] [Santiago Gonzalez]
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE.
+License-File: LICENSE
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Scientific/Engineering :: Visualization
+Requires-Python: >=3.9
+Requires-Dist: matplotlib>=3
+Requires-Dist: numpy>=2
+Requires-Dist: scipy>=1.10
+Provides-Extra: dev
+Requires-Dist: build>=1.2; extra == 'dev'
+Requires-Dist: mkdocs-material>=9.5; extra == 'dev'
+Requires-Dist: mkdocs>=1.6; extra == 'dev'
+Requires-Dist: pre-commit; extra == 'dev'
+Requires-Dist: pygments; extra == 'dev'
+Requires-Dist: pymdown-extensions; extra == 'dev'
+Requires-Dist: pytest-cov; extra == 'dev'
+Requires-Dist: pytest>=8.0; extra == 'dev'
+Requires-Dist: ruff; extra == 'dev'
+Requires-Dist: sega-learn; extra == 'dev'
+Requires-Dist: twine>=5.0; extra == 'dev'
+Provides-Extra: docs
+Requires-Dist: mkdocs-material>=9.5; extra == 'docs'
+Requires-Dist: mkdocs>=1.6; extra == 'docs'
+Requires-Dist: pygments; extra == 'docs'
+Requires-Dist: pymdown-extensions; extra == 'docs'
+Provides-Extra: lint
+Requires-Dist: ruff; extra == 'lint'
+Provides-Extra: test
+Requires-Dist: pytest-cov; extra == 'test'
+Requires-Dist: pytest>=8.0; extra == 'test'
+Requires-Dist: sega-learn; extra == 'test'
+Description-Content-Type: text/markdown
+
+<!-- Badges -->
+<p align="left">
+  <a href="https://github.com/SantiagoEnriqueGA/ez-animate/blob/master/LICENSE">
+    <img src="https://img.shields.io/github/license/SantiagoEnriqueGA/ez-animate.svg" alt="License">
+  </a>
+  <a href="https://github.com/SantiagoEnriqueGA/ez-animate/actions">
+    <img src="https://github.com/SantiagoEnriqueGA/ez-animate/workflows/CI/badge.svg" alt="Build Status">
+  </a>
+  <a href="https://pypi.org/project/ez-animate/">
+    <img src="https://img.shields.io/pypi/v/ez-animate.svg" alt="PyPI Version">
+  <a href="https://pepy.tech/project/ez-animate">
+    <img src="https://static.pepy.tech/badge/ez-animate" alt="Downloads">
+  </a>
+  </a>
+  <a href="https://pypi.org/project/ez-animate/">
+    <img src="https://img.shields.io/pypi/pyversions/ez-animate.svg" alt="Python Versions">
+  </a>
+  <a href="https://codecov.io/gh/SantiagoEnriqueGA/ez-animate">
+    <img src="https://codecov.io/gh/SantiagoEnriqueGA/ez-animate/branch/master/graph/badge.svg" alt="Code Coverage">
+  </a>
+  <a href="https://github.com/charliermarsh/ruff">
+    <img src="https://img.shields.io/badge/code%20style-ruff-brightgreen.svg" alt="Code style: ruff">
+  </a>
+  <a href="https://santiagoenriquega.github.io/ez-animate/">
+    <img src="https://img.shields.io/website?down_color=red&down_message=offline&up_color=brightgreen&up_message=MkDocs&url=https%3A%2F%2Fsantiagoenriquega.github.io%2Fez-animate" alt="Site Status">
+  </a>
+</p>
+
+# ez-animate
+
+A high-level, declarative Python package for creating common Matplotlib animations with minimal boilerplate code.
+
+
+## Project Goals
+
+`ez-animate` aims to make it easy for data scientists, analysts, educators, and researchers to create standard Matplotlib animations quickly and with minimal code. It abstracts away the complexity of `FuncAnimation`, state management, and repetitive setup, letting you focus on your data and story.
+
+### Why?
+- **Complex Setup:** No need to write custom `init` and `update` functions.
+- **State Management:** Simplifies handling data and artist states between frames.
+- **Repetitive Code:** Reduces boilerplate for standard animations.
+
+### Who is it for?
+- **Primary:** Data scientists & analysts (exploratory analysis, presentations, notebooks).
+- **Secondary:** Students, educators, and researchers (learning, teaching, publications).
+
+## Features
+- **Simple API:** Create animations with a few lines of code.
+- **Tested & Linted:** High code quality with `pytest` and `ruff`.
+- **Documentation:** See [documentation](https://santiagoenriquega.github.io/ez-animate/) for usage examples and API references.
+
+## Installation
+
+```bash
+pip install ez-animate
+```
+
+
+## Quickstart
+
+```python
+from ez_animate import RegressionAnimation
+
+# Create and run the animation
+animator = RegressionAnimation(
+    model=Lasso,    # Scikit-learn or sega_learn model class
+    X=X,
+    y=y,
+    test_size=0.25,
+    dynamic_parameter="alpha",
+    static_parameters={"max_iter": 1, "fit_intercept": True},
+    keep_previous=True,
+    metric_fn=Metrics.mean_squared_error,
+)
+
+# Set up the plot
+animator.setup_plot(
+    title="Regression Animation",
+    xlabel="Feature Coefficient",
+    ylabel="Target Value",
+)
+
+# Create the animation
+animator.animate(frames=np.arange(0.01, 1.0, 0.01))
+
+# Show and save the animation
+animator.show()
+animator.save("regression_animation.gif")
+```
+
+## Full Documentation
+
+See the [documentation site](https://santiagoenriquega.github.io/ez-animate/) for complete usage instructions, API references, and examples.
+## Development/Contributing
+
+See [DEVELOPMENT.md](DEVELOPMENT.md) for full development and contributing guidelines.
+
+
+## Project Structure
+
+```
+ez-animate/
+├─ .github/
+│  ├─ ISSUE_TEMPLATE
+│  └─ workflows
+├─ examples/
+│  ├─ plots
+│  ├─ sega_learn
+│  └─ sklearn
+├─ src/
+│  └─ ez_animate
+└─ tests
+
+```
+
+## License
+
+This project is licensed under the terms of the [MIT License](LICENSE).
+
+
+## Acknowledgments
+
+- Built with inspiration from the Matplotlib community.
+- Thanks to all contributors!
+
+## Example GIFs
+
+### Stochastic Gradient Descent (SGD) Regression
+Here's an example of a Stochastic Gradient Descent (SGD) regression animation created using `ez-animate`. This animation shows how the fit and the metrics evolve over time as the model learns from the data.
+![SGD Regression Animation](https://raw.githubusercontent.com/SantiagoEnriqueGA/ez-animate/master/docs/plots/animator_sgd.gif)
+
+### K-Means Clustering
+Here's an example of a K-Means clustering animation created using `ez-animate`. This animation shows how the cluster centroids and the data points evolve over time as the algorithm iteratively refines the clusters.
+![K-Means Clustering Animation](https://raw.githubusercontent.com/SantiagoEnriqueGA/ez-animate/master/docs/plots/animator_kmeans.gif)

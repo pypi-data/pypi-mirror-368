@@ -1,0 +1,172 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ez-animate"
+version = "0.1.1"
+description = "A simple package to streamline Matplotlib animations."
+authors = [
+    {name = "Santiago Gonzalez", email = "sega97@gmail.com"},
+]
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Visualization",
+]
+
+dependencies = [
+    "matplotlib>=3",
+    "numpy>=2",
+    "scipy>=1.10",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8.0",
+    "pytest-cov",
+    "sega_learn",
+    # "sktime",
+]
+docs = [
+    "mkdocs>=1.6",
+    "mkdocs-material>=9.5",
+    "pygments",
+    "pymdown-extensions",
+]
+lint = [
+    "ruff",
+]
+
+# Combined 'dev' group for convenience
+dev = [
+    "ez-animate[test,docs,lint]",
+    "build>=1.2",
+    "twine>=5.0",
+    "pre-commit",
+]
+
+[project.urls]
+Homepage = "https://github.com/SantiagoEnriqueGA/ez-animate"
+Repository = "https://github.com/SantiagoEnriqueGA/ez-animate"
+
+[tool.ruff]
+target-version = "py313"
+
+# Define directories/files to check
+src = ["src", "tests", "examples", "docs"]
+
+# Exclude directories/files Ruff should ignore
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+    "build",
+    "docs/*",
+    ".html",
+    "_archive/",
+    "__pycache__/",
+    "*.pyc",
+    "*.pyo",
+    "*.pyd",
+    "*_dev/",   # Exclude any folder ending in _dev
+    "*.txt",    # Exclude any .txt file
+    "*.ipynb",  # Exclude any .ipynb file
+]
+
+[tool.ruff.lint]
+# Baseline set of rules:
+    # E = pycodestyle errors
+    # F = Pyflakes errors
+    # W = pycodestyle warnings
+    # I = isort (import sorting)
+    # UP = pyupgrade (suggests modern Python syntax)
+    # B = flake8-bugbear (finds likely bugs)
+    # C4 = flake8-comprehensions (helps write better comprehensions)
+    # SIM = flake8-simplify (simplifies code)
+    # TID = flake8-tidy-imports
+    # D = pydocstyle (docstring style checker)
+select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM", "TID", "D"]
+
+
+# Add the specific codes to ignore
+ignore = ["F403", "F405", "E501", "D100", "D104", "D105", "UP038", "B905"]
+# F403/405 are "import *" statements
+# E501 is line length (ruff format . will still try to wrap lines)
+# D100 is missing docstring in public module
+# D104 is missing docstring in public package
+# D105 is missing docstring in magic method (__name__, __str__, etc.)
+# UP038 this rule was deprecated
+# B905 checks for zip calls without an explicit strict parameter.
+
+# Keep fixable settings
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint.pydocstyle]
+convention = "google" # <- Using Google style guide for docstrings (not "numpy" or "pep257")
+
+# Optional: per-file ignores
+# [tool.ruff.lint.per-file-ignores]
+
+[tool.ruff.format]
+
+# Limit what goes into distributions to avoid huge sdists
+[tool.hatch.build.targets.wheel]
+# Ensure only the package under src is included in the wheel
+packages = ["src/ez_animate"]
+exclude = [
+    "**/__pycache__/**",
+    "**/*.py[cod]",
+]
+
+[tool.hatch.build.targets.sdist]
+# Keep the sdist lean to stay well under PyPI's 100 MB limit
+# Include only essential files and the package source
+include = [
+    "src",
+    "README.md",
+    "LICENSE",
+    "pyproject.toml",
+]
+exclude = [
+    "**/__pycache__/**",
+    "**/*.py[cod]",
+    "**/*.gif",
+    "**/*.png",
+    "**/*.jpg",
+    "**/*.svg",
+]
