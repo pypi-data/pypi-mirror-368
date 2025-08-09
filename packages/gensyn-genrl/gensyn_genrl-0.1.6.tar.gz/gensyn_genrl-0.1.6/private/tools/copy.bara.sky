@@ -1,0 +1,74 @@
+private_repo = "git@github.com:gensyn-ai/genrl-private.git"
+public_repo = "git@github.com:gensyn-ai/genrl.git"
+
+# Assume we want to sync everything except for some select files.
+PRIVATE_FILES_TO_SYNC = glob(
+    ["**"],
+    exclude = [
+        ".buildkite/**",
+        ".github/**",
+        "private/**",
+        "private-containerfiles/**",
+        "**/*.bazel*",
+        "*.bazel*",
+        "bazelw",
+    ]
+)
+
+GENSYN_AUTHOR = "Gensyn <developers@gensyn.ai>"
+
+# TODO: Add labels to the internal PR for easier tracking.
+core.workflow(
+    name = "pull",
+    origin = git.github_pr_origin(
+        url = public_repo,
+    ),
+    destination = git.github_pr_destination(
+        url = private_repo,
+        destination_ref = "main",
+        pr_branch = "public_pr/${CONTEXT_REFERENCE}",
+        title = "${GITHUB_PR_TITLE}",
+        body = "_Imported from " + public_repo + "/pull/${GITHUB_PR_NUMBER}_\n\n---\n${GITHUB_PR_BODY}",
+        integrates = [],
+    ),
+
+    mode = "CHANGE_REQUEST",
+    
+    set_rev_id = False,
+
+    origin_files = glob(["**"]),
+    destination_files = PRIVATE_FILES_TO_SYNC,
+
+    authoring = authoring.pass_thru(GENSYN_AUTHOR),
+    transformations = [
+        metadata.save_author(),
+        metadata.expose_label("COPYBARA_INTEGRATE_REVIEW"),
+        metadata.expose_label("GITHUB_PR_NUMBER")
+    ],
+)
+
+# Basic push workflow from the private source of truth.
+# TODO: Auto-closing a public PR once their private PR has been pushed out.
+# For now that's a manual step of us going to a PR.
+core.workflow(
+    name = "push",
+    origin = git.github_origin(
+        url = private_repo,
+        ref = "main",
+    ),
+    destination = git.github_destination(
+        url = public_repo,
+        push = "main",
+    ),
+    origin_files = PRIVATE_FILES_TO_SYNC,
+    destination_files = glob(["**"]),
+    mode = "ITERATIVE",
+    authoring = authoring.pass_thru(GENSYN_AUTHOR),
+    transformations=[
+        metadata.scrubber(
+            regex = r"\(#\d+\)",
+            replacement  = "",
+        ),
+        metadata.restore_author(search_all_changes=True),
+    ]
+)
