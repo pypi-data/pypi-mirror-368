@@ -1,0 +1,82 @@
+[build-system]
+requires = ['hatchling']
+build-backend = 'hatchling.build'
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[project]
+name = "orekit_jpype"
+version = "13.1.0.1"
+description = "A space dynamics library. This package is a jpype wrapping of the original orekit java code."
+readme = "README.md"
+authors = [{name = "Petrus Hyvönen", email = "petrus.hyvonen@gmail.com"}]
+maintainers = [{name = "Clément Jonglez", email = "clement@jonglez.space"}]
+license = {text = "License :: OSI Approved :: Apache Software License"}
+requires-python = ">=3.7"
+classifiers = [
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.7',
+    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
+    'Programming Language :: Python :: 3.12',
+    'Programming Language :: Python :: 3.13',
+    'Topic :: Scientific/Engineering',
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    'Jpype1==1.6.0',
+    'numpy<2.3'  # issue with 2D arrays, https://github.com/jpype-project/jpype/issues/1307
+]
+
+[project.urls]
+source = "https://gitlab.orekit.org/orekit/orekit_jpype/-/tree/master"
+homepage = "https://www.orekit.org/"
+forum = "https://forum.orekit.org/c/orekit-python-wrapper-usage/17"
+
+[project.optional-dependencies]
+tests = [
+    "pytest",
+    "coverage",
+    "pytest-cov"
+]
+jdk4py = [
+    "jdk4py"
+]
+dev = [
+    "orekit_jpype[tests,jdk4py]",
+    "stubgenj",
+    "build",
+    "flake8",
+    "flake8-gl-codeclimate"
+]
+
+[pytest]
+testpaths = [
+    "test",
+    "orekit_jpype/_pyinstaller"
+]
+
+[project.entry-points.pyinstaller40]
+"hook-dirs" = "orekit_jpype._pyinstaller.entry_points:get_hook_dirs"
+"tests" = "orekit_jpype._pyinstaller.entry_points:get_PyInstaller_tests"
+
+[tool.hatch.build.targets.wheel]
+# Hatch allows installing multiple packages: https://hatch.pypa.io/1.12/config/build/#packages
+packages = [
+    "orekit_jpype",
+    "java-stubs", # stub-only package for the corresponding Java package https://peps.python.org/pep-0561/#stub-only-packages
+    "jpype-stubs", # stub-only package for the corresponding Java package https://peps.python.org/pep-0561/#stub-only-packages
+    "org-stubs" # stub-only package for the corresponding Java package https://peps.python.org/pep-0561/#stub-only-packages
+]
+
+[tool.uv.workspace]
+members = ["examples"]
+
+# Use local orekit-jpype for this workspace
+[tool.uv.sources]
+orekit-jpype = { workspace = true }
+

@@ -1,0 +1,75 @@
+default:
+  cache:                      # Pip's cache doesn't store the python packages
+    paths:                    # https://pip.pypa.io/en/stable/topics/caching/
+      - .cache/pip
+  before_script:
+    - python -V               # Print out python version for debugging
+    - pip install --upgrade pip
+    - pip install virtualenv
+    - virtualenv venv
+
+variables:  # Change pip's cache directory to be inside the project directory since we can only cache local items.
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+build-wheel:
+  stage: build
+  image: python:$PYTHON_VERSION-bookworm
+  parallel:
+    matrix:
+      - PYTHON_VERSION: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+  script:
+    - source venv/bin/activate
+    - pip install build
+    - python3 -m build
+  artifacts:
+    paths:
+      - dist
+    expire_in: 1 day
+
+flake8:
+  stage: test
+  image: python:3.11-bookworm
+  script:
+    - source venv/bin/activate
+    - pip install flake8 flake8-gl-codeclimate
+    - flake8 --format gl-codeclimate --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --output-file gl-code-quality-report.json orekit_jpype
+  artifacts:
+    reports:
+      codequality: gl-code-quality-report.json
+    expire_in: 1 month
+
+test:
+  stage: test
+  image: python:$PYTHON_VERSION-bookworm
+  parallel:
+    matrix:
+      - PYTHON_VERSION: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+  script:
+    - source venv/bin/activate
+    - python3 -m pip install .[tests,jdk4py]
+    - export JAVA_HOME=`python3 set_java_home.py`
+    - cd test
+    - python3 -m pytest PyhelpersTest.py # First test setup_orekit_data without the orekitdata library
+    - python3 -m pip install git+https://gitlab.orekit.org/orekit/orekit-data.git
+    - python3 -m pytest
+    - cd ../tests-jvm
+    - find . -name "*.py" -exec python3 -m pytest {} \;
+
+coverage:
+  stage: test
+  image: python:3.11-bookworm
+  script:
+    - source venv/bin/activate
+    - python3 -m pip install .[tests,jdk4py]
+    - export JAVA_HOME=`python3 set_java_home.py`
+    - cd test
+    - python3 -m pip install git+https://gitlab.orekit.org/orekit/orekit-data.git
+    - python3 -m pytest --cov --cov-report term --cov-report xml:coverage.xml
+
+  coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: test/coverage.xml
+    expire_in: 1 week
