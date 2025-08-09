@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Rust CI
+    runs-on: ubuntu-latest
+    
+    if: ${{ !startsWith(github.head_ref, 'release') }}
+
+    strategy:
+      matrix:
+        rust: [stable, beta, nightly]
+
+    steps:
+      # Step 1: Check out the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Set up Rust toolchain
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ matrix.rust }}
+          components: rustfmt, clippy
+
+      # Step 3: Verify code formatting
+      - name: Check code formatting
+        run: cargo fmt -- --check
+
+      # Step 4: Run Clippy for linting
+      - name: Run Clippy
+        run: cargo clippy -- -D warnings
+
+      # Step 5: Run tests
+      - name: Run tests
+        run: cargo test
+
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      # Step 1: Check out the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Set up Rust toolchain (stable only for coverage)
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      # Step 3: Install cargo-tarpaulin
+      - name: Install cargo-tarpaulin
+        run: cargo install cargo-tarpaulin
+
+      # Step 4: Generate coverage report
+      - name: Generate coverage report
+        run: cargo tarpaulin --out Lcov --output-dir ./coverage
+
+      # Step 5: Upload coverage reports as artifacts
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: coverage/
+          retention-days: 30
+
+      # Step 6: Upload coverage to Codecov
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage/lcov.info
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
