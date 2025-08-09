@@ -1,0 +1,116 @@
+# pre-commit configurations
+default_install_hook_types:
+  - commit-msg
+  - pre-commit
+  - pre-push
+  - prepare-commit-msg
+default_stages:
+  - commit-msg
+  - pre-commit
+  - pre-push
+  - prepare-commit-msg
+minimum_pre_commit_version: 3.8.0
+
+# pre-commit exclusions
+exclude: >
+  (?x)(
+    ^archives/|
+    \.drawio$|
+    \.patch$|
+    \.svg$|
+    \.vhd$|
+    \.xci$|
+    \.xdc$|
+    eicar\..*$|
+    CHANGELOG.md$|
+    COPYING.*$|
+    LICENSE.*$|
+    README\.md$
+  )
+
+# pre-commit repositories
+repos:
+
+  # Repository: pre-commit
+  - repo: meta
+    hooks:
+      - id: check-hooks-apply
+      - id: check-useless-excludes
+
+  # Repository: pre-commit-hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+      - id: check-case-conflict
+        # exclude: >
+        #   (?x)(
+        #     \.nmconnection$
+        #   )
+      - id: check-executables-have-shebangs
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-toml
+      # - id: check-xml
+      - id: check-yaml
+        args: ['--unsafe']
+      - id: destroyed-symlinks
+        stages: [commit, push, manual] # Issue: https://github.com/pre-commit/pre-commit-hooks/pull/1085
+      - id: detect-private-key
+      - id: double-quote-string-fixer
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+      - id: trailing-whitespace
+        args: ['--markdown-linebreak-ext=md']
+        exclude: >
+          (?x)(
+            .*.md$
+          )
+
+  # Repository: pre-commit-hooks
+  - repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.10.0
+    hooks:
+      - id: python-check-blanket-type-ignore
+      - id: python-no-eval
+
+  # Repository: commitizen
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v3.29.0
+    hooks:
+      - id: commitizen
+        stages:
+          - commit-msg
+      - id: commitizen-branch
+        entry: cz
+        args: [--no-raise, '3', check, --rev-range, origin/HEAD..HEAD]
+        stages:
+          - push
+
+  # Repository: pre-commit-crocodile
+  - repo: https://gitlab.com/RadianDevCore/tools/pre-commit-crocodile
+    rev: 5.0.0
+    hooks:
+      - id: check-yaml-ruamel-pure
+      - id: prepare-commit-message
+
+  # Repository: gcil
+  - repo: https://gitlab.com/RadianDevCore/tools/gcil
+    rev: 11.1.0
+    hooks:
+      - id: run-gcil-push
+        name: Run GitLab CI job with gcil (codestyle)
+        description: Automatically run GitLab CI job with gcil (codestyle)
+        args:
+          - 'codestyle'
+      - id: run-gcil-push
+        name: Run GitLab CI job with gcil (lint)
+        description: Automatically run GitLab CI job with gcil (lint)
+        args:
+          - 'lint'
+      - id: run-gcil-push
+        name: Run GitLab CI job with gcil (typings)
+        description: Automatically run GitLab CI job with gcil (typings)
+        args:
+          - 'typings'
