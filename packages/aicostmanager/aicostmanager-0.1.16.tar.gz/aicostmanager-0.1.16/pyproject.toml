@@ -1,0 +1,64 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aicostmanager"
+version = "0.1.16"
+description = "Python SDK for the AICostManager API"
+authors = [{name = "AICostManager", email = "support@aicostmanager.com"}]
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "requests",
+    "pydantic",
+    "httpx",
+    "PyJWT",
+    "tenacity",
+    "cryptography",
+]
+
+[project.urls]
+Homepage = "https://aicostmanager.com"
+Source = "https://github.com/aicostmanager/aicostmanager"
+
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = ["tests*", "scripts*", "docs*", "dist*", "build*"]
+
+[tool.pytest.ini_options]
+addopts = "-v"
+filterwarnings = [
+    "ignore::DeprecationWarning:botocore.*",
+    "ignore:datetime.datetime.utcnow.*:DeprecationWarning",
+]
+
+[dependency-groups]
+test = [
+    "openai",
+    "pytest",
+    "python-dotenv",
+    "requests",
+    "httpx",
+    "anthropic",
+    "boto3",
+    "google-genai",
+]
+
+[project.optional-dependencies]
+dev = [
+    "build",
+    "twine",
+    "bump-my-version",
+]
+
+[tool.bumpversion]
+current_version = "0.1.16"
+commit = true
+tag = true
+
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
+
+[[tool.bumpversion.files]]
+filename = "aicostmanager/__init__.py"
