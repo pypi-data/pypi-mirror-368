@@ -1,0 +1,55 @@
+Metadata-Version: 2.1
+Name: madsci.common
+Version: 0.4.4
+Summary: The Modular Autonomous Discovery for Science (MADSci) Common Definitions and Utilities.
+Author-Email: Tobias Ginsburg <tginsburg@anl.gov>, "Ryan D. Lewis" <ryan.lewis@anl.gov>, Casey Stone <cstone@anl.gov>, Doga Ozgulbas <dozgulbas@anl.gov>
+License: MIT
+Project-URL: Homepage, https://github.com/AD-SDL/MADSci
+Requires-Python: >=3.9.1
+Requires-Dist: pydantic>=2.10
+Requires-Dist: PyYAML>=6.0.2
+Requires-Dist: sqlmodel>=0.0.22
+Requires-Dist: python-ulid[pydantic]>=3.0.0
+Requires-Dist: aenum>=3.1.15
+Requires-Dist: python-dotenv>=1.0.1
+Requires-Dist: requests>=2.32.3
+Requires-Dist: pymongo>=4.10.1
+Requires-Dist: fastapi>=0.115.4
+Requires-Dist: uvicorn[standard]>=0.32.0
+Requires-Dist: python-multipart>=0.0.17
+Requires-Dist: pydantic-extra-types>=2.10.2
+Requires-Dist: semver>=3.0.4
+Requires-Dist: multiprocess>=0.70.17
+Requires-Dist: pydantic-settings>=2.9.1
+Requires-Dist: pydantic-settings-export>=1.0.2
+Description-Content-Type: text/markdown
+
+# MADSci Common
+
+Common types, validators, serializers, utilities, and other flotsam and jetsam used across the MADSci toolkit.
+
+## Installation
+
+The MADSci common components are available via [the Python Package Index](https://pypi.org/project/madsci.common/), and can be installed via:
+
+```bash
+pip install madsci.common
+```
+
+This python package is also included as part of the [madsci Docker image](https://github.com/orgs/AD-SDL/packages/container/package/madsci).
+
+## MADSci Types
+
+The MADSci toolkit uses a variety of "types", implemented as [Pydantic Data Models](https://docs.pydantic.dev/latest/). These data models allow us to easily create, validate, serialize, and de-serialize data structures used throughout the distributed systems. They can easily be serialized to JSON when being sent between system components over REST or stored in JSON-friendly databases like MongoDB or Redis, or to YAML for human-readable and editable definition files.
+
+You can import these types from `madsci.common.types`, where they are organized by subsystem.
+
+## Settings
+
+MADSci uses [Pydantic Settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/) to configure many of it's subsystems. This allows users to configure managers, clients, nodes, and other MADSci components using command line arguments, environment variables, settings files in various formats (`.env`, `.toml`, `.yaml`, `.json`), and secrets files.
+
+![Settings Precedence](./assets/drawio/config_precedence.drawio.svg)
+
+Detailed documentation for what configuration can be set is included in the [Configuration.md](../../Configuration.md), and an example [.env](../../.env.example) is included in the root of the MADSci repository.
+
+In general, each subsystem supports configuration via both a generic file (`.env`, `settings.yaml`, etc), and a subsystem-specific file (`event_client.env`, `event_client.yaml`, etc). In such cases, the subsystem specific version takes precedence over the generic version.
