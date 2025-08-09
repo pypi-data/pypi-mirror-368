@@ -1,0 +1,222 @@
+# Document Search MCP - PyPI Publishing Pipeline
+
+stages:
+  - validate
+  - build
+  - test
+  - publish
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  PYTHON_VERSION: "3.11"
+
+# Cache for faster builds
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - .cache/pip/
+    - .venv/
+
+# Validate code quality and structure
+validate_code:
+  stage: validate
+  image: python:${PYTHON_VERSION}
+  script:
+    - python -m pip install --upgrade pip setuptools
+    - pip install ruff mypy bandit safety
+    - echo "Running code quality checks..."
+    - ruff check src/
+    - ruff format --check src/
+    - mypy src/
+    - bandit -r src/
+    - safety check
+    - echo "Code validation complete"
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_MERGE_REQUEST_ID
+    - changes:
+        - "src/**/*"
+        - "pyproject.toml"
+      when: always
+
+validate_package:
+  stage: validate
+  image: python:${PYTHON_VERSION}
+  script:
+    - python -m pip install --upgrade pip build
+    - echo "Validating package configuration..."
+    - python -c "import tomllib; tomllib.load(open('pyproject.toml', 'rb')); print('pyproject.toml is valid')"
+    - echo "Package validation complete"
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_MERGE_REQUEST_ID
+    - changes:
+        - "pyproject.toml"
+        - "setup.py"
+        - "MANIFEST.in"
+      when: always
+
+# Build Python package
+build_package:
+  stage: build
+  image: python:${PYTHON_VERSION}
+  script:
+    - python -m pip install --upgrade pip build
+    - echo "Building Python package..."
+    - python -m build
+    - ls -la dist/
+    - echo "Package built successfully"
+  artifacts:
+    name: "package-${CI_COMMIT_SHORT_SHA}"
+    paths:
+      - dist/
+    expire_in: 1 week
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_MERGE_REQUEST_ID
+    - if: $CI_COMMIT_TAG
+
+# Test the built package
+test_package:
+  stage: test
+  image: python:${PYTHON_VERSION}
+  script:
+    - pip install twine check-manifest
+    - echo "Testing package integrity..."
+    - twine check dist/*
+    - check-manifest --ignore '*.env*,infra/**,docs/samples/**,.gitlab-ci-*.yml'
+    - echo "Installing and testing package..."
+    - pip install dist/*.whl
+    - python -c "import src.main; print('✅ Package import successful')"
+    - echo "Package tests passed"
+  dependencies:
+    - build_package
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_MERGE_REQUEST_ID
+    - if: $CI_COMMIT_TAG
+
+# Run unit tests if they exist
+test_unit:
+  stage: test
+  image: python:${PYTHON_VERSION}
+  script:
+    - python -m pip install --upgrade pip
+    - pip install -e ".[dev]"
+    - echo "Running unit tests..."
+    - pytest tests/ -v --cov=src --cov-report=term-missing
+    - echo "Unit tests passed"
+  coverage: '/TOTAL.*\s+(\d+%)$/'
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_MERGE_REQUEST_ID
+    - changes:
+        - "src/**/*"
+        - "tests/**/*"
+        - "pyproject.toml"
+  allow_failure: true  # Allow failure if no tests exist yet
+
+# Publish to Test PyPI (manual or on tags with TEST flag)
+publish_test_pypi:
+  stage: publish
+  image: python:${PYTHON_VERSION}
+  script:
+    - pip install twine
+    - echo "Publishing to Test PyPI..."
+    - twine upload --repository testpypi dist/*
+    - echo "Published to Test PyPI"
+  environment:
+    name: test-pypi
+    url: https://test.pypi.org/project/document-search-mcp/
+  variables:
+    TWINE_USERNAME: __token__
+    TWINE_PASSWORD: $TEST_PYPI_API_TOKEN
+  dependencies:
+    - build_package
+    - test_package
+  rules:
+    - if: $CI_COMMIT_TAG && $PUBLISH_TEST == "true"
+      when: on_success
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
+      allow_failure: true
+
+# Publish to Production PyPI (on git tags or manual)
+publish_pypi:
+  stage: publish
+  image: python:${PYTHON_VERSION}
+  script:
+    - pip install twine
+    - echo "Publishing to PyPI..."
+    - twine upload dist/*
+    - echo "Published to PyPI"
+  environment:
+    name: pypi
+    url: https://pypi.org/project/document-search-mcp/
+  variables:
+    TWINE_USERNAME: __token__
+    TWINE_PASSWORD: $PYPI_API_TOKEN
+  dependencies:
+    - build_package
+    - test_package
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+      when: on_success
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
+      allow_failure: true
+
+# Create GitHub/GitLab release (on version tags)
+release_create:
+  stage: publish
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  script:
+    - echo "Creating release for tag $CI_COMMIT_TAG"
+  release:
+    name: "Release $CI_COMMIT_TAG"
+    description: |
+      ## Document Search MCP $CI_COMMIT_TAG
+      
+      ### Installation
+      ```bash
+      pip install document-search-mcp==$CI_COMMIT_TAG
+      ```
+      
+      ### What's Changed
+      - See commit history for detailed changes
+      
+      **Full Changelog**: $CI_PROJECT_URL/-/compare/$CI_COMMIT_BEFORE_SHA...$CI_COMMIT_TAG
+    tag_name: $CI_COMMIT_TAG
+    ref: $CI_COMMIT_TAG
+    assets:
+      links:
+        - name: "PyPI Package"
+          url: "https://pypi.org/project/document-search-mcp/$CI_COMMIT_TAG/"
+        - name: "Source Code"
+          url: "$CI_PROJECT_URL/-/archive/$CI_COMMIT_TAG/document-search-mcp-$CI_COMMIT_TAG.tar.gz"
+  dependencies:
+    - publish_pypi
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+      when: on_success
+
+# Security and dependency scanning
+security_scan:
+  stage: validate
+  image: python:${PYTHON_VERSION}
+  script:
+    - pip install safety bandit semgrep
+    - echo "Running security scans..."
+    - safety check --json || true  # Don't fail on known vulnerabilities
+    - bandit -r src/ -f json || true
+    - semgrep --config=auto src/ || true
+    - echo "Security scan complete"
+  artifacts:
+    reports:
+      sast: gl-sast-report.json
+    when: always
+    expire_in: 1 week
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_MERGE_REQUEST_ID
+  allow_failure: true
