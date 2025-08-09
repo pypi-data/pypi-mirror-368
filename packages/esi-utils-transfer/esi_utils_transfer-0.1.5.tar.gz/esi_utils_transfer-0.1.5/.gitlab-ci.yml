@@ -1,0 +1,84 @@
+include:
+  - project: "ghsc/esi/esi-templates"
+    ref: main
+    file:
+      - ".deploy_rules.yml"
+      - ".deploy_to_pypi_by_tag.yml"
+
+# Do not run for merge requests
+# this prevents running unmerged code on the upstream runners
+workflow:
+  rules:
+    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_BRANCH
+
+
+default:
+  image: code.usgs.gov:5001/devops/images/usgs/python:3.9-build
+  tags:
+    - build
+
+stages:
+  - build
+  - test
+  - deploy
+
+# Builds the code
+.build_code:
+  tags:
+    - build
+
+Build Code:
+  artifacts:
+    paths:
+      - dist/
+  cache: {}
+  extends:
+    - .build_code
+  rules:
+    - when: always
+  script:
+    - export PATH=${PATH}:"/home/usgs-user/.local/bin"
+    - pip install -e .[dev,test]
+    - python -m build
+  stage: build
+
+## --------------------------------------------------
+# Tests the database code
+## --------------------------------------------------
+.test_code:
+  tags:
+    - build
+    
+Format Code:
+  cache: {}
+  extends:
+    - .test_code
+  rules:
+    - when: always
+  script:
+    - export PATH=${PATH}:"/home/usgs-user/.local/bin"
+    - echo ${PATH}
+    - pip install -e .[dev,test]
+    - black src/esi_utils_transfer/*.py
+  stage: test
+
+Test Code:
+  cache: {}
+  extends:
+    - .test_code
+  script:
+    - export PATH=${PATH}:"/home/usgs-user/.local/bin"
+    - echo ${PATH}
+    - pip install -e .[dev,test]
+    - pytest .
+  stage: test
+
+# --------------------------------------------------
+# Deploy the pip package
+# --------------------------------------------------
+run upload pypi:
+  rules:
+    - !reference [.deploy, rules]
+  extends: .deploy-to-pypi-by-tag
+  stage: deploy
