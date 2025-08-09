@@ -1,0 +1,91 @@
+[tool.poetry]
+name = "CAPE-parsers"
+version = "0.1.47"
+description = "CAPE: Malware Configuration Extraction"
+authors = ["Kevin O'Reilly <kev@capesandbox.com>", "doomedraven <doomedraven@capesandbox.com>"]
+license = "MIT"
+readme = "README.md"
+
+include = ["cape_parsers/**"]
+keywords = [ "cape", "parsers", "malware", "configuration"]
+
+packages = [{ include = "cape_parsers" }]
+
+
+[tool.poetry.dependencies]
+python = ">=3.10, <4.0"
+pefile = "*"
+capstone = ">=4.0.2"
+pycryptodomex = ">=3.20.0"
+# regex = ">=2021.7.6"
+netstruct = "1.1.2"
+maco = "1.1.8"
+yara-python = ">=4.5.1"
+dnfile = ">=0.15.1"
+dncil = ">=1.0.2"
+unicorn = ">=2.1.1"
+rat-king-parser = ">=4.1.0"
+
+ruff = ">=0.7.2"
+# isort = ">=5.13.2"
+
+[tool.distutils.bdist_wheel]
+universal = false
+
+[tool.poetry.extras]
+maco = ["maco"]
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.3.0"
+isort = "^5.10.1"
+pytest = "7.2.2"
+pytest-pretty = "1.1.0"
+pytest-cov = "3.0.0"
+pytest-mock = "3.7.0"
+pytest_asyncio = "0.18.3"
+pytest-xdist = "3.6.1"
+pytest-asyncio = "0.18.3"
+pytest-freezer = "0.4.8"
+tenacity = "8.1.0"
+httpretty = "^1.1.4"
+func-timeout = "^4.3.5"
+pre-commit = "^2.19.0"
+
+# Doesnt work on github CI
+# [tool.poetry.requires-plugins]
+# poetry-plugin-export = ">=1.8"
+
+[tool.ruff]
+exclude = [
+    "./analyzer/linux/dbus_next",
+]
+
+[tool.black]
+line-length = 132
+include = "\\.py(_disabled)?$"
+
+[tool.isort]
+profile = "black"
+no_lines_before = ["FUTURE", "STDLIB"]
+line_length = 132
+supported_extensions = ["py", "py_disabled"]
+
+[tool.flake8]
+max-line-length = 132
+exclude = ".git,__pycache__,.cache,.venv"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+norecursedirs = "tests/zip_compound"
+
+[lint]
+select = ["E", "F"]
+ignore = ["E402","E501"]
+
+[tool.poetry-dynamic-versioning]
+enable = false # Master switch to enable the plugin
+
+[build-system]
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
+build-backend = "poetry.core.masonry.api"
