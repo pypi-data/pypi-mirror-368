@@ -1,0 +1,96 @@
+# Hichi 🙏
+
+A powerful CLI tool for interacting with Groq AI models through your terminal.
+
+## Features
+
+- 🔐 Secure password authentication
+- 🔑 Encrypted API key storage
+- 💬 Interactive chat sessions with session-only memory
+- 🤖 Default model: openai/gpt-oss-120b
+- � Fresh conversation each session (no persistent history)
+- ⚙️ Easy model and API key management
+
+## Installation
+
+### From PyPI (when published)
+```bash
+pip install hichi
+```
+
+### From Source
+```bash
+git clone https://github.com/yourusername/hichi.git
+cd hichi
+pip install -e .
+```
+
+## Quick Start
+
+1. **Initialize Hichi**
+   ```bash
+   hichi hi
+   ```
+   This will prompt you for the password and set up your Groq API key on first run.
+
+2. **Start chatting**
+   ```bash
+   hichi chat
+   ```
+
+## Commands
+
+### `hichi hi`
+Initialize and verify setup. Required before using other commands.
+- Prompts for hardcoded password
+- Sets up Groq API key (first time only)
+- Shows current configuration
+
+### `hichi chat`
+Start an interactive chat session with the AI.
+- Session-only memory (fresh start each time)
+- Remembers conversation within current session only
+- Type `exit`, `quit`, or `bye` to end session
+- Use Ctrl+C to interrupt
+
+### `hichi key`
+Update your Groq API key.
+- Prompts for password verification
+- Securely encrypts and stores new API key
+
+### `hichi model [MODEL_NAME]`
+View or change the AI model.
+- Without arguments: shows current model
+- With model name: updates to new model
+- Default: "openai/gpt-oss-120b"
+
+## Security
+
+- API keys are encrypted using Fernet symmetric encryption
+- Password verification required for all operations
+- Configuration stored in `~/.hichi/`
+
+## Configuration
+
+Hichi stores its configuration in your home directory:
+- `~/.hichi/config.json` - Main configuration
+- `~/.hichi/key.key` - Encryption key
+
+Note: Chat conversations are session-only and not saved to disk.
+
+## Requirements
+
+- Python 3.8+
+- Groq AI API key
+
+## Development
+
+```bash
+git clone https://github.com/yourusername/hichi.git
+cd hichi
+pip install -e ".[dev]"
+```
+
+## License
+
+MIT License - see LICENSE file for details.
