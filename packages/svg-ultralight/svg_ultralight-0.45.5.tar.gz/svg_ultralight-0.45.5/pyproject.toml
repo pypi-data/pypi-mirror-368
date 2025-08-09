@@ -1,0 +1,81 @@
+[project]
+name = "svg-ultralight"
+version = "0.45.5"
+description = "a sensible way to create svg files with Python"
+authors = [{ name = "Shay Hill", email = "shay_public@hotmail.com" }]
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "cssutils",
+    "fonttools",
+    "lxml",
+    "paragraphs",
+    "pillow",
+    "svg-path-data",
+    "types-lxml",
+    "typing-extensions",
+]
+[project.optional-dependencies]
+dev = ["pytest", "commitizen", "pre-commit", "tox"]
+images = ["pillow"]
+
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+
+[tool.pytest.ini_options]
+addopts = "--doctest-modules"
+pythonpath = ["tests"]
+log_cli = 1
+
+
+[tool.isort]
+profile = "black"
+
+
+[tool.tox]
+legacy_tox_ini = """
+    [tox]
+    env_list = py{39,311,310}
+
+    [testenv]
+    deps = pytest
+    commands = pytest tests
+"""
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*.py" = ["S101", "D", "F401"]  # Ignore assertions, docstrings, unused imports in test files
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.45.5"
+tag_format = "$version"
+version_files = ["pyproject.toml:^version"]
+annotated_tag = true
+major_version_zero = true
+
+
+[tool.pyright]
+include = ["src"]
+exclude = ["**/__pycache__.py"]
+
+pythonVersion = "3.9"
+pythonPlatform = "Any"
+
+typeCheckingMode = "strict"
+reportShadowedImports = true
+reportCallInDefaultInitializer = true
+reportImplicitStringConcatenation = true
+# reportMissingSuperCall = true
+reportPropertyTypeMismatch = true
+reportUninitializedInstanceVariable = true
+reportUnnecessaryTypeIgnoreComment = true
+reportUnusedCallResult = true
+
+venvPath = "."
+venv = "./venv"
