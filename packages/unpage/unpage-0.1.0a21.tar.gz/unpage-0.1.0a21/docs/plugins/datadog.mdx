@@ -1,0 +1,83 @@
+---
+title: Datadog
+---
+
+The [Datadog](https://www.datadoghq.com/) plugin provides access to the following
+resources from your Datadog organization:
+
+<AccordionGroup>
+  <Accordion title="Knowledge Graph nodes" icon="diagram-project">
+    - Services (from Software Catalog)
+    - APIs (from Software Catalog)
+    - Teams
+    - Systems (inferred from relationships)
+  </Accordion>
+  <Accordion title="MCP Tools" icon="wrench">
+    - **search_logs**: Search Datadog logs within a specified time range
+  </Accordion>
+</AccordionGroup>
+
+
+## Prerequisites
+
+You'll need a Datadog account with access to:
+
+- **Datadog API**: An API key with appropriate permissions
+- **Datadog Application Key**: An application key for accessing the Datadog APIs
+- **Software Catalog**: Access to Datadog's Software Catalog feature (where services and APIs are defined)
+- **Teams**: Access to Datadog Teams (if you want team relationship data)
+
+The plugin uses Datadog's REST APIs to discover entities and their relationships.
+
+
+## Configuration
+
+Configure the Datadog plugin by running `uv run unpage configure` or by editing
+the `~/.unpage/profiles/<profile_name>/config.yaml` file:
+
+```yaml
+plugins:
+  # ...
+  datadog:
+    enabled: true
+    api_key: "your-datadog-api-key"
+    application_key: "your-datadog-application-key"
+```
+
+Alternatively, you can set these credentials as environment variables:
+
+```bash
+export DATADOG_API_KEY="your-datadog-api-key"
+export DATADOG_APP_KEY="your-datadog-application-key"
+```
+
+The plugin will automatically use environment variables if no credentials are specified in the configuration file.
+
+## MCP Tools
+
+The Datadog plugin provides the following tools to Agents and MCP Clients:
+
+<Card title="search_logs">
+  Search Datadog for logs within a given time range.
+
+  **Arguments**
+  <ParamField path="query" type="string" required>
+    The search query. Use Datadog's log search syntax to filter logs by service,
+    host, status, tags, or message content. For example: "service:web", "host:app01",
+    "status:error", or "ERROR".
+  </ParamField>
+  <ParamField path="min_time" type="datetime" required>
+    The starting time for the search range (ISO 8601 timestamp). Logs generated
+    at or after this time will be included in the results.
+  </ParamField>
+  <ParamField path="max_time" type="datetime" required>
+    The ending time for the search range (ISO 8601 timestamp). Logs generated
+    at or before this time will be included in the results.
+  </ParamField>
+
+  **Returns** `DatadogLogSearchResult`: An object containing:
+  - `results`: Array of log events with details including timestamp, host, service, status, tags, and attributes
+  - `truncated`: Boolean indicating if results were truncated due to response size limits or timeout
+
+  **Note**: Results are automatically truncated if they exceed response size limits or if the search takes longer than 10 seconds to ensure optimal performance.
+</Card>
