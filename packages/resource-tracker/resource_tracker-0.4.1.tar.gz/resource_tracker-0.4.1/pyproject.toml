@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "resource-tracker"
+dynamic = ["version"]
+description = "Lightweight Python package for monitoring process and system resource usage with optional Metaflow integration for cloud cost optimization."
+readme = "README.md"
+authors = [
+    {name = "Gergely Daroczi", email = "daroczig@sparecores.com"}
+]
+keywords = ["resource-monitor", "metaflow"]
+license = "MPL-2.0"
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Operating System :: POSIX :: Linux",
+  "Operating System :: MacOS",
+  "Operating System :: Microsoft :: Windows",
+]
+
+[project.urls]
+repository = "https://github.com/SpareCores/resource-tracker"
+issues = "https://github.com/SpareCores/resource-tracker/issues"
+documentation = "https://sparecores.github.io/resource-tracker/"
+changelog = "https://github.com/SpareCores/resource-tracker/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+dev = ["pytest", "metaflow", "psutil"]
+metaflow = ["metaflow"]
+psutil = ["psutil"]
+mkdocs = [
+  "markdown",
+  "mkdocs",
+  "mkdocs-material[imaging]", "mkdocs-material-extensions",
+  "mkdocs-autorefs", "mkdocs-gen-files", "mkdocs-literate-nav", "mkdocs-section-index",
+  "mkdocstrings[python]>=0.18",
+  "mkdocs-api-autonav",
+]
+# disabled the "all" flag due to not working with metaflow extension system
+# https://outerbounds-community.slack.com/archives/C020U025QJK/p1740659880844659?thread_ts=1740603078.574349&cid=C020U025QJK
+# TODO reenable when fix/workaround is available
+#all = ["resource-tracker[metaflow]"]
+
+[tool.setuptools.package-data]
+"resource_tracker" = ["report_template/**/*"]
+"metaflow_extensions.resource_tracker.plugins.cards.tracked_resources.resource_tracker" = ["report_template/**/*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "resource_tracker._version.__version__"}
+
+[tool.setuptools.packages.find]
+where = ["src/"]
+include = [
+    "resource_tracker",
+    "metaflow_extensions.*",
+]
