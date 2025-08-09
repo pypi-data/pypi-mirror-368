@@ -1,0 +1,212 @@
+# Undoom Uninstaller MCP
+
+一个基于MCP (Model Context Protocol) 的Windows程序卸载器服务，提供程序管理、卸载、强制删除和残留清理功能。
+
+## 功能特性
+
+- **程序列表管理**: 从Windows注册表获取已安装程序列表
+- **程序搜索**: 支持按名称和发布商搜索程序
+- **程序详情**: 查看程序的详细信息（版本、大小、安装位置等）
+- **标准卸载**: 使用程序自带的卸载程序进行卸载
+- **强制删除**: 强制删除程序文件和注册表项
+- **残留清理**: 清理程序卸载后的残留文件和文件夹
+- **列表刷新**: 重新扫描系统中的已安装程序
+
+## 安装
+
+### 方式一：通过PyPI安装（推荐）
+```bash
+# 使用uv安装
+uvx --index-url https://pypi.tuna.tsinghua.edu.cn/simple undoom-uninstaller-mcp
+
+# 或使用pip安装
+pip install undoom-uninstaller-mcp
+```
+
+### 方式二：从源码安装
+1. 克隆或下载此项目
+2. 安装依赖：
+```bash
+uv sync
+```
+
+## 使用方法
+
+### 作为MCP服务器运行
+
+```bash
+python main.py
+```
+
+### 可用工具
+
+#### 1. list_programs
+列出所有已安装的程序（包含安装时间和盘符信息）
+
+**参数:**
+- `search` (可选): 搜索关键词
+
+**返回信息:**
+- 程序名称、发布商、版本、大小、安装位置
+- **新增**: 安装时间、所在盘符
+
+**示例:**
+```json
+{
+  "search": "chrome"
+}
+```
+
+#### 2. get_program_details
+获取指定程序的详细信息（包含安装时间和盘符信息）
+
+**参数:**
+- `program_name` (必需): 程序名称
+
+**返回信息:**
+- 程序名称、发布商、版本、大小、安装位置、卸载字符串、注册表键
+- **新增**: 安装时间、所在盘符
+
+**示例:**
+```json
+{
+  "program_name": "Google Chrome"
+}
+```
+
+#### 3. uninstall_program
+卸载指定程序（使用程序自带的卸载程序）
+
+**参数:**
+- `program_name` (必需): 要卸载的程序名称
+
+**示例:**
+```json
+{
+  "program_name": "Google Chrome"
+}
+```
+
+#### 4. force_remove_program
+强制删除程序（删除文件和注册表项）
+
+**警告**: 此操作不可逆，请谨慎使用
+
+**参数:**
+- `program_name` (必需): 要强制删除的程序名称
+
+**示例:**
+```json
+{
+  "program_name": "Broken Software"
+}
+```
+
+#### 5. clean_residues
+清理程序残留文件
+
+**参数:**
+- `program_name` (必需): 要清理残留的程序名称
+
+**示例:**
+```json
+{
+  "program_name": "Old Program"
+}
+```
+
+#### 6. refresh_programs
+刷新程序列表
+
+**参数:** 无
+
+#### 7. show_all_programs_detailed
+显示所有程序的详细信息，包括名称、安装时间和盘符
+
+**参数:**
+- `limit` (可选): 限制返回的程序数量，默认为100
+- `sort_by` (可选): 排序字段，可选值：
+  - `name`: 按程序名称排序（默认）
+  - `install_date`: 按安装时间排序
+  - `drive_letter`: 按盘符排序
+
+**返回信息:**
+- 程序名称、安装时间、所在盘符
+- 发布商、版本、大小、安装位置
+
+**示例:**
+```json
+{
+  "limit": 50,
+  "sort_by": "install_date"
+}
+```
+
+#### 8. generate_markdown_report
+生成系统程序信息的Markdown报告文件
+
+**参数:**
+- `filename` (可选): 输出文件名（不包含扩展名），默认为'system_programs_report'
+- `limit` (可选): 限制返回的程序数量，默认为200
+- `sort_by` (可选): 排序字段，可选值：
+  - `name`: 按程序名称排序（默认）
+  - `install_date`: 按安装时间排序
+  - `drive_letter`: 按盘符排序
+- `include_stats` (可选): 是否包含详细统计信息，默认为true
+
+**返回信息:**
+- 生成包含所有程序信息的Markdown报告文件
+- 包含统计概览、程序详细列表等
+
+**示例:**
+```json
+{
+  "filename": "my_programs_report",
+  "limit": 100,
+  "sort_by": "name",
+  "include_stats": true
+}
+```
+
+## 技术实现
+
+### 数据来源
+程序信息从以下Windows注册表位置获取：
+- `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall`
+- `HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall`
+- `HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall`
+
+### 程序信息字段
+- **name**: 程序名称
+- **publisher**: 发布商
+- **version**: 版本号
+- **size**: 安装大小
+- **install_location**: 安装位置
+- **install_date**: 安装时间（YYYY-MM-DD格式）
+- **drive_letter**: 所在盘符（如C:、D:等，网络路径显示为"网络路径"）
+- **uninstall_string**: 卸载命令
+- **reg_key**: 注册表键路径
+
+### 残留清理位置
+系统会检查以下常见残留位置：
+- 程序安装目录
+- `%APPDATA%\[程序名]`
+- `%LOCALAPPDATA%\[程序名]`
+- `%PROGRAMDATA%\[程序名]`
+- `%USERPROFILE%\AppData\Local\[程序名]`
+- `%USERPROFILE%\AppData\Roaming\[程序名]`
+
+## 注意事项
+
+1. **管理员权限**: 某些操作可能需要管理员权限
+2. **数据安全**: 强制删除和残留清理操作不可逆，请谨慎使用
+3. **系统兼容性**: 仅支持Windows系统
+4. **程序限制**: 某些系统程序可能无法卸载或删除
+
+## 许可证
+
+MIT License
+
+## 贡献
+
+欢迎提交Issue和Pull Request来改进此项目。
