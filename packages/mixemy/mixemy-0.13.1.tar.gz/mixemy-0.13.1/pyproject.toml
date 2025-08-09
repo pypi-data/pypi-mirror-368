@@ -1,0 +1,82 @@
+[tool.poetry]
+name = "mixemy"
+version = "0.13.1"
+description = "Mixins for sqlalchemy and pydantic"
+authors = ["Algernon Sampson <algiesampson@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+include = [{ path = "tests", format = "sdist" }]
+repository = "https://github.com/frostyfeet909/mixemy"
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Database",
+    "Typing :: Typed"
+]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+sqlalchemy = "^2.0"
+pydantic = "^2.0"
+uuid-utils = "^0.10"
+greenlet = {version = ">=1", optional = true}
+
+[tool.poetry.extras]
+all = ["greenlet"]
+asyncio = ["greenlet"]
+
+[tool.poetry.group.dev.dependencies]
+ruff = "0.12.8"
+pyright = "1.1.403"
+pytest = "^8.3.4"
+pre-commit = "^4.0.1"
+testcontainers = "^4.9.0"
+psycopg2 = "^2.9.10"
+asyncpg = "^0.30.0"
+pytest-asyncio = "^0.25.2"
+vulture = "^2.14"
+pytest-cov = "^6.2.1"
+pytest-local-badge = "^1.0.3"
+
+[tool.pyright]
+include = ["src/mixemy/**/*.py"]
+typeCheckingMode = "strict"
+reportUnusedImport = "none"  # Handled by ruff
+reportMissingTypeStubs = "none"  # just dumb
+venvPath = "."
+venv = ".venv"
+
+[tool.ruff]
+include = ["src/mixemy/**/*.py", "tests/**/*.py"]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "E501", "A002", "ERA001", "T20", "FBT001", "FBT002", "ANN401", "PLR0913", "A005",
+    "W191", "E111", "E114", "E117", "D206", "D300", "Q000", "Q001", "Q002", "Q003", "COM812", "COM819", "ISC001", "ISC002"  # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
+    ]
+fixable = ["ALL"]
+unfixable = ["T20", "ERA001"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "ARG001", "PLR2004", "N806", "D100", "PLC0415"]
+"tests/conftest.py" = ["D"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["--import-mode=importlib", "--strict-markers"]
+markers = ["unit", "integration", "database", "asyncio"]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
