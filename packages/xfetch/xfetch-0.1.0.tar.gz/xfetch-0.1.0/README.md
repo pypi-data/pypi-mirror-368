@@ -1,0 +1,1 @@
+# xfetch\n\nA neofetch-like system info tool for Windows.
