@@ -1,0 +1,60 @@
+# Multi-node distributed training configuration
+#
+# Launches 4 nodes with 8x H100 GPUs each (32 GPUs total).
+# 
+# Required environment variables (set per node):
+#   FLOW_NODE_RANK: Node index (0, 1, 2, 3)
+#   FLOW_NUM_NODES: Total nodes (4)
+#   FLOW_MAIN_IP: IP address of rank 0 node
+#
+# Usage:
+#   flow run examples/configs/multi_node.yaml
+
+name: multi-node-training
+unique_name: true  # Appends random suffix to avoid name conflicts
+instance_type: h100-80gb.sxm.8x
+region: us-central1-b
+num_instances: 4  # Number of nodes
+max_price_per_hour: 40.0  # Total for all nodes
+
+env:
+  # Node-specific configuration (must be set per node)
+  FLOW_NODE_RANK: "0"       # Set to 0, 1, 2, or 3 for each node
+  FLOW_NUM_NODES: "4"       
+  FLOW_MAIN_IP: "SET_ME"    # IP address of rank 0 node
+  
+  # Network configuration
+  NCCL_SOCKET_IFNAME: eth0
+  OMP_NUM_THREADS: "8"
+
+command: |
+  #!/bin/bash
+  set -e
+  
+  # Verify configuration
+  if [[ "${FLOW_MAIN_IP}" == "SET_ME" ]]; then
+    echo "ERROR: Set FLOW_MAIN_IP to rank 0 node's IP address"
+    exit 1
+  fi
+  
+  echo "Node ${FLOW_NODE_RANK} of ${FLOW_NUM_NODES}"
+  echo "Master: ${FLOW_MAIN_IP}"
+  
+  pip install torch torchvision transformers
+  
+  torchrun \
+    --nproc_per_node=8 \
+    --nnodes=${FLOW_NUM_NODES} \
+    --node_rank=${FLOW_NODE_RANK} \
+    --master_addr=${FLOW_MAIN_IP} \
+    --master_port=29500 \
+    train_distributed.py \
+    --batch_size=256 \
+    --epochs=100
+
+# Shared storage for all nodes
+volumes:
+  - name: shared-data
+    size_gb: 500
+  - name: checkpoints
+    size_gb: 200

@@ -1,0 +1,146 @@
+"""Flow SDK - GPU compute made simple."""
+
+# Public API imports
+from flow.api.client import Flow
+from flow.api.decorators import FlowApp, app
+from flow.api.invoke import invoke
+from flow.api.models import Task, TaskConfig, TaskStatus, Volume, VolumeSpec, Retries
+from flow.api.secrets import Secret
+
+# Public errors and constants
+from flow.errors import (
+    APIError,
+    AuthenticationError,
+    ConfigParserError,
+    FlowError,
+    FlowOperationError,
+    InsufficientBidPriceError,
+    NetworkError,
+    ProviderError,
+    QuotaExceededError,
+    ResourceNotAvailableError,
+    ResourceNotFoundError,
+    TaskExecutionError,
+    TaskNotFoundError,
+    TimeoutError,
+    ValidationAPIError,
+    ValidationError,
+    VolumeError,
+    RemoteExecutionError,
+    NameConflictError,
+    DependencyNotFoundError,
+    InstanceNotReadyError,
+)
+
+# Provider-agnostic constants
+DEFAULT_REGION = "us-central1-b"  # Default region (Mithril default)
+DEFAULT_PROVISION_MINUTES = 12  # Typical provision time for GPU instances
+
+# SSH utilities
+from flow.api.ssh_utils import (
+    SSHNotReadyError,
+    check_task_age_for_ssh,
+    wait_for_task_ssh_info,
+)
+
+# Version
+try:
+    from importlib.metadata import version
+
+    __version__ = version("flow-sdk")
+except Exception:
+    __version__ = "0.0.0+unknown"
+
+
+# Convenience functions
+def run(task_or_command, **kwargs):
+    """Submit task to GPU infrastructure using default Flow client.
+
+    This is a convenience wrapper that creates a Flow instance internally.
+    For advanced usage requiring multiple operations, use `with Flow() as flow:`.
+
+    Args:
+        task_or_command: TaskConfig, path to YAML file, or command string
+        **kwargs: When task_or_command is a string command:
+            - instance_type: GPU instance type (e.g., "a100", "8xh100")
+            - image: Docker image to use
+            - wait: Whether to wait for task to start
+            - mounts: Data sources to mount
+            - Any other TaskConfig field
+
+    Returns:
+        Task: The submitted task object
+
+    Examples:
+        >>> import flow
+        >>> # Simple command with instance type
+        >>> task = flow.run("python train.py", instance_type="a100")
+        >>>
+        >>> # With Docker image
+        >>> task = flow.run("python train.py",
+        ...                 instance_type="a100",
+        ...                 image="pytorch/pytorch:2.0.0-cuda11.8-cudnn8")
+        >>>
+        >>> # From TaskConfig
+        >>> config = flow.TaskConfig(name="training", instance_type="8xh100",
+        ...                          command="python train.py")
+        >>> task = flow.run(config)
+    """
+    from flow.api.client import Flow
+
+    # Extract Flow.run() specific args
+    wait = kwargs.pop("wait", False)
+    mounts = kwargs.pop("mounts", None)
+
+    # If task_or_command is a string and not a file path, treat it as a command
+    if isinstance(task_or_command, str) and not task_or_command.endswith((".yaml", ".yml")):
+        # Check if it looks like a file path
+        from pathlib import Path
+
+        if not Path(task_or_command).exists():
+            # It's a command string, create TaskConfig with it
+            config = TaskConfig(command=task_or_command, **kwargs)
+            with Flow() as client:
+                return client.run(config, wait=wait, mounts=mounts)
+
+    # Otherwise, pass through as-is (TaskConfig or YAML path)
+    with Flow() as client:
+        return client.run(task_or_command, wait=wait, mounts=mounts)
+
+
+__all__ = [
+    # Main API
+    "Flow",
+    "FlowApp",
+    "invoke",
+    "app",
+    "run",
+    # Models
+    "TaskConfig",
+    "Task",
+    "Volume",
+    "VolumeSpec",
+    "TaskStatus",
+    "Secret",
+    "Retries",
+    # Errors
+    "FlowError",
+    "AuthenticationError",
+    "ResourceNotFoundError",
+    "TaskNotFoundError",
+    "ValidationError",
+    "APIError",
+    "ValidationAPIError",
+    "InsufficientBidPriceError",
+    "NetworkError",
+    "TimeoutError",
+    "ProviderError",
+    "ConfigParserError",
+    "ResourceNotAvailableError",
+    "QuotaExceededError",
+    "VolumeError",
+    "TaskExecutionError",
+    "FlowOperationError",
+    # Constants
+    "DEFAULT_REGION",
+]
