@@ -1,0 +1,37 @@
+import os
+from pathlib import Path
+from typing import Optional
+
+from py_app_dev.core.logging import logger, time_it
+from py_app_dev.core.subprocess import SubprocessExecutor
+
+
+class CMakeRunner:
+    executable = "cmake"
+
+    def __init__(self, install_directories: list[Path]) -> None:
+        self.logger = logger.bind()
+        self.install_directories = install_directories
+
+    def run(self, build_dir: Path, target: str = "all", build_type: Optional[str] = None) -> None:
+        self.configure(build_dir, build_type)
+        self.build(build_dir, target)
+
+    @time_it("CMake configure")
+    def configure(self, build_dir: Path, build_type: Optional[str] = None) -> None:
+        build_dir_str = build_dir.absolute().as_posix()
+        cmake_args = ["-S", build_dir_str, "-B", build_dir_str, "-G", "Ninja"]
+        if build_type:
+            cmake_args.append(f"-DCMAKE_BUILD_TYPE={build_type}")
+        self.run_cmake(cmake_args)
+
+    @time_it("CMake build")
+    def build(self, build_dir: Path, target: str = "all") -> None:
+        build_dir_str = build_dir.absolute().as_posix()
+        self.run_cmake(["--build", build_dir_str, "--target", target, "--"])
+
+    def run_cmake(self, arguments: list[str]) -> None:
+        # Add the install directories to the PATH
+        env = os.environ.copy()
+        env["PATH"] = ";".join([path.absolute().as_posix() for path in self.install_directories] + [env["PATH"]])
+        SubprocessExecutor([self.executable, *arguments], env=env).execute()
