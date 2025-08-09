@@ -1,0 +1,105 @@
+Metadata-Version: 2.4
+Name: subtitle-tool
+Version: 0.1.54
+Summary: A tool for generating subtitles using Google Gemini models.
+Project-URL: Homepage, https://github.com/jeduardo/subtitle-tool
+Project-URL: Repository, https://github.com/jeduardo/subtitle-tool.git
+Project-URL: Issues, https://github.com/jeduardo/subtitle-tool/issues
+Author-email: "J. Eduardo" <contact@jeduardo.com>
+License-Expression: MIT
+License-File: LICENSE
+Keywords: ai,audio,cli,gemini,google-gemini,srt,subtitles,video
+Classifier: Development Status :: 4 - Beta
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3.11
+Requires-Python: >=3.13
+Requires-Dist: audioop-lts>=0.2.1
+Requires-Dist: click>=8.2.1
+Requires-Dist: ffmpeg-python>=0.2.0
+Requires-Dist: google-genai>=1.16.1
+Requires-Dist: humanize>=4.12.3
+Requires-Dist: pydub>=0.25.1
+Requires-Dist: pysubs2>=1.8.0
+Requires-Dist: srt-equalizer>=0.1.10
+Requires-Dist: tenacity>=9.1.2
+Provides-Extra: dev
+Requires-Dist: pytest-cov>=6.1.1; extra == 'dev'
+Requires-Dist: pytest>=8.4.0; extra == 'dev'
+Requires-Dist: ruff>=0.12.0; extra == 'dev'
+Description-Content-Type: text/markdown
+
+# Subtitle tool
+
+[![codecov](https://codecov.io/gh/jeduardo/subtitle-tool/graph/badge.svg?token=TPA3UXF5OC)](https://codecov.io/gh/jeduardo/subtitle-tool)
+
+This utility uses Google Gemini to generate subtitles to audio and video files.
+
+## Dependencies
+
+`ffmpeg` needs to be installed for audio extraction.
+
+## Process
+
+1. Extract the audio from the video
+2. Send the audio to Gemini for transcription
+3. Backup the existing subtitle
+4. Save the new subtitle
+
+## Dependencies
+
+- Export the API key for Gemini to the environment variable `GEMINI_API_KEY`
+  **or** specify it in the command line with the flag `--api-key`.
+
+- `ffmpeg` needs to be installed (`brew install ffmpeg`, `apt-get install ffmpeg` or `dnf install ffmpeg`)
+
+- Ensure `uv` installs its dev dependencies with `uv sync --extra dev`.
+
+## Installation
+
+```shell
+pip install subtitle-tool
+```
+
+## Developing
+
+For local development it is useful to install the binary from the development
+location into the user's `PATH`. For this, run the following commands:
+
+```shell
+uv tool install -e .
+uv tool update-shell
+```
+
+## Usage
+
+- Subtitle files with the defaults:
+
+```shell
+subtitle-tool video.avi
+subtitle-tool audio.mp3
+```
+
+- Usage options:
+
+```text
+Usage: subtitle-tool [OPTIONS] MEDIAFILE
+
+  Generate subtitles for a media file
+
+Options:
+  --api-key TEXT                  Google Gemini API key
+  -m, --ai-model TEXT             Gemini model to use  [default:
+                                  gemini-2.5-flash]
+  -s, --subtitle-path TEXT        Subtitle file name [default: MEDIAFILE.srt]
+  -v, --verbose                   Enable debug logging for subtitle_tool
+                                  modules
+  -d, --debug                     Enable debug logging for all modules
+  -k, --keep-temp-files           Do not erase temporary files
+  -l, --audio-segment-length INTEGER
+                                  Length of audio segments to be subtitled in
+                                  seconds  [default: 30]
+  -p, --parallel-segments INTEGER
+                                  Number of segments subtitled in parallel
+                                  [default: 5]
+  --help                          Show this message and exit.
+```
