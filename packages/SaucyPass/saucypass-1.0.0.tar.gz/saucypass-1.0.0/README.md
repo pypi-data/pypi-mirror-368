@@ -1,0 +1,107 @@
+# Secret Sauce 🌶️🔐
+
+> *"Your passwords just got saucier!"*  
+> A context-aware, pronounceable password generator that blends personal memories with cryptographic security.
+
+---
+
+## 🚀 Features
+
+### 🧠 **Mnemonic-Based Security**
+- Generates passwords from **personal cues** (not stored anywhere)
+- **3 security tiers** (social/media → banking) with tailored questions
+- **Pronounceable** combinations (e.g., `T3sl@2024!` instead of `gH7#kLm2`)
+
+### 🔥 **Secret Sauce Algorithm**
+
+Base:  "Hiking" + "7" + "CA"  
+       │         │      └─ Location abbreviation  
+       │         └─ Lucky digit  
+       └─ Hobby  
+       
+Process:
+1. Capitalize("hik") → "Hik"
+2. Leet-speak vowels → "H1k"
+3. Add separator → "H1k_"
+4. Append salted hash → "H1k_7CA!9"
+💻 Multiple Interfaces
+python
+# Library mode
+from secret_sauce import generate_password
+print(generate_password({"hobby": "biking", "digit": "3"}))  # "B1k!ng_7CA"
+
+# CLI mode
+$ python -m secret_sauce
+🧂 What's this password for? (social/banking/general):
+📦 Installation
+bash
+pip install secret-sauce
+Requirements: Python 3.8+
+
+👩‍🍳 Basic Usage
+
+1. Quick Password
+from secret_sauce import generate_password
+
+answers = {"figure": "Tesla", "number": "42"}
+print(generate_password(answers))  # "T3sl@42$"
+2. Generate Multiple
+python
+from secret_sauce import generate_multiple
+
+passwords = generate_multiple({"nickname": "Ace", "year": "1984"})
+# ["Ac3!984J", "Ace_1984$", ...]
+3. CLI Interactive Mode
+bash
+$ python -m secret_sauce
+(Follow the prompts)
+
+🧑‍🔧 Advanced Usage
+Custom Question Banks
+
+from secret_sauce.questions import QUESTION_BANKS
+
+QUESTION_BANKS["gaming"] = [
+    ("Main character's name?", "character", str),
+    ("Rarest item you own?", "item", str)
+]
+Manual Salt Override
+python
+from secret_sauce.security import salt_answers
+
+salted = salt_answers({"hobby": "chess"}, custom_salt="MY_SALT")
+📜 Security Design
+Component	Method	Example Output
+Input Hashing	SHA-256 + System Salt	a1b2...
+Pronounceable	Vowel/Consonant Patterns	Jup@8$
+Entropy Source	secrets module (cryptographic)	
+Guarantees:
+
+✅ No answers stored/transmitted
+
+✅ Minimum 64-bit entropy per password
+
+✅ Resistance to dictionary attacks
+
+🛠️ Development
+bash
+git clone https://github.com/yourusername/secret-sauce
+cd secret-sauce
+pip install -e .
+Run Tests:
+
+bash
+python -m pytest tests/
+🍝 Recipe Book
+Explore RECIPES.md for:
+
+Adding emoji support (⚠️ not recommended)
+
+Creating password manager integrations
+
+Bulk-generating passwords for teams
+
+🎯 Why "Secret Sauce"?
+"Because 'password123' is bland, and security should be delicious."
+(Also: it makes hackers hungry 🍔)
+
