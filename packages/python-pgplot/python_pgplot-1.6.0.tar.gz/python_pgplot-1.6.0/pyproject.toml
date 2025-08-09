@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=45", "numpy>=1.21.0", "pkgconfig", "wheel", "cibuildwheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "python-pgplot"
+version = "1.6.0"
+description = "Python bindings for PGPLOT"
+authors = [
+    {name = "Marjolein Verkouter", email = "verkouter@jive.eu"},
+    #{name = "Nick Patavalis", email = "npat@efault.net"},
+]
+readme = "README.md"
+requires-python = ">=3.7"
+dependencies = [
+    "numpy>=1.21.0",
+#    "pkgconfig"
+]
+
+[external]
+build-requires = [
+    "virtual:compiler/c",
+    "pkg:generic/pkg-config",
+    "pkg:generic/giza",
+]
+host-requires = [
+      "pkg:generic/giza",
+]
+dependencies = [
+      "pkg:generic/giza",
+]
+
+[project.urls]
+Homepage = "https://github.com/haavee/ppgplot"
+
+[tool.setuptools]
+packages = ["ppgplot"]
+package-dir = {"ppgplot" = "src"}
+
+[tool.cibuildwheel]
+# Test that giza is available
+before-build = "pkg-config --exists giza && echo 'giza found' || echo 'giza NOT found'"
+# Not on Windhoos, nor on musllinux (wtf)
+skip = ["*-win*", "*musllinux*" ]
