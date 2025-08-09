@@ -1,0 +1,30 @@
+# Single-node multi-GPU distributed training
+#
+# Usage:
+#   flow run examples/configs/single_node_multi_gpu.yaml
+
+name: distributed-training
+unique_name: true  # Appends random suffix to avoid name conflicts
+instance_type: h100-80gb.sxm.8x  # 8x H100 GPUs on single node
+region: us-central1-b
+max_price_per_hour: 10.0
+
+command: |
+  #!/bin/bash
+  set -e
+  
+  echo "GPUs: $(nvidia-smi -L | wc -l)"
+  
+  pip install torch torchvision transformers
+  
+  # Single-node distributed training
+  torchrun \
+    --nproc_per_node=8 \
+    --standalone \
+    train_distributed.py \
+    --batch_size=256 \
+    --epochs=100
+
+volumes:
+  - name: checkpoints
+    size_gb: 100
