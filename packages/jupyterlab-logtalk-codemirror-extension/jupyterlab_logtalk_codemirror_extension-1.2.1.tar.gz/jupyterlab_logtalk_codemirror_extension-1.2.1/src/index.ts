@@ -1,0 +1,595 @@
+
+import { JupyterFrontEnd, JupyterFrontEndPlugin} from '@jupyterlab/application';
+import { IEditorLanguageRegistry} from '@jupyterlab/codemirror';
+import { ICommandPalette } from '@jupyterlab/apputils';
+import { ILauncher } from '@jupyterlab/launcher';
+import { IFileBrowserFactory } from '@jupyterlab/filebrowser';
+import { LabIcon } from '@jupyterlab/ui-components';
+import { StreamLanguage, StreamParser, LanguageSupport, indentUnit, indentOnInput } from '@codemirror/language';
+import { keymap } from '@codemirror/view';
+import { indentWithTab } from '@codemirror/commands';
+import { Prec } from '@codemirror/state';
+
+// Comprehensive Logtalk stream parser for CodeMirror 6
+// Based on the official Logtalk language support from LogtalkDotOrg/logtalk3
+const logtalkStreamParser: StreamParser<any> = {
+  startState() {
+    return {
+      inComment: false,
+      inString: false,
+      stringDelim: null,
+      stringType: null,  // 'atom' for quoted atoms, 'string' for double-quoted terms
+      inRule: false,     // Track if we're inside a rule (after :- and before .)
+      lastLine: '',      // Track the last processed line for indentation context
+      currentLine: ''    // Track the current line being processed
+    };
+  },
+
+  token(stream, state) {
+    // Track line changes for indentation context
+    if (stream.sol()) {
+      // Start of line - update lastLine with previous line content
+      state.lastLine = state.currentLine || '';
+      state.currentLine = '';
+    }
+
+    // Accumulate current line content
+    if (!state.currentLine) {
+      state.currentLine = '';
+    }
+
+    // Handle block comments
+    if (state.inComment) {
+      if (stream.match(/\*\//)) {
+        state.inComment = false;
+        return "comment";
+      }
+      stream.next();
+      return "comment";
+    }
+
+    // Handle strings and quoted atoms
+    if (state.inString) {
+      if (stream.match(state.stringDelim)) {
+        state.inString = false;
+        const returnType = state.stringType === 'atom' ? 'atom' : 'string';
+        state.stringDelim = null;
+        state.stringType = null;
+        return returnType;
+      }
+
+      // Control character escape sequences
+      if (stream.match(/\\[abfnrtv\\'"]/)) {
+        // Standard escape sequences: \a \b \f \n \r \t \v \\ \' \"
+        return "string.escape";
+      }
+      if (stream.match(/\\[0-7]+\\/)) {
+        // Octal escape sequences: \123\
+        return "string.escape";
+      }
+      if (stream.match(/\\x[0-9a-fA-F]+\\/)) {
+        // Hexadecimal escape sequences: \x1F\
+        return "string.escape";
+      }
+      if (stream.match(/\\u[0-9a-fA-F]{4}/)) {
+        // Unicode escape sequences: \u1234
+        return "string.escape";
+      }
+      if (stream.match(/\\U[0-9a-fA-F]{8}/)) {
+        // Extended Unicode escape sequences: \U12345678
+        return "string.escape";
+      }
+      if (stream.match(/\\\s/)) {
+        // Line continuation (backslash followed by whitespace)
+        return "string.escape";
+      }
+
+      stream.next();
+      return state.stringType === 'atom' ? 'atom' : 'string';
+    }
+
+    // Start of block comment
+    if (stream.match(/\/\*/)) {
+      state.inComment = true;
+      return "comment";
+    }
+
+    // Line comment
+    if (stream.match(/%.*$/)) {
+      return "comment";
+    }
+
+    // Quoted atom
+    if (stream.match(/'/)) {
+      state.inString = true;
+      state.stringDelim = "'";
+      state.stringType = 'atom';
+      return "atom";
+    }
+
+    // Double-quoted term
+    if (stream.match(/"/)) {
+      state.inString = true;
+      state.stringDelim = '"';
+      state.stringType = 'string';
+      return "string";
+    }
+
+    // Entity opening directives
+    if (stream.match(/:-\s(?:object|protocol|category|module)(?=\()/)) {
+      return "meta";
+    }
+
+    // End entity directives
+    if (stream.match(/:-\send_(?:object|protocol|category)(?=\.)/)) {
+      return "meta";
+    }
+
+    // Entity relations
+    if (stream.match(/\b(?:complements|extends|instantiates|imports|implements|specializes)(?=\()/)) {
+      return "meta";
+    }
+
+    // Other directives
+    if (stream.match(/:-\s(?:else|endif|built_in|dynamic|synchronized|threaded)(?=\.)/)) {
+      return "meta";
+    }
+    if (stream.match(/:-\s(?:calls|coinductive|elif|encoding|ensure_loaded|export|if|include|initialization|info|reexport|set_(?:logtalk|prolog)_flag|uses)(?=\()/)) {
+      return "meta";
+    }
+    if (stream.match(/:-\s(?:alias|info|dynamic|discontiguous|meta_(?:non_terminal|predicate)|mode|multifile|public|protected|private|op|uses|use_module|synchronized)(?=\()/)) {
+      return "meta";
+    }
+
+    // Message sending operator
+    if (stream.match(/::/)) {
+      return "operator";
+    }
+
+    // Explicit module qualification
+    if (stream.match(/:/)) {
+      return "operator";
+    }
+
+    // External call operators
+    if (stream.match(/[{}]/)) {
+      return "operator";
+    }
+
+    // Mode operators
+    if (stream.match(/[?@]/)) {
+      return "operator";
+    }
+
+    // Comparison operators
+    if (stream.match(/@(?:=<|<|>|>=)|==|\\==/)) {
+      return "operator";
+    }
+    if (stream.match(/=<|[<>]=?|=:=|=\\=/)) {
+      return "operator";
+    }
+
+    // Bitwise operators
+    if (stream.match(/<<|>>|\/\\|\\\/|\\/)) {
+      return "operator";
+    }
+
+    // Arithmetic operators
+    if (stream.match(/\*\*|[+\-*\/]|\/\//)) {
+      return "operator";
+    }
+
+    // Evaluable functions
+    if (stream.match(/\b(?:e|pi|div|mod|rem)\b(?![_!(^~])/)) {
+      return "operator";
+    }
+
+    // Clause neck operator (rule indicator)
+    if (stream.match(/:-/)) {
+      // Check if this is a directive (starts at beginning of line) or a rule neck
+      if (stream.column() === 2) {
+        // This is likely a directive like :-object(...), don't set inRule
+      } else {
+        // This is a rule neck operator, set inRule to true
+        state.inRule = true;
+      }
+      return "operator";
+    }
+
+    // Period (clause terminator)
+    if (stream.match(/\./)) {
+      // If we were in a rule, we're no longer in one
+      if (state.inRule) {
+        state.inRule = false;
+      }
+      return "operator";
+    }
+
+    // Other misc operators
+    if (stream.match(/!|\\+|[,;]|-->|->|=|\\=|\.\.|\^|\bas\b|\bis\b/)) {
+      return "operator";
+    }
+
+    // Built-in predicates - evaluable functions
+    if (stream.match(/\b(?:abs|acos|asin|atan|atan2|ceiling|cos|div|exp|float(?:_(?:integer|fractional)_part)?|floor|log|max|min|mod|rem|round|sign|sin|sqrt|tan|truncate|xor)(?=\()/)) {
+      return "builtin";
+    }
+
+    // Control predicates
+    if (stream.match(/\b(?:true|fail|false|repeat|(?:instantiation|system)_error)\b(?![_!(^~])/)) {
+      return "builtin";
+    }
+    if (stream.match(/\b(?:uninstantiation|type|domain|consistency|existence|permission|representation|evaluation|resource|syntax)_error(?=\()/)) {
+      return "builtin";
+    }
+    if (stream.match(/\b(?:call|catch|ignore|throw|once)(?=\()/)) {
+      return "builtin";
+    }
+
+    // Event handlers
+    if (stream.match(/\b(after|before)(?=\()/)) {
+      return "builtin";
+    }
+    
+    // Message forwarding handler
+    if (stream.match(/\bforward(?=\()/)) {
+      return "builtin";
+    }
+    // Execution-context methods
+    if (stream.match(/\b(context|parameter|this|se(lf|nder))(?=\()/)) {
+      return "builtin";
+    }
+    // Reflection
+    if (stream.match(/\b(current_predicate|predicate_property)(?=\()/)) {
+      return "builtin";
+    }
+    // DCGs and term expansion
+    if (stream.match(/\b(expand_(goal|term)|(goal|term)_expansion|phrase)(?=\()/)) {
+      return "builtin";
+    }
+
+    // Entity creation and destruction
+    if (stream.match(/\b(abolish|c(reate|urrent))_(object|protocol|category)(?=\()/)) {
+      return "builtin";
+    }
+
+    // Entity properties
+    if (stream.match(/\b(object|protocol|category)_property(?=\()/)) {
+      return "builtin";
+    }
+
+    // Entity relations
+    if (stream.match(/\bco(mplements_object|nforms_to_protocol)(?=\()/)) {
+      return "builtin";
+    }
+    if (stream.match(/\bextends_(object|protocol|category)(?=\()/)) {
+      return "builtin";
+    }
+    if (stream.match(/\bimp(lements_protocol|orts_category)(?=\()/)) {
+      return "builtin";
+    }
+    if (stream.match(/\b(instantiat|specializ)es_class(?=\()/)) {
+      return "builtin";
+    }
+
+    // Events
+    if (stream.match(/\b(current_event|(abolish|define)_events)(?=\()/)) {
+      return "builtin";
+    }
+
+    // Flags
+    if (stream.match(/\b(create|current|set)_logtalk_flag(?=\()/)) {
+      return "builtin";
+    }
+
+    // Compiling, loading, and library paths
+    if (stream.match(/\blogtalk_(compile|l(ibrary_path|oad|oad_context)|make(_target_action)?)(?=\()/)) {
+      return "builtin";
+    }
+    if (stream.match(/\blogtalk_make\b/)) {
+      return "builtin";
+    }
+
+    // Database
+    if (stream.match(/\b(clause|retract(all)?)(?=\()/)) {
+      return "builtin";
+    }
+    if (stream.match(/\ba(bolish|ssert(a|z))(?=\()/)) {
+      return "builtin";
+    }
+
+    // All solutions
+    if (stream.match(/\b((bag|set)of|f(ind|or)all)(?=\()/)) {
+      return "builtin";
+    }
+
+    // Multi-threading predicates
+    if (stream.match(/\bthreaded(_(ca(ll|ncel)|once|ignore|exit|peek|wait|notify))?(?=\()/)) {
+      return "builtin";
+    }
+
+    // Engine predicates
+    if (stream.match(/\bthreaded_engine(_(create|destroy|self|next|next_reified|yield|post|fetch))?(?=\()/)) {
+      return "builtin";
+    }
+
+    // Term unification
+    if (stream.match(/\b(subsumes_term|unify_with_occurs_check)(?=\()/)) {
+      return "builtin";
+    }
+
+    // Term creation and decomposition
+    if (stream.match(/\b(functor|arg|copy_term|numbervars|term_variables)(?=\()/)) {
+      return "builtin";
+    }
+
+    // Stream selection and control
+    if (stream.match(/\b(curren|se)t_(in|out)put(?=\()/)) {
+      return "builtin";
+    }
+    if (stream.match(/\b(open|close)(?=[(])(?=\()/)) {
+      return "builtin";
+    }
+    if (stream.match(/\bflush_output(?=[(])(?=\()/)) {
+      return "builtin";
+    }
+    if (stream.match(/\b(at_end_of_stream|flush_output)\b/)) {
+      return "builtin";
+    }
+    if (stream.match(/\b(stream_property|at_end_of_stream|set_stream_position)(?=\()/)) {
+      return "builtin";
+    }
+
+    // Character and byte input/output
+    if (stream.match(/\b(?:(?:get|peek|put)_(?:char|code|byte)|nl)(?=\()/)) {
+      return "builtin";
+    }
+    if (stream.match(/\bnl\b/)) {
+      return "builtin";
+    }
+
+    // Term input/output
+    if (stream.match(/\bread(_term)?(?=\()/)) {
+      return "builtin";
+    }
+    if (stream.match(/\bwrite(q|_(canonical|term))?(?=\()/)) {
+      return "builtin";
+    }
+      if (stream.match(/\b(current_)?op(?=\()/)) {
+      return "builtin";
+    }
+    if (stream.match(/\b(current_)?char_conversion(?=\()/)) {
+      return "builtin";
+    }
+
+    // Atom/term processing
+    if (stream.match(/\b(?:atom_(?:length|chars|concat|codes)|sub_atom|char_code|number_(?:char|code)s)(?=\()/)) {
+      return "builtin";
+    }
+
+    // Term testing
+    if (stream.match(/\b(?:var|atom(ic)?|integer|float|callable|compound|nonvar|number|ground|acyclic_term)(?=\()/)) {
+      return "builtin";
+    }
+
+    // Term comparison
+    if (stream.match(/\bcompare(?=\()/)) {
+      return "builtin";
+    }
+
+    // Sorting
+    if (stream.match(/\b(key)?sort(?=\()/)) {
+      return "builtin";
+    }
+
+    // Implementation defined hooks functions
+    if (stream.match(/\b(se|curren)t_prolog_flag(?=\()/)) {
+      return "builtin";
+    }
+    if (stream.match(/\bhalt\b/)) {
+      return "builtin";
+    }
+    if (stream.match(/\bhalt(?=\()/)) {
+      return "builtin";
+    }
+
+    // Numbers
+    if (stream.match(/\b(?:0b[01]+|0o[0-7]+|0x[0-9a-fA-F]+)\b/)) {
+      return "number";
+    }
+    if (stream.match(/(?<=^|\s)0'(?:\\.|.)/)) {
+      return "number";
+    }
+    if (stream.match(/\b\d+\.?\d*(?:[eE][+-]?\d+)?\b/)) {
+      return "number";
+    }
+
+    // Variables
+    if (stream.match(/\b[A-Z_][A-Za-z0-9_]*\b/)) {
+      return "variable";
+    }
+
+    // Skip atoms that aren't keywords or builtins
+    if (stream.match(/\b[a-z][A-Za-z0-9_]*\b/)) {
+      return null;
+    }
+
+    // Skip whitespace
+    if (stream.match(/\s+/)) {
+      return null;
+    }
+
+    // Default: consume one character
+    const char = stream.next();
+
+    // Track current line content for indentation
+    if (char && !stream.eol()) {
+      state.currentLine += char;
+    }
+
+    return null;
+  },
+};
+
+// Custom Enter key handler that uses our indentation service
+function logtalkEnterHandler(view: any) {
+  //console.log('=== Custom Enter handler called ===');
+
+  const { state } = view;
+  const pos = state.selection.main.head;
+  const doc = state.doc;
+  const line = doc.lineAt(pos);
+
+  // Calculate indentation for the new line by looking at current line
+  let newIndent = '';
+  const tabSize = state.tabSize || 4;
+  const currentIndentColumn = line.text.match(/^(\t*)/)?.[1]?.length || 0;
+
+  //console.log('Current line:', `"${line.text}"`);
+  //console.log('Current indent level:', currentIndentColumn);
+
+  // Check if current line should cause indentation or de-indentation
+  if (/^:-\s(?:object|protocol|category|module)\(/.test(line.text.trim())) {
+    newIndent = '\t'.repeat(currentIndentColumn + 1);
+    //console.log('Indenting after entity opening directive');
+  } else if (/:-\s*$/.test(line.text.trim()) || /:-(?![^(]*\)).*[^.]$/.test(line.text.trim())) {
+    newIndent = '\t'.repeat(currentIndentColumn + 1);
+    //console.log('Indenting after clause neck operator');
+  } else if (/[(\[{]\s*$/.test(line.text)) {
+    newIndent = '\t'.repeat(currentIndentColumn + 1);
+    //console.log('Indenting after opening bracket');
+  } else if (/.*\.$/.test(line.text.trim()) && currentIndentColumn > 0) {
+    // Check if this is the end of a rule by looking for :- in previous lines
+    let isEndOfRule = false;
+
+    // Look back through previous lines to see if we're in a rule
+    for (let i = line.number - 1; i >= 1; i--) {
+      const prevLine = doc.line(i);
+      const prevText = prevLine.text.trim();
+
+      // If we find a period, we've reached the end of a previous clause
+      if (prevText.endsWith('.')) {
+        break;
+      }
+
+      // If we find :- that's not a directive, we're ending a rule
+      if (/:-/.test(prevText) && !/^:-\s(?:object|protocol|category|module|end_|else|endif|built_in|dynamic|synchronized|threaded|calls|coinductive|elif|encoding|ensure_loaded|export|if|include|initialization|info|reexport|set_|uses|alias|discontiguous|meta_|mode|multifile|public|protected|private|op|use_module)/.test(prevText)) {
+        isEndOfRule = true;
+        break;
+      }
+    }
+
+    if (isEndOfRule) {
+      // De-indent after rule termination (period at end of line)
+      newIndent = '\t'.repeat(Math.max(0, currentIndentColumn - 1));
+      //console.log('De-indenting after rule termination');
+    } else {
+      // This is a fact, maintain current indentation
+      newIndent = '\t'.repeat(currentIndentColumn);
+      //console.log('Maintaining indentation after fact');
+    }
+  } else if (/^:-\send_(?:object|protocol|category)\.$/.test(line.text.trim()) && currentIndentColumn > 0) {
+    // De-indent after entity closing directives
+    newIndent = '\t'.repeat(Math.max(0, currentIndentColumn - 1));
+    //console.log('De-indenting after entity closing directive');
+  } else {
+    newIndent = '\t'.repeat(currentIndentColumn);
+    //console.log('Maintaining current indentation');
+  }
+
+  //console.log('New indent:', `"${newIndent}"`);
+
+  // Insert newline with calculated indentation
+  view.dispatch({
+    changes: {
+      from: pos,
+      insert: '\n' + newIndent
+    },
+    selection: { anchor: pos + 1 + newIndent.length }
+  });
+
+  return true;
+}
+
+// Create the Logtalk language definition for JupyterLab 4
+const logtalkLanguage = {
+  name: 'logtalk',
+  displayName: 'Logtalk',
+  mime: ['text/x-logtalk'],
+  extensions: ['lgt', 'logtalk'],
+  load: async (): Promise<LanguageSupport> => {
+    const streamLanguage = StreamLanguage.define(logtalkStreamParser);
+    return new LanguageSupport(streamLanguage, [
+      indentUnit.of('\t'), // Use tabs for indentation
+      indentOnInput(), // Enable automatic re-indentation on input
+      Prec.high(keymap.of([
+        { key: "Enter", run: logtalkEnterHandler },
+        indentWithTab
+      ])),
+      streamLanguage.data.of({
+        commentTokens: { line: "%", block: { open: "/*", close: "*/" } },
+        closeBrackets: { brackets: ["(", "[", "{", "'", '"'] },
+        indentOnInput: /(?:^:-\s(?:object|protocol|category|module)\(.*$|^:-\send_(?:object|protocol|category)\.$|\s*.*\s:-$|.*\.$)/
+      })
+    ]);
+  }
+};
+
+const plugin: JupyterFrontEndPlugin<void> = {
+  id: 'jupyterlab_logtalk_codemirror_extension:plugin',
+  description: 'A JupyterLab extension for Logtalk syntax highlighting.',
+  autoStart: true,
+  requires: [IEditorLanguageRegistry, ILauncher, IFileBrowserFactory, ICommandPalette],
+  activate: (
+    app: JupyterFrontEnd,
+    languages: IEditorLanguageRegistry,
+    launcher: ILauncher,
+    browserFactory: IFileBrowserFactory,
+    palette: ICommandPalette
+  ) => {
+    // Register the Logtalk language
+    languages.addLanguage(logtalkLanguage);
+    // Add a launcher item for Logtalk files
+    const { commands } = app;
+    const commandID = 'logtalk:create-file';    
+    const logtalkTextIcon = new LabIcon({
+      name: 'logtalk-text-icon',
+      svgstr: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <text x="12" y="20" font-family="monospace" font-size="24" text-anchor="middle" fill="CanvasText">⊨</text>
+      </svg>`
+    });
+    commands.addCommand(commandID, {
+      label: args =>
+        args['isPalette']
+          ? 'New Logtalk File'
+          : 'Logtalk File',
+      caption: 'Create a new Logtalk file',
+      icon: logtalkTextIcon,
+      execute: async () => {
+        const model = await commands.execute('docmanager:new-untitled', {
+          path: browserFactory.tracker.currentWidget?.model.path,
+          type: 'file',
+          ext: 'lgt'
+        });
+        return commands.execute('docmanager:open', {
+          path: model.path,
+          factory: 'Editor'
+        });
+      }
+    });
+    launcher.add({
+      command: commandID,
+      category: 'Other',
+      rank: 1
+    });
+    palette.addItem({
+      command: commandID,
+      args: { isPalette: true },
+      category: 'Other'
+    });
+
+    console.log('JupyterLab extension jupyterlab_logtalk_codemirror_extension is activated!');
+  }
+};
+
+export default plugin;
