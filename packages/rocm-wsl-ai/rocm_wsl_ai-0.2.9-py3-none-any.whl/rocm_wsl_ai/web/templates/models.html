@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Models - ROCm-WSL-AI</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <nav class="container-fluid">
+    <ul><li class="brand"><span class="logo">AI</span> <strong>ROCm‑WSL‑AI</strong></li></ul>
+    <ul>
+      <li><a href="/">Dashboard</a></li>
+      <li><a href="/wizard">Wizard</a></li>
+      <li><a href="/tools">Tools</a></li>
+      <li><a href="/models">Models</a></li>
+      <li><a href="/help">Hilfe</a></li>
+      <li><button id="themeToggle" type="button" class="secondary">Theme</button></li>
+    </ul>
+  </nav>
+  <main class="container">
+    <section class="hero card">
+      <h1>Modelle verwalten</h1>
+      <p>Standorte prüfen, Index aktualisieren und kuratierte Presets laden. Läuft alles als Jobs mit Fortschritt.</p>
+    </section>
+    <section class="card">
+      <div class="grid" style="align-items:end">
+        <button id="refresh">Index aktualisieren</button>
+        <label>
+          Preset
+          <select id="presets"></select>
+        </label>
+        <button id="download">Preset laden</button>
+      </div>
+    </section>
+    <section>
+      <h3>Standorte</h3>
+      <pre id="where" class="logs" style="max-height: 30vh; overflow:auto"></pre>
+    </section>
+    <section>
+      <h3>Modelle</h3>
+      <div id="list" class="grid"></div>
+    </section>
+    <section>
+      <h3>Aktivitäten</h3>
+      <div id="jobs" class="grid"></div>
+    </section>
+  </main>
+  <script>
+    async function loadWhere(){
+      const res = await fetch('/api/models/where');
+      const data = await res.json();
+      document.getElementById('where').textContent = JSON.stringify(data, null, 2);
+    }
+    async function loadIndex(){
+      const res = await fetch('/api/models/index');
+      const items = await res.json();
+      const wrap = document.getElementById('list');
+      wrap.innerHTML = '';
+      for (const e of items){
+        const el = document.createElement('article');
+        el.innerHTML = `<strong>${e.category}</strong><br/><small>${e.path}</small><br/><small>${(e.size/1024/1024).toFixed(1)} MB</small>`;
+        wrap.appendChild(el);
+      }
+      const presets = document.getElementById('presets');
+      const res2 = await fetch('/api/models/presets');
+      const pr = await res2.json();
+      presets.innerHTML = '';
+      for (const p of pr){
+        const opt = document.createElement('option');
+        opt.value = p.name;
+        opt.textContent = `${p.name}${p.size? ` (${p.size})`: ''}`;
+        opt.dataset.downloadable = p.downloadable ? '1' : '0';
+        presets.appendChild(opt);
+      }
+    }
+    async function refreshJobs(){
+      const res = await fetch('/api/jobs');
+      const jobs = await res.json();
+      const wrap = document.getElementById('jobs');
+      wrap.innerHTML='';
+      for (const j of jobs){
+        const el = document.createElement('article');
+        el.innerHTML = `<strong>${j.name}</strong><div style="background:#eee;height:8px;border-radius:999px;overflow:hidden"><div style="background:#22c55e;height:100%;width:${(j.progress*100).toFixed(0)}%"></div></div><small>${j.message || j.status}</small>`;
+        wrap.appendChild(el);
+      }
+    }
+    document.getElementById('refresh').addEventListener('click', async ()=>{
+      const res = await fetch('/api/models/refresh', { method: 'POST' });
+      const data = await res.json();
+      trackJob(data.job_id);
+    });
+    document.getElementById('download').addEventListener('click', async ()=>{
+      const sel = document.getElementById('presets');
+      const preset = sel.value;
+      const opt = sel.selectedOptions[0];
+      if (opt && opt.dataset.downloadable === '0'){ alert('Dieses Preset hat keine direkte Download-URL (Platzhalter).'); return; }
+      const res = await fetch(`/api/models/download/${preset}`, { method: 'POST' });
+      const data = await res.json();
+      trackJob(data.job_id);
+    });
+    function trackJob(jobId){
+      const iv = setInterval(async ()=>{
+        const res = await fetch(`/api/jobs/${jobId}`);
+        if (!res.ok){ clearInterval(iv); return; }
+        const j = await res.json();
+        await refreshJobs();
+        if (j.status==='done' || j.status==='error'){ clearInterval(iv); await loadIndex(); }
+      }, 1000);
+    }
+    loadWhere();
+    loadIndex();
+    refreshJobs();
+    setInterval(refreshJobs, 3000);
+  </script>
+  <script src="/static/app.js"></script>
+  <script>
+    (function(){
+      const btn = document.getElementById('themeToggle');
+      function toggle(){
+        const cur = document.documentElement.getAttribute('data-theme');
+        const nxt = cur === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', nxt);
+        localStorage.setItem('theme', nxt);
+      }
+      btn?.addEventListener('click', toggle);
+      const saved = localStorage.getItem('theme');
+      if (saved) document.documentElement.setAttribute('data-theme', saved);
+    })();
+  </script>
+</body>
+</html>
