@@ -1,0 +1,340 @@
+Metadata-Version: 2.2
+Name: easyorm-py
+Version: 1.0.18
+Summary: easy_orm
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: requires-python
+Dynamic: summary
+
+## example
+
+### 1. Load db config
+```python
+db_test = {
+    "primary": "default",
+    "raw_sql": True,
+    "mapper_xml_path": "test_xml",
+    "default": {
+        "db_type": "mysql",
+        "host": "127.0.0.1",
+        "port": 3306,
+        "user": "root",
+        "password": "123456",
+        "database": "template",
+    },
+    "test": {
+        "db_type": "mysql",
+        "host": "127.0.0.1",
+        "port": 3306,
+        "user": "root",
+        "password": "123456",
+        "database": "template",
+    }
+}
+
+from easy_orm import EasyOrmConfig, DBConfig, DataSource
+db_config = DBConfig(**db_test)
+EasyOrmConfig(db_config)
+
+
+# add datasource
+ds = {
+    "test_ds": DataSource(
+        db_type="mysql",
+        host="127.0.0.1",
+        port=3306,
+        user="root",
+        password="123456",
+        database="test_ds"
+    )
+}
+EasyOrmConfig.add_datasource_config(ds)
+
+# remove
+EasyOrmConfig.remove_datasource("test_ds")
+```
+### 2. edit xml
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "">
+<mapper namespace="TestMapper">
+
+    <select id="find_data_by_ids">
+        select id, username from test where id in
+        <foreach collection="id_list" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="test_page">
+        select id, username from test
+    </select>
+
+    <select id="test_where" resultType="model.user.User">
+
+        select id, username from test
+
+        <where>
+            <if test="params.get('id') is not None">
+                id = #{id}
+            </if>
+        </where>
+
+    </select>
+
+    <insert id="add_data">
+        insert into test (nickname, username) values ('xxx', 'xxx1')
+    </insert>
+
+
+    <update id="update_data_by_id">
+        update test set nickname = #{nickname} where id = #{id}
+    </update>
+
+
+    <delete id="delete_data_by_id">
+        delete from test where id = #{id}
+    </delete>
+
+</mapper>
+```
+
+
+### 3. Extend BaseMapper and Use
+```python
+# TestMapper.py
+from contextlib import contextmanager
+from sqlalchemy.sql.selectable import Select
+from sqlalchemy.sql.dml import Delete, Update
+from easy_orm import Page
+
+
+class BaseMapper(Generic[T]):
+
+
+    @classmethod
+    @contextmanager
+    def db_session(cls, datasource_name:str=None):
+        """
+        get ori db session
+        :param datasource_name:
+        :return:
+        """
+
+    @classmethod
+    @contextmanager
+    def switch_datasource(cls, datasource_name: str):
+        """
+        switch_datasource by datasource_name
+        :param datasource_name:
+        :return:
+        """
+        
+        
+    def add(self, data: Any):
+        """
+        add
+        :param data:
+        :return:
+        """
+
+
+    def add_all(self, data: list):
+        """
+        add_all
+        :param data:
+        :return:
+        """
+        
+    def save_batch(self, data: list):
+        """
+        save_batch  orm2.0
+        :param data:
+        :return:
+        """
+        
+    def insert(self, data: Any):
+        """
+        insert  orm2.0
+        :param data:
+        :return:
+        """
+    
+    
+    def delete_by_id(self, id: int):
+        """
+        delete by id
+        :param id: int
+        :return: rows
+        """
+    
+    def delete(self, del_statement: Delete):
+        """
+        delete orm 2.0 statement
+        :param del_statement: 
+        :return: rows
+        """
+    
+    def update_by_id(self, data: dict, selective: bool = False):
+        """
+        update by id
+        :param data: dict
+        :param selective: bool
+        :return: rows
+        """
+    
+    def update(self, update: Update):
+        """
+        update orm 2.0 statement
+        :param update: 
+        :return: rows
+        """
+    
+    def bulk_update_mappings(self, table_model=None, data_list: list[dict]|None=None):
+        """
+        update orm2.0 or origin_sql statement
+        :param table_model:
+        :param data_list:
+        :return:
+        """
+        
+    def select_page_by_orm(self, statement: Select, page: Page=Page(1, 10)):
+        """
+
+        :param statement: Select    statement
+        :param page: Page           Page(1, 10)
+        :return: {"list": [], "total": 0}
+        """
+
+    def select_page_by_ori_sql(self, sql_str: str, sql_param: dict | None=None, page: Page=Page(1, 10)):
+        """
+        :param sql_str: str         ori_sql
+        :param sql_param: dict      {}
+        :param page: Page           Page(1, 10)
+        :return: {"list": [], "total": 0}
+        """
+
+    def select_all_by_ori_sql(self, sql_str: str, sql_param: dict | None=None):
+        """
+        :param sql_str: str         ori_sql
+        :param sql_param: dict      {}
+        :return: []
+        """
+        
+        
+    def select_all(self, statement=None):
+        """
+        select all
+        :param statement:
+        :return:
+        """
+
+    def select_one(self, statement=None):
+        """
+        select one
+        :param statement:
+        :return:
+        """
+        
+
+    def select_by_id(self, id: int):
+        """
+        select by id
+        :param id:
+        :return:
+        """
+
+
+
+        
+    
+from sqlalchemy import select, update, delete, text
+from easy_orm import BaseMapper, Page, select_one, delete, datasource, db_session, EasyOrmConfig
+from model.user import User, UserModel
+
+class TestMapper(BaseMapper[UserModel]):
+
+    def find_data_by_ids(self, id_list: list): ...
+
+    @select_one('select * from test where id = #{id}')
+    def find_data_one(self, id: int): ...
+
+    def test_page(self, page: Page): ...
+
+    def test_where(self, id: int) -> list[UserModel]: ...
+
+    def add_data(self): ...
+
+    def update_data_by_id(self, nickname: str, id: int): ...
+
+    @delete('delete from test where id = #{id}')
+    def delete_data_by_id2(self, id: int): ...
+    
+    
+    def select_page_orm_test(self):
+        page = Page(1, 10)
+        stat = select(UserModel).where(UserModel.id > 1)
+        return self.select_page_by_orm(stat, page)
+
+    def select_page_ori_sql_test(self):
+        page = Page(1, 10)
+        sql_str = "select * from user where id > :id"
+        return self.select_page_by_ori_sql(sql_str, {"id": 1}, page)
+
+    def select_all_ori_sql_test(self):
+        sql_str = "select * from user where id > :id"
+        return self.select_all_by_ori_sql(sql_str, {"id": 1})
+    
+    def delete_test(self):
+        stat = delete(UserModel).where(UserModel.id == 1)
+        return self.delete(stat)
+    
+    def update_test(self):
+        stat = update(UserModel).where(UserModel.id == 1).values(name="test")
+        return self.update(stat)
+    
+
+class TestService:
+
+    @datasource("default", True)
+    def test_find_user_one(self):
+        TestMapper().find_data_one(1)
+        self.test_find_user_one2()
+
+    @datasource("test", True)
+    def test_find_user_one2(self):
+        TestMapper().find_data_one(1)
+    
+    def test(self):
+        id = TestMapper().insert({"field": "test"})
+        TestMapper().select_by_id(1)
+        TestMapper().update_by_id({'id': 1, "field": "test2"})
+        TestMapper().delete_by_id(1)
+    
+    def test_ori_session(self):
+        with db_session() as session:
+            d = session.execute(text("select * from user")).first()
+            print(d._asdict())
+
+    def test_add_source(self):
+        with TestMapper.switch_datasource("test_ds"):
+            TestMapper().select_by_id(1)
+
+        
+if __name__ == '__main__':
+    
+    EasyOrmConfig.add_datasource_config(ds)
+
+    # remove
+    EasyOrmConfig.remove_datasource("test_ds")
+    
+    test_service = TestService()
+    test_service.test_find_user_one()
+    
+    test_mapper = TestMapper()
+    test_mapper.find_data_by_ids([1, 2, 3])
+
+```
