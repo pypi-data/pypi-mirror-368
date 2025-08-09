@@ -1,0 +1,34 @@
+# MediaFileAndTagsMetaDataResponseCustomer
+
+
+## Properties
+
+Name | Type | Description | Notes
+------------ | ------------- | ------------- | -------------
+**data** | [**MediaFileAndTagsMetaDataCustomer**](MediaFileAndTagsMetaDataCustomer.md) | File response with tag data | [optional] 
+**extension_data** | **object** | Extention data for customer API response | [optional] 
+**success** | **bool** | Status indication for customer API response | [optional] 
+**errors** | [**List[BaseError]**](BaseError.md) | Errors in the customer API response | [optional] 
+**warnings** | [**List[BaseWarning]**](BaseWarning.md) | Warnings in the customer API response | [optional] 
+**information** | [**List[BaseInformation]**](BaseInformation.md) | Information passed by the customer API response | [optional] 
+
+## Example
+
+```python
+from d361api.d361api.media_file_and_tags_meta_data_response_customer import MediaFileAndTagsMetaDataResponseCustomer
+
+# TODO update the JSON string below
+json = "{}"
+# create an instance of MediaFileAndTagsMetaDataResponseCustomer from a JSON string
+media_file_and_tags_meta_data_response_customer_instance = MediaFileAndTagsMetaDataResponseCustomer.from_json(json)
+# print the JSON string representation of the object
+print(MediaFileAndTagsMetaDataResponseCustomer.to_json())
+
+# convert the object into a dict
+media_file_and_tags_meta_data_response_customer_dict = media_file_and_tags_meta_data_response_customer_instance.to_dict()
+# create an instance of MediaFileAndTagsMetaDataResponseCustomer from a dict
+media_file_and_tags_meta_data_response_customer_from_dict = MediaFileAndTagsMetaDataResponseCustomer.from_dict(media_file_and_tags_meta_data_response_customer_dict)
+```
+[[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
+
+
