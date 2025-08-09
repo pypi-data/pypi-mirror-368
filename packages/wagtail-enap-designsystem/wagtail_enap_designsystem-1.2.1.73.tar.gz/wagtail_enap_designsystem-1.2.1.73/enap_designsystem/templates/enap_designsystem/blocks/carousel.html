@@ -1,0 +1,128 @@
+{% load static %}
+{% load wagtailcore_tags wagtailimages_tags %}
+{% block content %}
+{% load static wagtailimages_tags %}
+
+<div class="custom-carousel" id="carousel-{{ block.id|default:'1' }}">    
+    <div class="custom-carousel-slides" id="carousel-slides-{{ block.id|default:'1' }}">
+        {% for slide in value.slides %}
+            <div class="custom-carousel-slide {% if forloop.first %}is-active{% endif %}" data-slide-index="{{ forloop.counter0 }}">
+                {% if slide.background_image %}
+                    {% image slide.background_image fill-1920x1080 as bg_img %}
+                    <div class="custom-carousel-background" style="background-image: url('{{ bg_img.url }}');"></div>
+                {% endif %}
+                
+                <div class="custom-slide-content">
+                    {% if slide.slide_type == 'title_center' %}
+                        <div class="custom-slide-center-content">
+                            {% if slide.title %}
+                                <h1 class="custom-slide-title">{{ slide.title }}</h1>
+                            {% endif %}
+                        </div>
+                    {% elif slide.slide_type == 'title_desc_left' %}
+                        <div class="custom-slide-left-content">
+                            <!-- Grafismo sempre aparece neste tipo de slide -->
+                            <img src="{% static 'enap_designsystem/icons/grafismo.svg' %}" alt="Grafismo" class="grafismo">
+                            {% if slide.title %}
+                                <h1 class="custom-slide-title">{{ slide.title }}</h1>
+                            {% endif %}
+                            {% if slide.description %}
+                                <p class="custom-slide-description">{{ slide.description }}</p>
+                            {% endif %}
+                        </div>
+                    {% elif slide.slide_type == 'blank' %}
+                        <!-- Slide em branco - só a imagem de fundo -->
+                        <div class="custom-slide-blank-content"></div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Navegação apenas se houver mais de um slide -->
+    {% if value.slides|length > 1 %}
+        <div class="custom-carousel-navigation">
+            <a class="custom-carousel-navigation-button custom-carousel-prev" onclick="changeSlide('{{ block.id|default:'1' }}', -1)">
+                <i class="fa-solid fa-circle-chevron-left"></i>
+            </a>
+            <a class="custom-carousel-navigation-button custom-carousel-next" onclick="changeSlide('{{ block.id|default:'1' }}', 1)">
+                <i class="fa-solid fa-circle-chevron-right"></i>
+            </a>
+        </div>
+        
+        <div class="custom-carousel-dots">
+            {% for slide in value.slides %}
+                <span class="custom-carousel-dot {% if forloop.first %}is-active{% endif %}" 
+                      onclick="goToSlide('{{ block.id|default:'1' }}', {{ forloop.counter0 }})"></span>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            initCarousel('{{ block.id|default:'1' }}');
+        });
+
+        function initCarousel(carouselId) {
+            const container = document.getElementById(`carousel-slides-${carouselId}`);
+            const slides = container.querySelectorAll('.custom-carousel-slide');
+            const dots = document.querySelectorAll(`#carousel-${carouselId} .custom-carousel-dot`);
+            
+            console.log(`Inicializando carrossel ${carouselId}`);
+            console.log(`Número de slides: ${slides.length}`);
+            
+            // Ensure first slide is visible
+            if (slides.length > 0) {
+                slides[0].classList.add('is-active');
+                slides[0].style.display = 'block';
+                
+                if (dots.length > 0) {
+                    dots[0].classList.add('is-active');
+                }
+            }
+        }
+
+        function changeSlide(carouselId, direction) {
+            const container = document.getElementById(`carousel-slides-${carouselId}`);
+            const slides = container.querySelectorAll('.custom-carousel-slide');
+            const dots = document.querySelectorAll(`#carousel-${carouselId} .custom-carousel-dot`);
+            
+            let currentIndex = Array.from(slides).findIndex(slide => slide.classList.contains('is-active'));
+            let newIndex = currentIndex + direction;
+            
+            // Circular navigation
+            if (newIndex >= slides.length) newIndex = 0;
+            if (newIndex < 0) newIndex = slides.length - 1;
+            
+            // Remove active from current slide and dot
+            slides[currentIndex].classList.remove('is-active');
+            slides[currentIndex].style.display = 'none';
+            dots[currentIndex].classList.remove('is-active');
+            
+            // Add active to new slide and dot
+            slides[newIndex].classList.add('is-active');
+            slides[newIndex].style.display = 'block';
+            dots[newIndex].classList.add('is-active');
+        }
+
+        function goToSlide(carouselId, index) {
+            const container = document.getElementById(`carousel-slides-${carouselId}`);
+            const slides = container.querySelectorAll('.custom-carousel-slide');
+            const dots = document.querySelectorAll(`#carousel-${carouselId} .custom-carousel-dot`);
+            
+            // Remove active from all slides and dots
+            slides.forEach(slide => {
+                slide.classList.remove('is-active');
+                slide.style.display = 'none';
+            });
+            dots.forEach(dot => dot.classList.remove('is-active'));
+            
+            // Add active to selected slide and dot
+            slides[index].classList.add('is-active');
+            slides[index].style.display = 'block';
+            dots[index].classList.add('is-active');
+        }
+    </script>
+</div>
+{% endblock %}
