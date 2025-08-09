@@ -1,0 +1,160 @@
+# GitLab CI provider
+
+## Support
+
+### Serialization
+
+The ability to round-trip GitLab CI into `cici` and back out.
+
+- [ ] Hidden jobs (not supported)
+- [ ] Global keywords
+    - [ ] `default`
+        - [x] `after_script`
+        - [x] `artifacts`
+        - [x] `before_script`
+        - [x] `cache`
+        - [x] `hooks`
+        - [x] `image`
+        - [x] `interruptible`
+        - [x] `retry`
+        - [x] `services`
+        - [ ] `tags`
+        - [ ] `timeout`
+    - [x] `include`
+        - [x] `include:local`
+        - [x] `include:project`
+        - [x] `include:remote`
+        - [x] `include:template`
+    - [x] `stages`
+    - [x] `workflow`
+        - [x] `workflow:name`
+        - [x] `workflow:rules`
+        - [x] `workflow:rules:variables`
+- [ ] Job keywords
+    - [x] `after_script`
+    - [x] `allow_failure`
+        - [x] `allow_failure:exit_codes`
+    - [ ] `artifacts`
+        - [x] `artifacts:paths`
+        - [x] `artifacts:exclude`
+        - [x] `artifacts:expire_in`
+        - [x] `artifacts:expose_as`
+        - [x] `artifacts:name`
+        - [x] `artifacts:public`
+        - [ ] `artifacts:reports`
+            - [ ] `artifacts:reports:accessibility`
+            - [ ] `artifacts:reports:api_fuzzing`
+            - [ ] `artifacts:reports:browser_performance`
+            - [x] `artifacts:reports:coverage_report`
+            - [ ] `artifacts:reports:codequality`
+            - [ ] `artifacts:reports:container_scanning`
+            - [ ] `artifacts:reports:coverage_fuzzing`
+            - [ ] `artifacts:reports:cyclonedx`
+            - [ ] `artifacts:reports:dast`
+            - [ ] `artifacts:reports:dependency_scanning`
+            - [ ] `artifacts:reports:dotenv`
+            - [x] `artifacts:reports:junit`
+            - [ ] `artifacts:reports:license_scanning`
+            - [ ] `artifacts:reports:load_performance`
+            - [ ] `artifacts:reports:metrics`
+            - [ ] `artifacts:reports:requirements`
+            - [ ] `artifacts:reports:sast`
+            - [ ] `artifacts:reports:secret_detection`
+            - [x] `artifacts:reports:terraform`
+        - [x] `artifacts:untracked`
+        - [x] `artifacts:when`
+    - [x] `before_script`
+    - [x] `cache`
+        - [x] `cache:paths`
+        - [x] `cache:key`
+            - [x] `cache:key:files`
+            - [x] `cache:key:prefix`
+        - [x] `cache:untracked`
+        - [x] `cache:unprotect`
+        - [x] `cache:when`
+        - [x] `cache:policy`
+        - [x] `cache:fallback_keys`
+    - [x] `coverage`
+    - [ ] ~~`dast_configuration`~~ ultimate only
+    - [x] `dependencies`
+    - [x] `environment`
+        - [x] `environment:name`
+        - [x] `environment:url`
+        - [x] `environment:on_stop`
+        - [x] `environment:action`
+        - [x] `environment:auto_stop_in`
+        - [x] `environment:kubernetes`
+        - [x] `environment:deployment_tier`
+        - [ ] ~~Dynamic environments~~ N/A
+    - [x] `extends`
+    - [x] `hooks`
+        - [x] `hooks:pre_get_sources_script`
+    - [x] `id_tokens`
+    - [x] `image`
+        - [x] `image:name`
+        - [x] `image:entrypoint`
+        - [x] `image:pull_policy`
+    - [ ] `inherit`
+        - [ ] `inherit:default`
+        - [ ] `inherit:variables`
+    - [x] `interruptible`
+    - [ ] `needs`
+        - [ ] `needs:artifacts`
+        - [ ] `needs:project`
+        - [ ] `needs:pipeline:job`
+        - [ ] `needs:optional`
+        - [ ] `needs:pipeline`
+    - [ ] `only / except`
+        - [ ] `only:refs / except:refs`
+        - [ ] `only:variables / except:variables`
+        - [ ] `only:changes / except:changes`
+        - [ ] `only:kubernetes / except:kubernetes`
+    - [ ] `pages`
+    - [ ] `parallel`
+        - [ ] `parallel:matrix`
+    - [ ] `release`
+        - [ ] `release:tag_name`
+        - [ ] `release:tag_message`
+        - [ ] `release:name`
+        - [ ] `release:description`
+        - [ ] `release:ref`
+        - [ ] `release:milestones`
+        - [ ] `release:released_at`
+        - [ ] `release:assets:links`
+    - [ ] `resource_group`
+    - [x] `retry`
+        - [x] `retry:when`
+    - [x] `rules`
+        - [x] `rules:if`
+        - [x] `rules:changes`
+            - [x] `rules:changes:paths`
+            - [x] `rules:changes:compare_to`
+        - [x] `rules:exists`
+        - [x] `rules:allow_failure`
+        - [x] `rules:needs`
+        - [x] `rules:variables`
+    - [x] `script`
+    - [ ] ~~`secrets`~~ premium only
+        - [ ] ~~`secrets:vault`~~ premium only
+        - [ ] ~~`secrets:file`~~ premium only
+        - [ ] ~~`secrets:token`~~ premium only
+    - [x] `services`
+        - [x] `service:pull_policy`
+    - [x] `stage`
+        - [x] ~~`stage: .pre`~~ nothing to implement
+        - [x] ~~`stage: .post`~~ nothing to implement
+    - [ ] `tags`
+    - [ ] `timeout`
+    - [ ] `trigger`
+        - [ ] `trigger:include`
+        - [ ] `trigger:project`
+        - [ ] `trigger:strategy`
+        - [ ] `trigger:forward`
+    - [x] `variables`
+        - [x] `variables:description`
+        - [x] `variables:value`
+        - [x] `variables:options`
+        - [x] `variables:expand`
+    - [ ] `when`
+- [ ] Deprecated keywords
+    - [ ] Globally-defined `image`, `services`, `cache`, `before_script`, `after_script`

@@ -1,0 +1,120 @@
+# SPDX-FileCopyrightText: UL Research Institutes
+# SPDX-License-Identifier: Apache-2.0
+
+stages:
+  - test
+  - build
+  - deploy
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - when: always
+
+variables:
+  TERRAFORM_ROOT: "${CI_PROJECT_DIR}/deploy/${TERRAFORM_STATE_NAME}"
+
+.terraform-base:
+  image: registry.gitlab.com/gitlab-org/terraform-images/stable:latest
+  variables:
+    GIT_DEPTH: "1"
+    TF_STATE_NAME: "$TERRAFORM_STATE_NAME"
+    TF_ROOT: "$TERRAFORM_ROOT"
+    TF_ADDRESS: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/${TERRAFORM_STATE_NAME}"
+  cache:
+    key: "$TERRAFORM_STATE_NAME"
+    paths:
+      - ${TERRAFORM_ROOT}/.terraform
+  before_script:
+    - gitlab-terraform -version
+
+.terraform-base-run:
+  extends: .terraform-base
+  resource_group: "$TERRAFORM_STATE_NAME"
+  before_script:
+    - gitlab-terraform -version
+    - echo "Entering path '$TERRAFORM_ROOT' for state '$TERRAFORM_STATE_NAME'"
+    - cd "${TERRAFORM_ROOT}"
+
+.terraform-plan:
+  extends: .terraform-base-run
+  stage: test
+  script:
+    - gitlab-terraform plan
+    - gitlab-terraform plan-json
+  artifacts:
+    paths:
+      - "${TERRAFORM_ROOT}/plan.cache"
+    reports:
+      terraform: "${TERRAFORM_ROOT}/plan.json"
+
+.terraform-apply:
+  extends: .terraform-base-run
+  stage: deploy
+  script:
+    - gitlab-terraform apply
+  resource_group: "$TERRAFORM_STATE_NAME"
+  environment:
+    name: "$TERRAFORM_STATE_NAME"
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
+
+.terraform-destroy:
+  extends: .terraform-base-run
+  stage: deploy
+  script:
+    - gitlab-terraform destroy
+  resource_group: ${TERRAFORM_STATE_NAME}
+  rules:
+    - if: $TERRAFORM_DESTROY
+      when: manual
+
+.terraform-production:
+  variables:
+    TERRAFORM_STATE_NAME: "production"
+
+.terraform-staging:
+  variables:
+    TERRAFORM_STATE_NAME: "staging"
+
+terraform-fmt:
+  extends: .terraform-base
+  stage: test
+  script:
+    - gitlab-terraform fmt -recursive -check -diff
+
+terraform-production-plan:
+  extends: [.terraform-production, .terraform-plan]
+  environment:
+    name: "${TERRAFORM_STATE_NAME}-plan"
+
+terraform-production-apply:
+  extends: [.terraform-production, .terraform-apply]
+  needs: [terraform-production-plan]
+
+terraform-staging-apply:
+  extends: [.terraform-staging, .terraform-apply]
+  stage: test
+  script:
+    - gitlab-terraform plan
+    - gitlab-terraform plan-json
+    - gitlab-terraform apply
+  rules:
+    - when: always
+  environment:
+    name: "$TERRAFORM_STATE_NAME"
+    on_stop: terraform-staging-destroy
+  artifacts:
+    paths:
+      - "${TERRAFORM_ROOT}/plan.cache"
+    reports:
+      terraform: "${TERRAFORM_ROOT}/plan.json"
+
+terraform-staging-destroy:
+  extends: [.terraform-staging, .terraform-destroy]
+  stage: test
+  environment:
+    name: "$TERRAFORM_STATE_NAME"
+    action: stop
