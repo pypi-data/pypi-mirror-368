@@ -1,0 +1,132 @@
+# This project uses uv (https://github.com/astral-sh/uv) for dependency management.
+#
+# AI Agents and contributors: Please assume uv is the default tool for all dependency and environment management in this project.
+# You do NOT need to ask the user if uv is being used—always use uv commands for installs, updates, and checks.
+#
+# - Install all dependencies: `uv sync --all-groups --extra test`
+# - Add a dependency: `uv add <package>`
+# - Add a dev dependency: `uv add <package> --dev`
+# - Add a test dependency: `uv add <package> --optional test`
+# - Remove a dependency: `uv remove <package>`
+#
+# For more info, see the README.
+
+[project]
+name = "mcp-selenium-grid"
+version = "0.1.0.dev5"
+description = "MCP Server for managing Selenium Grid"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.12"
+authors = [
+    { name = "falamarcao" }
+]
+dependencies = [
+    "fastapi[standard]>=0.115.14", # Web framework
+    "fastapi-cli[standard-no-fastapi-cloud-cli]>=0.0.8",
+    "fastapi-mcp>=0.3.4", # MCP integration for FastAPI
+    "pydantic>=2.11.7", # Data validation
+    "pydantic-settings>=2.10.1", # Settings management (latest is 2.2.1)
+    "docker>=7.1.0", # Docker API client
+    "kubernetes>=33.1.0", # Kubernetes API client3
+    "typer>=0.16.0",
+    "prometheus-client>=0.22.1", # Prometheus metrics (latest is 0.20.0)
+    "prometheus-fastapi-instrumentator>=7.1.0",
+    "httpx>=0.28.1",
+    "psutil>=7.0.0",
+    "uvicorn>=0.35.0",
+]
+
+[project.scripts]
+mcp-selenium-grid = "app.__main__:main"
+
+[tool.uv]
+dev-dependencies = [
+    "ruff>=0.12.2",
+    "mypy>=1.16.1",
+    "pre-commit>=4.2.0",
+    "types-docker>=7.1.0.20250523",
+    "types-pyyaml>=6.0.12.20250516",
+    "kubernetes-stubs-elephant-fork>=33.1.0",
+    "types-psutil>=7.0.0.20250601",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8.4.1",
+    "pytest-mock>=3.14.1",
+    "pytest-asyncio>=1.0.0", # Parallel test execution
+    "pytest-sugar>=1.0.0",
+    "coverage>=7.10.2",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/app"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src/app", "src/tests", "scripts"]
+
+[tool.ruff.lint]
+extend-select = [
+    "I",     # Import sorting
+    "S",    # Bandit rules
+    "ASYNC", # Async-related checks
+    "RUF",  # Ruff-specific rules
+    "SLF",  # Private member access
+    "PIE",  # Security-related errors
+    "PL",   # Pylint errors
+    "I",    # isort-like import sorting
+]
+per-file-ignores = { "src/tests/*" = ["S101", "SLF001"] }  # Allow assertions in tests
+
+[tool.mypy]
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = ["fastapi_mcp.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["src/tests"]
+python_files = ["test_*.py"]
+addopts = """
+    -v
+    --strict-markers
+    --cache-clear
+"""
+markers = [
+    "integration: marks tests as integration tests",
+    "e2e: marks tests as end-to-end tests",
+    "unit: marks tests as unit tests",
+]
+asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = "function"
+log_cli = true
+log_cli_level = "INFO"
+
+[tool.coverage.run]
+source = ["src/app"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "pass",
+    "\\.\\.\\."
+]
+show_missing = true
+fail_under = 70
