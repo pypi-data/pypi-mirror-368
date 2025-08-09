@@ -1,0 +1,49 @@
+name: tox
+
+on:
+  push:
+    branches:
+    - "main"
+  pull_request:
+  schedule:
+  - cron: 0 0 1 * *  # every month
+
+jobs:
+  build:
+    name: ${{ matrix.tox_env }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - tox_env: lint
+        - tox_env: py39
+        - tox_env: py310
+        - tox_env: py311
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Find python version
+      id: py_ver
+      shell: python
+      if: ${{ contains(matrix.tox_env, 'py') }}
+      run: |
+        v = '${{ matrix.tox_env }}'.split('-')[0].lstrip('py')
+        print('::set-output name=version::{0}.{1}'.format(v[0],v[1:]))
+    - name: Install a default Python
+      uses: actions/setup-python@v2
+      if: ${{ ! contains(matrix.tox_env, 'py') }}
+      with:
+        python-version: 3.11
+    - name: Set up Python version
+      uses: actions/setup-python@v2
+      if: ${{ contains(matrix.tox_env, 'py') }}
+      with:
+        python-version: ${{ steps.py_ver.outputs.version }}
+    - name: Install tox
+      run: |
+        pip install tox
+    - name: Run tox -e ${{ matrix.tox_env }}
+      run: |
+        echo "${{ matrix.PREFIX }} tox -e ${{ matrix.tox_env }}"
+        ${{ matrix.PREFIX }} tox -e ${{ matrix.tox_env }}
