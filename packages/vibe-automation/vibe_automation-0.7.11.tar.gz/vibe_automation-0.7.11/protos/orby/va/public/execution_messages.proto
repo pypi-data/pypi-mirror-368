@@ -1,0 +1,266 @@
+syntax = "proto3";
+
+package orby.va.public;
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+
+// =============================================================================
+//  Service RPC Messages
+// =============================================================================
+message EnvironmentVariable {
+  string name = 1;
+  string value = 2;
+}
+
+// Request to start a new execution.
+message StartExecutionRequest {
+  string workflow_id = 1;
+  repeated EnvironmentVariable environment = 4;
+}
+
+// Response after starting an execution.
+message StartExecutionResponse {
+  string execution_id = 1;
+  string live_view_url = 2;
+}
+
+
+// Request to cancel a running execution.
+message CancelExecutionRequest {
+  string execution_id = 1;
+  string reason = 2;
+}
+
+// Response after a cancellation request.
+message CancelExecutionResponse {
+  string execution_id = 1;
+}
+
+// Request to stream events for a specific execution.
+message GetExecutionEventsRequest {
+  string execution_id = 1;
+  string last_event_id = 2;
+}
+
+message RequestReviewRequest {
+  string execution_id = 1;
+  string user_message = 2;
+}
+
+message RequestReviewResponse {
+  string status = 1;
+  string review_id = 2;
+}
+
+message ReviewCompletedRequest {
+  string review_id = 1;
+}
+
+message ReviewCompletedResponse {
+  string status = 1;
+}
+
+message GetReviewStatusRequest {
+  string review_id = 1;
+}
+
+message GetReviewStatusResponse {
+  string status = 1;
+}
+
+// =============================================================================
+//  Component Messages
+// =============================================================================
+
+message ErrorInfo {
+  string message = 1;
+  int32 code = 2;
+}
+
+// =============================================================================
+//  Streaming Event Payloads
+// =============================================================================
+
+// ExecutionEvent is a single event in the lifecycle of an execution.
+// Note: This model is not finalized, and will likely change in the future.
+message ExecutionEvent {
+  string event_id = 1;
+  google.protobuf.Timestamp timestamp = 2;
+  string execution_id = 3;
+
+  oneof payload {
+    StepStarted step_started = 10;
+    StepCompleted step_completed = 11;
+    ApiCallDetails api_call_details = 12;
+    BrowserUseLiveSession browser_use_live_session = 13;
+    BrowserUseVideoArtifact browser_use_video_artifact = 14;
+    ExecutionCompleted execution_completed = 15;
+    ExecutionFailed execution_failed = 16;
+    ExecutionCanceled execution_canceled = 17;
+  }
+}
+
+message Step {
+  string id = 1;
+  string description = 2;
+  StepType type = 3;
+}
+
+message StepStarted { Step step = 1; }
+
+message StepCompleted {
+  Step step = 1;
+  StepStatus status = 2;
+  google.protobuf.Duration duration = 3;
+}
+
+message ApiCallPayload {
+  string endpoint = 1;
+  string method = 2;
+
+  // The following fields will likely be changed in the future.
+  // We will probably switch to a system where the model adds a log after the API call to capture the inputs and outputs.
+  google.protobuf.Struct request = 3;  
+  google.protobuf.Struct response = 4;
+  google.protobuf.Duration duration = 5;
+}
+
+message ApiCallDetails { string step_id = 1; ApiCallPayload api_call = 2; }
+
+message BrowserUseLiveSession { string step_id = 1; string session_url = 2; }
+
+message BrowserUseVideoArtifact {
+  string step_id = 1;
+  string url = 2;
+  string format = 3;
+  google.protobuf.Duration duration = 4;
+}
+
+message ExecutionCompleted { google.protobuf.Struct output = 1; }
+message ExecutionFailed { ErrorInfo error = 1; }
+message ExecutionCanceled { string reason = 1; }
+
+// =============================================================================
+//  Enumerations
+// =============================================================================
+
+enum StepType {
+  STEP_TYPE_UNSPECIFIED = 0;
+  WORKFLOW_LOGIC = 1;
+  API_STEP = 2;
+  BROWSER_USE = 3;
+}
+
+enum StepStatus {
+  STEP_STATUS_UNSPECIFIED = 0;
+  SUCCESS = 1;
+  FAILURE = 2;
+}
+
+enum ExecutionStatus {
+  EXECUTION_STATUS_UNSPECIFIED = 0;
+  PENDING = 1;
+  RUNNING = 2;
+  COMPLETED = 3;
+  FAILED = 4;
+  CANCELLED = 5;
+  TIMEOUT = 6;
+  WAITING_FOR_REVIEW = 7;
+}
+
+enum IdentifierType {
+  IDENTIFIER_TYPE_UNSPECIFIED = 0;
+  USER = 1;
+  SCHEDULE = 2;
+}
+
+// Response containing execution details.
+message Execution {
+
+  // Execution workflow context information
+  message WorkflowContext {
+    string commit_hash = 1;
+  }
+
+  // Information about what triggered the execution
+  message TriggeredBy {
+    IdentifierType type = 1;
+    string identifier = 2;
+  }
+
+  // Browser service information
+  message BrowserService {
+    string session_id = 1;
+    string context_id = 2;
+  }
+
+  // User-related information
+  message Users {
+    string cancelled_by = 1;
+  }
+
+  // Execution timestamps
+  message Timestamps {
+    google.protobuf.Timestamp created_at = 1;
+    google.protobuf.Timestamp updated_at = 2;
+    google.protobuf.Timestamp started_at = 3;
+    google.protobuf.Timestamp finished_at = 4;
+    google.protobuf.Timestamp cancelled_at = 5;
+  }
+
+  string id = 1;
+  string workflow_id = 2;
+  string org_id = 3;
+  WorkflowContext workflow_context = 4;
+  google.protobuf.Struct inputs = 5;
+  TriggeredBy triggered_by = 6;
+  Timestamps timestamps = 7;
+  ExecutionStatus status = 8;
+  Users users = 9;
+  BrowserService browser_service = 10;
+  string rrweb_recording_gcs_uri = 11;
+}
+
+message ExecutionLog {
+  string id = 1;
+  string execution_id = 2;
+  string workflow_id = 3 [deprecated=true];
+  string org_id = 4;
+  int32 step_id = 5;
+  string description = 6;
+  string screenshot = 7;
+  ExecutionStatus status = 8 [deprecated=true];
+  google.protobuf.Struct metadata = 9;
+}
+
+message UpdateExecutionRequest {
+  string execution_id = 1;
+  google.protobuf.FieldMask field_mask = 2;
+  ExecutionStatus status = 3;
+}
+
+message GetExecutionLogsRequest {
+  string execution_id = 1;
+  // Default page size is 5. Max page size is 100.
+  int32 page_size = 2;
+  // Page number is 1-indexed
+  int32 page_number = 3;
+}
+
+message GetExecutionLogsResponse {
+  repeated ExecutionLog logs = 1;
+  int32 total_size = 2;
+}
+
+message AppendExecutionLogRequest {
+  ExecutionLog log = 1;
+}
+
+message AppendExecutionLogResponse {
+  // The id of the appended log
+  string id = 1;
+}

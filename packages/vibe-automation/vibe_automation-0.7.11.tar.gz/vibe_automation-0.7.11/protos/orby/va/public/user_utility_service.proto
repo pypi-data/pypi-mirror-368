@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package orby.va.public;
+
+import "orby/va/public/oauth2_token.proto";
+
+service UserUtilityService {
+    // Returns a list of orgs that the user is a member of
+    rpc GetUserOrgs(GetUserOrgsRequest) returns (GetUserOrgsResponse);
+    // Returns a credential by the connectionId or the connectionName and applicationType
+    rpc GetCredentials(GetCredentialsRequest) returns (GetCredentialsResponse);
+}
+
+message GetUserOrgsRequest {
+}
+
+message GetUserOrgsResponse {
+    message OrgInfo {
+        string org_id = 1;
+        string org_name = 2;
+    }
+    repeated OrgInfo org_infos = 1;
+}
+
+// Credentials can either be fetched by the connectionId or the connectionName and applicationType
+message GetCredentialsRequest {
+    // The identifier of the credential to get
+  oneof identifier {
+    // The ID of the connection with the credential
+    string id = 1;
+    // Identifier containing connection name and application type
+    ConnectionIdentifier connection_identifier = 2;
+  }
+
+    message ConnectionIdentifier {
+      // Name of the connection (unique for a user in an org)
+      string connection_name = 1;
+      // Application type (e.g. "GMAIL", "GDRIVE", etc)
+      // This is the application type from the application integrations collection 
+      string application_type = 2;
+    }
+}
+
+message GetCredentialsResponse {
+    Oauth2Token credential = 1;
+}
