@@ -1,0 +1,100 @@
+# Easy UDP
+
+Easy UDP is a Python package that simplifies UDP communication. It provides convenient classes for UDP Sender and Receiver implementations.
+
+## Installation
+
+```bash
+pip install easy-udp
+```
+
+## Usage
+
+### UDP Sender
+```python
+from easy_udp import UDPSender
+import numpy as np
+
+# Create UDP sender instance
+udp_sender = UDPSender(host="localhost", port=12345)
+
+# Sending data
+print("Sending: 123")
+udp_sender.send(123)
+
+print("Sending: Hello, World!")
+udp_sender.send("Hello, World!")
+
+img = np.random.randint(0, 255, (1280, 720, 3), dtype=np.uint8)
+print("Sending: img", img)
+udp_sender.send(img)
+
+# Send arbitrary Python object (picklable)
+class Foo:
+    def __init__(self, x):
+        self.x = x
+
+obj = {"a": 1, "b": [1, 2, 3], "foo": Foo(5)}
+udp_sender.send(obj)
+
+```
+
+### UDP Receiver
+```python
+from easy_udp import UDPReceiver
+import numpy as np
+
+# Create UDP receiver instance
+udp_receiver = UDPReceiver(host="localhost", port=12345)
+
+# receive data
+while True:
+    received_data = udp_receiver.receive()
+    if received_data is not None:
+        if isinstance(received_data, np.ndarray):
+            received_data = received_data.reshape((1280, 720, 3))
+            print("Received: img", received_data)
+
+        if isinstance(received_data, str):
+            print("Received: str", received_data)
+
+        if isinstance(received_data, int):
+            print("Received: int", received_data)
+
+        # Any other type — it's likely an arbitrary Python object
+        else:
+            print("Received: object", type(received_data), received_data)
+```
+
+You can also use context managers for automatic socket cleanup:
+
+```python
+from easy_udp import UDPSender
+
+with UDPSender(host="localhost", port=12345) as sender:
+    sender.send("hello")
+```
+
+`UDPReceiver` supports optional timeout to avoid busy-waiting:
+
+```python
+from easy_udp import UDPReceiver
+
+receiver = UDPReceiver(host="localhost", port=12345, recv_timeout_s=1.0)
+data = receiver.receive()  # returns None on timeout
+```
+
+## Changelog
+
+### 0.1.8
+- Added context manager support for `UDPSender`/`UDPReceiver` and safe socket lifecycle (`close()`, `__enter__`, `__exit__`).
+- Enabled `SO_REUSEADDR` for faster restarts.
+- Added `recv_timeout_s` (optional) to `UDPReceiver` to prevent busy-waiting; added small collection window in non-blocking mode.
+- Adjusted fragmentation to MTU-safe payloads (~1400 bytes) to avoid IP fragmentation and reduce packet loss.
+- Added support for sending arbitrary Python objects via pickle (falls back in `UDPSender.send()` and handled in `UDPReceiver`).
+- Improved error messages and type hints; minor README updates and examples.
+
+Security note: pickle is unsafe with untrusted sources. Only enable/use object transfer in trusted environments.
+
+### 0.1.7
+- Initial public API: `UDPSender` and `UDPReceiver` with support for `numpy.ndarray`, `str`, and `int`.
