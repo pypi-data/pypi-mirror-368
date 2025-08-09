@@ -1,0 +1,4 @@
+Tips
+----
+
+.. include:: ../../tipsreadme.rst
