@@ -1,0 +1,171 @@
+# SimplePBI
+![downloads](https://img.shields.io/badge/downloads-93k-brightgreen) ![downloads](https://img.shields.io/badge/downloads-3,3k%2Fmonth-brightgreen) [![PayPal donate](https://img.shields.io/badge/paypal-donate-ff69b4?logo=paypal)][donate-url] [![Twitter][twitter-follow]][twitter-url]
+ 
+| [![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)][donate-url] | Your help is appreciated. |
+|-|-|
+
+[twitter-url]: https://twitter.com/ignacho_07
+[twitter-follow]: https://img.shields.io/twitter/follow/chemerisuk.svg?style=social&label=Follow%20me
+[donate-url]: https://www.paypal.com/donate/?hosted_button_id=7A8YKN3HQ65LU
+
+This is a simple library that makes it easy to use the Power Bi REST API and Fabric REST API. We have cover more than 85% of PowerBi request and now we are working with Microsoft Fabric too. We hope one day SimplePBI will contain all the categories in both APIs, our at least that's our vision dream.
+Feel free to check the doc to get a deeper understanding of a specific request: 
+- Power Bi Doc: https://learn.microsoft.com/en-us/rest/api/power-bi/
+- Fabric Doc: https://learn.microsoft.com/en-us/rest/api/fabric/articles/using-fabric-apis
+
+We are doing our best to make this library useful for the community. This project is not a remunerable job for us. It's a public community open source project. It's a way to express our passion of sharing knowledge. Please be patient if you submit an issue and it's not fixed right away.
+<br>Each category is an Object. This means we need to initialize an object to start using its methods. In order to create them we need the Bearer token that can be obtain from a Token Object. 
+Let's see how we can create an Admin Object to try the requests in that category.
+
+```python
+# Import library
+from simplepbi import token
+from simplepbi import admin
+from simplepbi.fabric import adminfab
+```
+
+We always need to import token object to create the object to run requests. Then we can pick the object of the Power Bi Rest API category we need. For instance "admin".
+The token can be created in two ways, the regular authentication and the service principal one. It depends which one you pick to complete the request. 
+These are the necessary arguments to get a token:
+- tenant_id (you can get it from subscription resource in azure portal or ask for it to the IT department)
+- app_client_id (your app_id/client_id from the App registered in Azure with permissions to Power Bi Service)
+- username (professional email account in Azure AD)
+- password (professional password)
+- app_secret_key (secret key generated for the client id)
+- use_service_principal (True to athenticate with Service Principal and False to continue with user credentials)
+
+
+*NOTE: if you want to use service principal, be sure to have your tenant ready for that.
+<br>Register app example: https://blog.ladataweb.com.ar/post/188045227735/get-access-token
+<br>Service Principal permissions for admin api: https://docs.microsoft.com/en-us/power-bi/admin/read-only-apis-service-principal-authentication*
+
+
+```python
+# Creating objects
+
+#Regular Login
+tok = token.Token(tenant_id, app_client_id, username, password, None, use_service_principal=False)
+
+#Service Principal
+tok = token.Token(tenant_id, app_client_id, None, None, app_secret_key, use_service_principal=True)
+
+ad = admin.Admin(tok.token)
+
+it = adminfab.Items(tok.token)
+
+```
+
+As you can see the Token object contains a token attribute with the Bearer used by Azure to run rest methods. That attribute will be user to create the category objects like admin.
+Once we create our Object like admin, we can start using the requests adding the correct parameters if they are needed.
+
+```python
+# Getting objects
+
+All_Datasets = ad.get_datasets()
+
+Datasets_In_Groups = ad.get_datasets_in_group(workspace_id)
+
+Items_In_Workspace = it.list_items(workspace_id)
+
+```
+
+The library get requests will return a response object .json() that python reads it as a Dict.
+
+## The Core Category requests at Fabric
+The core requests at Fabric are the operational requests for regular users. Some examples are workspaces, folders, items, git integration, schedules or gateways. It contains a subcategory items that can handle any item created at fabric. You can list items and pick a type report for the get. Items can be anything like notebooks, pipelines, semantic models, etc.
+
+## Preview methods
+There are some methods in the classes that still need more testing. Those will have a "preview" at the end of the name. Please let us know if something goes wrong with those. All Fabric requests are in "preview" even though they don't have the clarification at the name.
+
+## Current Categories
+Right now the library is consuming endpoints from: 
+- <a href="https://github.com/ladataweb/SimplePBI/blob/main/Admin_details.txt" target="_blank">Admin</a>
+- <a href="https://github.com/ladataweb/SimplePBI/blob/main/Groups_details.txt" target="_blank">Groups</a>
+- <a href="https://github.com/ladataweb/SimplePBI/blob/main/Datasets_details.txt" target="_blank">Datasets</a>
+- <a href="https://github.com/ladataweb/SimplePBI/blob/main/Dataflows_details.txt" target="_blank">Dataflows</a>
+- <a href="https://github.com/ladataweb/SimplePBI/blob/main/Reports_details.txt" target="_blank">Reports</a>
+- <a href="https://github.com/ladataweb/SimplePBI/blob/main/Dashboards_details.txt" target="_blank">Dashboards</a>
+- <a href="https://github.com/ladataweb/SimplePBI/blob/main/Apps_details.txt" target="_blank">Apps</a>
+- <a href="https://github.com/ladataweb/SimplePBI/blob/main/Imports_details.txt" target="_blank">Imports</a>
+- <a href="https://github.com/ladataweb/SimplePBI/blob/main/Gateways_details.txt" target="_blank">Gateways</a>
+- <a href="https://github.com/ladataweb/SimplePBI/blob/main/Capacities_details.txt" target="_blank">Capacities</a>
+- <a href="https://github.com/ladataweb/SimplePBI/blob/main/Pipelines_details.txt" target="_blank">Pipelines (Preview)</a>
+- <a href="https://github.com/ladataweb/SimplePBI/blob/main/Scorecards_details.txt" target="_blank">Scorecards (Preview)</a>
+- <a href="https://github.com/ladataweb/SimplePBI/blob/main/Az_Pause_Resume_details.txt" target="_blank">Azure Pause and Resume resource (Preview)</a>
+- <a href="https://github.com/ladataweb/SimplePBI/blob/main/Push_Datasets_details.txt" target="_blank">Push Datasets</a>
+- <a href="https://github.com/ladataweb/SimplePBI/blob/main/Fabric_Admin_details.txt" target="_blank">Fabric Admin</a>
+- <a href="https://github.com/ladataweb/SimplePBI/blob/main/Fabric_Core_details.txt" target="_blank">Fabric Core</a>
+- <a href="https://github.com/ladataweb/SimplePBI/blob/main/Fabric_DataPipelines_details.txt" target="_blank">Fabric Data Pipelines</a>
+- <a href="https://github.com/ladataweb/SimplePBI/blob/main/Fabric_SemanticModels_details.txt" target="_blank">Fabric Semantic Models</a>
+
+## Complex requests
+If you want to get a deeper look on complex __Admin__ methods and unique methods. 
+<a href="https://github.com/ladataweb/SimplePBI/blob/main/Admin_complex.md" target="_blank">Check this doc</a>
+
+## Azure Pause Resume Resources
+We have added a new feature to include some Azure Resource API Manager. The new "azpause" class will let you Pause or Resume Azure tabular or capacity resources. With SimplePBI you can pause and resume Fabric, Power Bi Embedded or Azure Analysis Services resources.
+<a href="https://github.com/ladataweb/SimplePBI/blob/main/AzPauseResume.md" target="_blank">Check this doc</a>
+
+## Additional content
+There an aditional library Utils for transformations. It is used to help some requests returning different values.
+The most useful method in the Utils class might be to_pandas. You can use the method to convert simple dicts to pandas. It needs the dict and the key father of a list of dicts in the response. The usual get responses are using "value" as the key.
+We are also adding new methods with the requests to help get new actions. Examples:
+
+### Example of our amazing unique requests
+- get_orphan_dataflows_preview: get dataflows without dataset
+- simple_import_pbix: makes publishing a pbix file easier
+- simple_import_pbix_as_parameter: import a pbix from api response content
+- simple_import_pbix_folder_in_group_preview: post a all pbix files in a local folder
+- simple_import_from_devops: import a pbix from azure devops repo
+- simple_import_from_github: import a pbix from azure github repo
+- simple_copy_reports_between_groups: copy report from workspace to a workspace
+- enhanced_refresh_dataset_in_group: a special request feature that not only eliminates the need for synchronous client connections to perform a refresh, but also unlocks enterprise-grade refresh capabilities.
+- get_activity_events_preview (already iterating): makes the get activity events specified by date easier
+- get_user_artifact_access_preview (already iterating): makes the get user artifact access easier
+- get_widely shared_artifacts_published_to_web (already iterating): makes geting the published to web repos info easier
+- get_dataset_roles_in_group: get all the roles from a single dataset in a specific workspace
+- get_datasets_roles_in_groups: get all the roles from all datasets in a list of workspaces
+- create_doc_by_table_semantic_model_in_group(workspace_id, dataset_id, doc_type, path): generate an html code file or text with a document of semantic model in a workspace organized by tables
+- create_html_semantic_model_documentation(workspace_id, semantic_model_id, output_html_path): a new version generating an html code file or text with a document of semantic model in a workspace organized by tables
+- list_roles_from_semantic_model(workspace_id, semantic_model_id): returns the roles of the specified semantic model
+- get_tables_schema_from_semantic_model(workspace_id, semantic_model_id): returns the tables schema of the specified semantic model
+- get_tables_partitions_from_semantic_model(workspace_id, semantic_model_id): returns the tables partitions of the specified semantic model
+
+## Small categories
+Small categories like Dataflow Storage Accounts and Available Features were moved to Groups and Admin.
+
+# Missing endpoints
+We are still developing the library. The following endpoints from admin are still missing
+### Fabric API
+- Admin (External data shares, labels and tenants)
+- Core (Capacities, deployment pipelines, external data shares, gateways, managed private endpoints)
+- All other categories except SemanticModels and DataPipelines
+### Power Bi Rest API
+- Admin (Set and Remove LabelsAsAdmin)
+- Groups (Update group User)
+- Reports
+	- Export To File (full request, there is a smaller simpler one)
+	- Get Export To File Status (regular and in groups)
+	- Get File Of Export To File (regular and in groups)
+	- Update Datasources (rdl files regular and in groups)
+	- Update Report Content (regular and in groups)
+- Imports
+	- Create Temporary Upload Location
+	- Create Temporary Upload Location In Group
+	- Post Import (for xlsx, json and rdl)
+	- Post Import In Group (for xlsx, json and rdl)
+- Gateways 
+	- Create Datasource (looks like there is a bug on the API)
+	- Update Datasource 
+	- Delete Datasource 
+- Scorecards (Patch By Id, Move Goals)
+- Embed Token (All requests)
+- Goals (All requests)
+
+# Next Steps (planned items)
+- Complete Fabric API requests for admin and core.
+- Creating new awesome ideas.
+- Keep completing missing endpoints category.
+- Focus on Fabric Rest API and close PowerBi Rest API development.
+
+
