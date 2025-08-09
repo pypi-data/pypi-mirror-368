@@ -1,0 +1,64 @@
+# IBM Cloud Browser MCP
+AI navigation of the IBM Cloud Console.
+
+![Example of chatbot opening a sysdig view](img/open-sysdig-dash.png)
+
+*Example: Open a specific Sysdig monitoring dashboard directly via AI*
+
+## Features
+
+- Query resources
+- Navigate to the right cloud logs view
+- Quickly open the right sysdig dashboard
+- Show details of a kubernetes cluster
+- Monitor a database
+- Search the catalog
+
+## Architecture
+
+The MCP server acts as a bridge between an MCP enabled AI and IBM Cloud services:
+- **Browser Tools**: Open specific IBM Cloud dashboards and consoles directly
+- **Resource Tools**: List and query IBM Cloud resources via CLI integration
+
+## Connect to Claude Desktop
+
+1. Open Claude Desktop configuration file:
+   ```bash
+   code ~/Library/Application\ Support/Claude/claude_desktop_config.json
+   ```
+
+2. Add this MCP server to your configuration:
+   ```json
+   {
+     "mcpServers": {
+       "ibm-cloud-browser": {
+         "command": "/opt/homebrew/bin/uv",
+         "args": ["run", "python", "/Users/jon/Code/ai/chatbot-console4/main.py"],
+         "cwd": "/Users/jon/Code/ai/chatbot-console4"
+       }
+     }
+   }
+   ```
+
+3. Restart Claude Desktop
+
+## Pre-reqs
+
+- logged in via cli
+- open IBM Cloud console session in browser
+- open sysdig session in browser
+
+## Debugging
+
+### run Locally
+```bash
+uv run python main.py
+```
+### MCP Inspector
+```
+npx @modelcontextprotocol/inspector uv run python main.py
+```
+### View logs
+```bash
+tail -f ~/Library/Logs/Claude/mcp*.log
+```
