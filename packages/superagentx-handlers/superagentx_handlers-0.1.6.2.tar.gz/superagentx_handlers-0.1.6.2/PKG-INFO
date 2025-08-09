@@ -1,0 +1,188 @@
+Metadata-Version: 2.3
+Name: superagentx-handlers
+Version: 0.1.6.2
+Summary: 
+License: MIT
+Keywords: superagentX,AGI,Agentic AI,ASI,superagentx,agent,LLM
+Author: SuperAgentX AI
+Author-email: support@superagentx.ai
+Maintainer: SuperAgentX AI
+Maintainer-email: support@superagentx.ai
+Requires-Python: >=3.12,<=3.13
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Requires-Dist: aiohttp (>=3.10.10,<4.0.0)
+Requires-Dist: aiomysql (>=0.2.0,<0.3.0)
+Requires-Dist: aioodbc (>=0.5.0,<0.6.0)
+Requires-Dist: asyncpg (>=0.30.0,<0.31.0)
+Requires-Dist: atlassian-python-api (>=3.41.16,<4.0.0)
+Requires-Dist: azure-identity (>=1.23.0,<2.0.0)
+Requires-Dist: azure-mgmt-apimanagement (>=5.0.0,<6.0.0)
+Requires-Dist: azure-mgmt-authorization (>=4.0.0,<5.0.0)
+Requires-Dist: azure-mgmt-compute (==34.1.0)
+Requires-Dist: azure-mgmt-network (>=29.0.0,<30.0.0)
+Requires-Dist: azure-mgmt-resource (>=24.0.0,<25.0.0)
+Requires-Dist: azure-mgmt-storage (>=23.0.1,<24.0.0)
+Requires-Dist: azure-mgmt-web (>=9.0.0,<10.0.0)
+Requires-Dist: azure-storage-blob (>=12.25.1,<13.0.0)
+Requires-Dist: boto3 (>=1.38.42,<2.0.0)
+Requires-Dist: crawl4ai (>=0.3.731,<0.4.0)
+Requires-Dist: datadog-api-client[async] (>=2.39.0,<3.0.0)
+Requires-Dist: google-api-python-client (>=2.149.0,<3.0.0)
+Requires-Dist: google-auth-oauthlib (>=1.2.1,<2.0.0)
+Requires-Dist: google-cloud-api-gateway (>=1.12.2,<2.0.0)
+Requires-Dist: google-cloud-compute (>=1.31.0,<2.0.0)
+Requires-Dist: google-cloud-iam (>=2.19.1,<3.0.0)
+Requires-Dist: google-cloud-resource-manager (>=1.14.2,<2.0.0)
+Requires-Dist: google-cloud-run (>=0.10.18,<0.11.0)
+Requires-Dist: google-cloud-storage (>=3.2.0,<4.0.0)
+Requires-Dist: hubspot-api-client (>=10.0.0,<11.0.0)
+Requires-Dist: jira (>=3.8.0,<4.0.0)
+Requires-Dist: lxml-html-clean (>=0.4.1,<0.5.0)
+Requires-Dist: msgraph-sdk (>=1.34.0,<2.0.0)
+Requires-Dist: openai (>=1.52.0,<2.0.0)
+Requires-Dist: oracledb (>=2.4.1,<3.0.0)
+Requires-Dist: psycopg2-binary (>=2.9.10,<3.0.0)
+Requires-Dist: pymssql (>=2.3.1,<3.0.0)
+Requires-Dist: pypdf (>=5.0.1,<6.0.0)
+Requires-Dist: pyshorteners (>=1.0.1,<2.0.0)
+Requires-Dist: pysnc (==1.1.10)
+Requires-Dist: python-gitlab (==6.1.0)
+Requires-Dist: requests-html (>=0.10.0,<0.11.0)
+Requires-Dist: slack-sdk (>=3.35.0,<4.0.0)
+Requires-Dist: sqlalchemy[asyncio] (>=2.0.36,<3.0.0)
+Requires-Dist: tweepy[async] (>=4.14.0,<5.0.0)
+Requires-Dist: wikipedia-api (>=0.7.1,<0.8.0)
+Project-URL: Documentation, https://docs.superagentx.ai/
+Project-URL: Homepage, https://www.superagentx.ai/
+Project-URL: Repository, https://github.com/superagentxai/superagentx
+Description-Content-Type: text/markdown
+
+<div align="center">
+
+<img src="https://github.com/superagentxai/superagentX/blob/master/docs/images/fulllogo_transparent.png?raw=True" width="350">
+
+
+<br/>
+
+
+**Superagentx-Handlers**
+
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/release/python-31210/)
+[![GitHub Repo stars](https://img.shields.io/github/stars/superagentxai/superagentX-handlers)](https://github.com/superagentxai/superagentX-handlers)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/superagentxai/superagentX-handlers/blob/master/LICENSE)
+</div>
+
+### Getting Started
+
+```shell
+pip install superagentx-handlers
+```
+##### Usage - Example SuperAgentX Code
+This SuperAgentX example utilizes two handlers, Amazon and Walmart, to search for product items based on user input from the IO Console.
+
+1. It uses Parallel execution of handler in the agent 
+2. Memory Context Enabled
+3. LLM configured to OpenAI
+4. Pre-requisites
+
+Set OpenAI Key:  
+```shell
+export OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+Set Rapid API Key <a href="https://rapidapi.com/auth/sign-up" target="_blank">Free Subscription</a> for Amazon, Walmart Search APIs
+```shell
+export RAPID_API_KEY=XXXXXXXXXXXXXXXXXXXXXXXXX
+```
+
+```python 
+# Additional lib needs to install
+# pip install superagentx
+# python3 superagentx_examples/ecom_iopipe.py
+
+import asyncio
+
+from rich import print as rprint
+from superagentx.agent import Agent
+from superagentx.agentxpipe import AgentXPipe
+from superagentx.engine import Engine
+from superagentx.llm import LLMClient
+from superagentx.memory import Memory
+from superagentx.pipeimpl.iopipe import IOPipe
+from superagentx.prompt import PromptTemplate
+
+from superagentx_handlers.ecommerce.amazon import AmazonHandler
+from superagentx_handlers.ecommerce.walmart import WalmartHandler
+
+
+async def main():
+    """
+    Launches the e-commerce pipeline console client for processing requests and handling data.
+    """
+
+    # LLM Configuration
+    llm_config = {'llm_type': 'openai'}
+    llm_client: LLMClient = LLMClient(llm_config=llm_config)
+
+    # Enable Memory
+    memory = Memory(memory_config={"llm_client": llm_client})
+
+    # Add Two Handlers (Tools) - Amazon, Walmart
+    amazon_ecom_handler = AmazonHandler()
+    walmart_ecom_handler = WalmartHandler()
+
+    # Prompt Template
+    prompt_template = PromptTemplate()
+
+    # Amazon & Walmart Engine to execute handlers
+    amazon_engine = Engine(
+        handler=amazon_ecom_handler,
+        llm=llm_client,
+        prompt_template=prompt_template
+    )
+    walmart_engine = Engine(
+        handler=walmart_ecom_handler,
+        llm=llm_client,
+        prompt_template=prompt_template
+    )
+
+    # Create Agent with Amazon, Walmart Engines execute in Parallel - Search Products from user prompts
+    ecom_agent = Agent(
+        name='Ecom Agent',
+        goal="Get me the best search results",
+        role="You are the best product searcher",
+        llm=llm_client,
+        prompt_template=prompt_template,
+        engines=[[amazon_engine, walmart_engine]]
+    )
+
+    # Pipe Interface to send it to public accessible interface (Cli Console / WebSocket / Restful API)
+    pipe = AgentXPipe(
+        agents=[ecom_agent],
+        memory=memory
+    )
+
+    # Create IO Cli Console - Interface
+    io_pipe = IOPipe(
+        search_name='SuperAgentX Ecom',
+        agentx_pipe=pipe,
+        read_prompt=f"\n[bold green]Enter your search here"
+    )
+    await io_pipe.start()
+
+
+if __name__ == '__main__':
+    try:
+        asyncio.run(main())
+    except (KeyboardInterrupt, asyncio.CancelledError):
+        rprint("\nUser canceled the [bold yellow][i]pipe[/i]!")
+
+```
+##### Usage - Example SuperAgentX Result
+SuperAgentX searches for product items requested by the user in the console, validates them against the set goal, and returns the result. It retains the context, allowing it to respond to the user's next prompt in the IO Console intelligently. 
+
+![Output](https://github.com/superagentxai/superagentX/blob/master/docs/images/examples/ecom-output-console.png?raw=True)
+
