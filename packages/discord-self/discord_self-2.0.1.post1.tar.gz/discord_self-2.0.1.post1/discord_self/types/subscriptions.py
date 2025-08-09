@@ -1,0 +1,43 @@
+from discord_self._vendor.discord.types.snowflake import Snowflake
+from discord_self._vendor.discord.types.subscriptions import (
+    CountryCode,
+    PartialSubscription,
+    PartialSubscriptionPlan,
+    PremiumGuildSubscription,
+    PremiumGuildSubscriptionCooldown,
+    PremiumGuildSubscriptionSlot,
+    Subscription,
+    SubscriptionCountryPrice,
+    SubscriptionDiscount,
+    SubscriptionInvoice,
+    SubscriptionInvoiceItem,
+    SubscriptionItem,
+    SubscriptionPlan,
+    SubscriptionPrice,
+    SubscriptionPrices,
+    SubscriptionRenewalMutations,
+    SubscriptionTrial,
+)
+from discord_self._vendor.discord.types.user import PartialUser
+
+__all__ = [
+    "CountryCode",
+    "PartialSubscription",
+    "PartialSubscriptionPlan",
+    "PartialUser",
+    "PremiumGuildSubscription",
+    "PremiumGuildSubscriptionCooldown",
+    "PremiumGuildSubscriptionSlot",
+    "Snowflake",
+    "Subscription",
+    "SubscriptionCountryPrice",
+    "SubscriptionDiscount",
+    "SubscriptionInvoice",
+    "SubscriptionInvoiceItem",
+    "SubscriptionItem",
+    "SubscriptionPlan",
+    "SubscriptionPrice",
+    "SubscriptionPrices",
+    "SubscriptionRenewalMutations",
+    "SubscriptionTrial",
+]
