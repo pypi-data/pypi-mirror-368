@@ -1,0 +1,70 @@
+[project]
+name = "pixcore"
+version = "0.1.1"
+description = "Uma biblioteca Python completa para a geração de BR Codes (QR Code e Copia e Cola) do Pix, seguindo as especificações do Banco Central do Brasil."
+authors = [
+    {name = "Gustavo Carreiro",email = "gjvcarreiro@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.13,<4.0"
+dependencies = [
+    "qrcode[pil] (>=8.2,<9.0)",
+    "pillow (>=11.3.0,<12.0.0)"
+]
+license = { file = "LICENSE" }
+classifiers=[
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Office/Business :: Financial",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: Portuguese (Brazilian)",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3 :: Only",
+]
+
+[tool.poetry]
+packages = [{include = "pixcore", from = "src"}]
+
+[tool.poetry.urls]
+"Documentação" = "https://gustjose.github.io/pixcore/"
+"Bug Tracker" = "https://github.com/gustjose/pixcore/issues"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.4.1"
+taskipy = "^1.14.1"
+rich = "^14.1.0"
+blue = "^0.9.1"
+isort = "^6.0.1"
+
+[tool.poetry.group.doc.dependencies]
+mkdocs-material = "^9.6.16"
+mkdocstrings = "^0.30.0"
+mkdocstrings-python = "^1.16.12"
+mkdocs-macros-plugin = "^1.3.7"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.isort]
+profile = "black"
+line_length = 79
+
+[tool.pytest.ini_options]
+pythonpath = "."
+addopts = "--doctest-modules"
+
+[tool.taskipy.tasks]
+run = ""
+docs = "mkdocs serve"
+lint = "blue --diff . && isort --diff ."
+test = "pytest tests/"
+publish = "mkdocs gh-deploy"
