@@ -1,0 +1,40 @@
+<article id="card-{{ name }}" hx-ext="intersect" hx-get="/partials/tool-card/{{ name }}"
+  hx-trigger="intersect once, intersect every {% if s.alive %}2{% else %}6{% endif %}s" hx-swap="outerHTML">
+  <header>
+    <strong>{{ name }}</strong>
+    <small>{{ s.category }}</small>
+  </header>
+  <p>Status: {% if s.alive %}<span style="color:#15803d">läuft (PID {{ s.pid }})</span>{% else %}<span style="color:#b91c1c">gestoppt</span>{% endif %}</p>
+  {% if s.url %}<p><a href="{{ s.url }}" target="_blank">Interface öffnen</a></p>{% endif %}
+  <details>
+    <summary>Einstellungen</summary>
+    <label>
+      URL
+      <input id="url-{{ name }}" type="text" placeholder="z.B. http://localhost:7860" value="{{ s.url or '' }}" />
+    </label>
+    <div class="grid">
+      <label>
+        Host
+        <input id="host-{{ name }}" type="text" placeholder="0.0.0.0" />
+      </label>
+      <label>
+        Port
+        <input id="port-{{ name }}" type="number" min="1" max="65535" placeholder="7860" />
+      </label>
+    </div>
+    <label>
+      Extra Args (Startparameter)
+      <input id="args-{{ name }}" type="text" placeholder="z.B. --listen --port 7860" value="{{ s.extra_args or '' }}" data-autofill="1" />
+      <small>Wird automatisch aus Host/Port vorgeschlagen (anpassbar).</small>
+    </label>
+    <button data-act="save-settings" data-tool="{{ name }}">Speichern</button>
+  </details>
+  <footer>
+    <div class="grid">
+      <button data-act="install" data-tool="{{ name }}">Installieren</button>
+      {% if s.can_start %}<button data-act="start" data-tool="{{ name }}">Start</button>{% endif %}
+      {% if s.can_stop %}<button data-act="stop" data-tool="{{ name }}" class="secondary">Stop</button>{% endif %}
+      <button data-act="logs" data-tool="{{ name }}" class="contrast">Logs</button>
+    </div>
+  </footer>
+</article>
