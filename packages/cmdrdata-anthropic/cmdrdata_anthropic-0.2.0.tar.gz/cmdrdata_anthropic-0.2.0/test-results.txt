@@ -1,0 +1,393 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.0, pytest-8.4.1, pluggy-1.6.0
+rootdir: C:\Users\User\product\cmdrdata-anthropic
+configfile: pyproject.toml
+testpaths: tests
+plugins: anyio-4.9.0, asyncio-1.0.0
+asyncio: mode=Mode.AUTO, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 293 items
+
+tests\test_async_client.py ............                                  [  4%]
+tests\test_basic_functionality.py .....F.....                            [  7%]
+tests\test_client.py .............F....                                  [ 13%]
+tests\test_context.py ..F..                                              [ 15%]
+tests\test_exceptions.py ..........................                      [ 24%]
+tests\test_logging_config.py ......................                      [ 32%]
+tests\test_performance.py .............................                  [ 41%]
+tests\test_proxy.py ...........FFF...                                    [ 47%]
+tests\test_retry.py ............................                         [ 57%]
+tests\test_security.py ........................................          [ 70%]
+tests\test_tracker.py ......F...................                         [ 79%]
+tests\test_validation.py ............................................... [ 95%]
+.....                                                                    [ 97%]
+tests\test_version_compat.py .......                                     [100%]
+
+================================== FAILURES ===================================
+__________ TestBasicFunctionality.test_customer_context_integration ___________
+
+self = <tests.test_basic_functionality.TestBasicFunctionality object at 0x000001AD66E648D0>
+mock_anthropic_response = <Mock name='Anthropic().messages.create()' id='1844268554224'>
+
+    def test_customer_context_integration(self, mock_anthropic_response):
+        """Test integration with customer context"""
+        with patch("anthropic.Anthropic") as mock_anthropic:
+            mock_client = Mock()
+            mock_messages = Mock()
+            mock_messages.create.return_value = mock_anthropic_response
+            mock_client.messages = mock_messages
+            mock_anthropic.return_value = mock_client
+    
+            client = TrackedAnthropic(
+                api_key=VALID_ANTHROPIC_KEY, cmdrdata_api_key=VALID_CMDRDATA_KEY
+            )
+    
+            with patch.object(client._tracker, "track_usage_background") as mock_track:
+                with customer_context("customer-123"):
+                    result = client.messages.create(
+                        model="claude-sonnet-4-20250514",
+                        max_tokens=100,
+                        messages=[{"role": "user", "content": "Hello"}],
+                    )
+    
+                # Verify tracking was called with context customer ID
+                mock_track.assert_called_once()
+                call_args = mock_track.call_args[1]
+>               assert call_args["customer_id"] == "customer-123"
+E               AssertionError: assert Ellipsis == 'customer-123'
+
+tests\test_basic_functionality.py:75: AssertionError
+---------------------------- Captured stderr call -----------------------------
+WARNING:cmdrdata_anthropic.cmdrdata_anthropic.security:Using legacy cmdrdata API key format
+WARNING:cmdrdata_anthropic.cmdrdata_anthropic.security:Using legacy cmdrdata API key format
+------------------------------ Captured log call ------------------------------
+WARNING  cmdrdata_anthropic.cmdrdata_anthropic.security:security.py:127 Using legacy cmdrdata API key format
+WARNING  cmdrdata_anthropic.cmdrdata_anthropic.security:security.py:127 Using legacy cmdrdata API key format
+_ TestTrackedAnthropicMessagesCreate.test_messages_create_with_tracking_success _
+
+self = <tests.test_client.TestTrackedAnthropicMessagesCreate object at 0x000001AD66E44F50>
+mock_anthropic_response = <Mock name='Anthropic().messages.create()' id='1844268559600'>
+
+    def test_messages_create_with_tracking_success(self, mock_anthropic_response):
+        """Test successful messages.create call with tracking"""
+        with patch("anthropic.Anthropic") as mock_anthropic:
+            mock_client = Mock()
+            mock_messages = Mock()
+            mock_messages.create.return_value = mock_anthropic_response
+            mock_client.messages = mock_messages
+            mock_anthropic.return_value = mock_client
+    
+            client = TrackedAnthropic(
+                api_key=VALID_ANTHROPIC_KEY, cmdrdata_api_key=VALID_CMDRDATA_KEY
+            )
+    
+            with patch.object(client._tracker, "track_usage_background") as mock_track:
+                result = client.messages.create(
+                    model="claude-sonnet-4-20250514",
+                    max_tokens=100,
+                    messages=[{"role": "user", "content": "Hello"}],
+                )
+    
+                # Verify original API was called
+                mock_messages.create.assert_called_once()
+    
+                # Verify tracking was called
+>               mock_track.assert_called_once_with(
+                    customer_id=None,  # No context set
+                    model="claude-sonnet-4-20250514",
+                    input_tokens=10,
+                    output_tokens=20,
+                    provider="anthropic",
+                    metadata={
+                        "response_id": "msg_123",
+                        "type": "message",
+                        "role": "assistant",
+                        "stop_reason": "end_turn",
+                        "stop_sequence": None,
+                    },
+                )
+
+tests\test_client.py:189: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\appdata\local\programs\python\python313\Lib\unittest\mock.py:989: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <MagicMock name='track_usage_background' id='1844268558928'>, args = ()
+kwargs = {'customer_id': None, 'input_tokens': 10, 'metadata': {'response_id': 'msg_123', 'role': 'assistant', 'stop_reason': 'end_turn', 'stop_sequence': None, ...}, 'model': 'claude-sonnet-4-20250514', ...}
+expected = call(customer_id=None, model='claude-sonnet-4-20250514', input_tokens=10, output_tokens=20, provider='anthropic', metadata={'response_id': 'msg_123', 'type': 'message', 'role': 'assistant', 'stop_reason': 'end_turn', 'stop_sequence': None})
+actual = call(customer_id=Ellipsis, model='claude-sonnet-4-20250514', input_tokens=10, output_tokens=20, provider='anthropic', ...ccurred=False, error_type=None, error_code=None, error_message=None, request_id='2fb124f1-8292-47c5-a76a-6eab3e6edbe2')
+_error_message = <function NonCallableMock.assert_called_with.<locals>._error_message at 0x000001AD670716C0>
+cause = None
+
+    def assert_called_with(self, /, *args, **kwargs):
+        """assert that the last call was made with the specified arguments.
+    
+        Raises an AssertionError if the args and keyword args passed in are
+        different to the last call to the mock."""
+        if self.call_args is None:
+            expected = self._format_mock_call_signature(args, kwargs)
+            actual = 'not called.'
+            error_message = ('expected call not found.\nExpected: %s\n  Actual: %s'
+                    % (expected, actual))
+            raise AssertionError(error_message)
+    
+        def _error_message():
+            msg = self._format_mock_failure_message(args, kwargs)
+            return msg
+        expected = self._call_matcher(_Call((args, kwargs), two=True))
+        actual = self._call_matcher(self.call_args)
+        if actual != expected:
+            cause = expected if isinstance(expected, Exception) else None
+>           raise AssertionError(_error_message()) from cause
+E           AssertionError: expected call not found.
+E           Expected: track_usage_background(customer_id=None, model='claude-sonnet-4-20250514', input_tokens=10, output_tokens=20, provider='anthropic', metadata={'response_id': 'msg_123', 'type': 'message', 'role': 'assistant', 'stop_reason': 'end_turn', 'stop_sequence': None})
+E             Actual: track_usage_background(customer_id=Ellipsis, model='claude-sonnet-4-20250514', input_tokens=10, output_tokens=20, provider='anthropic', metadata={'response_id': 'msg_123', 'type': 'message', 'role': 'assistant', 'stop_reason': 'end_turn', 'stop_sequence': None}, request_start_time=1752766225.4601047, request_end_time=1752766225.4601374, error_occurred=False, error_type=None, error_code=None, error_message=None, request_id='2fb124f1-8292-47c5-a76a-6eab3e6edbe2')
+
+..\..\appdata\local\programs\python\python313\Lib\unittest\mock.py:977: AssertionError
+---------------------------- Captured stderr call -----------------------------
+WARNING:cmdrdata_anthropic.cmdrdata_anthropic.security:Using legacy cmdrdata API key format
+WARNING:cmdrdata_anthropic.cmdrdata_anthropic.security:Using legacy cmdrdata API key format
+------------------------------ Captured log call ------------------------------
+WARNING  cmdrdata_anthropic.cmdrdata_anthropic.security:security.py:127 Using legacy cmdrdata API key format
+WARNING  cmdrdata_anthropic.cmdrdata_anthropic.security:security.py:127 Using legacy cmdrdata API key format
+_____________________ test_effective_customer_id_priority _____________________
+
+    def test_effective_customer_id_priority() -> None:
+        """Test customer ID resolution priority"""
+        # No context, no explicit ID
+        clear_customer_context()
+        assert get_effective_customer_id() is None
+    
+        # Context only
+        set_customer_context("context-customer")
+        assert get_effective_customer_id() == "context-customer"
+    
+        # Explicit ID overrides context
+        assert get_effective_customer_id("explicit-customer") == "explicit-customer"
+    
+        # Explicit None overrides context
+>       assert get_effective_customer_id(None) is None
+E       AssertionError: assert 'context-customer' is None
+E        +  where 'context-customer' = get_effective_customer_id(None)
+
+tests\test_context.py:67: AssertionError
+_______ TestAnthropicTrackingMethods.test_track_messages_create_success _______
+
+self = <tests.test_proxy.TestAnthropicTrackingMethods object at 0x000001AD66F30190>
+mock_anthropic_response = <Mock id='1844268563632'>
+
+    def test_track_messages_create_success(self, mock_anthropic_response):
+        """Test successful tracking of messages.create"""
+        mock_tracker = Mock()
+    
+        track_messages_create(
+            result=mock_anthropic_response,
+            customer_id="customer-123",
+            tracker=mock_tracker,
+            method_name="messages.create",
+            args=(),
+            kwargs={"model": "claude-sonnet-4-20250514"},
+        )
+    
+        # Verify tracking was called
+>       mock_tracker.track_usage_background.assert_called_once_with(
+            customer_id="customer-123",
+            model="claude-sonnet-4-20250514",
+            input_tokens=10,
+            output_tokens=20,
+            provider="anthropic",
+            metadata={
+                "response_id": "msg_123",
+                "type": "message",
+                "role": "assistant",
+                "stop_reason": "end_turn",
+                "stop_sequence": None,
+            },
+        )
+
+tests\test_proxy.py:218: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\appdata\local\programs\python\python313\Lib\unittest\mock.py:989: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Mock name='mock.track_usage_background' id='1844268560272'>, args = ()
+kwargs = {'customer_id': 'customer-123', 'input_tokens': 10, 'metadata': {'response_id': 'msg_123', 'role': 'assistant', 'stop_reason': 'end_turn', 'stop_sequence': None, ...}, 'model': 'claude-sonnet-4-20250514', ...}
+expected = call(customer_id='customer-123', model='claude-sonnet-4-20250514', input_tokens=10, output_tokens=20, provider='anthro...a={'response_id': 'msg_123', 'type': 'message', 'role': 'assistant', 'stop_reason': 'end_turn', 'stop_sequence': None})
+actual = call(customer_id='customer-123', model='claude-sonnet-4-20250514', input_tokens=10, output_tokens=20, provider='anthro...one, request_end_time=None, error_occurred=None, error_type=None, error_code=None, error_message=None, request_id=None)
+_error_message = <function NonCallableMock.assert_called_with.<locals>._error_message at 0x000001AD6702A0C0>
+cause = None
+
+    def assert_called_with(self, /, *args, **kwargs):
+        """assert that the last call was made with the specified arguments.
+    
+        Raises an AssertionError if the args and keyword args passed in are
+        different to the last call to the mock."""
+        if self.call_args is None:
+            expected = self._format_mock_call_signature(args, kwargs)
+            actual = 'not called.'
+            error_message = ('expected call not found.\nExpected: %s\n  Actual: %s'
+                    % (expected, actual))
+            raise AssertionError(error_message)
+    
+        def _error_message():
+            msg = self._format_mock_failure_message(args, kwargs)
+            return msg
+        expected = self._call_matcher(_Call((args, kwargs), two=True))
+        actual = self._call_matcher(self.call_args)
+        if actual != expected:
+            cause = expected if isinstance(expected, Exception) else None
+>           raise AssertionError(_error_message()) from cause
+E           AssertionError: expected call not found.
+E           Expected: track_usage_background(customer_id='customer-123', model='claude-sonnet-4-20250514', input_tokens=10, output_tokens=20, provider='anthropic', metadata={'response_id': 'msg_123', 'type': 'message', 'role': 'assistant', 'stop_reason': 'end_turn', 'stop_sequence': None})
+E             Actual: track_usage_background(customer_id='customer-123', model='claude-sonnet-4-20250514', input_tokens=10, output_tokens=20, provider='anthropic', metadata={'response_id': 'msg_123', 'type': 'message', 'role': 'assistant', 'stop_reason': 'end_turn', 'stop_sequence': None}, request_start_time=None, request_end_time=None, error_occurred=None, error_type=None, error_code=None, error_message=None, request_id=None)
+
+..\..\appdata\local\programs\python\python313\Lib\unittest\mock.py:977: AssertionError
+___ TestAnthropicTrackingMethods.test_track_messages_create_no_customer_id ____
+
+self = <tests.test_proxy.TestAnthropicTrackingMethods object at 0x000001AD66F302D0>
+mock_anthropic_response = <Mock id='1844268562624'>
+
+    def test_track_messages_create_no_customer_id(self, mock_anthropic_response):
+        """Test tracking without customer ID"""
+        mock_tracker = Mock()
+    
+        with patch(
+            "cmdrdata_anthropic.proxy.get_effective_customer_id", return_value=None
+        ):
+            track_messages_create(
+                result=mock_anthropic_response,
+                customer_id=None,
+                tracker=mock_tracker,
+                method_name="messages.create",
+                args=(),
+                kwargs={},
+            )
+    
+        # Verify tracking was called with customer_id=None (new behavior allows tracking without customer_id)
+>       mock_tracker.track_usage_background.assert_called_once_with(
+            customer_id=None,
+            model="claude-sonnet-4-20250514",
+            input_tokens=10,
+            output_tokens=20,
+            provider="anthropic",
+            metadata={
+                "response_id": "msg_123",
+                "type": "message",
+                "role": "assistant",
+                "stop_reason": "end_turn",
+                "stop_sequence": None,
+            },
+        )
+
+tests\test_proxy.py:250: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\appdata\local\programs\python\python313\Lib\unittest\mock.py:989: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Mock name='mock.track_usage_background' id='1844268550864'>, args = ()
+kwargs = {'customer_id': None, 'input_tokens': 10, 'metadata': {'response_id': 'msg_123', 'role': 'assistant', 'stop_reason': 'end_turn', 'stop_sequence': None, ...}, 'model': 'claude-sonnet-4-20250514', ...}
+expected = call(customer_id=None, model='claude-sonnet-4-20250514', input_tokens=10, output_tokens=20, provider='anthropic', metadata={'response_id': 'msg_123', 'type': 'message', 'role': 'assistant', 'stop_reason': 'end_turn', 'stop_sequence': None})
+actual = call(customer_id=None, model='claude-sonnet-4-20250514', input_tokens=10, output_tokens=20, provider='anthropic', meta...one, request_end_time=None, error_occurred=None, error_type=None, error_code=None, error_message=None, request_id=None)
+_error_message = <function NonCallableMock.assert_called_with.<locals>._error_message at 0x000001AD6702A160>
+cause = None
+
+    def assert_called_with(self, /, *args, **kwargs):
+        """assert that the last call was made with the specified arguments.
+    
+        Raises an AssertionError if the args and keyword args passed in are
+        different to the last call to the mock."""
+        if self.call_args is None:
+            expected = self._format_mock_call_signature(args, kwargs)
+            actual = 'not called.'
+            error_message = ('expected call not found.\nExpected: %s\n  Actual: %s'
+                    % (expected, actual))
+            raise AssertionError(error_message)
+    
+        def _error_message():
+            msg = self._format_mock_failure_message(args, kwargs)
+            return msg
+        expected = self._call_matcher(_Call((args, kwargs), two=True))
+        actual = self._call_matcher(self.call_args)
+        if actual != expected:
+            cause = expected if isinstance(expected, Exception) else None
+>           raise AssertionError(_error_message()) from cause
+E           AssertionError: expected call not found.
+E           Expected: track_usage_background(customer_id=None, model='claude-sonnet-4-20250514', input_tokens=10, output_tokens=20, provider='anthropic', metadata={'response_id': 'msg_123', 'type': 'message', 'role': 'assistant', 'stop_reason': 'end_turn', 'stop_sequence': None})
+E             Actual: track_usage_background(customer_id=None, model='claude-sonnet-4-20250514', input_tokens=10, output_tokens=20, provider='anthropic', metadata={'response_id': 'msg_123', 'type': 'message', 'role': 'assistant', 'stop_reason': 'end_turn', 'stop_sequence': None}, request_start_time=None, request_end_time=None, error_occurred=None, error_type=None, error_code=None, error_message=None, request_id=None)
+
+..\..\appdata\local\programs\python\python313\Lib\unittest\mock.py:977: AssertionError
+____ TestAnthropicTrackingMethods.test_track_messages_create_no_usage_info ____
+
+self = <tests.test_proxy.TestAnthropicTrackingMethods object at 0x000001AD66F00E90>
+
+    def test_track_messages_create_no_usage_info(self):
+        """Test tracking with response that has no usage info"""
+        mock_response = Mock()
+        del mock_response.usage  # No usage attribute
+        mock_tracker = Mock()
+    
+        track_messages_create(
+            result=mock_response,
+            customer_id="customer-123",
+            tracker=mock_tracker,
+            method_name="messages.create",
+            args=(),
+            kwargs={},
+        )
+    
+        # Verify tracking was not called
+>       mock_tracker.track_usage_background.assert_not_called()
+
+tests\test_proxy.py:281: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Mock name='mock.track_usage_background' id='1844268560608'>
+
+    def assert_not_called(self):
+        """assert that the mock was never called.
+        """
+        if self.call_count != 0:
+            msg = ("Expected '%s' to not have been called. Called %s times.%s"
+                   % (self._mock_name or 'mock',
+                      self.call_count,
+                      self._calls_repr()))
+>           raise AssertionError(msg)
+E           AssertionError: Expected 'track_usage_background' to not have been called. Called 1 times.
+E           Calls: [call(customer_id='customer-123', model='unknown', input_tokens=0, output_tokens=0, provider='anthropic', metadata={'response_id': <Mock name='mock.id' id='1844268562288'>, 'type': <Mock name='mock.type' id='1844268559936'>, 'role': <Mock name='mock.role' id='1844268560944'>, 'stop_reason': <Mock name='mock.stop_reason' id='1844268556912'>, 'stop_sequence': <Mock name='mock.stop_sequence' id='1844268561616'>}, request_start_time=None, request_end_time=None, error_occurred=None, error_type=None, error_code=None, error_message=None, request_id=None)].
+
+..\..\appdata\local\programs\python\python313\Lib\unittest\mock.py:938: AssertionError
+_____________ TestUsageTracker.test_initialization_default_values _____________
+
+self = <tests.test_tracker.TestUsageTracker object at 0x000001AD66E66CF0>
+
+    def test_initialization_default_values(self):
+        """Test initialization with default values"""
+        tracker = UsageTracker(api_key=self.valid_api_key)
+    
+>       assert tracker.endpoint == "https://www.cmdrdata.ai/api/events"
+E       AssertionError: assert 'https://api..../async/events' == 'https://www....ai/api/events'
+E         
+E         - https://www.cmdrdata.ai/api/events
+E         ?         ^^^
+E         + https://api.cmdrdata.ai/api/async/events
+E         ?         ^^^                 ++++++
+
+tests\test_tracker.py:76: AssertionError
+---------------------------- Captured stderr call -----------------------------
+WARNING:cmdrdata_anthropic.cmdrdata_anthropic.security:Using legacy cmdrdata API key format
+------------------------------ Captured log call ------------------------------
+WARNING  cmdrdata_anthropic.cmdrdata_anthropic.security:security.py:127 Using legacy cmdrdata API key format
+=========================== short test summary info ===========================
+FAILED tests/test_basic_functionality.py::TestBasicFunctionality::test_customer_context_integration
+FAILED tests/test_client.py::TestTrackedAnthropicMessagesCreate::test_messages_create_with_tracking_success
+FAILED tests/test_context.py::test_effective_customer_id_priority - Assertion...
+FAILED tests/test_proxy.py::TestAnthropicTrackingMethods::test_track_messages_create_success
+FAILED tests/test_proxy.py::TestAnthropicTrackingMethods::test_track_messages_create_no_customer_id
+FAILED tests/test_proxy.py::TestAnthropicTrackingMethods::test_track_messages_create_no_usage_info
+FAILED tests/test_tracker.py::TestUsageTracker::test_initialization_default_values
+================= 7 failed, 286 passed, 235 warnings in 5.86s =================
