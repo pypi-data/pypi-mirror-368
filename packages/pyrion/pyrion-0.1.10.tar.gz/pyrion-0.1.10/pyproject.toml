@@ -1,0 +1,206 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel", "numpy"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyrion"
+dynamic = ["version"]
+description = "A fast and efficient bioinformatics library for genomic data processing"
+readme = "README.md"
+license = "MIT"
+authors = [
+    {name = "Bogdan M. Kirilenko"}
+]
+maintainers = [
+    {name = "Bogdan M. Kirilenko"}
+]
+keywords = [
+    "bioinformatics", "genomics", "sequence-analysis", "comparative-genomics", 
+    "numpy", "alignment", "gene-annotation", "liftover"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10", 
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+    "Typing :: Typed",
+]
+dependencies = [
+    "numpy>=1.21.0",
+    "py2bit>=0.3.0",
+    "numba>=0.56.0",
+]
+requires-python = ">=3.9"
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0", 
+    "pytest-xdist>=3.0",
+]
+visualization = [
+    "matplotlib>=3.5.0",
+]
+dev = [
+    "pytest>=7.0", 
+    "pytest-cov>=4.0", 
+    "black>=23.0", 
+    "ruff>=0.1.0",
+    "mypy>=1.0",
+    "pre-commit>=3.0",
+    "jupyterlab>=4.0",
+    "matplotlib>=3.5.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/kirilenkobm/pyrion"
+Repository = "https://github.com/kirilenkobm/pyrion"
+"Bug Reports" = "https://github.com/kirilenkobm/pyrion/issues"
+Documentation = "https://github.com/kirilenkobm/pyrion"
+Changelog = "https://github.com/kirilenkobm/pyrion/releases"
+
+[tool.setuptools.dynamic]
+version = {attr = "pyrion._version.__version__"}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["pyrion*"]
+exclude = ["tests*", "docs*", "scripts*"]
+
+[tool.setuptools.package-data]
+pyrion = [
+    "py.typed", 
+    "_version.py",
+    "*.pyi"
+]
+
+# Black code formatting
+[tool.black]
+line-length = 100
+target-version = ['py39', 'py310', 'py311', 'py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | venv
+  | \.pytest_cache
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+
+# Ruff linting (faster than flake8)
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "N",  # pep8-naming
+    "UP", # pyupgrade
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "SIM", # flake8-simplify
+]
+ignore = [
+    "E501",  # line too long (handled by black)
+    "B008",  # do not perform function calls in argument defaults
+    "N802",  # function name should be lowercase (for genomic conventions)
+    "N803",  # argument name should be lowercase (for genomic conventions)
+]
+
+[tool.ruff.per-file-ignores]
+"tests/*" = ["N802", "N803", "N806"]  # Allow uppercase in tests
+"pyrion/core_types.py" = ["N802"]    # Allow uppercase for genomic types
+
+# MyPy type checking
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "twobitreader.*",
+    "py2bit.*", 
+    "numba.*",
+]
+ignore_missing_imports = true
+
+# Pytest configuration
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+python_classes = ["Test*"]
+addopts = [
+    "--verbose",
+    "--tb=short",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests", 
+    "io: marks tests that require test data files",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+
+# Coverage configuration
+[tool.coverage.run]
+source = ["pyrion"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "setup.py",
+    "scripts/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[dependency-groups]
+dev = [
+    "pytest-cov>=6.2.1",
+]
