@@ -1,0 +1,34 @@
+{%- for variable in variables.values() | sort(attribute="name") %}
+
+### `{{ variable.name }}`{% if variable.required %} (required){% endif %}
+
+{%- if variable.brief %}
+
+{{ variable.brief }}
+{%- endif -%}
+
+{%- if variable.default %}
+
+_Default:_ `{{ variable.default }}`
+{%- endif %}
+
+{%- if variable.description %}
+
+{{ variable.description }}
+{%- endif -%}
+
+{%- for example in variable.examples %}
+{%- if gitlab_project_path %}
+{%- if example.brief %}
+
+{{ example.brief }}
+{%- endif %}
+
+```yaml
+# .gitlab-ci.yml
+variables:
+  {{ variable.name }}: {{ example.value }}
+```
+{%- endif -%}
+{%- endfor -%}
+{%- endfor -%}

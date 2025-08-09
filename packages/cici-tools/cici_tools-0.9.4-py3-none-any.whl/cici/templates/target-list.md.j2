@@ -1,0 +1,41 @@
+{%- for target in targets | sort(attribute="name") %}
+
+### `{{ target.name }}`
+
+{%- if target.brief %}
+
+{{ target.brief }}
+{%- endif -%}
+
+{%- if target.description %}
+
+{{ target.description }}
+{%- endif -%}
+
+{%- if target.gitlab_include and gitlab_project_path %}
+
+As a GitLab include:
+
+```yaml
+# .gitlab-ci.yml
+include:
+  - project: {{ gitlab_project_path }}
+    file:
+      - {{ target.gitlab_include.name }}.yml
+```
+{%- endif -%}
+
+{%- if target.precommit_hook and repo_url %}
+
+As a pre-commit hook:
+
+```yaml
+# .pre-commit-config.yaml
+repos:
+  - repo: {{ repo_url }}
+    rev: ""
+    hooks:
+      - id: {{ target.precommit_hook.name }}
+```
+{%- endif -%}
+{%- endfor -%}
