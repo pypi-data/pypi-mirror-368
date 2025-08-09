@@ -1,0 +1,88 @@
+Metadata-Version: 2.4
+Name: shade-agent-py
+Version: 0.1.0
+Summary: A Python library for shade agent functionality
+Author-email: Owen Hassall <owen@proximity.dev>
+License: Copyright 2025 Proximity Labs 
+        Licensed under the Apache License, Version 2.0 (the "License");
+        you may not use this file except in compliance with the License.
+        You may obtain a copy of the License at
+        
+               http://www.apache.org/licenses/LICENSE-2.0
+        
+        Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+License-File: LICENSE
+Requires-Python: >=3.8
+Requires-Dist: httpx>=0.28.1
+Description-Content-Type: text/markdown
+
+# shade-agent-py
+
+This is a lightweight python wrapper around the shade-agent-api.
+
+## Usage
+
+For example usage see the [test](./test/src/app.py) 
+
+## Testing locally
+
+Fill out the environment variables and open Docker
+
+Set up virtual environment and install dependencies 
+```bash
+python -m venv venv
+source venv/bin/activate 
+pip install -e .
+```
+
+Set the contract prefix to `ac-proxy.`
+
+Run the CLI 
+```bash
+cd test
+shade-agent-cli
+```
+
+In another terminal run the tests
+```bash
+python test/src/app.py
+```
+
+## Testing on Phala 
+
+Set the contract prefix to `ac-sandbox.`
+
+Build the test image (change your docker ID for your own)
+```bash
+docker build --no-cache --platform linux/amd64 -t pivortex/my-app:latest -f test/Dockerfile . && docker push pivortex/my-app:latest
+```
+
+Edit the app codehash in your `.env.development.local` and `docker-compose.yaml` files
+
+Run the CLI without building 
+```bash
+cd test
+shade-agent-cli --no-build
+```
+
+## Publishing 
+
+Build the project 
+```bash 
+python -m build
+```
+
+Test on TestPyPI
+```bash
+python -m twine check dist/*
+```
+
+Publish to TestPyPI
+```bash
+python -m twine upload --repository testpypi dist/*
+```
+
+Publish to PyPI
+```bash
+python -m twine upload dist/*
+```
