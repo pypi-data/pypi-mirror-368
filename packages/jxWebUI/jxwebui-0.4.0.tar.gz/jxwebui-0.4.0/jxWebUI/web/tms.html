@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- 上述3个meta标签*必须*放在最前面，任何其他内容都*必须*跟随其后！ -->
+    <title>工作管理系统</title>
+    <link rel="icon" href="data:;base64,=" />
+	<link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+	
+    <!-- ace中的按钮不好看，但用到了它的表、树型菜单和tag，所以只好提前放到这，好恢复bootstrap中的按钮 -->
+    <link rel="stylesheet" href="/css/ace.min.css" />
+    <link rel="stylesheet" href="/css/ace-rtl.min.css" />
+    <link rel="stylesheet" href="/css/ace-skins.min.css" />
+
+    <link rel="stylesheet" href="/bower_components/bootstrap/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/Chart.min.css">
+    <link rel="stylesheet" href="/css/bootstrap-datetimepicker.min.css" />
+    <link rel="stylesheet" href="/css/awesome-bootstrap-checkbox.css" />
+    <!-- 老的ace中用的图标 -->
+    <link rel="stylesheet" href="/css/font-awesome.min.css" />
+    <link rel="stylesheet" href="/css/fontawesome-all.min.css" />
+    <link rel="stylesheet" href="/css/chosen.css" />
+    <link rel="stylesheet" href="/css/tip-yellowsimple.css" />
+    <link rel="stylesheet" href="/css/fullcalendar.css" />
+    <link rel="stylesheet" href="/css/fileinput.min.css" />
+    <link rel="stylesheet" href="/css/summernote.css" />
+    <link rel="stylesheet" href="/css/bootstrap-tagsinput.css" />
+
+    <script src="/js/jquery-3.2.1.min.js"></script>
+    <script src="/js/jquery.json-2.4.min.js"></script>
+    <script src="/js/markdown.js"></script>
+	<script src="/js/showdown.min.js"></script>
+    <script src="/bower_components/angular/angular.min.js"></script>
+    <script src="/bower_components/angular-route/angular-route.min.js"></script>
+    <script src="/bower_components/jquery.base64.js/jquery.base64.js"></script>
+    <script src="/js/bootstrap.min.js"></script>
+    <script src="/js/typeahead-bs2.min.js"></script>
+    <script src="/js/jquery.slimscroll.min.js"></script>
+    <script src="/js/bootstrap-tagsinput.min.js"></script>
+
+    <script src="/js/jquery.nestable.min.js"></script>
+    <script src="/js/fullcalendar.min.js"></script>
+    <script src="/js/bootbox.min.js"></script>
+    <script src="/js/typeahead-bs2.min.js"></script>
+
+    <script src="/js/ace.min.js"></script>
+    <script src="/js/ace-elements.min.js"></script>
+    <script src="/js/ace-extra.min.js"></script>
+    <script src="/js/ace/ace.js"></script>
+
+    <script src="/js/bootstrap-treeview.min.js"></script>
+    <script src="/js/bootstrap-datetimepicker.min.js"></script>
+    <script src="/js/jquery.poshytip.min.js"></script>
+    <script src="/js/jquery.qrcode.min.js"></script>
+    <script src="/js/jquery.cookie.js"></script>
+    <script src="/js/wangEditor.min.js"></script>
+
+    <script src="/node_modules/crypto-js/crypto-js.js"></script>
+    <script src="/js/jsencrypt.min.js"></script>
+    <script src="/js/fileinput.min.js"></script>
+    <script src="/js/fileinput.zh.js"></script>
+
+    <script src="/js/format.min.js"></script>
+    <script src="/js/summernote.min.js"></script>
+    <script src="/js/summernote-zh-CN.js"></script>
+    <script src="/js/Chart.min.js"></script>
+
+    <!--
+    <link rel="stylesheet" href="/css/jquery-foundation.ui.min.css" />
+    <script src="/js/jquery-foundation.ui.min.js"></script>
+    <script src="/bower_components/angular-bootstrap/foundation.ui-bootstrap-tpls.min.js"></script>
+	-->
+
+    <script src="/js/JXPublicKey.js"></script>
+    <script src="/js/system.js"></script>
+    <script src="/js/jxTMS.min.js"></script>
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="js/html5shiv.js"></script>
+      <script src="js/respond.min.js"></script>
+    <![endif]-->
+</head>
+
+<body ng-app="jx" style="padding-bottom:70px;" ng-controller="jxTMS">
+    <nav class="navbar navbar-default">
+        <div class="container-fluid">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+                <a class="navbar-brand" href="#">{{navTitle}}</a>
+            </div>
+
+            <!-- Collect the nav links, forms, and other content for toggling -->
+            <!-- 动态生成应用导航条，在NavbarCtrl中定义 -->
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                <ul class="nav navbar-nav">
+                    <li ng-repeat="a1 in menuList" class="dropdown">
+                        <a style="cursor:pointer" ng-show="a1.children.length>0" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">{{ a1.label }}<span class="caret"></span></a>
+                        <a style="cursor:pointer" ng-show="a1.children.length==0" ng-click="doMotion(a1.label,a1.fullname,a1.cooperation,a1.coType,a1.targetOrgAbbr,a1.capaname,a1.motion,a1.demand,a1.params,a1.require)">{{ a1.label }}<span class="caret"></span></a>
+                        <ul ng-show="a1.children.length>0" class="dropdown-menu">
+                            <li ng-repeat="a2 in a1.children">
+                                <a style="cursor:pointer" ng-click="doMotion(a2.label,a2.fullname,a2.cooperation,a2.coType,a2.targetOrgAbbr,a2.capaname,a2.motion,a2.demand,a2.params,a2.require)">{{ a2.label }}</a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+
+            </div>
+            <!-- /.navbar-collapse -->
+        </div>
+        <!-- /.container-fluid -->
+    </nav>
+
+    <!-- /.使用secne必须包含这个div中 -->
+    <div class="page-content">
+        <!-- 主体布局 -->
+        <div class="row" style="position:relative;">
+            <!-- 最左侧是快捷按钮栏 -->
+            <div class="col-sm-2" id="shortcutContainer">
+            </div>
+            <!-- 中间是主显示区 -->
+            <div class="col-sm-6" id="mainContainer" class="tabbable">
+                <ul class="nav nav-tabs padding-12 tab-color-blue background-blue" style="background:#FFF;border:none;width:900px;" border="0" id="tableTitle">
+                </ul>
+                <div class="tab-content" id="tabList"></div>
+            </div>
+            <!-- 最右侧是辅助显示区 -->
+            <div class="col-sm-4"  style="z-index:1046;">
+                <div id="auxContainer" class="accordion-style1 panel-group"></div>
+            </div>
+        </div>
+        <div class="modal fade" id="jxInfoDialog" style="z-index:1048" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <span class="label label-lg label-danger" id="scene_Danger">错误</span>
+                        <span class="label label-lg label-warning" id="scene_Warn">警告</span>
+                        <span class="label label-lg label-info" id="scene_Info">通知</span>
+                        <h2 class="modal-title" id="scene_Reason"></h2>
+                        <h4 class="modal-title" id="scene_Content"></h4>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" id="scene_OK" class="btn btn-success" data-dismiss="modal">确认</button>
+                        <button type="button" id="scene_Cancel" class="btn btn-danger" data-dismiss="modal">取消</button>
+                    </div>
+                </div>
+                <!-- /.modal-content -->
+            </div>
+            <!-- /.modal -->
+        </div>
+        <div class="modal fade" id="jxSceneDialog" style="z-index:1045" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content" id="jxSceneDialog_content">
+                    <div class="modal-header" id="sceneDialog_header">
+                        <h4 class="modal-title" id="sceneDialog_title"></h4>
+                        <ul class="nav navbar-nav navbar-right">
+                        	<li class="dropdown">
+                        		<a data-toggle="dropdown" class="dropdown-toggle">
+                                    <span id="sceneDialog_menuTitle">操作 &nbsp;</span>
+                        			<i class="icon-caret-down bigger-110 width-auto"></i>
+                        		</a>
+                        		<ul class="dropdown-menu" id="sceneDialog_menu"></ul>
+                        	</li>
+                        </ul>
+                    </div>
+                    <div id="sceneDialog_content"></div>
+                    <div class="modal-footer" id="sceneDialog_footer">
+                        <button type="button" id="sceneDialog_OK" class="btn btn-success" data-dismiss="modal">确认</button>
+                        <button type="button" id="sceneDialog_Cancel" class="btn btn-danger" data-dismiss="modal">取消</button>
+                    </div>
+                </div>
+                <!-- /.modal-content -->
+            </div>
+            <!-- /.modal -->
+        </div>
+        <div class="modal fade" id="jxAppDialog" style="z-index:1047" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header" id="appDialog_header">
+                        <h4 class="modal-title" id="appDialog_title"></h4>
+                    </div>
+                    <div id="appDialog_content"></div>
+                    <div class="modal-footer" id="appDialog_footer">
+                        <button type="button" id="appDialog_OK" class="btn btn-success" data-dismiss="modal">确认</button>
+                        <button type="button" id="appDialog_Cancel" class="btn btn-danger" data-dismiss="modal">取消</button>
+                    </div>
+                </div>
+                <!-- /.modal-content -->
+            </div>
+            <!-- /.modal -->
+        </div>
+        <div class="modal fade" id="modal_login" style="z-index:9999" role="dialog">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <span class="label label-xlg label-danger">登录</span>
+                    </div>
+                    <div>
+                        <P>
+                            <P>
+                                <label>名字</label>
+                                <input type="email" id="login_name" placeholder="请输入您的名字" required autofocus style="width:200px;" />
+                                <P>
+                                    <P>
+                                        <label>密码</label>
+                                        <input type="password" id="login_passwd" placeholder="请输入您的密码" required style="width:200px;" />
+                    </div>
+                    <div class="modal-footer"><button type="button" id="login_ok" class="btn btn-danger" onclick="$.tmsLogin()">登录</button></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="scene_contextMenu" style="position:absolute;border:1px solid #AEAEAE; padding:0px; border-radius:5px;z-index:9999;display:none;">
+    </div>
+    <div id="tms_outerdiv" style="position:fixed;top:0;left:0;background:rgba(0,0,0,0.1);z-index:8888;width:100%;height:100%;display:none;">
+    </div>
+    <div id="footer" class="container">
+        <nav class="navbar navbar-default navbar-fixed-bottom">
+            <div class="navbar-inner navbar-content-center">
+
+            </div>
+        </nav>
+        <footer class="navbar-fixed-bottom">
+        </footer>
+    </div>
+</body>
+
+</html>
