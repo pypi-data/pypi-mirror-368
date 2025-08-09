@@ -1,0 +1,193 @@
+# Author: Chunjie Liu
+# Contact: chunjie.sam.liu.at.gmail.com
+# Date: 2025-08-06
+# Description: GitHub Actions workflow for testing, building, and publishing the geneinfo package
+# Version: 0.1
+
+name: Build and Publish Python Package
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11"]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+
+    - name: Install dependencies
+      run: |
+        uv sync --all-extras --dev
+
+    - name: Lint and format with ruff (if available)
+      run: |
+        # Install ruff if not in dependencies
+        uv run ruff check . || echo "Ruff not configured, skipping linting"
+        uv run ruff format --check . || echo "Ruff not configured, skipping linting"
+      continue-on-error: true
+
+    - name: Test with pytest
+      run: |
+        uv run pytest --cov=geneinfo --cov-report=xml --cov-report=term-missing
+
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.xml
+        fail_ci_if_error: false
+      continue-on-error: true
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+
+    - name: Install dependencies
+      run: |
+        uv sync --all-extras --dev
+
+    - name: Build package
+      run: |
+        uv build
+
+    - name: Check build artifacts
+      run: |
+        ls -la dist/
+        echo "Built packages:"
+        for file in dist/*; do
+          echo "  - $file"
+        done
+        # Test installation from wheel
+        uv pip install --no-deps dist/*.whl
+        uv run python -c "import geneinfo; print(f'Successfully imported geneinfo version: {geneinfo.__version__}')"
+
+    - name: Store the distribution packages
+      uses: actions/upload-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+
+  build-for-testpypi:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+
+    - name: Install dependencies
+      run: |
+        uv sync --all-extras --dev
+
+    - name: Build package for TestPyPI
+      run: |
+        # Use GitHub run number and run attempt to ensure unique dev version
+        export SETUPTOOLS_SCM_PRETEND_VERSION="0.1.0.dev${{ github.run_number }}${{ github.run_attempt }}"
+        uv build
+
+    - name: Check TestPyPI build artifacts
+      run: |
+        ls -la dist/
+        echo "Built packages:"
+        for file in dist/*; do
+          echo "  - $file"
+        done
+        # Show package metadata
+        if command -v twine &> /dev/null; then
+          echo "Package metadata check:"
+          uv pip install twine
+          uv run twine check dist/*
+        fi
+
+    - name: Store the TestPyPI distribution packages
+      uses: actions/upload-artifact@v4
+      with:
+        name: testpypi-package-distributions
+        path: dist/
+
+  publish-to-pypi:
+    name: Publish to PyPI
+    if: github.event_name == 'release' && github.event.action == 'published'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/geneinfo
+    permissions:
+      id-token: write  # IMPORTANT: mandatory for trusted publishing
+
+    steps:
+    - name: Download all the dists
+      uses: actions/download-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+
+  publish-to-testpypi:
+    name: Publish to TestPyPI
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build-for-testpypi
+    runs-on: ubuntu-latest
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/geneinfo
+    permissions:
+      id-token: write  # IMPORTANT: mandatory for trusted publishing
+
+    steps:
+    - name: Download all the dists
+      uses: actions/download-artifact@v4
+      with:
+        name: testpypi-package-distributions
+        path: dist/
+
+    - name: Publish to TestPyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        repository-url: https://test.pypi.org/legacy/

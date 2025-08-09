@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GeneInfo - Comprehensive Gene Information Retrieval</title>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+  <meta name="description" content="A comprehensive Python package for retrieving detailed gene information from multiple public databases">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css">
+  <style>
+    :root {
+      --theme-color: #42b883;
+      --theme-color-secondary: #369870;
+    }
+
+    .cover-main > p:last-child a {
+      background-color: var(--theme-color);
+      border: 2px solid var(--theme-color);
+      border-radius: 2rem;
+      box-sizing: border-box;
+      color: #fff;
+      display: inline-block;
+      font-size: 1.05rem;
+      letter-spacing: 0.1rem;
+      margin: 0.5rem 1rem;
+      padding: 0.75rem 2rem;
+      text-decoration: none;
+      transition: all 0.15s ease;
+    }
+
+    .cover-main > p:last-child a:hover {
+      background-color: var(--theme-color-secondary);
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">Loading...</div>
+  <script>
+    window.$docsify = {
+      name: 'GeneInfo',
+      repo: 'https://github.com/chunjie-sam-liu/geneinfo',
+      homepage: 'README.md',
+      coverpage: true,
+      loadSidebar: true,
+      subMaxLevel: 3,
+      auto2top: true,
+      search: {
+        maxAge: 86400000,
+        paths: 'auto',
+        placeholder: 'Search documentation...',
+        noData: 'No results found.',
+        depth: 6
+      },
+      plugins: [
+        function(hook, vm) {
+          hook.beforeEach(function (html) {
+            // Add GitHub edit link
+            var url = 'https://github.com/chunjie-sam-liu/geneinfo/blob/main/docs/' + vm.route.file;
+            var editHtml = '[📝 Edit on GitHub](' + url + ')\n\n';
+            return editHtml + html;
+          });
+
+          hook.doneEach(function () {
+            // Add copy button to code blocks
+            var codeBlocks = document.querySelectorAll('pre[data-lang]');
+            codeBlocks.forEach(function(block) {
+              if (!block.querySelector('.copy-button')) {
+                var button = document.createElement('button');
+                button.className = 'copy-button';
+                button.innerHTML = '📋 Copy';
+                button.style.cssText = 'position: absolute; top: 10px; right: 10px; background: #42b883; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 12px;';
+
+                button.onclick = function() {
+                  var code = block.querySelector('code').textContent;
+                  navigator.clipboard.writeText(code).then(function() {
+                    button.innerHTML = '✅ Copied!';
+                    setTimeout(function() {
+                      button.innerHTML = '📋 Copy';
+                    }, 2000);
+                  });
+                };
+
+                block.style.position = 'relative';
+                block.appendChild(button);
+              }
+            });
+          });
+        }
+      ]
+    }
+  </script>
+  <!-- Docsify v4 -->
+  <script src="https://cdn.jsdelivr.net/npm/docsify@4"></script>
+  <!-- Search plugin -->
+  <script src="https://cdn.jsdelivr.net/npm/docsify/lib/plugins/search.min.js"></script>
+  <!-- Syntax highlighting -->
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-python.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-json.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-toml.min.js"></script>
+  <!-- Copy to clipboard -->
+  <script src="https://cdn.jsdelivr.net/npm/docsify-copy-code@2"></script>
+  <!-- Zoom image -->
+  <script src="https://cdn.jsdelivr.net/npm/docsify/lib/plugins/zoom-image.min.js"></script>
+</body>
+</html>
