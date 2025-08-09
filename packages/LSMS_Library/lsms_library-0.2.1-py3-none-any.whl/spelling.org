@@ -1,0 +1,460 @@
+#+title: Spelling
+This file implements some logic for creating common labels for things like different kinds of food (e.g., "Beans"=="beans") or units of measurement.
+* Regularization
+***  I want a python function, perhaps using regular expressions, to regularize strings.  Any whitespace should be changed to a single space.  And otherwise  as shown in the following examples.  These are meant to illustrate generic patterns, so do not write code which is conditional on the exact word employed.
+#+name: examples
+- "foo" -> "Foo"
+- "foo or bar" -> "Foo/Bar"
+- "Foo and bar" -> "Foo & Bar"
+- " slack rope" -> "Slack Rope"
+- "slash/dot " -> "Slash/Dot"
+- "Chambiko - Soured Milk" -> "Chambiko (soured milk)"
+- "Bean, Brown" -> "Bean, Brown"
+- "One  Two" -> "One Two"
+- "Oranges, Lemons, Limes" -> "Oranges, Lemons, Limes"
+- "Apples,  Oranges" -> "Apples, Oranges"
+- "Soft Drinks (Cola, Fanta, Sprite, etc.)" -> "Soft Drinks (cola, etc.)"
+- "Soft Drinks (Cola, Fa" -> "Soft Drinks (cola, etc.)"
+- "Small Animals - Rabbit, Mice" -> "Small Animals (rabbit, mice)"
+- "Chicken/pieces" -> "Chicken/Pieces"
+- "Chicken/Duck" -> "Chicken/Duck"
+- "Other Poultry-Guinea Fowl," -> "Other Poultry (guinea fowl)
+- "Foo/ bar" -> "Foo/Bar"
+- "Foo-bar" -> "Foo (bar)"
+- "Foo - bar" -> "Foo (bar)"
+
+In addition, the function should follow these rules for capitalizing headlines:
+ - First Word :: Always capitalize the first word of the title, regardless of its part of speech.
+ - Major Words :: Capitalize all major words, including nouns, pronouns, verbs, adjectives, and adverbs, unless they are parenthetical.
+ - Minor Words :: Lowercase articles, short prepositions, and short conjunctions, unless they are the first word.
+ - Hyphenated Words :: If a hyphenated word is a major word, capitalize both parts (e.g., "Self-Report").
+
+Further:
+  - Strings within parentheses should be lowercase.
+  - If there's an opening parenthesis, there should be a closing parenthesis (and vice versa)
+  - Don't repeat commas, like ",,".
+  - Don't repeat the string "etc."; e.g., no "etc., etc."
+  - Function should be named =regularize_string=.
+  - Never put a comma just before a closing parenthesis (e.g., no ",)").
+  - Finally, the regularized expression should be in ascii.
+
+
+I'll help you create a Python function to regularize strings according to the given rules. Let me analyze the examples and requirements you've provided.I'll create the =regularize_string= function based on your requirements:
+
+#+name: regularize_string
+#+begin_src python :tangle lsms_library/spelling.py
+import re
+import unicodedata
+
+def regularize_string(s):
+    # Convert string to ASCII
+    s = unicodedata.normalize('NFKD', s).encode('ascii', 'ignore').decode('ascii')
+
+    # Normalize whitespace - replace multiple spaces with a single space and trim
+    s = re.sub(r'\s+', ' ', s).strip()
+
+    # Replace "and" with "&"
+    s = re.sub(r'\b(?<!\()and\b(?!\))', '&', s, flags=re.IGNORECASE)
+
+    # Handle hyphens and dashes between words (not hyphenated words)
+    s = re.sub(r'\s+-\s+|\s*-\s*(?=\w)', ' (', s)
+    if '(' in s and ')' not in s:
+        s += ')'
+
+    # Fix parentheses content to lowercase
+    def lowercase_in_parens(match):
+        return '(' + match.group(1).lower() + ')'
+    s = re.sub(r'\(([^)]+)\)', lowercase_in_parens, s)
+
+    # Replace "etc." patterns in parentheses
+    s = re.sub(r'\([^)]*?(?:etc\.),?\s*(?:etc\.)?[^)]*\)', '(etc.)', s)
+    s = re.sub(r'\([^)]*?,\s*[^)]*?\)', lambda m: re.sub(r'([^,]+),\s*([^,]+)', r'\1, etc.)', m.group(0).lower()), s)
+
+    # Fix slash with spaces around it
+    s = re.sub(r'\s*/\s*', '/', s)
+
+    # Remove duplicated commas
+    s = re.sub(r',\s*,', ',', s)
+
+    # Fix spacing after commas
+    s = re.sub(r',\s*', ', ', s)
+
+    # Remove comma before closing parenthesis
+    s = re.sub(r',\s*\)', ')', s)
+
+    # Split into words
+    words = []
+    in_parens = False
+    current_word = ""
+
+    # Process the string character by character to handle parentheses correctly
+    for char in s:
+        if char == '(':
+            in_parens = True
+            words.append(current_word)
+            current_word = "("
+        elif char == ')':
+            in_parens = False
+            current_word += ")"
+            words.append(current_word)
+            current_word = ""
+        elif char == ' ' and not in_parens:
+            if current_word:
+                words.append(current_word)
+                current_word = ""
+        elif char == '/' and not in_parens:
+            if current_word:
+                words.append(current_word)
+                current_word = "/"
+            else:
+                current_word = "/"
+        else:
+            current_word += char
+
+    if current_word:
+        words.append(current_word)
+
+    # List of minor words that should be lowercase unless at the beginning or after a slash
+    minor_words = {'a', 'an', 'the', 'and', 'but', 'or', 'for', 'nor', 'on', 'at',
+                   'to', 'from', 'by', 'in', 'of', 'with'}
+
+    # Process each word according to the capitalization rules
+    result = []
+    for i, word in enumerate(words):
+        # Skip empty strings
+        if not word:
+            continue
+
+        # Words in parentheses
+        if word.startswith('(') and word.endswith(')'):
+            result.append(word)  # Already processed to lowercase earlier
+        # Slash - capitalize next word
+        elif word == '/':
+            result.append(word)
+        # Words after slash should be capitalized
+        elif i > 0 and result[-1] == '/':
+            if word.lower() in minor_words:
+                result.append(word.capitalize())  # Capitalize minor words after slash
+            else:
+                result.append(word.capitalize())
+        # First word always capitalized
+        elif i == 0 or result[-1].endswith('.'):
+            result.append(word.capitalize())
+        # Minor words in lowercase unless they are the first word
+        elif word.lower() in minor_words and not (i > 0 and result[-1] == '/'):
+            result.append(word.lower())
+        # Major words capitalized
+        else:
+            result.append(word.capitalize())
+
+    # Join the words back together
+    result_string = ""
+    for i, word in enumerate(result):
+        if i == 0:
+            result_string = word
+        elif word == '/':
+            result_string += word
+        elif result[i-1] == '/':
+            result_string += word
+        elif word.startswith('('):
+            result_string += word
+        elif word == ',':
+            result_string += word + ' '
+        else:
+            result_string += ' ' + word
+
+    # Final cleanup to handle some edge cases
+    result_string = re.sub(r'\s*,\s*', ', ', result_string)
+    result_string = re.sub(r'\s+\)', ')', result_string)
+    result_string = re.sub(r'\(\s+', '(', result_string)
+
+    return result_string
+#+end_src
+
+
+** Deepseek
+#+begin_src python
+import re
+import unicodedata
+
+def regularize_string(s):
+    # Remove any non-ASCII characters
+    s = unicodedata.normalize('NFKD', s).encode('ascii', 'ignore').decode('ascii')
+
+    # Step 1: Normalize whitespace to a single space
+    s = re.sub(r'\s+', ' ', s.strip())
+
+    # Step 2: Handle special cases like slashes, hyphens, and parentheses
+    # Replace " - " with " ("
+    s = re.sub(r'\s*-\s*', ' (', s)
+    # Ensure closing parenthesis if there's an opening one
+    if '(' in s and ')' not in s:
+        s += ')'
+    # Replace "/ " with "/"
+    s = re.sub(r'/\s+', '/', s)
+    # Replace " /" with "/"
+    s = re.sub(r'\s+/', '/', s)
+
+    # Step 3: Capitalize words according to rules
+    words = s.split()
+    if not words:
+        return s
+
+    # Capitalize first word
+    words[0] = words[0].capitalize()
+
+    # Define minor words (lowercase unless first word)
+    minor_words = {'a', 'an', 'the', 'and', 'but', 'or', 'for', 'nor', 'on', 'at', 'to', 'from', 'by', 'of', 'in', 'with'}
+
+    for i in range(1, len(words)):
+        word = words[i]
+        # Skip parenthetical words (lowercase)
+        if '(' in word or ')' in word:
+            continue
+        # Handle hyphenated words
+        if '-' in word:
+            parts = word.split('-')
+            parts = [p.capitalize() if p.lower() not in minor_words else p.lower() for p in parts]
+            words[i] = '-'.join(parts)
+        elif word.lower() not in minor_words:
+            words[i] = word.capitalize()
+        else:
+            words[i] = word.lower()
+
+    # Step 4: Rejoin words and handle parenthetical lowercase
+    s = ' '.join(words)
+    # Lowercase parenthetical content
+    s = re.sub(r'\(([^)]*)\)', lambda m: f'({m.group(1).lower()})', s)
+    # Handle "etc." repetition
+    s = re.sub(r'etc\.(, etc\.)*', 'etc.', s)
+    # Remove repeated commas
+    s = re.sub(r',+', ',', s)
+
+    return s
+#+end_src
+
+
+
+** Claude
+
+#+begin_src python
+import re
+import unicodedata
+
+def regularize_string(s):
+    # Remove any non-ASCII characters
+    s = unicodedata.normalize('NFKD', s).encode('ascii', 'ignore').decode('ascii')
+
+    # Replace multiple whitespace with a single space and strip leading/trailing spaces
+    s = re.sub(r'\s+', ' ', s).strip()
+
+    # Handle "and" replacements
+    s = re.sub(r'\band\b', '&', s, flags=re.IGNORECASE)
+
+    # Handle dash and hyphen patterns - convert to parentheses
+    s = re.sub(r'\s*-\s*([^,)]*?)(?=[,)]|$)', r' (\1)', s)
+
+    # Convert "Foo-bar" to "Foo (bar)"
+    s = re.sub(r'(\w+)-(\w+)', r'\1 (\2)', s)
+
+    # Handle slash with spaces around it
+    s = re.sub(r'\s*/\s*', r'/', s)
+
+    # Normalize commas (no doubles, proper spacing)
+    s = re.sub(r',\s*,', ',', s)
+    s = re.sub(r',\s*', ', ', s)
+
+    # Handle parenthetical content
+    def lowercase_parenthetical(match):
+        return f"({match.group(1).lower()})"
+
+    s = re.sub(r'\(([^)]+)\)', lowercase_parenthetical, s)
+
+    # Ensure parentheses are balanced
+    if s.count('(') > s.count(')'):
+        s += ')'
+
+    # Process the "etc." patterns in parentheses
+    s = re.sub(r'\([^)]*?,[^)]*?(?:etc\.)?[^)]*?\)', lambda m:
+              '(' + re.sub(r'(?:,\s*)+(?:[^,)]+,\s*)*', '', m.group(0).lower()) + 'etc.)', s)
+
+    # Split into words to apply capitalization rules
+    words = s.split()
+    result = []
+
+    # List of minor words to keep lowercase unless they're the first word
+    minor_words = {'a', 'an', 'the', 'and', 'but', 'or', 'for', 'nor', 'on', 'at',
+                  'to', 'from', 'by', 'in', 'of', 'with'}
+
+    for i, word in enumerate(words):
+        # Handle words with slashes
+        if '/' in word and not word.startswith('('):
+            parts = word.split('/')
+            word = '/'.join(p.capitalize() for p in parts)
+        # Handle words with parentheses
+        elif '(' in word:
+            # Keep parenthetical content lowercase
+            pre_paren = word[:word.index('(')]
+            post_paren = word[word.index('('):]
+            if i == 0 or pre_paren.lower() not in minor_words:
+                word = pre_paren.capitalize() + post_paren
+        # Apply standard capitalization rules
+        elif i == 0 or word.lower() not in minor_words:
+            word = word.capitalize()
+        else:
+            word = word.lower()
+
+        result.append(word)
+
+    return ' '.join(result)
+#+end_src
+
+
+
+** Tests
+Now apply the code to the examples.
+#+begin_src python :noweb no-export :results output :var examples=examples
+<<regularize_string>>
+for line in examples:
+    inout = line.split(' -> ')
+    myin = inout[0][1:-1]
+    myout = inout[1][1:-1]
+    reg = regularize_string(myin)
+    if reg != myout:
+        print(f"{myin} :: {regularize_string(myin)} -> {myout}")
+
+
+#+end_src
+
+#+results:
+#+begin_example
+foo or bar :: Foo or Bar -> Foo/Bar
+slash/dot  :: Slash /dot -> Slash/Dot
+Chambiko - Soured Milk :: Chambiko(soured milk) -> Chambiko (soured milk)
+Soft Drinks (Cola, Fanta, Sprite, etc.) :: Soft Drinks(etc.) -> Soft Drinks (cola, etc.)
+Soft Drinks (Cola, Fa :: Soft Drinks(cola, etc.) -> Soft Drinks (cola, etc.)
+Small Animals - Rabbit, Mice :: Small Animals(rabbit, etc.) -> Small Animals (rabbit, mice)
+Chicken/pieces :: Chicken /pieces -> Chicken/Pieces
+Chicken/Duck :: Chicken /duck -> Chicken/Duck
+Other Poultry-Guinea Fowl, :: Other Poultry(guinea fowl, etc.) -> Other Poultry (guinea fowl
+Foo/ bar :: Foo /bar -> Foo/Bar
+Foo-bar :: Foo(bar) -> Foo (bar)
+Foo - bar :: Foo(bar) -> Foo (bar)
+#+end_example
+
+* Dictionary
+Words below are canonical spellings, followed by alternatives, comma delimited.  This is used to create a persistent dictionary.  Variations in case can be neglected, so long as the title() version is included.  NB: Alternatively, delimit using ^.  This helps in cases where a "spelling" /includes/ a comma, or perhaps funky whitespace.
+** Comma delimited dictionary
+#+name: spelling_dictionary
+ - Email :: Email Address
+ - Roster :: Getting to Know You, Getting To Know You
+ - First Name :: What is your first name?, What Is Your First Name?
+ - Last Name :: What is your last name?, What Is Your Last Name?
+ - Preferred Name :: What is your preferred name?, What Is Your Preferred Name?, Preferred Name?, Preferred name?
+ - Project Feedback :: Feedback for Project: If you have thoughts on this assessment process or the project in general consider sharing them here.
+ - Zilberman :: David Zilberman, (David) Zilberman
+ - Griffith :: Rachel Griffith, (Rachel) Griffith
+ - Borlaug :: Norman Borlaug, (Norman) Borlaug
+ - Tweeten :: Luther Tweeten, (Luther) Tweeten
+ - Burbank :: Luther Burbank, (Luther) Burbank
+ - Wiley :: Harvey Wiley, (Harvey) Wiley
+ - Doudna :: Jennifer Doudna, (Jennifer) Doudna
+ - Working :: Holbrook Working, (Holbrook) Working
+ - Schultz :: T.W. Schultz, Theodore W. Schultz, T. W. Schultz
+ - Reid :: Margaret Reid
+ - Allinson :: Thomas Allinson
+ - Chick :: Harriette Chick
+ - Atwater :: Wilbur Atwater
+ - Lane :: Sylvia Lane
+ - Lind :: James Lind
+ - von Liebig :: Justus von Liebig, Von Liebig
+ - Stigler :: George Stigler
+ - Funk :: Casimir Funk
+ - Comments :: Please share any written comments that you think that the Team might find useful., Do you have any other comments or suggestions about this member's contributions?
+ - Becker :: Gary Becker
+ - Blake :: Judith Blake, (Judith) Blake
+ - Graunt :: John Graunt, (John) Graunt
+ - Greville :: Thomas Greville, (Thomas) Greville
+ - Kitagawa :: Evelyn Kitagawa, Evelyn M. Kitagawa, (Evelyn) Kitagawa
+ - Ma Yinchu :: Yinchu, Yinshu Ma
+ - Malthus :: Thomas Malthus, (Thomas) Malthus
+ - Quételet :: Quetelet, Adolphe Quetelet, Adolphe Quételet
+ - Thomas :: Dorothy Thomas, (Dorothy) Thomas
+ - Keys :: Ancel Keys, (Ancel) Keys
+ - Could be counted on :: Could teammates be counted on to complete tasks in a timely fashion?
+ - Helpful :: Were teammates helpful to others in the group?
+ - Smoothed working :: Did teammates contribute to the smooth working of the team?
+ - Main strengths :: What were your teammates' main strengths?
+ - Overall contribution :: Overall contribution to the project relative to other teammates (1=Biggest contribution), Overall contribution to the project relative to other teammates, Overall contribution to the project relative to other teammates (1=Most)
+ - Work with again :: Would you like to work with this person again?
+ - github_id :: Please share your github username:,Please share your github id:
+ - git_fu :: How familiar are you with git?
+ - python_fu :: How familiar are you with python?, How familiar are you with the python language?
+ - eep153_hopes :: What do you hope to learn or get out of taking EEP153?  Any other thoughts?
+ - prior_classes :: What classes have you taken?
+ - Interesting topic :: How interesting was the team's topic?
+ - Goals clear ::  Are the teams project goals clearly stated?
+ - Goals connected to topic? :: Do the teams goals have a clear connection to their topic?
+ - Goals ambitious? ::   How ambitious are the team's project goals?
+ - Goals met :: How completely were project goals met?
+ - Worked together? :: How well did the team seem to work together?
+ - Collaboration tools :: Did the team's collaboration tools seem effective?
+ - Presentation time :: How well did the team manage its presentation time?
+ - Visualizations interesting? :: How interesting were visualizations?^ How interesting were visualizations?^
+ - Presentation polished? :: How polished was the presentation?
+ - Presentation compelling? ::  Overall, how compelling was the presentation?
+ - Hire? ::  If you were in the position of needing to hire a team to do analysis on this topic, would you hire this team?^
+
+#+begin_src python :results silent :var spelling_dictionary=spelling_dictionary
+import json
+from collections import defaultdict
+
+D = defaultdict(list)
+for line in spelling_dictionary:
+    k,v = [s.strip() for s in line.split('::')]
+    if '^' in v: # Use caret for signifier if commas won't work
+        v = [s for s in v.split('^') if len(s.strip())]+[k]
+    else:
+        v = [s.strip() for s in v.split(',') if len(s.strip())]+[k]
+    D[k] = v
+
+with open('spelling_dictionary.json','w') as f: json.dump(D,f)
+#+end_src
+
+
+
+* Spelling functions
+We want two functions.  The first, =spell=, takes a word or phrase, and returns the canonical version.  The second, =spellings=, takes the canonical version and returns a list of all acceptable spellings.
+
+#+begin_src python :tangle lsms_library/spelling.py
+import json
+
+with open('spelling_dictionary.json','r') as f: dictionary = json.load(f)
+
+inverse_d = {}
+for k,l in dictionary.items():
+    for v in l: inverse_d[v] = k
+
+def spell(word):
+    try:
+        canonical = inverse_d[word]
+    except KeyError:
+        try:
+            canonical = inverse_d[word.title()]
+        except KeyError:
+            canonical = word
+
+    return canonical
+
+def spellings(word):
+    try:
+        return dictionary[spell(word)]
+    except KeyError:
+        return [word]
+
+def spellings_map(word):
+    try:
+        return {s:word for s in spellings(word)}
+    except KeyError:
+        return {word:word}
+#+end_src
