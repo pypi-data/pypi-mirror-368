@@ -1,0 +1,133 @@
+# Example component specification for batch creation
+# Use this file with: fca-scaffold batch-create examples/components_spec.yaml
+
+systems:
+  - name: user_management
+    description: "User management system context"
+    modules:
+      - name: authentication
+        description: "User authentication and authorization"
+        components:
+          domain:
+            entities: ["user", "role", "permission"]
+            repositories: ["user", "role"]
+            value_objects: ["email", "password", "username"]
+            events: ["user_created", "user_updated"]
+            exceptions: ["user_not_found", "invalid_credentials"]
+            interfaces: ["user_repository_interface"]
+          application:
+            services: ["auth_service", "user_service", "role_service"]
+            commands: ["create_user", "login", "logout", "change_password"]
+            queries: ["get_user", "list_users", "get_user_roles"]
+            dtos: ["create_user_dto", "auth_dto"]
+          infrastructure:
+            config: ["auth_config", "database_config"]
+            external: ["email_service", "sms_service"]
+            database:
+              models: ["user", "role", "permission"]
+              repositories: ["user", "role"]
+              migrations: ["001_create_users_table", "002_create_roles_table"]
+          presentation:
+            controllers/v1: ["auth", "users", "roles"]
+            routes/v1: ["auth", "users", "roles"]
+            schemas/v1: ["user", "auth", "role"]
+            middleware: ["auth_middleware"]
+      
+      - name: profile
+        description: "User profile management"
+        components:
+          domain:
+            entities: ["profile", "address"]
+            repositories: ["profile"]
+            value_objects: ["phone_number", "date_of_birth"]
+          application:
+            services: ["profile_service"]
+            commands: ["update_profile", "upload_avatar"]
+            queries: ["get_profile", "search_profiles"]
+          infrastructure:
+            config: ["profile_config"]
+            external: ["file_storage_service"]
+            database:
+              models: ["profile", "address"]
+              repositories: ["profile"]
+              migrations: ["create_profile_table"]
+          presentation:
+            controllers/v1: ["profiles"]
+            routes/v1: ["profiles"]
+            schemas/v1: ["profile"]
+            middleware: ["profile_middleware"]
+
+  - name: order_management
+    description: "Order processing and management"
+    modules:
+      - name: orders
+        description: "Core order functionality"
+        components:
+          domain:
+            entities: ["order", "order_item", "product"]
+            repositories: ["order", "product"]
+            value_objects: ["money", "quantity", "order_status"]
+          application:
+            services: ["order_service", "product_service"]
+            commands: ["create_order", "cancel_order", "update_order_status"]
+            queries: ["get_order", "list_orders", "get_order_history"]
+          infrastructure:
+            config: ["order_config"]
+            external: ["payment_service", "inventory_service"]
+            database:
+              models: ["order", "order_item", "product"]
+              repositories: ["order", "product"]
+              migrations: ["create_orders_table"]
+          presentation:
+            controllers/v1: ["orders", "products"]
+            routes/v1: ["orders", "products"]
+            schemas/v1: ["order", "product"]
+            middleware: ["order_middleware"]
+      
+      - name: payments
+        description: "Payment processing"
+        components:
+          domain:
+            entities: ["payment", "refund"]
+            repositories: ["payment"]
+            value_objects: ["payment_method", "transaction_id"]
+          application:
+            services: ["payment_service"]
+            commands: ["process_payment", "refund_payment"]
+            queries: ["get_payment", "list_payments"]
+          infrastructure:
+            config: ["payment_config"]
+            external: ["stripe_service", "paypal_service"]
+            database:
+              models: ["payment", "refund"]
+              repositories: ["payment"]
+              migrations: ["create_payments_table"]
+          presentation:
+            controllers/v1: ["payments"]
+            routes/v1: ["payments"]
+            schemas/v1: ["payment"]
+            middleware: ["payment_middleware"]
+
+  - name: notification_system
+    description: "Notification and messaging system"
+    modules:
+      - name: notifications
+        description: "Core notification functionality"
+        components:
+          domain:
+            entities: ["notification", "template"]
+            repositories: ["notification", "template"]
+            value_objects: ["notification_type", "priority"]
+          application:
+            services: ["notification_service"]
+            commands: ["send_notification", "create_template"]
+            queries: ["get_notifications", "get_template"]
+          infrastructure:
+            models: ["notification", "template"]
+            repositories: ["notification", "template"]
+            external: ["email_provider", "sms_provider", "push_service"]
+          presentation:
+            controllers/v1: ["notifications"]
+            routes/v1: ["notifications"]
+            schemas/v1: ["notification"]
+            middleware: ["notification_middleware"]

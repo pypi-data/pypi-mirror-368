@@ -1,0 +1,65 @@
+"""
+{{ router_name }} API router for {{ module_name }} module.
+"""
+from fastapi import APIRouter, Depends, HTTPException
+from typing import List
+from ..schemas.{{ schema_file }} import {{ SchemaName }}Create, {{ SchemaName }}Response
+from ...application.services.{{ service_file }} import {{ ServiceName }}Service
+
+router = APIRouter(prefix="/{{ resource_name }}", tags=["{{ resource_name }}"])
+
+
+@router.post("/", response_model={{ SchemaName }}Response)
+async def create_{{ entity_name }}(
+    data: {{ SchemaName }}Create,
+    service: {{ ServiceName }}Service = Depends()
+):
+    """Create new {{ entity_name }}."""
+    entity = await service.create_{{ entity_name }}(data.model_dump())
+    return {{ SchemaName }}Response.model_validate(entity)
+
+
+@router.get("/", response_model=List[{{ SchemaName }}Response])
+async def list_{{ resource_name }}(
+    service: {{ ServiceName }}Service = Depends()
+):
+    """List all {{ resource_name }}."""
+    entities = await service.list_{{ resource_name }}()
+    return [{{ SchemaName }}Response.model_validate(entity) for entity in entities]
+
+
+@router.get("/{id}", response_model={{ SchemaName }}Response)
+async def get_{{ entity_name }}(
+    id: str,
+    service: {{ ServiceName }}Service = Depends()
+):
+    """Get {{ entity_name }} by ID."""
+    entity = await service.get_{{ entity_name }}_by_id(id)
+    if not entity:
+        raise HTTPException(status_code=404, detail="{{ EntityName }} not found")
+    return {{ SchemaName }}Response.model_validate(entity)
+
+
+@router.put("/{id}", response_model={{ SchemaName }}Response)
+async def update_{{ entity_name }}(
+    id: str,
+    data: {{ SchemaName }}Create,
+    service: {{ ServiceName }}Service = Depends()
+):
+    """Update {{ entity_name }}."""
+    entity = await service.update_{{ entity_name }}(id, data.model_dump())
+    if not entity:
+        raise HTTPException(status_code=404, detail="{{ EntityName }} not found")
+    return {{ SchemaName }}Response.model_validate(entity)
+
+
+@router.delete("/{id}")
+async def delete_{{ entity_name }}(
+    id: str,
+    service: {{ ServiceName }}Service = Depends()
+):
+    """Delete {{ entity_name }}."""
+    success = await service.delete_{{ entity_name }}(id)
+    if not success:
+        raise HTTPException(status_code=404, detail="{{ EntityName }} not found")
+    return {"message": "{{ EntityName }} deleted successfully"}

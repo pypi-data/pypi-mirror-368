@@ -1,0 +1,171 @@
+"""{{ component_name }} domain enum for {{ module_name }} module.
+
+Generated at: {{ generated_at }}
+Generator version: {{ generator_version }}
+"""
+from enum import Enum, auto
+from typing import Any, Dict, List, Optional
+
+
+class {{ EnumName }}(Enum):
+    """{{ EnumName }} domain enum.
+    
+    This enum represents {{ entity_description }} in the {{ module_name }} domain.
+    Domain enums define fixed sets of values that are meaningful to the business
+    and help enforce business rules and constraints.
+    
+    Following Clean Architecture principles, this enum contains only
+    domain-relevant values and has no dependencies on external
+    frameworks or infrastructure.
+    """
+    
+    # Define your enum values here
+    # Example with auto-generated values:
+    # ACTIVE = auto()
+    # INACTIVE = auto()
+    # PENDING = auto()
+    
+    # Example with explicit string values:
+    # DRAFT = "draft"
+    # PUBLISHED = "published"
+    # ARCHIVED = "archived"
+    
+    # Example with explicit integer values:
+    # LOW = 1
+    # MEDIUM = 2
+    # HIGH = 3
+    
+    # Placeholder - replace with actual enum values
+    PLACEHOLDER = auto()
+    
+    def __str__(self) -> str:
+        """String representation of the enum value.
+        
+        Returns:
+            The enum value as a string
+        """
+        return str(self.value)
+    
+    def __repr__(self) -> str:
+        """Developer representation of the enum value.
+        
+        Returns:
+            Detailed enum representation
+        """
+        return f"{self.__class__.__name__}.{self.name}"
+    
+    @classmethod
+    def from_string(cls, value: str) -> Optional['{{ EnumName }}']:
+        """Create enum instance from string value.
+        
+        Args:
+            value: String representation of the enum value
+            
+        Returns:
+            Enum instance if found, None otherwise
+        """
+        try:
+            # For string-valued enums
+            for enum_item in cls:
+                if str(enum_item.value).lower() == value.lower():
+                    return enum_item
+            
+            # For name-based lookup
+            return cls[value.upper()]
+        except (KeyError, ValueError):
+            return None
+    
+    @classmethod
+    def all_values(cls) -> List[str]:
+        """Get all enum values as strings.
+        
+        Returns:
+            List of all enum values
+        """
+        return [str(item.value) for item in cls]
+    
+    @classmethod
+    def all_names(cls) -> List[str]:
+        """Get all enum names.
+        
+        Returns:
+            List of all enum names
+        """
+        return [item.name for item in cls]
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert enum to dictionary for serialization.
+        
+        Returns:
+            Dictionary representation of the enum
+        """
+        return {
+            'name': self.name,
+            'value': self.value,
+            'type': self.__class__.__name__
+        }
+    
+    @classmethod
+    def is_valid(cls, value: Any) -> bool:
+        """Check if a value is a valid enum value.
+        
+        Args:
+            value: Value to validate
+            
+        Returns:
+            True if valid, False otherwise
+        """
+        if isinstance(value, cls):
+            return True
+        
+        if isinstance(value, str):
+            return cls.from_string(value) is not None
+        
+        try:
+            # Try to match by value
+            for item in cls:
+                if item.value == value:
+                    return True
+        except (ValueError, TypeError):
+            pass
+        
+        return False
+    
+    @property
+    def is_valid_instance(self) -> bool:
+        """Check if this is a valid enum instance.
+        
+        Returns:
+            True if valid, False otherwise
+        """
+        return self in self.__class__
+
+
+# Example usage and validation functions
+# Uncomment and customize as needed:
+
+# def validate_{{ enum_name }}(value: Any) -> bool:
+#     """Validate if a value is a valid {{ EnumName }}.
+#     
+#     Args:
+#         value: Value to validate
+#         
+#     Returns:
+#         True if valid, False otherwise
+#     """
+#     if isinstance(value, {{ EnumName }}):
+#         return True
+#     
+#     if isinstance(value, str):
+#         return {{ EnumName }}.from_string(value) is not None
+#     
+#     return False
+
+# def get_default_{{ enum_name }}() -> {{ EnumName }}:
+#     """Get the default {{ EnumName }} value.
+#     
+#     Returns:
+#         Default enum value
+#     """
+#     # Replace with appropriate default
+#     return {{ EnumName }}.PLACEHOLDER

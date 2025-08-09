@@ -1,0 +1,98 @@
+# Batch Creation Specification
+# This example demonstrates a basic blog system - perfect for learning FCA concepts
+# Use with: fca-scaffold batch-create examples/batch_spec.yaml
+
+systems:
+  - name: blog_system
+    description: "Blog management system for learning FCA concepts"
+    modules:
+      - name: posts
+        description: "Blog post management"
+        components:
+          domain:
+            entities: ["post", "author"]
+            value_objects: ["title", "content", "slug", "publish_date"]
+            interfaces: ["post_repository"]
+            events: ["post_created", "post_published", "post_updated"]
+            exceptions: ["post_not_found", "invalid_post_data"]
+          application:
+            services: ["post_service"]
+            dtos: ["post_dto", "create_post_dto"]
+            use_cases:
+              commands: ["create_post", "update_post", "publish_post"]
+              queries: ["get_post", "list_posts", "search_posts"]
+          infrastructure:
+            config: ["post_config"]
+            database:
+              models: ["post_model"]
+              repositories: ["post_repository"]
+              migrations: ["create_posts_table"]
+          presentation:
+            controllers:
+              v1: ["post_controller"]
+            routes:
+              v1: ["post_routes"]
+            schemas:
+              v1: ["post_schema"]
+      
+      - name: comments
+        description: "Comment system for blog posts"
+        components:
+          domain:
+            entities: ["comment"]
+            value_objects: ["comment_text", "author_name", "email"]
+            interfaces: ["comment_repository"]
+            events: ["comment_added", "comment_approved"]
+            exceptions: ["comment_not_found", "spam_detected"]
+          application:
+            services: ["comment_service"]
+            dtos: ["comment_dto"]
+            use_cases:
+              commands: ["add_comment", "approve_comment", "delete_comment"]
+              queries: ["get_comments", "get_post_comments"]
+          infrastructure:
+            config: ["comment_config"]
+            database:
+              models: ["comment_model"]
+              repositories: ["comment_repository"]
+              migrations: ["create_comments_table"]
+          presentation:
+            controllers:
+              v1: ["comment_controller"]
+            routes:
+              v1: ["comment_routes"]
+            schemas:
+              v1: ["comment_schema"]
+
+  - name: user_system
+    description: "Basic user management for the blog"
+    modules:
+      - name: authentication
+        description: "User authentication"
+        components:
+          domain:
+            entities: ["user"]
+            value_objects: ["email", "username", "password_hash"]
+            interfaces: ["user_repository", "auth_service"]
+            events: ["user_registered", "user_logged_in"]
+            exceptions: ["invalid_credentials", "user_already_exists"]
+          application:
+            services: ["auth_service", "user_service"]
+            dtos: ["login_dto", "register_dto", "user_dto"]
+            use_cases:
+              commands: ["register_user", "login_user"]
+              queries: ["get_user", "validate_credentials"]
+          infrastructure:
+            config: ["auth_config"]
+            database:
+              models: ["user_model"]
+              repositories: ["user_repository"]
+              migrations: ["create_users_table"]
+          presentation:
+            controllers:
+              v1: ["auth_controller"]
+            routes:
+              v1: ["auth_routes"]
+            schemas:
+              v1: ["auth_schema"]
+            middleware: ["auth_middleware"]

@@ -1,0 +1,109 @@
+"""{{ ServiceName }} application service.
+
+Generated at: {{ generated_at }}
+Generator version: {{ generator_version }}
+"""
+
+from typing import List, Optional, Dict, Any
+from uuid import UUID
+
+from {{ entity_import }} import {{ EntityName }}
+from {{ repository_import }} import {{ RepositoryName }}Repository
+
+
+class {{ ServiceName }}Service:
+    """Application service for {{ service_description }}."""
+    
+    def __init__(self, repository: {{ RepositoryName }}Repository):
+        self._repository = repository
+    
+    async def create_{{ entity_name }}(self, data: Dict[str, Any]) -> {{ EntityName }}:
+        """Create a new {{ entity_name }}.
+        
+        Args:
+            data: Dictionary containing {{ entity_name }} data
+            
+        Returns:
+            Created {{ entity_name }} instance
+            
+        Raises:
+            ValueError: If data is invalid
+        """
+        if not data:
+            raise ValueError("{{ EntityName }} data cannot be empty")
+            
+        try:
+            {{ entity_name }} = {{ EntityName }}(**data)
+            return await self._repository.save({{ entity_name }})
+        except Exception as e:
+            raise ValueError(f"Failed to create {{ entity_name }}: {e}")
+    
+    async def get_{{ entity_name }}(self, {{ entity_name }}_id: UUID) -> Optional[{{ EntityName }}]:
+        """Get {{ entity_name }} by ID.
+        
+        Args:
+            {{ entity_name }}_id: UUID of the {{ entity_name }}
+            
+        Returns:
+            {{ EntityName }} instance if found, None otherwise
+        """
+        if not {{ entity_name }}_id:
+            raise ValueError("{{ EntityName }} ID cannot be empty")
+            
+        return await self._repository.get_by_id({{ entity_name }}_id)
+    
+    async def list_{{ entity_name }}s(self, limit: Optional[int] = None, offset: int = 0) -> List[{{ EntityName }}]:
+        """List {{ entity_name }}s with pagination.
+        
+        Args:
+            limit: Maximum number of items to return
+            offset: Number of items to skip
+            
+        Returns:
+            List of {{ entity_name }} instances
+        """
+        return await self._repository.list_all(limit=limit, offset=offset)
+    
+    async def update_{{ entity_name }}(self, {{ entity_name }}_id: UUID, data: Dict[str, Any]) -> Optional[{{ EntityName }}]:
+        """Update {{ entity_name }}.
+        
+        Args:
+            {{ entity_name }}_id: UUID of the {{ entity_name }}
+            data: Dictionary containing updated data
+            
+        Returns:
+            Updated {{ entity_name }} instance if found, None otherwise
+            
+        Raises:
+            ValueError: If data is invalid
+        """
+        if not {{ entity_name }}_id:
+            raise ValueError("{{ EntityName }} ID cannot be empty")
+            
+        if not data:
+            raise ValueError("Update data cannot be empty")
+            
+        {{ entity_name }} = await self._repository.get_by_id({{ entity_name }}_id)
+        if {{ entity_name }}:
+            try:
+                for key, value in data.items():
+                    if hasattr({{ entity_name }}, key):
+                        setattr({{ entity_name }}, key, value)
+                return await self._repository.save({{ entity_name }})
+            except Exception as e:
+                raise ValueError(f"Failed to update {{ entity_name }}: {e}")
+        return None
+    
+    async def delete_{{ entity_name }}(self, {{ entity_name }}_id: UUID) -> bool:
+        """Delete {{ entity_name }}.
+        
+        Args:
+            {{ entity_name }}_id: UUID of the {{ entity_name }}
+            
+        Returns:
+            True if deleted successfully, False otherwise
+        """
+        if not {{ entity_name }}_id:
+            raise ValueError("{{ EntityName }} ID cannot be empty")
+            
+        return await self._repository.delete({{ entity_name }}_id)

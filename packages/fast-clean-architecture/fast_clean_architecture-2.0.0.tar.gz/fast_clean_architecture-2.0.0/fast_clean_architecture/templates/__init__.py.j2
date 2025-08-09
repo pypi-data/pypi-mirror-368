@@ -1,0 +1,26 @@
+{% if package_type == "empty" %}
+"""
+{{ package_description }} package for {{ context }}.
+"""
+{% elif package_type == "component" %}
+"""
+{{ component_type|title }} components for {{ module_name }} module.
+"""
+{% for component in components %}
+from .{{ component.file_name }} import {{ component.class_name }}
+{% endfor %}
+
+__all__ = [
+{% for component in components %}
+    "{{ component.class_name }}",
+{% endfor %}
+]
+{% elif package_type == "system" %}
+"""
+{{ system_name|title }} system context.
+"""
+{% elif package_type == "module" %}
+"""
+{{ module_name|title }} module for {{ system_name }} system.
+"""
+{% endif %}

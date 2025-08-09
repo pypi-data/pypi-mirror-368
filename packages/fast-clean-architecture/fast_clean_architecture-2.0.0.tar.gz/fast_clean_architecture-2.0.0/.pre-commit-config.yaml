@@ -1,0 +1,112 @@
+repos:
+  # Version Management & Dependency Management
+  - repo: local
+    hooks:
+      - id: validate-version
+        name: Validate version consistency
+        entry: python scripts/validate_version.py
+        language: system
+        files: ^(pyproject\.toml|fast_clean_architecture/__init__\.py)$
+        pass_filenames: false
+        stages: [commit]
+      - id: export-requirements
+        name: Export requirements.txt
+        entry: poetry export -f requirements.txt --output requirements.txt
+        language: system
+        files: pyproject.toml
+        pass_filenames: false
+        stages: [commit]
+      - id: export-dev-requirements
+        name: Export dev requirements.txt
+        entry: poetry export -f requirements.txt --output requirements-dev.txt --extras dev
+        language: system
+        files: pyproject.toml
+        pass_filenames: false
+        stages: [commit]
+
+  # Code Formatting
+  - repo: https://github.com/psf/black
+    rev: 23.12.1
+    hooks:
+      - id: black
+        name: Format code with Black
+        language_version: python3
+        types: [python]
+
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        name: Sort imports with isort
+        args: ["--profile", "black"]
+        types: [python]
+
+  # Code Quality & Linting
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        name: Lint with flake8
+        args: ["--max-line-length=88", "--extend-ignore=E203,W503"]
+        types: [python]
+
+  # Type Checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        name: Type check with mypy
+        additional_dependencies: [types-all]
+        args: ["--ignore-missing-imports"]
+        types: [python]
+
+  # Security Scanning
+  - repo: https://github.com/pycqa/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        name: Security scan with bandit
+        args: ["-r", "fast_clean_architecture"]
+        types: [python]
+
+  # General Code Quality
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        name: Remove trailing whitespace
+      - id: end-of-file-fixer
+        name: Fix end of files
+      - id: check-yaml
+        name: Check YAML syntax
+      - id: check-toml
+        name: Check TOML syntax
+      - id: check-json
+        name: Check JSON syntax
+      - id: check-merge-conflict
+        name: Check for merge conflicts
+      - id: check-added-large-files
+        name: Check for large files
+        args: ['--maxkb=500']
+      - id: debug-statements
+        name: Check for debug statements
+        types: [python]
+
+  # Documentation
+  - repo: https://github.com/pycqa/pydocstyle
+    rev: 6.3.0
+    hooks:
+      - id: pydocstyle
+        name: Check docstring style
+        args: ["--convention=google"]
+        types: [python]
+
+  # Dependency Security
+  - repo: local
+    hooks:
+      - id: safety-check
+        name: Check dependencies for security vulnerabilities
+        entry: poetry run safety check
+        language: system
+        pass_filenames: false
+        stages: [commit]

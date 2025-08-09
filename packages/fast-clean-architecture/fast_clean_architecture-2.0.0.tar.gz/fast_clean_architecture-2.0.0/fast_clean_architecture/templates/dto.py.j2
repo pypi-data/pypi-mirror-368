@@ -1,0 +1,66 @@
+"""{{ dto_name }} DTO for {{ module_name }} module.
+
+Generated at: {{ generated_at }}
+Generator version: {{ generator_version }}
+"""
+from dataclasses import dataclass
+from typing import Optional, Any, Dict
+from datetime import datetime
+from uuid import UUID
+
+
+@dataclass
+class {{ DtoName }}:
+    """{{ DtoName }} Data Transfer Object.
+    
+    Used for transferring data between application layers.
+    DTOs are simple data containers without business logic.
+    Following Clean Architecture principles, DTOs facilitate
+    communication between layers while maintaining separation of concerns.
+    """
+    
+    # Add your DTO fields here
+    # Example fields (uncomment and modify as needed):
+    # id: Optional[UUID] = None
+    # name: str = ""
+    # description: Optional[str] = None
+    # created_at: Optional[datetime] = None
+    # updated_at: Optional[datetime] = None
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert DTO to dictionary.
+        
+        Returns:
+            Dictionary representation of the DTO
+        """
+        return {
+            field.name: getattr(self, field.name)
+            for field in self.__dataclass_fields__.values()
+        }
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "{{ DtoName }}":
+        """Create DTO from dictionary.
+        
+        Args:
+            data: Dictionary containing DTO data
+            
+        Returns:
+            {{ DtoName }} instance
+            
+        Raises:
+            TypeError: If unexpected keyword arguments are provided
+        """
+        # Filter only known fields to avoid unexpected keyword arguments
+        known_fields = {field.name for field in cls.__dataclass_fields__.values()}
+        filtered_data = {k: v for k, v in data.items() if k in known_fields}
+        return cls(**filtered_data)
+    
+    def __post_init__(self) -> None:
+        """Post-initialization validation.
+        
+        Override this method to add custom validation logic.
+        This method is called automatically after object initialization.
+        """
+        # Add custom validation logic here if needed
+        pass

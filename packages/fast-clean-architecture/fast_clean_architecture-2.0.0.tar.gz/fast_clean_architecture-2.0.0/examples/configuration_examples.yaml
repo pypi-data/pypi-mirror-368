@@ -1,0 +1,371 @@
+# FCA Configuration Examples
+# This file demonstrates various fca_config.yaml configurations for different project types
+# Copy and adapt these examples to your project's fca_config.yaml file
+
+# =============================================================================
+# ENTERPRISE CONFIGURATION
+# Best for: Enterprise applications, complex domains, production systems
+# =============================================================================
+
+enterprise_project:
+  project:
+    name: "enterprise-ecommerce"
+    version: "2.1.0"
+    description: "Enterprise e-commerce platform"
+    author: "Development Team"
+    license: "MIT"
+    repository: "https://github.com/company/enterprise-ecommerce"
+    
+  architecture:
+    type: "clean_architecture"
+    api_versioning: true
+    versioning_strategy: "url_path"  # or "header", "query_param"
+    supported_versions: ["v1", "v2"]
+    default_version: "v2"
+    
+  structure:
+    src_dir: "src"
+    systems_dir: "systems"
+    shared_dir: "shared"
+    config_dir: "config"
+    docs_dir: "docs"
+    tests_dir: "tests"
+    
+  dependencies:
+    manager: "poetry"
+    python_version: "^3.11"
+    
+  components:
+    default_layers:
+      - "domain"
+      - "application"
+      - "infrastructure"
+      - "presentation"
+      
+    domain_components:
+      - "entities"
+      - "value_objects"
+      - "interfaces"
+      - "events"
+      - "exceptions"
+      
+    application_components:
+      - "services"
+      - "dtos"
+      - "use_cases"
+      
+    infrastructure_components:
+      - "models"
+      - "repositories"
+      - "config"
+      - "external"
+      - "database"
+      
+    presentation_components:
+      - "controllers"
+      - "routes"
+      - "schemas"
+      - "middleware"
+      
+  validation:
+    enabled: true
+    strict_mode: true
+    template_validation: true
+    runtime_validation: true
+    performance_monitoring: true
+    
+  security:
+    path_validation: true
+    component_name_validation: true
+    sanitize_inputs: true
+    prevent_path_traversal: true
+    max_component_name_length: 50
+    
+  logging:
+    level: "INFO"
+    format: "structured"
+    output: "file"  # or "console", "both"
+    file_path: "logs/fca.log"
+    
+  testing:
+    framework: "pytest"
+    coverage_threshold: 80
+    test_patterns:
+      - "test_*.py"
+      - "*_test.py"
+      
+  documentation:
+    auto_generate: true
+    format: "markdown"
+    include_examples: true
+    
+  performance:
+    cache_templates: true
+    parallel_generation: true
+    max_workers: 4
+
+---
+
+# =============================================================================
+# MICROSERVICES CONFIGURATION
+# Best for: Distributed systems, microservices architecture
+# =============================================================================
+
+microservices_project:
+  project:
+    name: "payment-service"
+    version: "1.5.2"
+    description: "Payment processing microservice"
+    service_type: "microservice"
+    domain: "payments"
+    
+  architecture:
+    type: "clean_architecture"
+    api_versioning: true
+    service_mesh_ready: true
+    
+  structure:
+    src_dir: "src"
+    systems_dir: "domains"  # Different naming for microservices
+    shared_dir: "shared"
+    
+  dependencies:
+    manager: "poetry"
+    
+  components:
+    # Microservice-specific components
+    default_layers:
+      - "domain"
+      - "application"
+      - "infrastructure"
+      - "presentation"
+      - "integration"  # For service-to-service communication
+      
+  integration:
+    message_broker: "rabbitmq"  # or "kafka", "redis"
+    service_discovery: "consul"  # or "eureka", "etcd"
+    api_gateway: "kong"  # or "nginx", "traefik"
+    
+  monitoring:
+    metrics: "prometheus"
+    tracing: "jaeger"
+    logging: "elk_stack"
+    
+  deployment:
+    containerized: true
+    orchestration: "kubernetes"
+    health_checks: true
+    
+  security:
+    path_validation: true
+    component_name_validation: true
+    service_mesh_security: true
+    mutual_tls: true
+
+---
+
+# =============================================================================
+# API-FIRST CONFIGURATION
+# Best for: API-centric applications, backend services
+# =============================================================================
+
+api_first_project:
+  project:
+    name: "user-api"
+    version: "3.0.0"
+    description: "User management API service"
+    api_first: true
+    
+  architecture:
+    type: "clean_architecture"
+    baseline: "advanced"
+    api_versioning: true
+    openapi_spec: true
+    
+  structure:
+    src_dir: "src"
+    systems_dir: "modules"
+    shared_dir: "shared"
+    api_dir: "api"
+    
+  dependencies:
+    manager: "poetry"
+    
+  api:
+    specification: "openapi_3.0"
+    documentation: "swagger_ui"
+    validation: "pydantic"  # or "marshmallow", "cerberus"
+    serialization: "json"
+    
+  components:
+    # API-focused component structure
+    presentation_components:
+      - "controllers"
+      - "routes"
+      - "schemas"
+      - "middleware"
+      - "serializers"
+      - "validators"
+      
+  validation:
+    enabled: true
+    strict_mode: true
+    api_schema_validation: true
+    
+  security:
+    authentication: "jwt"
+    authorization: "rbac"
+    rate_limiting: true
+    cors_enabled: true
+
+---
+
+# =============================================================================
+# DEVELOPMENT TEAM CONFIGURATION
+# Best for: Team development, standardized practices
+# =============================================================================
+
+team_project:
+  project:
+    name: "team-collaboration-app"
+    version: "1.0.0"
+    description: "Team collaboration application"
+    team: "Backend Team"
+    
+  architecture:
+    type: "clean_architecture"
+    baseline: "advanced"
+    api_versioning: true
+    
+  structure:
+    src_dir: "src"
+    systems_dir: "systems"
+    shared_dir: "shared"
+    
+  dependencies:
+    manager: "poetry"
+    
+  team_standards:
+    code_style: "black"
+    linting: "flake8"
+    type_checking: "mypy"
+    testing: "pytest"
+    
+  git_hooks:
+    pre_commit: true
+    pre_push: true
+    
+  ci_cd:
+    platform: "github_actions"  # or "gitlab_ci", "jenkins"
+    auto_testing: true
+    auto_deployment: false
+    
+  code_quality:
+    coverage_threshold: 85
+    complexity_threshold: 10
+    duplication_threshold: 5
+    
+  documentation:
+    auto_generate: true
+    review_required: true
+    
+  notifications:
+    slack_webhook: "https://hooks.slack.com/..."
+    email_notifications: true
+
+---
+
+# =============================================================================
+# LEGACY MIGRATION CONFIGURATION
+# Best for: Migrating from legacy systems
+# =============================================================================
+
+legacy_migration_project:
+  project:
+    name: "legacy-modernization"
+    version: "0.1.0"
+    description: "Modernizing legacy monolith"
+    migration_phase: "phase_1"
+    
+  architecture:
+    type: "clean_architecture"
+    # Uses scalable baseline for complete project structure
+    api_versioning: false  # Add later
+    legacy_support: true
+    
+  structure:
+    src_dir: "src"
+    systems_dir: "modules"
+    shared_dir: "shared"
+    legacy_dir: "legacy"  # For legacy code integration
+    
+  dependencies:
+    manager: "pip"  # Often easier for legacy environments
+    
+  migration:
+    strategy: "strangler_fig"  # or "big_bang", "parallel_run"
+    legacy_integration: true
+    gradual_replacement: true
+    
+  compatibility:
+    python_version: "^3.8"  # Often constrained by legacy
+    legacy_database: true
+    existing_apis: true
+    
+  validation:
+    enabled: true
+    strict_mode: false  # Relaxed during migration
+    
+  monitoring:
+    legacy_metrics: true
+    migration_tracking: true
+    performance_comparison: true
+
+---
+
+# =============================================================================
+# CUSTOM CONFIGURATION TEMPLATE
+# Copy and modify this template for your specific needs
+# =============================================================================
+
+custom_template:
+  project:
+    name: "your-project-name"
+    version: "1.0.0"
+    description: "Your project description"
+    # Add your project metadata
+    
+  architecture:
+    type: "clean_architecture"
+    # Uses scalable baseline for complete project structure
+    api_versioning: false  # Set to true if needed
+    # Add your architecture preferences
+    
+  structure:
+    src_dir: "src"
+    systems_dir: "systems"
+    shared_dir: "shared"
+    # Customize your directory structure
+    
+  dependencies:
+    manager: "poetry"  # or "pip"
+    # Add your dependency preferences
+    
+  components:
+    # Define your component structure
+    default_layers:
+      - "domain"
+      - "application"
+      - "infrastructure"
+      - "presentation"
+      
+  validation:
+    enabled: true
+    strict_mode: false  # Adjust based on your needs
+    
+  security:
+    path_validation: true
+    component_name_validation: true
+    # Add your security requirements
+    
+  # Add any custom sections for your project

@@ -1,0 +1,38 @@
+"""
+{{ model_name }} model for {{ module_name }} module.
+"""
+from datetime import datetime
+from typing import Optional
+from sqlalchemy import Column, String, DateTime, func
+from sqlalchemy.ext.declarative import declarative_base
+
+Base = declarative_base()
+
+
+class {{ ModelName }}Model(Base):
+    """SQLAlchemy model for {{ entity_name }}."""
+    
+    __tablename__ = "{{ resource_name }}"
+    
+    id = Column(String, primary_key=True)
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    
+    def to_entity(self):
+        """Convert model to domain entity."""
+        from ...domain.entities.{{ entity_file }} import {{ EntityName }}
+        
+        return {{ EntityName }}(
+            id=self.id,
+            created_at=self.created_at,
+            updated_at=self.updated_at,
+        )
+    
+    @classmethod
+    def from_entity(cls, entity):
+        """Create model from domain entity."""
+        return cls(
+            id=entity.id,
+            created_at=entity.created_at,
+            updated_at=entity.updated_at,
+        )

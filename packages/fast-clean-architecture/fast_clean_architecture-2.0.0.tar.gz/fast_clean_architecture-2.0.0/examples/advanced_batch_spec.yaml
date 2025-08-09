@@ -1,0 +1,305 @@
+# Advanced Batch Creation Specification
+# This example demonstrates a comprehensive e-commerce system with multiple bounded contexts
+# Use with: fca-scaffold batch-create examples/advanced_batch_spec.yaml
+
+systems:
+  - name: user_management
+    description: "Complete user management system with authentication, authorization, and profiles"
+    modules:
+      - name: authentication
+        description: "User authentication and session management"
+        components:
+          domain:
+            entities: ["user", "session", "refresh_token", "login_attempt"]
+            value_objects: ["email", "password_hash", "username", "session_token"]
+            interfaces: ["user_repository", "session_repository", "auth_service"]
+            events: ["user_logged_in", "user_logged_out", "password_changed", "account_locked"]
+            exceptions: ["invalid_credentials", "account_locked", "session_expired"]
+          application:
+            services: ["auth_service", "session_service", "password_service"]
+            dtos: ["login_request", "login_response", "user_session"]
+            use_cases:
+              commands: ["login_user", "logout_user", "change_password", "reset_password"]
+              queries: ["get_user_session", "validate_token", "get_login_history"]
+          infrastructure:
+            config: ["auth_config", "jwt_config"]
+            external: ["email_service", "sms_service", "captcha_service"]
+            database:
+              models: ["user_model", "session_model", "refresh_token_model"]
+              repositories: ["user_repository", "session_repository"]
+              migrations: ["create_users_table", "create_sessions_table"]
+          presentation:
+            controllers:
+              v1: ["auth_controller"]
+              v2: ["auth_controller"]
+            routes:
+              v1: ["auth_routes"]
+              v2: ["auth_routes"]
+            schemas:
+              v1: ["auth_schema", "user_schema"]
+              v2: ["auth_schema", "user_schema"]
+            middleware: ["auth_middleware", "rate_limit_middleware"]
+      
+      - name: user_profiles
+        description: "User profile management and preferences"
+        components:
+          domain:
+            entities: ["user_profile", "address", "preference", "avatar"]
+            value_objects: ["phone_number", "date_of_birth", "full_name", "timezone"]
+            interfaces: ["profile_repository", "address_repository"]
+            events: ["profile_updated", "avatar_changed", "address_added"]
+            exceptions: ["profile_not_found", "invalid_profile_data"]
+          application:
+            services: ["profile_service", "address_service", "preference_service"]
+            dtos: ["profile_dto", "address_dto", "preference_dto"]
+            use_cases:
+              commands: ["update_profile", "upload_avatar", "add_address", "set_preferences"]
+              queries: ["get_profile", "get_addresses", "search_profiles"]
+          infrastructure:
+            config: ["profile_config"]
+            external: ["file_storage_service", "image_processing_service"]
+            database:
+              models: ["profile_model", "address_model", "preference_model"]
+              repositories: ["profile_repository", "address_repository"]
+              migrations: ["create_profiles_table", "create_addresses_table"]
+          presentation:
+            controllers:
+              v1: ["profile_controller"]
+            routes:
+              v1: ["profile_routes"]
+            schemas:
+              v1: ["profile_schema", "address_schema"]
+
+  - name: product_catalog
+    description: "Product catalog and inventory management system"
+    modules:
+      - name: products
+        description: "Core product management functionality"
+        components:
+          domain:
+            entities: ["product", "category", "brand", "product_variant", "inventory_item"]
+            value_objects: ["sku", "price", "weight", "dimensions", "stock_quantity"]
+            interfaces: ["product_repository", "category_repository", "inventory_repository"]
+            events: ["product_created", "price_changed", "stock_updated", "product_discontinued"]
+            exceptions: ["product_not_found", "insufficient_stock", "invalid_price"]
+          application:
+            services: ["product_service", "category_service", "inventory_service", "pricing_service"]
+            dtos: ["product_dto", "category_dto", "inventory_dto"]
+            use_cases:
+              commands: ["create_product", "update_price", "adjust_stock", "categorize_product"]
+              queries: ["get_product", "search_products", "get_categories", "check_availability"]
+          infrastructure:
+            config: ["catalog_config", "pricing_config"]
+            external: ["image_service", "search_engine", "price_comparison_service"]
+            database:
+              models: ["product_model", "category_model", "inventory_model", "price_history_model"]
+              repositories: ["product_repository", "category_repository", "inventory_repository"]
+              migrations: ["create_products_table", "create_categories_table", "create_inventory_table"]
+          presentation:
+            controllers:
+              v1: ["product_controller", "category_controller"]
+              v2: ["product_controller", "category_controller"]
+            routes:
+              v1: ["product_routes", "category_routes"]
+              v2: ["product_routes", "category_routes"]
+            schemas:
+              v1: ["product_schema", "category_schema"]
+              v2: ["product_schema", "category_schema"]
+
+  - name: order_management
+    description: "Complete order processing and fulfillment system"
+    modules:
+      - name: orders
+        description: "Order lifecycle management"
+        components:
+          domain:
+            entities: ["order", "order_item", "shipping_address", "order_status_history"]
+            value_objects: ["order_number", "order_total", "tax_amount", "shipping_cost"]
+            interfaces: ["order_repository", "order_service"]
+            events: ["order_placed", "order_confirmed", "order_shipped", "order_delivered", "order_cancelled"]
+            exceptions: ["order_not_found", "invalid_order_state", "order_modification_not_allowed"]
+          application:
+            services: ["order_service", "order_validation_service", "order_calculation_service"]
+            dtos: ["order_dto", "order_item_dto", "order_summary_dto"]
+            use_cases:
+              commands: ["place_order", "cancel_order", "update_order_status", "modify_order"]
+              queries: ["get_order", "list_orders", "get_order_history", "calculate_order_total"]
+          infrastructure:
+            config: ["order_config"]
+            external: ["inventory_service", "payment_service", "shipping_service"]
+            database:
+              models: ["order_model", "order_item_model", "order_status_model"]
+              repositories: ["order_repository"]
+              migrations: ["create_orders_table", "create_order_items_table"]
+          presentation:
+            controllers:
+              v1: ["order_controller"]
+              v2: ["order_controller"]
+            routes:
+              v1: ["order_routes"]
+              v2: ["order_routes"]
+            schemas:
+              v1: ["order_schema"]
+              v2: ["order_schema"]
+      
+      - name: payments
+        description: "Payment processing and financial transactions"
+        components:
+          domain:
+            entities: ["payment", "refund", "payment_method", "transaction"]
+            value_objects: ["payment_amount", "currency", "transaction_id", "payment_status"]
+            interfaces: ["payment_repository", "payment_processor"]
+            events: ["payment_initiated", "payment_completed", "payment_failed", "refund_processed"]
+            exceptions: ["payment_failed", "insufficient_funds", "invalid_payment_method"]
+          application:
+            services: ["payment_service", "refund_service", "payment_validation_service"]
+            dtos: ["payment_dto", "refund_dto", "payment_method_dto"]
+            use_cases:
+              commands: ["process_payment", "refund_payment", "add_payment_method", "void_transaction"]
+              queries: ["get_payment", "list_payments", "get_payment_methods", "get_transaction_history"]
+          infrastructure:
+            config: ["payment_config", "gateway_config"]
+            database:
+              models: ["payment_model", "refund_model", "payment_method_model"]
+              repositories: ["payment_repository", "payment_method_repository"]
+              migrations: ["create_payments_table", "create_refunds_table"]
+            external: ["stripe_service", "paypal_service", "bank_service", "fraud_detection_service"]
+          presentation:
+            controllers:
+              v1: ["payment_controller"]
+            routes:
+              v1: ["payment_routes"]
+            schemas:
+              v1: ["payment_schema"]
+
+  - name: shipping_logistics
+    description: "Shipping and logistics management system"
+    modules:
+      - name: shipping
+        description: "Shipping calculation and tracking"
+        components:
+          domain:
+            entities: ["shipment", "tracking_event", "shipping_rate", "carrier"]
+            value_objects: ["tracking_number", "shipping_address", "package_dimensions", "delivery_date"]
+            interfaces: ["shipping_repository", "carrier_service"]
+            events: ["shipment_created", "package_picked_up", "in_transit", "delivered", "delivery_failed"]
+            exceptions: ["shipping_not_available", "invalid_address", "carrier_error"]
+          application:
+            services: ["shipping_service", "tracking_service", "rate_calculation_service"]
+            dtos: ["shipment_dto", "tracking_dto", "shipping_rate_dto"]
+            use_cases:
+              commands: ["create_shipment", "update_tracking", "calculate_rates", "schedule_pickup"]
+              queries: ["track_shipment", "get_shipping_rates", "get_delivery_options"]
+          infrastructure:
+            config: ["shipping_config"]
+            external: ["fedex_service", "ups_service", "dhl_service", "postal_service"]
+            database:
+              models: ["shipment_model", "tracking_event_model", "carrier_model"]
+              repositories: ["shipping_repository", "tracking_repository"]
+              migrations: ["create_shipments_table", "create_tracking_events_table"]
+          presentation:
+            controllers:
+              v1: ["shipping_controller"]
+            routes:
+              v1: ["shipping_routes"]
+            schemas:
+              v1: ["shipping_schema"]
+
+  - name: notification_system
+    description: "Multi-channel notification and communication system"
+    modules:
+      - name: notifications
+        description: "Core notification functionality"
+        components:
+          domain:
+            entities: ["notification", "template", "recipient", "notification_preference"]
+            value_objects: ["notification_type", "priority", "channel", "delivery_status"]
+            interfaces: ["notification_repository", "notification_sender"]
+            events: ["notification_sent", "notification_delivered", "notification_failed", "preference_updated"]
+            exceptions: ["template_not_found", "delivery_failed", "invalid_recipient"]
+          application:
+            services: ["notification_service", "template_service", "preference_service"]
+            dtos: ["notification_dto", "template_dto", "preference_dto"]
+            use_cases:
+              commands: ["send_notification", "create_template", "update_preferences", "schedule_notification"]
+              queries: ["get_notifications", "get_templates", "get_delivery_status"]
+          infrastructure:
+            config: ["notification_config", "channel_config"]
+            external: ["email_provider", "sms_provider", "push_service", "webhook_service"]
+            database:
+              models: ["notification_model", "template_model", "preference_model"]
+              repositories: ["notification_repository", "template_repository"]
+              migrations: ["create_notifications_table", "create_templates_table"]
+          presentation:
+            controllers:
+              v1: ["notification_controller"]
+            routes:
+              v1: ["notification_routes"]
+            schemas:
+              v1: ["notification_schema"]
+
+  - name: analytics_reporting
+    description: "Business analytics and reporting system"
+    modules:
+      - name: analytics
+        description: "Data analytics and business intelligence"
+        components:
+          domain:
+            entities: ["metric", "report", "dashboard", "data_source"]
+            value_objects: ["metric_value", "time_period", "dimension", "aggregation"]
+            interfaces: ["analytics_repository", "report_generator"]
+            events: ["metric_calculated", "report_generated", "dashboard_updated"]
+            exceptions: ["data_not_available", "calculation_error", "report_generation_failed"]
+          application:
+            services: ["analytics_service", "report_service", "dashboard_service"]
+            dtos: ["metric_dto", "report_dto", "dashboard_dto"]
+            use_cases:
+              commands: ["calculate_metrics", "generate_report", "create_dashboard", "schedule_report"]
+              queries: ["get_metrics", "get_reports", "get_dashboard_data", "get_trends"]
+          infrastructure:
+            config: ["analytics_config", "reporting_config"]
+            external: ["data_warehouse", "business_intelligence_service", "chart_service"]
+            database:
+              models: ["metric_model", "report_model", "dashboard_model"]
+              repositories: ["analytics_repository", "report_repository"]
+              migrations: ["create_metrics_table", "create_reports_table"]
+          presentation:
+            controllers:
+              v1: ["analytics_controller"]
+            routes:
+              v1: ["analytics_routes"]
+            schemas:
+              v1: ["analytics_schema"]
+
+  - name: customer_support
+    description: "Customer support and help desk system"
+    modules:
+      - name: tickets
+        description: "Support ticket management"
+        components:
+          domain:
+            entities: ["ticket", "comment", "attachment", "escalation"]
+            value_objects: ["ticket_number", "priority", "status", "category"]
+            interfaces: ["ticket_repository", "support_service"]
+            events: ["ticket_created", "ticket_assigned", "ticket_resolved", "ticket_escalated"]
+            exceptions: ["ticket_not_found", "unauthorized_access", "invalid_status_transition"]
+          application:
+            services: ["ticket_service", "assignment_service", "escalation_service"]
+            dtos: ["ticket_dto", "comment_dto", "assignment_dto"]
+            use_cases:
+              commands: ["create_ticket", "assign_ticket", "add_comment", "resolve_ticket"]
+              queries: ["get_ticket", "list_tickets", "get_ticket_history", "get_agent_workload"]
+          infrastructure:
+            config: ["ticket_config"]
+            external: ["email_integration", "chat_service", "knowledge_base"]
+            database:
+              models: ["ticket_model", "comment_model", "attachment_model"]
+              repositories: ["ticket_repository", "comment_repository"]
+              migrations: ["create_tickets_table", "create_comments_table"]
+          presentation:
+            controllers:
+              v1: ["ticket_controller"]
+            routes:
+              v1: ["ticket_routes"]
+            schemas:
+              v1: ["ticket_schema"]

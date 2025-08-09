@@ -1,0 +1,62 @@
+"""{{ component_name }} domain event for {{ module_name }} module.
+
+Generated at: {{ generated_at }}
+Generator version: {{ generator_version }}
+"""
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Any, Dict, Optional
+from uuid import UUID, uuid4
+
+
+@dataclass(frozen=True)
+class {{ ComponentName }}:
+    """{{ ComponentName }} domain event.
+    
+    This event represents {{ entity_description }} in the {{ module_name }} domain.
+    Domain events are immutable and represent something that has happened
+    in the business domain that domain experts care about.
+    
+    Following Clean Architecture principles, this event contains only
+    domain-relevant information and has no dependencies on external
+    frameworks or infrastructure.
+    """
+    
+    # Event metadata
+    event_id: UUID = field(default_factory=uuid4)
+    occurred_at: datetime = field(default_factory=lambda: datetime.utcnow())
+    
+    # Domain-specific event data
+    # Add your event-specific fields here
+    # Example: aggregate_id: UUID
+    # Example: user_id: Optional[UUID] = None
+    
+    # Optional event metadata
+    correlation_id: Optional[UUID] = None
+    causation_id: Optional[UUID] = None
+    event_version: int = 1
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert event to dictionary for serialization.
+        
+        Returns:
+            Dictionary representation of the event
+        """
+        return {
+            'event_id': str(self.event_id),
+            'event_type': self.__class__.__name__,
+            'occurred_at': self.occurred_at.isoformat(),
+            'correlation_id': str(self.correlation_id) if self.correlation_id else None,
+            'causation_id': str(self.causation_id) if self.causation_id else None,
+            'event_version': self.event_version,
+            # Add other fields as needed
+        }
+    
+    @property
+    def event_type(self) -> str:
+        """Get the event type name.
+        
+        Returns:
+            The event type as a string
+        """
+        return self.__class__.__name__
