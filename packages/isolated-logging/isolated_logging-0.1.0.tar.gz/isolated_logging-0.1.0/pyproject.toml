@@ -1,0 +1,95 @@
+[build-system]
+requires = ["setuptools>=64.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "isolated-logging"
+version = "0.1.0"
+authors = [
+    {name = "Juan Urrutia", email = "juan.urrutia.gandolfo@gmail.com"},
+]
+description = "A Python library for tracking and logging function and loop execution times with stats and color-coded logs for easy performance monitoring and optimization."
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Operating System :: Unix",
+    "Operating System :: POSIX",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "numpy",
+    "loky",
+]
+
+[project.optional-dependencies]
+testing = [
+    "pytest>=6.0",
+    "pytest-cov>=2.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/jurrutiag/isolated-logging"
+Repository = "https://github.com/jurrutiag/isolated-logging"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+src = ["src"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long, handled by formatter
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = "isolated_logging.functional"
+# Allow some flexibility for complex data structures
+strict_optional = false
+warn_return_any = false
+disable_error_code = ["operator", "assignment", "arg-type", "union-attr"]
+
+[[tool.mypy.overrides]]
+module = "loky"
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+addopts = "--cov=isolated_logging"
+testpaths = [
+    "tests",
+]
