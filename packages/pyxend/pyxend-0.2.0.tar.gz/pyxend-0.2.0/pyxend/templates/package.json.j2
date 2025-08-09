@@ -1,0 +1,24 @@
+{
+  "name": "{{ extension_name }}",
+  "displayName": "{{ display_name }}",
+  "version": "0.0.1",
+  "main": "extension.js",
+  "activationEvents": [
+    {% for command in commands %}
+    "onCommand:{{ display_name }}.{{ command }}"{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ],
+  "contributes": {
+    "commands": [
+      {% for command in commands %}
+      {
+        "command": "{{ display_name }}.{{ command }}",
+        "title": "{{ command }}"
+      }{% if not loop.last %},{% endif %}
+      {% endfor %}
+    ]
+  },
+  "engines": {
+    "vscode": "^1.75.0"
+  }
+}

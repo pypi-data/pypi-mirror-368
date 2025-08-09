@@ -1,0 +1,399 @@
+# pyxend
+<p align="center">
+  <img src="https://img.shields.io/pypi/v/pyxend" alt="PyPI Version">
+  <img src="https://img.shields.io/pypi/l/pyxend" alt="License">
+  <img src="https://img.shields.io/github/last-commit/codeFlane/pyxend" alt="Last Commit">
+  <img src="https://img.shields.io/github/stars/codeFlane/pyxend?style=social" alt="GitHub Stars">
+  <img src="https://img.shields.io/badge/VSC-Compatible-blueviolet" alt="VS Code Compatible">
+  <img src="https://img.shields.io/badge/Language-Python-blue" alt="Written in Python">
+  <img src="https://static.pepy.tech/badge/pyxend" alt="Downloads">
+</p>
+pyxend is a Python-based framework and CLI tool for building Visual Studio Code extensions entirely in Python. It allows to define VS code extension commands using simple Python decorators and handle VS Code actions like modifying editor content, showing modals, and running terminal commands.
+
+> ⚡️ No JavaScript required for extension logic — write VS Code extensions in pure Python.
+
+![Preview](https://raw.githubusercontent.com/codeFlane/pyxend/main/preview.gif)
+> ⚠️ Note: Preview was recorded when the project was called pyvscode. Now project renamed to pyxend.
+---
+
+## ✨ Features
+
+- 🧠 Simple Python API for defining commands
+- ⚙️ CLI tool to scaffold, sync, build, and publish extensions
+- 🧩 Template-based generation of `extension.js` and `package.json`
+- 🔁 Context-aware Python execution with editor data (selected text, cursor, file)
+- 📦 Easy packaging using `vsce`
+
+---
+
+## 📦 Installation
+
+```bash
+pip install pyxend
+```
+Or using git repository:
+```bash
+git clone https://github.com/codeflane/pyxend
+cd pyxend
+pip install -e .
+```
+Make sure Node.js and vsce are installed:
+```
+npm install -g vsce
+```
+
+## 🚀 Getting Started
+### 1. Create a new extension
+```bash
+pyxend init "My Extension Name" myextension
+```
+
+### 2. Add logic in Python
+
+Edit main.py:
+```python
+from pyxend import Extension, ModalType
+
+ext = Extension()
+
+@ext.command('hello')
+def say_hello(ctx):
+    ext.show_modal("Hello from Python!", type=ModalType.INFO)
+
+ext.run()
+```
+
+### 3. Sync the metadata
+```bash
+pyxend sync
+```
+
+### 4. Build and install the extension
+```bash
+pyxend build
+code --install-extension your-extension.vsix
+```
+
+## 📚 CLI Options
+All CLI commands accept a `--target` (or `-t`) option to specify the working directory (defaults to current folder).
+
+### Init
+```bash
+pyxend init "Display Name" extension_name
+```
+Init new project.
+
+#### Arguments:
+ - **Display Name:** extension display name (that showing in extension hub)
+ - **Extension Name:** extension name (defaults to display name)
+
+#### Creates:
+ - `main.py` (logic)
+ - `extension.js` (bridge)
+ - `package.json` (extension metadata)
+ - `.vscodeignore`
+
+### Sync
+```bash
+pyxend sync
+```
+Sync Python decorators in main.py with `extension.js` and `package.json`
+
+### Metadata
+```bash
+pyxend metadata -v 0.0.1 -e 1.70.0 -d desc -t title -n name -g git
+```
+Update package.json metadata
+
+#### Options:
+| Option               | Description                   |
+|----------------------| ------------------------------|
+| `--engine / -e`      | VS Code engine version        |
+| `--description / -d` | Description of your extension |
+| `--git / -g`         | GitHub repo URL               |
+| `--name / -n`        | Display name                  |
+| `--version / -v`     | Extension version             |
+
+### License
+```bash
+pyxend license author
+```
+Create LICENSE file (now only MIT support).
+License is required for creating extensions
+
+
+## 🧩 Extension API
+The core API is exposed via the `Extension` class.
+
+### Command decorator
+
+Decorator to register a command that can be invoked from VS Code.
+
+#### Arguments:
+
+* `name` - The command name (e.g., `"sayHello"`).
+* `title` - Title to display in the Command Palette. Defaults to `name`
+
+#### Context:
+
+When the command is invoked, it receives a `context` dictionary with useful metadata:
+
+```json
+{
+  "selected_text": "Hello", // Currently selected text
+  "language": "python", // Opened file language
+  "cursor_pos": {"line": 3, "character": 15}, // CUrrent cursor position
+  "file_path": "D:/projects/example.py", // Opened file path
+  "all_text": "Hello World", // File content
+  "cursor_word": "Hello", // the word under the cursor
+  "lines": 3, // Lines count in file
+  "file_size": 12 // File size in bytes
+}
+```
+
+#### Example:
+
+```python
+@ext.command("sayHello", title="Say Hello")
+def say_hello(context):
+    ext.show_modal(f"Hi! You selected: {context['selected_text']}")
+```
+
+---
+### Show modal
+Show modal popup
+
+#### Arguments:
+ - message - The message to display.
+ - type - Must be one of the ModalType values:
+   - ModalType.INFO - modal with an blue informational (i) icon (default)
+   - ModalType.WARNING - modal with an yellow warning /!\ icon
+   - ModalType.ERROR - modal with an red error (x) icon
+
+#### Example:
+```python
+ext.show_modal("This is an error", type=ModalType.error) #Show error modal with text "This is an error"
+```
+
+---
+### Replace selected text
+Replace the currently selected text in the editor. (deprecated)
+
+#### Arguments:
+* `text` - The text that will replace the current selection.
+
+#### Example:
+```python
+ext.replace_selected_text("Replaced content.") #Replace currently selected text to "Replace content."
+```
+
+---
+### Insert text
+Insert new text.
+
+#### Arguments:
+* `text` - The text to insert.
+* `preset` - Position preset. Must be one of the InsertTextPreset values:
+  * InsertTextPreset.START - Insert text at the start of file
+  * InsertTextPreset.CURSOR - Insert text after cursor position
+  * InsertTextPreset.CUSTOM - Insert text at custom position (use `line` and `character` to provide it) (default)
+  * InsertTextPreset.END - Insert text at the end of file
+
+* `line` - Line number to insert text. Requires only when preset is `CUSTOM`
+* `character` - Character number to insert text. Requires only when preset is `CUSTOM`
+
+#### Example:
+```python
+ext.insert_text("Inserted text.", preset=InsertTextPreset.CURSOR) #Insert text "Inserted text." after cursor position
+```
+
+---
+### Replace text
+Replace text.
+
+#### Arguments:
+* `text` - The text to replace.
+* `preset` - Position preset. Must be one of the ReplaceTextPreset values:
+  * ReplaceTextPreset.SELECTED - Replace selected text
+  * ReplaceTextPreset.CUSTOM - Replace text at custom position (use `start_line`, `start_character`, `end_line` and `end_character` to provide it) (default)
+  * ReplaceTextPreset.ALL - Replace whole file
+
+* `start_line` - Start line number to replace text. Requires only when preset is `CUSTOM`
+* `start_character` - Start character number to replace text. Requires only when preset is `CUSTOM`
+* `end_line` - End line number to replace text. Requires only when preset is `CUSTOM`
+* `end_character` - End character number to replace text. Requires only when preset is `CUSTOM`
+
+#### Example:
+```python
+ext.replace_text("Replaceed text.", preset=InsertTextPreset.ALL) #Replace all file text to "Replaced text."
+```
+
+---
+### Open file
+Open a file in the editor by its path.
+
+#### Arguments:
+* `path` - Full path to the file.
+
+#### Example:
+```python
+ext.open_file("D:/projects/example.py") #open "D:/projects/example.py" in editor
+```
+
+---
+### Set cursor position
+Move the editor’s cursor to the specified position.
+
+#### Arguments:
+* `line` - Line number.
+* `character` - Character number.
+
+#### Example:
+```python
+ext.set_cursor_pos(5, 10) #move cursor to line 5, character 10
+```
+
+---
+### Save file
+Save the current file.
+
+#### Example:
+```python
+ext.save_file() #save current file
+```
+
+---
+### Replace all text
+Replace the entire content of the file. (deprecated)
+
+#### Arguments:
+* `text` - The new content for the whole file.
+
+#### Example:
+```python
+ext.replace_all_text("print('Hello, World!')\n") #replace all file text to "print('Hello, World!')"
+```
+
+---
+### Run terminal command
+Execute a command in a new or existing terminal.
+
+#### Arguments:
+* `command` - The terminal command to execute.
+* `name` (optional) - Name of the terminal instance. Default is "pyxend terminal"
+
+#### Example:
+```python
+ext.run_terminal_command("echo 'Hello World'") #create new terminal and echo "Hello World"
+```
+
+---
+### Delete selected text
+Delete currently selected text
+
+#### Example
+```python
+ext.delete_selected_text() #delete selected text
+```
+
+---
+### Delete file
+Delete currently opened file (Do not recommend to use)
+
+#### Example
+```python
+ext.delete_file() #delete file
+```
+## ⚠️ Important Notes about Command Execution
+
+* All actions (`ext.show_modal`, `ext.insert_text`, etc.) are collected into a list during Python execution and **returned as a single JSON batch** to VS Code.
+* This means **VS Code does not execute Python actions one-by-one**. It only runs Python once, receives all the actions at once, and **then executes them sequentially in JavaScript**.
+* Any delay (`time.sleep`) or conditional logic in Python will **happen before any action is performed** in the editor.
+
+### Example:
+
+```python
+ext.show_modal("First")
+time.sleep(1)
+ext.show_modal("Second")
+```
+
+This will result in **both modals appearing immediately**, one after the other — not with a delay between them.
+
+---
+
+### 🚧 Future Plans
+
+We are planning to add **streaming or asynchronous action execution** in a future version (`v1.0` or `v2.0`) so that:
+
+* actions like `ext.show_modal()` can be executed live, one at a time,
+* and delays or dynamic logic will reflect in real-time in the editor.
+
+We already have some ideas on how to implement this — stay tuned!
+
+## 🧠 How it Works
+
+`pyxend` bridges VS Code and Python.
+When a command is executed:
+
+1. **VS Code (JavaScript)**
+
+   * Collects the file context (selected text, full code, cursor, file path, etc.)
+   * Launches the Python script (`main.py`) and passes the command name and context as JSON.
+
+2. **Python (pyxend)**
+
+   * Receives the command and context.
+   * Executes the matching `@ext.command(...)` function.
+   * Inside the function, you use methods like `ext.show_modal(...)`, `ext.insert_text(...)`, etc.
+   * These generate a list of *actions*, returned to the JS.
+
+3. **VS Code (JavaScript)**
+
+   * Parses the returned actions.
+   * Executes them one by one using the VS Code API (editing text, opening files, setting cursor position, etc.)
+
+This allows Python to control editor behavior dynamically.
+
+## 🔧 How to Integrate a New Custom Action
+
+To add a new custom action that isn’t supported yet:
+
+### 1. Define it in Python
+
+Append an action manually:
+
+```python
+ext.actions.append({
+    "action": "highlight_range",
+    "line_start": 5,
+    "line_end": 8
+})
+```
+
+### 2. Extend the `extension.js`
+
+Open `extension.js` and add a new case to handle it:
+
+```js
+case "highlight_range":
+  if (!editor) return;
+  const start = new vscode.Position(action.line_start, 0);
+  const end = new vscode.Position(action.line_end, 0);
+  const decorationType = vscode.window.createTextEditorDecorationType({
+    backgroundColor: "rgba(255,255,0,0.2)"
+  });
+  editor.setDecorations(decorationType, [new vscode.Range(start, end)]);
+  break;
+```
+
+This allows `pyxend` to be fully extensible.
+
+## 📄 Changelog
+See full change log in [CHANGELOG.md](./CHANGELOG.md)
+
+### 0.1.2 (Latest)
+Added 3 new values in context, renamed `manifest` → `metadata`
+
+### 0.1.1
+Fixed packaging bug, improved error modals, typo fixes
