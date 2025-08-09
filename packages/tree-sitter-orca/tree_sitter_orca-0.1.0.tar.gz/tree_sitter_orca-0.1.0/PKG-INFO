@@ -1,0 +1,62 @@
+Metadata-Version: 2.4
+Name: tree-sitter-orca
+Version: 0.1.0
+Summary: Parser for input file for the Orca quantum chemistry package
+Author-email: Kalman Szenes <szenes.kalman@gmail.com>
+License: MIT
+Project-URL: Homepage, https://github.com/tree-sitter/tree-sitter-orca
+Keywords: incremental,parsing,tree-sitter,orca
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Software Development :: Compilers
+Classifier: Topic :: Text Processing :: Linguistic
+Classifier: Typing :: Typed
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: build>=1.3.0
+Requires-Dist: twine>=6.1.0
+Provides-Extra: core
+Requires-Dist: tree-sitter~=0.24; extra == "core"
+
+# Tree-sitter ORCA
+
+A [Tree-sitter](https://tree-sitter.github.io/tree-sitter/) grammar for [ORCA](https://www.faccts.de/orca/) quantum chemistry input files.
+
+ORCA is a quantum chemistry package for electronic structure calculations. This grammar parses ORCA input files (`.inp`) including simple command lines, input blocks, geometry specifications, and variable definitions.
+
+## Installation
+
+### PyPI
+```bash
+pip install tree-sitter-orca
+```
+
+### Neovim with nvim-treesitter
+
+Add to your `init.lua`:
+
+```lua
+local parser_config = require "nvim-treesitter.parsers".get_parser_configs()
+parser_config.orca = {
+  install_info = {
+    url = "https://github.com/yourusername/tree-sitter-orca",
+    files = { "src/parser.c" },
+    branch = "main",
+  },
+  filetype = "inp",
+}
+```
+
+Create syntax highlighting:
+```bash
+mkdir -p ~/.config/nvim/queries/orca
+ln -s /path/to/tree-sitter-orca/queries/highlights.scm ~/.config/nvim/queries/orca/highlights.scm
+```
+
+## Distribution
+
+This grammar is distributed via PyPI for Python applications and can be integrated into text editors through nvim-treesitter or similar extensions.
+
+> [!important]
+> After grammar changes:
+> - Regenerate: `tree-sitter generate`
+> - Update in editors: `TSUpdate orca` (nvim)
