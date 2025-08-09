@@ -1,0 +1,105 @@
+[project]
+name = "argo-tugboat"
+version = "0.5.2"
+description = "Streamline your Argo Workflows with precision and confidence"
+authors = [{ name = "Tzu-Ting", email = "tzingshih@gmail.com" }]
+license = { text = "Apache-2.0" }
+readme = "readme.pkg.rst"
+requires-python = ">=3.12"
+dependencies = [
+    "cloup (>=3.0.5,<4.0.0)",
+    "colorlog (>=6.9.0,<7.0.0)",
+    "frozendict (>=2.4.6,<3.0.0)",
+    "pluggy (>=1.5.0,<2.0.0)",
+    "pydantic (>=2.9.2,<3.0.0)",
+    "pydantic-settings (>=2.7.1,<3.0.0)",
+    "rapidfuzz (>=3.10.1,<4.0.0)",
+    "ruamel-yaml (>=0.18.6,<0.19.0)",
+]
+dynamic = ["classifiers"]
+
+[project.urls]
+repository = "https://github.com/tzing/tugboat"
+documentation = "https://argo-tugboat.readthedocs.io/en/"
+
+[project.scripts]
+tugboat = "tugboat.console:main"
+
+[project.optional-dependencies]
+mcp = ["mcp (>=1.12.1,<2.0.0)"]
+
+[tool.poetry]
+packages = [{ include = "tugboat" }]
+classifiers = [
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Quality Assurance",
+    "Typing :: Typed",
+]
+
+[tool.poetry.group.dev.dependencies]
+dirty-equals = "^0.9.0"
+pyright = "^1.1.386"
+pytest = "^8.3.3"
+pytest-cov = "^6.0.0"
+ruff = "^0.12.3"
+shibuya = ">=2024.10.15"
+sphinx = "^8.1.3"
+sphinx-design = "^0.6.1"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.bumpver]
+current_version = "0.5.2"
+version_pattern = "MAJOR.MINOR.PATCH[-TAG]"
+commit = false
+
+[tool.bumpver.file_patterns]
+"pyproject.toml" = ['version = "{version}"']
+"tugboat/version.py" = ['__version__ = "{version}"']
+
+[tool.coverage.run]
+omit = ["tugboat/_vendor/*"]
+
+[tool.coverage.report]
+exclude_also = [
+    "if\\ typing\\.TYPE_CHECKING",
+    "if\\ os\\.getenv\\(\"DOCUTILSCONFIG\"\\)",
+]
+
+[tool.isort]
+profile = "black"
+
+[tool.pytest.ini_options]
+addopts = "--cov=tugboat --cov-report xml --cov-report term-missing"
+
+[tool.ruff]
+target-version = "py312"
+exclude = ["tugboat/_vendor"]
+
+[tool.ruff.lint.extend-per-file-ignores]
+"tugboat/schemas/**" = ["TCH001"]
+
+[tool.ruff.lint]
+extend-select = [
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "C90", # mccabe
+    "ERA", # flake8-eradicate/eradicate
+    "I",   # isort
+    "PGH", # pygrep
+    "PIE", # flake8-pie
+    "PT",  # flake8-pytest-style
+    "RUF", # ruff checks
+    "TCH", # flake8-type-checking
+    "TID", # flake8-tidy-imports
+    "UP",  # pyupgrade
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 12
+
+[tool.pyright]
+include = ["tugboat"]
+exclude = ["tugboat/_vendor"]
