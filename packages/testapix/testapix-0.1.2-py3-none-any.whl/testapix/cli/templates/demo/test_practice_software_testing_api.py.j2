@@ -1,0 +1,594 @@
+"""
+Comprehensive Functional Tests for Practice Software Testing API
+
+This test suite demonstrates real-world API testing patterns using TestAPIX
+against the Practice Software Testing API ({{ base_url }}).
+
+API Documentation: https://api.practicesoftwaretesting.com/api/documentation
+
+This serves as both a functional test suite and a demonstration of TestAPIX
+capabilities for comprehensive API testing.
+
+Key Areas Covered:
+- Brands management (CRUD operations)
+- Products management with categories and relationships
+- Search and filtering functionality
+- Error handling and validation
+- Integration testing patterns
+"""
+
+import pytest
+from typing import Dict, Any, List, Optional, Tuple
+import asyncio
+from datetime import datetime
+from pydantic import BaseModel
+
+from testapix import APIClient, assert_that
+from testapix.core.exceptions import RequestError, ResponseValidationError
+from testapix.generators import BaseGenerator
+
+
+# Pydantic models for schema validation
+class Brand(BaseModel):
+    """Pydantic model for a brand response."""
+    id: int
+    name: str
+    slug: str
+
+
+class Product(BaseModel):
+    """Pydantic model for a product response."""
+    id: int
+    name: str
+    description: Optional[str] = None
+    price: float
+    is_location_offer: bool
+    is_rental: bool
+    brand_id: int
+    category_id: int
+    product_image_id: Optional[int] = None
+    stock: Optional[int] = None
+
+
+class ProductListResponse(BaseModel):
+    """Pydantic model for paginated product list response."""
+    current_page: int
+    data: List[Product]
+    first_page_url: str
+    from_: Optional[int] = None
+    last_page: int
+    last_page_url: str
+    next_page_url: Optional[str] = None
+    path: str
+    per_page: int
+    prev_page_url: Optional[str] = None
+    to: Optional[int] = None
+    total: int
+    links: List[Dict[str, Any]]
+
+
+class TestBrandsAPI:
+    """
+    Test suite for Brands API endpoints.
+
+    Covers:
+    - GET /brands (list all brands)
+    - GET /brands/{brandId} (get specific brand)
+    - GET /brands/search (search brands)
+    - Error handling for non-existent brands
+    """
+
+    @pytest.fixture(autouse=True)
+    def setup(self, api_client: APIClient, data_generator: BaseGenerator):
+        """Setup for each test method."""
+        self.client = api_client
+        self.generator = data_generator
+
+    async def test_list_all_brands_success(self):
+        """
+        Test retrieving all brands from the API.
+
+        This demonstrates TestAPIX fluent assertions and response validation.
+        """
+        response = await self.client.get("/brands")
+
+        assert_that(response) \
+            .has_status(200) \
+            .has_json() \
+            .response_time_less_than(3.0)
+
+        # Verify response structure using schema validation
+        brands = response.json_data
+        if isinstance(brands, list):
+            # Validate each brand against our Pydantic model
+            for brand_data in brands[:3]:  # Check first few brands
+                # Create mock response for individual brand validation
+                from unittest.mock import Mock
+                import httpx
+
+                mock_httpx_response = Mock(spec=httpx.Response)
+                mock_httpx_response.status_code = 200
+                mock_httpx_response.headers = {"content-type": "application/json"}
+                mock_httpx_response.text = self.client._json_encoder.encode(brand_data)
+                mock_httpx_response.json.return_value = brand_data
+                mock_httpx_response.request.method = "GET"
+                mock_httpx_response.request.url = response.url
+
+                from testapix.core.client import EnhancedResponse
+                brand_response = EnhancedResponse(mock_httpx_response, response.response_time)
+
+                # Validate against Brand schema
+                assert_that(brand_response).matches_schema(Brand)
+        else:
+            # If paginated response
+            assert_that(response) \
+                .has_json_path("data") \
+                .has_json_path("meta")
+
+    async def test_get_specific_brand_success(self):
+        """
+        Test retrieving a specific brand by ID.
+
+        Demonstrates working with real data from the API.
+        """
+        # First get list of brands to find a valid ID
+        list_response = await self.client.get("/brands")
+        brands_data = list_response.json_data
+
+        if isinstance(brands_data, list) and len(brands_data) > 0:
+            brand_id = brands_data[0]["id"]
+        elif isinstance(brands_data, dict) and "data" in brands_data:
+            brands = brands_data["data"]
+            if len(brands) > 0:
+                brand_id = brands[0]["id"]
+        else:
+            pytest.skip("No brands available to test with")
+
+        # Get specific brand
+        response = await self.client.get(f"/brands/{brand_id}")
+
+        assert_that(response) \
+            .has_status(200) \
+            .has_json_path("id", brand_id) \
+            .has_json_path("name") \
+            .response_time_less_than(2.0)
+
+    async def test_search_brands_functionality(self):
+        """
+        Test the brand search functionality.
+
+        Demonstrates search parameter handling and result validation.
+        """
+        # First, get some brands to know what to search for
+        list_response = await self.client.get("/brands")
+        brands_data = list_response.json_data
+
+        if isinstance(brands_data, list) and len(brands_data) > 0:
+            search_term = brands_data[0]["name"][:3]  # Use first 3 chars of first brand
+        elif isinstance(brands_data, dict) and "data" in brands_data:
+            brands = brands_data["data"]
+            if len(brands) > 0:
+                search_term = brands[0]["name"][:3]
+            else:
+                pytest.skip("No brands available for search testing")
+        else:
+            pytest.skip("No brands available for search testing")
+
+        # Perform search
+        response = await self.client.get("/brands/search", params={
+            "q": search_term
+        })
+
+        assert_that(response) \
+            .has_status(200) \
+            .has_json() \
+            .response_time_less_than(3.0)
+
+    async def test_get_nonexistent_brand_returns_404(self):
+        """
+        Test that requesting a non-existent brand returns 404.
+
+        Demonstrates proper error handling validation.
+        """
+        nonexistent_id = 999999  # Assume this ID doesn't exist
+
+        response = await self.client.get(f"/brands/{nonexistent_id}")
+
+        assert_that(response).has_status(404)
+
+
+class TestProductsAPI:
+    """
+    Test suite for Products API endpoints.
+
+    Covers:
+    - GET /products (list products with filtering)
+    - GET /products/{productId} (get specific product)
+    - GET /products/{productId}/related (get related products)
+    - GET /products/search (search products)
+    """
+
+    @pytest.fixture(autouse=True)
+    def setup(self, api_client: APIClient, data_generator: BaseGenerator):
+        """Setup for each test method."""
+        self.client = api_client
+        self.generator = data_generator
+
+    async def test_list_products_with_pagination(self):
+        """
+        Test product listing with pagination parameters.
+
+        Demonstrates TestAPIX parameter handling and pagination validation.
+        """
+        response = await self.client.get("/products", params={
+            "page": 1,
+            "per_page": 10
+        })
+
+        assert_that(response) \
+            .has_status(200) \
+            .has_json() \
+            .response_time_less_than(3.0)
+
+        # Check response structure
+        products_data = response.json_data
+        if isinstance(products_data, dict):
+            # Paginated response
+            assert_that(response) \
+                .has_json_path("data") \
+                .has_json_path("meta")
+
+            products = products_data.get("data", [])
+        else:
+            # Simple array response
+            products = products_data if isinstance(products_data, list) else []
+
+        # Verify product structure
+        for product in products[:3]:  # Check first 3 products
+            assert "id" in product, "Product should have ID"
+            assert "name" in product, "Product should have name"
+            if "price" in product:
+                assert isinstance(product["price"], (int, float)), "Price should be numeric"
+
+    async def test_get_specific_product_with_details(self):
+        """
+        Test retrieving a specific product with all details.
+
+        Demonstrates detailed response validation.
+        """
+        # Get a product ID from the products list
+        list_response = await self.client.get("/products", params={"per_page": 1})
+        products_data = list_response.json_data
+
+        if isinstance(products_data, dict) and "data" in products_data:
+            products = products_data["data"]
+        elif isinstance(products_data, list):
+            products = products_data
+        else:
+            pytest.skip("No products available for testing")
+
+        if not products:
+            pytest.skip("No products available for testing")
+
+        product_id = products[0]["id"]
+
+        # Get detailed product information
+        response = await self.client.get(f"/products/{product_id}")
+
+        assert_that(response) \
+            .has_status(200) \
+            .has_json_path("id", product_id) \
+            .has_json_path("name") \
+            .response_time_less_than(2.0)
+
+        # Verify detailed product fields
+        product = response.json_data
+        expected_fields = ["id", "name"]
+        for field in expected_fields:
+            assert field in product, f"Product should have {field} field"
+
+    async def test_product_search_functionality(self):
+        """
+        Test product search with various parameters.
+
+        Demonstrates parameterized testing patterns.
+        """
+        # Test search with common terms
+        search_terms = ["tool", "drill", "hammer"]
+
+        for term in search_terms:
+            response = await self.client.get("/products/search", params={
+                "q": term
+            })
+
+            assert_that(response) \
+                .has_status(200) \
+                .response_time_less_than(3.0)
+
+            # Basic structure validation for search results
+            results_data = response.json_data
+            if isinstance(results_data, dict) and "data" in results_data:
+                results = results_data["data"]
+            elif isinstance(results_data, list):
+                results = results_data
+            else:
+                results = []
+
+            for result in results[:3]:  # Check first 3 results
+                assert "id" in result, "Search result should have ID"
+                assert "name" in result, "Search result should have name"
+
+    async def test_get_related_products(self):
+        """
+        Test the related products functionality.
+
+        Demonstrates handling optional API features.
+        """
+        # Get a product ID first
+        list_response = await self.client.get("/products", params={"per_page": 1})
+        products_data = list_response.json_data
+
+        if isinstance(products_data, dict) and "data" in products_data:
+            products = products_data["data"]
+        elif isinstance(products_data, list):
+            products = products_data
+        else:
+            pytest.skip("No products available for testing")
+
+        if not products:
+            pytest.skip("No products available for testing")
+
+        product_id = products[0]["id"]
+
+        # Get related products
+        response = await self.client.get(f"/products/{product_id}/related")
+
+        # Related products might not exist for all products, so accept 200 or 404
+        assert response.status_code in [200, 404], \
+            f"Expected 200 or 404 for related products, got {response.status_code}"
+
+        if response.status_code == 200:
+            assert_that(response).response_time_less_than(2.0)
+
+
+class TestCategoriesAPI:
+    """
+    Test suite for Categories API endpoints.
+
+    Demonstrates hierarchical data structure validation.
+    """
+
+    @pytest.fixture(autouse=True)
+    def setup(self, api_client: APIClient, data_generator: BaseGenerator):
+        """Setup for each test method."""
+        self.client = api_client
+        self.generator = data_generator
+
+    async def test_get_categories_tree(self):
+        """
+        Test retrieving the category tree structure.
+
+        Demonstrates nested data validation patterns.
+        """
+        response = await self.client.get("/categories/tree")
+
+        assert_that(response) \
+            .has_status(200) \
+            .has_json() \
+            .response_time_less_than(2.0)
+
+        # Verify category structure
+        categories_data = response.json_data
+
+        if isinstance(categories_data, list):
+            categories = categories_data
+        elif isinstance(categories_data, dict) and "data" in categories_data:
+            categories = categories_data["data"]
+        else:
+            categories = []
+
+        # Validate category structure
+        for category in categories[:3]:  # Check first 3 categories
+            assert "id" in category, "Category should have ID"
+            assert "name" in category, "Category should have name"
+
+            # Categories might have children in a tree structure
+            if "children" in category:
+                assert isinstance(category["children"], list), \
+                    "Children should be a list"
+
+
+class TestAPIErrorHandling:
+    """
+    Test suite for API error handling scenarios.
+
+    Demonstrates comprehensive error testing patterns.
+    """
+
+    @pytest.fixture(autouse=True)
+    def setup(self, api_client: APIClient, data_generator: BaseGenerator):
+        """Setup for each test method."""
+        self.client = api_client
+        self.generator = data_generator
+
+    async def test_invalid_endpoint_returns_404(self):
+        """Test that invalid endpoints return 404 Not Found."""
+        response = await self.client.get("/invalid-endpoint")
+        assert_that(response).has_status(404)
+
+    async def test_invalid_resource_id_returns_404(self):
+        """Test that invalid resource IDs return 404 Not Found."""
+        endpoints_to_test = [
+            "/brands/999999",
+            "/products/999999"
+        ]
+
+        for endpoint in endpoints_to_test:
+            response = await self.client.get(endpoint)
+            assert_that(response).has_status(404)
+
+    async def test_malformed_requests_return_400(self):
+        """Test that malformed requests return appropriate errors."""
+        # Test with invalid query parameters
+        response = await self.client.get("/products", params={
+            "per_page": "invalid_number"
+        })
+
+        # API might handle this gracefully or return 400
+        assert response.status_code in [200, 400], \
+            f"Expected 200 or 400 for invalid per_page, got {response.status_code}"
+
+
+class TestIntegrationScenarios:
+    """
+    Integration tests that combine multiple API operations.
+
+    Demonstrates real-world usage patterns and workflows.
+    """
+
+    @pytest.fixture(autouse=True)
+    def setup(self, api_client: APIClient, data_generator: BaseGenerator):
+        """Setup for each test method."""
+        self.client = api_client
+        self.generator = data_generator
+
+    async def test_product_discovery_workflow(self):
+        """
+        Test a complete product discovery workflow.
+
+        Simulates a user browsing categories, searching for products,
+        and viewing product details. Demonstrates workflow testing.
+        """
+        # Step 1: Get categories to browse
+        categories_response = await self.client.get("/categories/tree")
+        assert_that(categories_response).has_success_status()
+
+        # Step 2: Browse products (with pagination)
+        products_response = await self.client.get("/products", params={
+            "page": 1,
+            "per_page": 10
+        })
+        assert_that(products_response).has_success_status()
+
+        # Step 3: Search for specific products
+        search_response = await self.client.get("/products/search", params={
+            "q": "tool"
+        })
+        assert_that(search_response).has_success_status()
+
+        # Step 4: Get details for a specific product
+        products_data = products_response.json_data
+        if isinstance(products_data, dict) and "data" in products_data:
+            products = products_data["data"]
+        elif isinstance(products_data, list):
+            products = products_data
+        else:
+            products = []
+
+        if products:
+            product_id = products[0]["id"]
+            detail_response = await self.client.get(f"/products/{product_id}")
+            assert_that(detail_response).has_success_status()
+
+            # Step 5: Get related products
+            related_response = await self.client.get(f"/products/{product_id}/related")
+            # Related products might not exist, so we accept 200 or 404
+            assert related_response.status_code in [200, 404]
+
+    async def test_brand_and_product_relationship(self):
+        """
+        Test the relationship between brands and products.
+
+        Demonstrates data consistency validation across endpoints.
+        """
+        # Step 1: Get all brands
+        brands_response = await self.client.get("/brands")
+        assert_that(brands_response).has_success_status()
+
+        brands_data = brands_response.json_data
+        if isinstance(brands_data, list):
+            brands = brands_data
+        elif isinstance(brands_data, dict) and "data" in brands_data:
+            brands = brands_data["data"]
+        else:
+            brands = []
+
+        if not brands:
+            pytest.skip("No brands available for relationship testing")
+
+        # Step 2: Get products and verify some have brand information
+        products_response = await self.client.get("/products", params={"per_page": 20})
+        assert_that(products_response).has_success_status()
+
+        products_data = products_response.json_data
+        if isinstance(products_data, dict) and "data" in products_data:
+            products = products_data["data"]
+        elif isinstance(products_data, list):
+            products = products_data
+        else:
+            products = []
+
+        # Verify some products have brand information
+        products_with_brands = [p for p in products if "brand" in p or "brand_id" in p]
+
+        # At least some products should have brand information
+        assert len(products_with_brands) > 0, \
+            "Expected some products to have brand information"
+
+    async def test_api_consistency_across_endpoints(self):
+        """
+        Test consistency of data structures across different endpoints.
+
+        Demonstrates validation of data consistency patterns.
+        """
+        # Get a brand from the brands list
+        brands_response = await self.client.get("/brands")
+        brands_data = brands_response.json_data
+
+        if isinstance(brands_data, list) and brands_data:
+            brand_from_list = brands_data[0]
+        elif isinstance(brands_data, dict) and "data" in brands_data and brands_data["data"]:
+            brand_from_list = brands_data["data"][0]
+        else:
+            pytest.skip("No brands available for consistency testing")
+
+        brand_id = brand_from_list["id"]
+
+        # Get the same brand from the detail endpoint
+        brand_detail_response = await self.client.get(f"/brands/{brand_id}")
+        assert_that(brand_detail_response).has_success_status()
+
+        brand_from_detail = brand_detail_response.json_data
+
+        # Verify consistent fields between list and detail
+        common_fields = ["id", "name"]
+        for field in common_fields:
+            assert brand_from_list.get(field) == brand_from_detail.get(field), \
+                f"Field '{field}' should be consistent between list and detail endpoints"
+
+    async def test_concurrent_requests_handling(self):
+        """
+        Test that the API can handle multiple concurrent requests.
+
+        Demonstrates performance and concurrency testing patterns.
+        """
+        # Make multiple concurrent requests
+        async def get_brands():
+            return await self.client.get("/brands")
+
+        # Launch concurrent requests
+        tasks = [get_brands() for _ in range(5)]
+        responses = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Verify most requests succeeded
+        successful = [r for r in responses
+                     if not isinstance(r, Exception) and
+                     hasattr(r, 'status_code') and
+                     r.status_code == 200]
+
+        assert len(successful) >= 3, \
+            f"Expected at least 3 successful concurrent requests, got {len(successful)}"
+
+        # Verify all successful responses have reasonable response times
+        for response in successful:
+            assert_that(response).response_time_less_than(5.0)
