@@ -1,0 +1,27 @@
+# Use non-editable install to test all sub-packages and data files
+# are correctly installed
+test:
+  image: condaforge/mambaforge
+  script:
+    - pip install pytest coverage
+    - pip install .
+    - coverage run --source ../ --omit /*test* -m pytest
+    - coverage report -im
+  tags: 
+    - docker, linux, shared
+
+pages:
+  image: condaforge/mambaforge
+  script:
+    - mamba install -y make pandoc
+    - pip install sphinx nbsphinx nbconvert==6.4.3 jinja2==3.0.3 sphinx_rtd_theme
+    - pip install .
+    - cd docs
+    - make html
+    - cd ..
+    - mv docs/build/html public/
+  artifacts:
+    paths:
+      - public
+  tags: 
+    - docker, linux, shared
