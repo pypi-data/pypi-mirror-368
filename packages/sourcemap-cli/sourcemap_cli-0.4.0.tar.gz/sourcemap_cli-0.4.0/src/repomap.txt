@@ -1,0 +1,384 @@
+
+repomap\__init__.py:
+⋮
+│__version__ = "0.1.0"
+│__all__ = [
+│    "RepoMap",
+│    "find_src_files",
+│    "get_supported_languages_md",
+│    "MapOptions",
+│    "generate_map",
+⋮
+
+repomap\__main__.py
+
+repomap\api.py:
+⋮
+│@dataclass
+│class MapOptions:
+⋮
+│def generate_map(
+│    files: Iterable[str],
+│    *,
+│    options: Optional[MapOptions] = None,
+│    format: str = "text",  # "text" | "json"
+⋮
+
+repomap\cli.py:
+⋮
+│app = typer.Typer(help="Generate intelligent repository maps (CLI + interactive mode)")
+│
+⋮
+│def _collect_files(
+│    files: List[Path],
+│    *,
+│    root: Path,
+│    git_staged: bool,
+│    recent: Optional[int],
+⋮
+│@app.command("map")
+│def map_command(
+│    files: List[Path] = typer.Argument(None, help="Files or directories to analyze."),
+│    tokens: int = typer.Option(8192, "--tokens", "-t", help="Max tokens for the map."),
+│    verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output."),
+│    root: Path = typer.Option(Path("."), "--root", "-r", help="Repository root."),
+│    refresh: str = typer.Option(
+│        "auto",
+│        "--refresh",
+│        help="Cache refresh strategy (auto|always|files|manual)",
+│        case_sensitive=False,
+⋮
+│def interactive() -> None:
+⋮
+│@app.callback(invoke_without_command=True)
+│def _default(ctx: typer.Context):
+⋮
+│def main() -> None:
+⋮
+│def interactive_main() -> None:
+⋮
+
+repomap\entrypoint.py:
+⋮
+│def main() -> None:
+⋮
+
+repomap\io_handler.py:
+⋮
+│class SimpleIO:
+│    """Simple IO wrapper for file operations and output."""
+│    
+│    def __init__(self, verbose: bool = False):
+⋮
+│    def tool_output(self, message: str):
+⋮
+│    def tool_warning(self, message: str):
+⋮
+│    def tool_error(self, message: str):
+⋮
+│    def read_text(self, fname: str) -> Optional[str]:
+⋮
+
+repomap\models.py:
+⋮
+│class SimpleModel:
+│    """Simple model for token counting estimation."""
+│    
+│    def token_count(self, text: str) -> int:
+⋮
+│def estimate_token_count(text: str, model: SimpleModel) -> float:
+⋮
+
+repomap\parser.py:
+⋮
+│Tag = namedtuple("Tag", "rel_fname fname line name kind".split())
+│
+⋮
+│__all__ = ['Tag', 'CodeParser', 'get_scm_fname', 'get_supported_languages_md', 'USING_TSL_PACK']
+│
+⋮
+│def get_scm_fname(lang: str) -> Optional[Path]:
+⋮
+│class CodeParser:
+│    """Parses code files to extract symbols and references using tree-sitter."""
+│    
+│    def __init__(self, io_handler=None):
+⋮
+│    def read_text(self, fname: str) -> Optional[str]:
+⋮
+│    def get_tags_raw(self, fname: str, rel_fname: str) -> Iterator[Tag]:
+⋮
+│    def render_tree(self, abs_fname: str, rel_fname: str, lines_of_interest: List[int], 
+⋮
+│def get_supported_languages_md() -> str:
+⋮
+
+repomap\ranking.py:
+⋮
+│class SymbolRanker:
+│    """Ranks code symbols by importance using PageRank algorithm."""
+│    
+│    def __init__(self, verbose: bool = False):
+⋮
+│    def get_ranked_tags(
+│        self,
+│        chat_fnames: List[str],
+│        other_fnames: List[str],
+│        mentioned_fnames: Set[str],
+│        mentioned_idents: Set[str],
+│        tags_by_file: Dict[str, List[Tag]],
+│        get_rel_fname: Callable[[str], str],
+│        progress: Optional[Callable[[str], None]] = None
+⋮
+
+repomap\renderer.py:
+⋮
+│class MapRenderer:
+│    """Renders repository maps in various formats."""
+│    
+│    def __init__(self, parser: CodeParser):
+⋮
+│    def get_mtime(self, fname: str) -> Optional[float]:
+⋮
+│    def render_tree(self, abs_fname: str, rel_fname: str, lois: List[int]) -> str:
+⋮
+│    def to_tree(self, tags: List[Union[Tag, tuple]], chat_rel_fnames: Set[str]) -> str:
+⋮
+│    def render_json(
+│        self,
+│        ranked_tags: List[Tag],
+│        other_fnames: List[str],
+│        tokens: int,
+│        root: str
+⋮
+
+repomap\repomap.py:
+⋮
+│UPDATING_REPO_MAP_MESSAGE = "Updating repo map"
+│
+⋮
+│class RepoMap:
+│    """Main orchestrator for generating repository maps."""
+│    
+│    def __init__(
+│        self,
+│        map_tokens=8192,
+│        root=None,
+│        main_model=None,
+│        io=None,
+│        repo_content_prefix=None,
+│        verbose=False,
+│        max_context_window=None,
+│        map_mul_no_files=8,
+⋮
+│    def token_count(self, text: str) -> float:
+⋮
+│    def get_repo_map(
+│        self,
+│        chat_files: List[str],
+│        other_files: List[str],
+│        mentioned_fnames: Optional[Set[str]] = None,
+│        mentioned_idents: Optional[Set[str]] = None,
+│        force_refresh: bool = False,
+⋮
+│    def get_rel_fname(self, fname: str) -> str:
+⋮
+│    def get_mtime(self, fname: str) -> Optional[float]:
+⋮
+│    def get_tags(self, fname: str, rel_fname: str) -> List[Tag]:
+⋮
+│    def get_ranked_tags(
+│        self,
+│        chat_fnames: List[str],
+│        other_fnames: List[str],
+│        mentioned_fnames: Set[str],
+│        mentioned_idents: Set[str],
+│        progress: Optional[Callable[[str], None]] = None
+⋮
+│    def get_ranked_tags_map(
+│        self,
+│        chat_fnames: List[str],
+│        other_fnames: Optional[List[str]] = None,
+│        max_map_tokens: Optional[int] = None,
+│        mentioned_fnames: Optional[Set[str]] = None,
+│        mentioned_idents: Optional[Set[str]] = None,
+│        force_refresh: bool = False,
+⋮
+│    def get_ranked_tags_map_uncached(
+│        self,
+│        chat_fnames: List[str],
+│        other_fnames: Optional[List[str]] = None,
+│        max_map_tokens: Optional[int] = None,
+│        mentioned_fnames: Optional[Set[str]] = None,
+│        mentioned_idents: Optional[Set[str]] = None,
+⋮
+│def main():
+⋮
+
+repomap\tui_app.py:
+⋮
+│class RepoMapTUI(App):
+│    """TUI for generating repository maps with Textual"""
+│    
+⋮
+│    def __init__(self):
+⋮
+│    def compose(self) -> ComposeResult:
+⋮
+│    async def on_mount(self) -> None:
+⋮
+│    def on_button_pressed(self, event: Button.Pressed) -> None:
+⋮
+│    def _get_values(self) -> tuple[Path, int, str, Path | None, bool]:
+⋮
+│    def action_generate_toggle(self) -> None:
+⋮
+│    def _generate_map_worker(self) -> None:
+⋮
+│    def _update_status(self, message: str, progress: int) -> None:
+⋮
+│    def _update_progress(self, progress: int) -> None:
+⋮
+│    def _update_output(self, text: str) -> None:
+⋮
+│    def _set_generating_state(self, generating: bool) -> None:
+⋮
+│    def action_copy_output(self) -> None:
+⋮
+│    def action_save(self) -> None:
+⋮
+│    def action_refresh(self) -> None:
+⋮
+│    def on_directory_tree_file_selected(self, event: DirectoryTree.FileSelected) -> None:
+⋮
+│    def on_directory_tree_directory_selected(self, event: DirectoryTree.DirectorySelected) -> None:
+⋮
+│    def _update_selected_dir_display(self) -> None:
+⋮
+│    def action_quit(self) -> None:
+⋮
+│def run() -> None:
+⋮
+
+repomap\utils\__init__.py
+
+repomap\utils\cache.py:
+⋮
+│SQLITE_ERRORS = (sqlite3.OperationalError, sqlite3.DatabaseError, OSError)
+│CACHE_VERSION = 4  # Default to TSL pack version
+│
+⋮
+│class TagsCache:
+│    """Manages caching of parsed tags with automatic file modification detection."""
+│    
+│    def __init__(self, root: str, cache_version: int = CACHE_VERSION, verbose: bool = False):
+⋮
+│    def load_cache(self):
+⋮
+│    def _handle_cache_error(self, original_error: Optional[Exception] = None):
+⋮
+│    def get(self, key: str) -> Optional[Dict[str, Any]]:
+⋮
+│    def set(self, key: str, value: Dict[str, Any]):
+⋮
+│    def __len__(self) -> int:
+⋮
+│    def get_file_tags(self, fname: str, file_mtime: float) -> Optional[list]:
+⋮
+│    def set_file_tags(self, fname: str, file_mtime: float, tags: list):
+⋮
+
+repomap\utils\filesystem.py:
+⋮
+│ROOT_IMPORTANT_FILES = [
+│    # Version Control
+│    ".gitignore",
+│    ".gitattributes",
+│    # Documentation
+│    "README",
+│    "README.md",
+│    "README.txt",
+│    "README.rst",
+│    "CONTRIBUTING",
+⋮
+│NORMALIZED_ROOT_IMPORTANT_FILES = set(
+⋮
+│CODE_EXTENSIONS = {
+│    '.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.c', '.cpp', '.cc', '.cxx',
+│    '.h', '.hpp', '.cs', '.rb', '.go', '.rs', '.php', '.swift', '.kt', '.scala',
+│    '.r', '.m', '.mm', '.pl', '.pm', '.lua', '.dart', '.ex', '.exs', '.clj',
+│    '.cljs', '.elm', '.ml', '.mli', '.fs', '.fsi', '.fsx', '.hs', '.lhs',
+│    '.jl', '.nim', '.cr', '.d', '.pas', '.pp', '.inc', '.asm', '.s',
+│    '.sh', '.bash', '.zsh', '.fish', '.ps1', '.psm1', '.psd1', '.bat', '.cmd',
+│    '.yaml', '.yml', '.json', '.xml', '.toml', '.ini', '.cfg', '.conf',
+│    '.html', '.htm', '.css', '.scss', '.sass', '.less', '.vue', '.svelte'
+⋮
+│SKIP_DIRS = {
+│    '.git', '.svn', '.hg', '.bzr', '_darcs', '.fossil',
+│    'node_modules', 'venv', 'env', '.env', 'virtualenv',
+│    '__pycache__', '.pytest_cache', '.mypy_cache',
+│    'build', 'dist', 'target', 'out', 'bin', 'obj',
+│    '.idea', '.vscode', '.vs', '.eclipse', '.settings',
+│    'coverage', 'htmlcov', '.coverage', '.nyc_output',
+│    '.next', '.nuxt', '.cache', '.parcel-cache',
+│    'vendor', 'packages', 'bower_components',
+│    '.terraform', '.serverless', '.netlify'
+⋮
+│def is_important(file_path: str) -> bool:
+⋮
+│def filter_important_files(file_paths: List[str]) -> List[str]:
+⋮
+│def get_gitignored_files(root_dir: str) -> Set[str]:
+⋮
+│def get_staged_files(root_dir: str) -> List[str]:
+⋮
+│def get_recently_modified_files(directory: str, days: int) -> List[str]:
+⋮
+│def find_src_files(directory: str, respect_gitignore: bool = True) -> List[str]:
+⋮
+
+repomap\utils\misc.py:
+⋮
+│def get_random_color() -> str:
+⋮
+
+repomap\waiting.py:
+⋮
+│class Spinner:
+│    """Animated progress spinner for terminal output."""
+│
+⋮
+│    def __init__(self, message=""):
+⋮
+│    def _init_console(self):
+⋮
+│    def _check_unicode_support(self):
+⋮
+│    def _clear_line(self):
+⋮
+│    def _render_frame(self):
+⋮
+│    def step(self, message=None):
+⋮
+│    def end(self):
+⋮
+│class WaitingSpinner:
+│    """Thread-safe wrapper that runs a Spinner in a background thread."""
+│
+│    def __init__(self, message=""):
+⋮
+│    def __enter__(self):
+⋮
+│    def __exit__(self, *args):
+⋮
+│    def start(self):
+⋮
+│    def _run(self):
+⋮
+│    def stop(self):
+⋮
+│    def update(self, message):
+⋮
+│@contextmanager
+│def spinner(message=""):
+⋮
