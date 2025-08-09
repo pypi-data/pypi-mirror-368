@@ -1,0 +1,109 @@
+# Packaging configuration for cryptography-suite
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cryptography-suite"
+dynamic = ["version"]
+description = "A comprehensive and secure cryptographic toolkit."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "Mojtaba Zaferanloo", email = "psychevus@gmail.com"}
+]
+keywords = [
+    "cryptography",
+    "encryption",
+    "security",
+    "AES",
+    "RSA",
+    "ChaCha20",
+    "Ed25519",
+    "ECDSA",
+    "hashing",
+    "PAKE",
+    "OTP",
+    "secret sharing"
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Security :: Cryptography",
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers"
+]
+
+dependencies = [
+    "cryptography>=44.0.1",
+    "py_ecc",
+    "spake2",
+    "blake3",
+    "PyYAML"
+    , "Jinja2"
+    , "rich"
+    , "ipywidgets"
+    , "networkx"
+    , "requests"
+]
+
+[project.entry-points."cryptosuite.aead"]
+"gcm-sst" = "crypto_suite.experimental.aes_gcm_sst:aes_gcm_sst_encrypt"
+
+[project.optional-dependencies]
+pqc = ["pqcrypto"]
+fhe = ["Pyfhel"]
+zk = ["pybulletproofs", "PySNARK"]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "coverage",
+    "mypy",
+    "types-PyYAML",
+    "hypothesis",
+    "pytest-console-scripts",
+]
+async = ["aiofiles"]
+docs = ["sphinx", "furo", "myst-parser", "sphinxcontrib-mermaid"]
+viz = ["rich", "ipywidgets", "networkx"]
+aws = ["boto3"]
+hsm = ["python-pkcs11>=0.8.1"]
+legacy = ["salsa20>=0.9", "ascon>=1.2"]
+
+[project.scripts]
+cryptography-suite = "cryptography_suite.cli:main"
+cryptosuite-fuzz = "cryptography_suite.cli:fuzz_cli"
+
+[project.urls]
+Homepage = "https://github.com/Psychevus/cryptography-suite"
+Documentation = "https://psychevus.github.io/cryptography-suite"
+Source = "https://github.com/Psychevus/cryptography-suite"
+Tracker = "https://github.com/Psychevus/cryptography-suite/issues"
+
+[tool.setuptools.dynamic]
+version = {attr = "cryptography_suite.__version__"}
+
+[tool.setuptools]
+include-package-data = true
+license-files = ["LICENSE"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["cryptography_suite*", "tools*"]
+exclude = ["tests*", "docs*", "examples*", "demo*"]
+
+[tool.setuptools.package-data]
+"cryptography_suite" = ["py.typed"]
+"cryptography_suite.codegen" = ["templates/**"]
+
+[tool.black]
+line-length = 88
+target-version = ['py310']
+
+[tool.isort]
+profile = "black"
