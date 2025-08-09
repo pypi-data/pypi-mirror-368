@@ -1,0 +1,111 @@
+import sys
+from logging import getLogger, LoggerAdapter, StreamHandler, Formatter, DEBUG, INFO, ERROR, WARNING, CRITICAL
+from logging.handlers import SysLogHandler
+from functools import wraps
+from os import environ
+
+cuemsFormatter = Formatter('[%(asctime)s][%(levelname)s] \tFormitGo (PID: %(process)d)-(%(threadName)-9s)-(%(name)s:%(funcName)s:%(caller)s)> %(message)s')
+
+def log_level_to_obj(log_level):
+    """
+    Convert a log level string to a logging level object.
+    """
+    return {
+        'DEBUG': DEBUG,
+        'INFO': INFO,
+        'WARNING': WARNING,
+        'ERROR': ERROR,
+        'CRITICAL': CRITICAL
+    }[log_level]
+
+def main_logger(with_syslog = True, with_stdout = True):
+    """
+    Create a root logger with a custom formatter.
+    """
+    logger = getLogger(__name__)
+    try:
+        log_level = log_level_to_obj(environ['CUEMS_LOG_LEVEL'].upper())
+    except KeyError:
+        log_level = DEBUG
+    logger.setLevel(log_level)
+
+    if with_stdout:
+        sh = StreamHandler(sys.stdout)
+        sh.setFormatter(cuemsFormatter)
+        logger.addHandler(sh)
+    
+    if with_syslog:
+        syslog_handler = SysLogHandler(
+            address = '/dev/log', facility = 'local0'
+        )
+        syslog_handler.setFormatter(cuemsFormatter)
+        logger.addHandler(syslog_handler)
+
+    logger_adapter = LoggerAdapter(logger, {"caller": ''})
+    return logger_adapter
+
+class Logger:
+    """
+    A class for logging messages with different log levels.
+
+    This class provides static methods for logging messages with different log levels.
+    It uses the main_logger function to create a logger instance.
+    """
+    logger = main_logger()
+
+    @staticmethod
+    def log(level, message, **kwargs):
+        Logger.logger.log(level, message, stacklevel = 4, **kwargs)
+    
+    @staticmethod
+    def debug(message, **kwargs):
+        Logger.log(DEBUG, message, **kwargs)
+    
+    @staticmethod
+    def info(message, **kwargs):
+        Logger.log(INFO, message, **kwargs)
+
+    @staticmethod
+    def error(message, **kwargs):
+        Logger.log(ERROR, message, **kwargs)
+
+    @staticmethod
+    def exception(message, **kwargs):
+        Logger.log(ERROR, message, **kwargs)
+
+    @staticmethod
+    def warning(message, **kwargs):
+        Logger.log(WARNING, message, **kwargs)
+
+    @staticmethod
+    def critical(message, **kwargs):
+        Logger.log(CRITICAL, message, **kwargs)
+
+def logged(func):
+    """
+    A decorator function to log information about function calls and their results.
+    """
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        """
+        The wrapper function that logs function calls and their results.
+        """
+        d = {"funcName": func.__module__, "caller": func.__name__}
+        # Logger.logger = getLogger(func.__module__)
+        Logger.info(f"Call recieved", extra = d)
+        Logger.debug(f"Using args: {args} and kwargs: {kwargs}", extra = d)
+        try:
+            result = func(*args, **kwargs)
+            Logger.debug(f"Finished with result: {result}", extra = d)
+        except Warning as w:
+            Logger.warning(f"Warning occurred: {w}", extra = d)
+            return result
+        except Exception as e:
+            Logger.error(f"Error occurred: {e}", extra = d)
+            raise
+        
+        else:
+            return result
+
+    return wrapper
