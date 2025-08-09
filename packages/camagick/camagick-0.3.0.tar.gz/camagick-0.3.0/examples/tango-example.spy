@@ -1,0 +1,35 @@
+#!/usr/local/bin/caspy -y
+
+chain:
+
+- from: epics
+  params:
+    scan:     'KE:ctrl:scan'
+    frame:    'KE:ctrl:frame'
+    proposal: 'KE:ctrl:prop7'
+    guide:    'KE:acquire==0'
+
+- from: [ tango, "devices/keithley/1" ]
+  params:
+    cur: current
+    vol: voltage
+
+- via: demote
+  params:
+    - scan
+    - frame
+    - proposal
+
+- fanout:
+  - chain:
+    - via: stack
+    - to: plot
+
+  - to: zarr
+    params:
+    - "/var/home/specuser/data/{proposal}/{proposal}-data2.zarr#scan-{scan:03d}/keith-{tag}"
+    
+  - to: summary
+    params:
+      mode: "table"
+

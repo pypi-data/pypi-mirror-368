@@ -1,0 +1,35 @@
+#!/usr/local/bin/caspy -y
+
+chain:
+  - chain:
+     - from: epics
+       params:
+         ch1:   'KMC3:XPP:HARP:CH1_HISTOGRAM_SIGNAL'
+         offs:  'KMC3:XPP:HARP:CH0_HISTOGRAM_OFFSET'
+         dlta:  'KMC3:XPP:HARP:CH0_HISTOGRAM_DELTA'
+         guide: 'KMC3:XPP:HARP:ACQUIRINGRBV==0'
+     - from: ioc
+       params:
+         prefix: "KE:ctrl:"
+         hang: False
+         scan: "scan(0)"
+         frame: "frame(0)"
+     - via: demote
+       params:
+         - offs
+         - dlta
+         - scan
+         - frame
+  - fanout:
+       - to: tiffseries
+         params:
+           pathfmt: "/tmp/{suffix}-r{scan:05d}-f{frame:05d}-i{seq:04d}.tif"
+           meta:
+             - dlta
+             - offs
+             - scan
+             - frame
+       - to: plot
+         params:
+           only: ch1
+       - to: summary

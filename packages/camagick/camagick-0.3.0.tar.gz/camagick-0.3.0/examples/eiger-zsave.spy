@@ -1,0 +1,40 @@
+#!/usr/local/bin/caspy -y 
+
+chain:
+  - chain:
+      - from: epics
+        params:
+          image:  'KE:threshold_1:image'
+          width:  'KE:threshold_1:asize1'
+          height: 'KE:threshold_1:asize2'
+          prefix: 'KE:threshold_1:'
+          scan:   'KE:ctrl:scan'
+          frame:  'KE:ctrl:frame'
+          proposal:  'KE:ctrl:prop7'
+          guide:  'KE:acquire==0'
+          mode:   'guided'
+          dwell:  0.2
+
+      - via: demote
+        params:
+          - proposal
+          - scan
+          - frame
+          - width
+          - height
+          - asize1
+          - asize2
+
+  - via: "reshape"
+    params:
+      shape: [1, 512, 1028]
+
+  - to: zarr
+    params:
+      store: "/home/specuser/data/{proposal}/{proposal}-data2.zarr#scan-{scan:03d}/{tag}"
+      index: "frame"
+      mode: "a+"
+      strict: false
+      mt: true
+
+  - to: summary
