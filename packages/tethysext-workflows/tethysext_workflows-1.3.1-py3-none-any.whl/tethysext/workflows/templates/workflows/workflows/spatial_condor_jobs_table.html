@@ -1,0 +1,25 @@
+{% extends "workflows/workflows/workflow_view.html" %}
+{% load tethys_gizmos static %}
+
+{% block app_content %}
+  {% gizmo jobs_table %}
+  {{ block.super }}
+  <form id="run-job-form" method="post">
+    {% csrf_token %}
+    <input hidden name="method" value="run-job">
+  </form>
+{% endblock %}
+
+{% block app_actions %}
+  <button class="btn btn-warning" type="submit" form="run-job-form" name="rerun-submit">Rerun</button>
+  {{ block.super }}
+{% endblock %}
+
+{% block content_dependent_styles %}
+  {{ block.super }}
+  <link href="{% static 'workflows/css/messages.css' %}" rel="stylesheet"/>
+{% endblock %}
+
+{% block scripts %}
+  {{ block.super }}
+{% endblock %}

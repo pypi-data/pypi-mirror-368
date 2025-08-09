@@ -1,0 +1,49 @@
+{% extends "workflows/workflows/workflow_view.html" %}
+{% load static %}
+
+{% block before_workflow_form %}
+  <h1>{{ form_title }}</h1>
+  <p>{{ current_step.help }}</p>
+{% endblock %}
+
+{% block workflow_form_content %}
+  <div class="form-group">
+    <label for="comment-textarea">Comments</label>
+    {% if read_only %}
+      {% if comments %}
+      <p class="read-only">{{ comments }}</p>
+      {% else %}
+      <p class="read-only no-comments">No comments.</p>
+      {% endif %}
+    {% else %}
+      <textarea class="form-control" id="comment-textarea" name="comments" rows="10" style="resize: vertical;">{{ comments }}</textarea>
+    {% endif %}
+  </div>
+  <label class="flatmark-group-label">{{ status_label }}</label>
+  {% if read_only %}
+
+    <p class="read-only workflow-status-{{ status_style }}">
+      {% with lower_status=status.lower %}
+        {% include "workflows/workflows/components/status_icons.html" %}
+      {% endwith %}
+      {{ status }}</p>
+  {% else %}
+  <div id="status-input" class="flatmark-group">
+    {% for status_opts in statuses %}
+    <label class="flatmark"><span class="display-name">{% if status_opts.label %}{{ status_opts.label }}{% else %}{{ status_opts.status }}{% endif %}</span>
+      <input type="radio"
+             {% if status_opts.status == status %}checked="checked"{% endif %}
+             name="status"
+             value="{{ status_opts.status }}">
+      <span class="checkmark radio"></span>
+    </label>
+    {% endfor %}
+  </div>
+  {% endif %}
+{% endblock %}
+
+{% block content_dependent_styles %}
+  {{ block.super }}
+  <link href="{% static 'workflows/css/flatmark.css' %}" rel="stylesheet"/>
+  <link href="{% static 'workflows/workflows/set_status_wv.css' %}" rel="stylesheet"/>
+{% endblock %}
