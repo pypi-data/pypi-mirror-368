@@ -1,0 +1,229 @@
+Metadata-Version: 2.4
+Name: aparavi-dtc-sdk
+Version: 1.1.0
+Summary: Python SDK for Aparavi Data Toolchain API
+Home-page: https://dtc.aparavi.com
+Author: Aparavi
+Author-email: support@aparavi.com
+Project-URL: Bug Reports, https://github.com/AparaviSoftware/aparavi-dtc-sdk/issues
+Project-URL: Source, https://github.com/AparaviSoftware/aparavi-dtc-sdk
+Keywords: aparavi dtc data toolchain api sdk web services
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Requires-Dist: requests
+Requires-Dist: colorama
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0.0; extra == "dev"
+Requires-Dist: black>=22.0.0; extra == "dev"
+Requires-Dist: flake8>=4.0.0; extra == "dev"
+Requires-Dist: mypy>=0.991; extra == "dev"
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: keywords
+Dynamic: project-url
+Dynamic: provides-extra
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+# Aparavi Data Toolchain SDK
+
+A Python SDK for interacting with the Aparavi Web Services API. This SDK provides a clean, type-safe interface for validating pipelines, executing tasks, monitoring status, and managing webhooks with the Aparavi platform.
+
+---
+
+## Description
+
+This SDK simplifies integration with Aparavi's data processing pipelines by providing:
+
+* `validate_pipeline`: Validates a pipeline structure against Aparavi's backend to ensure it is correctly formed.
+* `execute_pipeline`: Submits a pipeline for execution on the Aparavi platform.
+* `get_pipeline_status`: Fetches the current execution status of a pipeline task.
+* `teardown_pipeline`: Gracefully ends a running pipeline task.
+* `send_payload_to_webhook`: Sends file(s) to a running webhook-based pipeline.
+* `execute_pipeline_workflow`: Performs a full end-to-end execution lifecycle for a pipeline.
+* `get_version`: Fetches the current version of the Aparavi API/backend.
+
+Perfect for data engineers, analysts, and developers building automated data processing workflows.
+
+---
+
+## Setup
+
+1. **Get your credentials:**
+- Obtain your API key from the [Aparavi console](https://core.aparavi.com/usage/)
+- Note your API base URL (e.g. `https://eaas.aparavi.com/`)
+
+2. **Install package:**
+   ```bash
+   pip install aparavi-dtc-sdk
+   ```
+
+3. **Create .env file:**
+   
+   **Linux/macOS:**
+   ```bash
+   touch .env
+   ```
+   
+   **Windows:**
+   ```cmd
+   type nul > .env
+   ```
+
+### Env file
+
+```env
+APARAVI_API_KEY=aparavi-dtc-api-key
+APARAVI_BASE_URL=https://eaas.aparavi.com/
+```
+
+---
+
+## Quick Start
+
+The Aparavi SDK supports a simplified, one-step method for executing pipelines. This method performs validation, execution, monitoring, and teardown in a single call:
+
+```python
+import os
+
+from dotenv import load_dotenv
+from aparavi_dtc_sdk import AparaviClient
+
+load_dotenv()
+
+client = AparaviClient(
+    base_url=os.getenv("APARAVI_BASE_URL"),
+    api_key=os.getenv("APARAVI_API_KEY")
+)
+
+result = client.execute_pipeline_workflow(
+    pipeline="./pipeline_config.json",
+    file_glob="./*.png"
+)
+
+print(result)
+```
+
+><span style="color:#e57373"> **_NOTE:_**</span>  While we continue to evolve the SDK to support more flexible and modular pipeline workflows, the single-function call approach (`execute_pipeline_workflow`) will remain fully supported for the foreseeable future. This ensures backward compatibility and allows existing integrations to continue working without any changes.
+
+### Pre Built Pipelines
+
+Available pre-built pipeline configurations:
+- `AUDIO_AND_SUMMARY`: Processes audio content and produces both a transcription and a concise summary. 
+- `SIMPLE_AUDIO_TRANSCRIBE`: Processes audio files and returns transcriptions of spoken content. 
+- `SIMPLE_PARSER`: Extracts and processes metadata and content from uploaded documents. 
+
+```python
+import os
+
+from dotenv import load_dotenv
+from aparavi_dtc_sdk import AparaviClient, PredefinedPipelines # Import PredefinedPipelines enum
+
+load_dotenv()
+
+client = AparaviClient(
+    base_url=os.getenv("APARAVI_BASE_URL"),
+    api_key=os.getenv("APARAVI_API_KEY")
+)
+
+result = client.execute_pipeline_workflow(
+    pipeline=PredefinedPipelines.SIMPLE_AUDIO_TRANSCRIBE, # Specify PredefinedPipelines
+    file_glob="./audio/*.mp3"
+)
+
+print(result)
+```
+
+### Power user quick start
+
+```python
+import json
+import os
+
+from dotenv import load_dotenv
+from aparavi_dtc_sdk import AparaviClient
+
+load_dotenv()
+
+client = AparaviClient(
+    base_url=os.getenv("APARAVI_BASE_URL"),
+    api_key=os.getenv("APARAVI_API_KEY")
+)
+
+try:
+    validation_result = client.validate_pipeline("pipeline_config.json")
+except Exception as e:
+    print(f"Validation failed: {e}")
+
+try:
+    start_result = client.execute_pipeline(pipeline_config, name="my-task")
+    if start_result.status == "OK":
+        token = start_result.data["token"]
+        task_type = start_result.data["type"]
+
+        status_result = client.get_pipeline_status(token=token, task_type=task_type)
+
+        end_result = client.teardown_pipeline(token=token, task_type=task_type)
+
+except Exception as e:
+    print(f"Task operation failed: {e}")
+```
+
+><span style="color:#e57373"> **_NOTE:_**</span>  We will soon sunset the multi-step pipeline execution process in favor of a simplified, single-method call that improves usability and reduces boilerplate code. The above pattern—using separate calls to `validate_pipeline`, `execute_pipeline`, `get_pipeline_status`, and `teardown_pipeline`—will no longer be supported in future SDK versions.
+
+---
+
+## Development
+
+### Setting up for development
+
+```bash
+# Install in development mode
+pip install -e ".[dev]"
+
+# Find package Install
+pip list | grep aparavi
+
+# Show package info
+pip show aparavi-dtc-sdk
+
+# Run linting
+flake8 aparavi-dtc-sdk/
+black aparavi-dtc-sdk/
+mypy aparavi-dtc-sdk/
+```
+
+### Running Tests
+
+```bash
+pytest tests/
+```
+
+## Support
+
+For problems and questions, please open an issue on the [GitHub repository](https://github.com/AparaviSoftware/aparavi-dtc-sdk/issues).
+
+---
+
+## Authors
+
+**Joshua D. Phillips**  
+[github.com/joshuadarron](https://github.com/joshuadarron)
+
+Contributions welcome — feel free to submit a PR or open an issue!
