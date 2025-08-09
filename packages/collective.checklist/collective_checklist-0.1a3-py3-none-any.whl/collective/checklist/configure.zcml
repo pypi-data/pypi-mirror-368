@@ -1,0 +1,67 @@
+<configure
+    xmlns="http://namespaces.zope.org/zope"
+    xmlns:genericsetup="http://namespaces.zope.org/genericsetup"
+    xmlns:i18n="http://namespaces.zope.org/i18n"
+    xmlns:plone="http://namespaces.plone.org/plone"
+    xmlns:zcml="http://namespaces.zope.org/zcml"
+    i18n_domain="collective.checklist">
+
+  <i18n:registerTranslations directory="locales" />
+
+  <include package="plone.schema" />
+  <include package="plone.rest" />
+
+  <!-- has to be loaded before permissions are used, so keep above views aso. -->
+  <include file="permissions.zcml" />
+
+  <include package=".browser" />
+
+  <genericsetup:registerProfile
+      name="default"
+      title="collective.checklist"
+      directory="profiles/default"
+      description="Installs the collective.checklist add-on."
+      provides="Products.GenericSetup.interfaces.EXTENSION"
+      post_handler=".setuphandlers.post_install"
+      />
+
+  <genericsetup:registerProfile
+      name="uninstall"
+      title="collective.checklist (uninstall)"
+      directory="profiles/uninstall"
+      description="Uninstalls the collective.checklist add-on."
+      provides="Products.GenericSetup.interfaces.EXTENSION"
+      post_handler=".setuphandlers.uninstall"
+      />
+
+  <utility
+      factory=".setuphandlers.HiddenProfiles"
+      name="collective.checklist-hiddenprofiles"
+      />
+
+  <plone:CORSPolicy
+    zcml:condition="installed plone.rest"
+    allow_origin="*"
+    allow_methods="DELETE,GET,OPTIONS,PATCH,POST,PUT"
+    allow_credentials="true"
+    expose_headers="Content-Length,X-My-Header"
+    allow_headers="DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Accept,Authorization"
+    max_age="3600"
+    />
+    <!-- allow_origin="http://localhost:5173,http://localhost:5173,http://localhost:8080" -->
+    <!-- zcml:condition="installed plone.rest" -->
+    <!-- layer="collective.checklist.interfaces.ICollectiveChecklistLayer" -->
+
+
+  <!-- -*- extra stuff goes here -*- -->
+
+  <plone:static
+      directory="apps"
+      type="plone"
+      name="collective.checklist.apps"
+      />
+
+  <include package=".views" />
+  <include package=".widgets" />
+
+</configure>

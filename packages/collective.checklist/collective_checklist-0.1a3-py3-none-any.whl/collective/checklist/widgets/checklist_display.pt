@@ -1,0 +1,100 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:tal="http://xml.zope.org/namespaces/tal" tal:omit-tag="">
+
+<div class="checklist-display">
+  <textarea style="display: none;" name="${view/name}" tal:content="view/value" tal:attributes="
+              view/attributes;
+            "></textarea>
+
+
+  <div class="svecklist" id="checklist-${view/field/getName}" svecklistid="${view/field/getName}" mode="display"></div>
+
+  <div class="row my-3  ">
+    <div class="col-6">
+      <button class="btn btn-primary" id="form-buttons-save" type="button">Save</button>
+    </div>
+    <div class="col-6">
+      <button type="button" class="btn btn-secondary" id="form-buttons-complete">Complete Checklist</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const body = document.querySelector("body");
+  //const portalUrl = body.dataset.portalUrl;
+  const baseUrl = body.dataset.baseUrl;
+
+  const patchRequest = new Request("", {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+    },
+    body: "",
+  });
+
+
+  async function patch(data) {
+    const url = `$${baseUrl}`;
+    console.log(`patching checlist with data: $${data}`)
+    const plonePatchRequest = new Request(patchRequest,{
+      body: data,
+    })
+
+    try {
+      const response = await fetch(plonePatchRequest);
+      const result = await response;
+      console.log("Success:", result);
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  }
+
+  function saveFilledChecklistData(data) {
+    patch(JSON.stringify({"checklist": JSON.parse(data)}));
+  }
+
+  const portalUrl = body.dataset.portalUrl;
+  const basePath = baseUrl.replace(portalUrl, '');
+  const svecklistid = document.getElementById('checklist-${view/field/getName}').getAttribute('svecklistid');
+  const localStorageKey = `svecklist-$${svecklistid}:$${basePath}`;
+  let checklistStore;
+
+  function handleSubmit(e) {
+    let submitter = event.target.id;
+    console.log(submitter)
+    switch (submitter) {
+      case "form-buttons-save":
+        savedBoxes = localStorage.getItem(localStorageKey);
+        const textArea = document.querySelector("[name='${view/name}']");
+        console.log(`store LS data into texArea: $${savedBoxes}`)
+        textArea.value = savedBoxes;
+        saveFilledChecklistData(savedBoxes)
+        localStorage.removeItem(localStorageKey);
+        break;
+      case "form-buttons-complete":
+        console.log("switch WF state to complete");
+        break;
+    }
+  }
+
+  // textArea >> localStorage
+  function loadDataIntoLocalStorage() {
+    console.log(`checklist_display: loadDataIntoLocalStorage localstoragekey: $${localStorageKey}`)
+    checklistStore = localStorage.getItem(localStorageKey);
+    const textArea = document.querySelector("[name='${view/name}']");
+    const textAreaDeserialized = JSON.parse(textArea.value)
+    console.log(`(Plone) load data from LS: $${textArea.value} / $${checklistStore}`)
+
+    if(JSON.parse(textArea.value)){
+      localStorage.setItem(localStorageKey, textArea.value);
+      console.log("load textArea data into localStorage")
+    }
+  }
+
+  loadDataIntoLocalStorage();
+
+  const form = document.querySelector(".checklist-display");
+  form.addEventListener("click", handleSubmit);
+</script>
+
+</html>

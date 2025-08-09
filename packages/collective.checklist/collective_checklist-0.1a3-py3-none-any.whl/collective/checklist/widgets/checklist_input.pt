@@ -1,0 +1,59 @@
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:tal="http://xml.zope.org/namespaces/tal"
+      tal:omit-tag=""
+>
+
+  <textarea style="display: none;"
+            name="${view/name}"
+            tal:content="view/value"
+            tal:attributes="
+              view/attributes;
+            "
+  ></textarea>
+
+  <div class="svecklist" id="checklist-${view/field/getName}" svecklistid="${view/field/getName}" mode="edit"></div>
+
+  <script>
+
+    const body = document.querySelector("body");
+    const portalUrl = body.dataset.portalUrl;
+    const baseUrl = body.dataset.baseUrl;
+    const basePath = baseUrl.replace(portalUrl, '');
+    const svecklistid = document.getElementById('checklist-${view/field/getName}').getAttribute('svecklistid');
+    const localStorageKey = `svecklist-$${svecklistid}:$${basePath}`;
+    let checklistStore;
+
+    function handleSubmit(e) {
+      let submitter = event.submitter;
+      if(submitter.id !== "form-buttons-save"){
+        return
+      }
+      checklistStore = localStorage.getItem(localStorageKey);
+      console.log(`localstoragekey: $${localStorageKey}`)
+      const textArea = document.querySelector("[name='${view/name}']");
+      console.log(`store LS data into texArea: $${checklistStore}`)
+      textArea.value = checklistStore;
+      localStorage.removeItem(localStorageKey);
+    }
+
+    function loadDataIntoLocalStorage() {
+      checklistStore = localStorage.getItem(localStorageKey);
+      // only load data into localStorage when it's empty
+      // page reload should not override data in localStorage from current edit session
+      //if(checklistStore !== null) {
+      //  console.log(`localStorage has already svecklist data, skip! $${checklistStore}`)
+      //  return
+      //}
+      const textArea = document.querySelector("[name='${view/name}']");
+      console.log(`(Plone) store data in LS: $${textArea.value} / $${checklistStore}`)
+      localStorage.setItem(localStorageKey, textArea.value);
+    }
+
+    loadDataIntoLocalStorage();
+
+    const form = document.querySelector("#content-core > #form")
+    form.addEventListener("submit", handleSubmit);
+
+  </script>
+
+</html>
