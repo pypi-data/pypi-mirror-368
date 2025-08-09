@@ -1,0 +1,312 @@
+Metadata-Version: 2.4
+Name: rocm-wsl-ai
+Version: 0.2.1
+Summary: Web UI to install and manage AMD ROCm + local AI tools on WSL2 (with optional CLI/TUI)
+Author: daMustermann
+License-Expression: MIT
+Project-URL: Homepage, https://github.com/daMustermann/rocm-wsl-ai
+Project-URL: Repository, https://github.com/daMustermann/rocm-wsl-ai
+Project-URL: Issues, https://github.com/daMustermann/rocm-wsl-ai/issues
+Keywords: rocm,wsl,amd,fastapi,webui,stable-diffusion,llm,comfyui,ollama,textgen
+Classifier: Development Status :: 4 - Beta
+Classifier: Environment :: Web Environment
+Classifier: Intended Audience :: End Users/Desktop
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Topic :: Internet :: WWW/HTTP
+Classifier: Topic :: System :: Systems Administration
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: typer[all]>=0.12.0
+Requires-Dist: rich>=13.7.0
+Requires-Dist: textual>=0.58.0
+Requires-Dist: tomli>=2.0.1; python_version < "3.11"
+Requires-Dist: fastapi>=0.111.0
+Requires-Dist: uvicorn[standard]>=0.30.0
+Requires-Dist: jinja2>=3.1.4
+Dynamic: license-file
+
+
+# 🔥 ROCm-WSL-AI Web UI
+
+![License](https://img.shields.io/badge/License-MIT-blue)
+![Platform](https://img.shields.io/badge/WSL2-Ubuntu%2024.04-informational)
+![GPU](https://img.shields.io/badge/AMD-ROCm%20latest-EE4C2C)
+![PyTorch](https://img.shields.io/badge/PyTorch-Nightly-orange)
+![Shell](https://img.shields.io/badge/CLI-python%20(%20rocmwsl%20)-4EAA25)
+![UI](https://img.shields.io/badge/TUI-textual-6f42c1)
+![Status](https://img.shields.io/badge/Status-Active-brightgreen)
+
+Make your AMD GPU sing inside WSL2. Use one Python CLI (rocmwsl, alias rocm-wsl-ai) and an optional Textual TUI to install, launch, update, and remove local AI tools — always ready for the latest PyTorch Nightly.
+
+## What you get
+- Always latest ROCm (from AMD’s “latest” apt repo) + PyTorch Nightly matched to your installed ROCm series
+- A modern, keyboard-driven TUI (Textual) with clear categories
+- One place to install, start, update, and remove local AI tools (image gen + LLMs)
+- Optional no-chmod Python CLI: install and run everything with a single command
+
+## Tools included (by category)
+Image generation
+- ComfyUI
+- SD.Next
+- Automatic1111 WebUI
+- InvokeAI
+- Fooocus
+- SD WebUI Forge
+
+LLMs
+- Ollama (with a small model manager script)
+- Text Generation WebUI
+## ROCm‑WSL‑AI Web UI
+
+A modern, lightweight web interface to install, run, and manage local AI tools on WSL2 with AMD ROCm. It wraps the existing project features into a single browser-based control panel with live logs, jobs, and per‑tool settings.
+
+### Highlights
+
+- One web dashboard for popular tools (ComfyUI, A1111/SD.Next/Forge, Fooocus, InvokeAI, SillyTavern, TextGen, llama.cpp, KoboldCpp, FastChat, Ollama)
+- Start/stop, status, and interface links per tool
+- Live logs via SSE or WebSocket with filter and colorized streams
+- Job history with progress for installers and long‑running tasks
+- Models: location overview, index, refresh, link, and curated preset downloads
+- Wizard to set up base folders/venv and defaults for tool flags
+- Per‑tool settings persist (URL, extra args), plus smart Host/Port helpers
+- Clean, responsive UI (PicoCSS), with theme toggle and small toasts/dialogs
+
+---
+
+## Quick start
+
+1) Install inside WSL2 (recommended)
+
+Open your WSL distro (e.g., Ubuntu) and run:
+
+```bash
+python3 -m venv ~/.venvs/rocmwsl
+source ~/.venvs/rocmwsl/bin/activate
+python -m pip install --upgrade pip
+pip install rocm-wsl-ai
+```
+
+If pip cannot find the package (not published on PyPI yet), install from source (this repo) or from GitHub:
+
+From source (recommended if you already cloned this repo on Windows):
+
+```bash
+cd /mnt/f/Coding/rocm-wsl-ai   # adjust path to your repo inside WSL
+python3 -m venv ~/.venvs/rocmwsl
+source ~/.venvs/rocmwsl/bin/activate
+python -m pip install --upgrade pip
+pip install -e .
+```
+
+From Windows PowerShell into WSL using your local checkout:
+
+```powershell
+wsl -e bash -lc "cd /mnt/f/Coding/rocm-wsl-ai && python3 -m venv ~/.venvs/rocmwsl && source ~/.venvs/rocmwsl/bin/activate && python -m pip install --upgrade pip && pip install -e ."
+```
+
+Or directly from GitHub (if the repo is public):
+
+```bash
+pip install "git+https://github.com/daMustermann/rocm-wsl-ai.git@main"
+```
+
+Alternatively from Windows PowerShell you can run everything inside your default WSL distro (using local checkout or GitHub install as above):
+
+```powershell
+wsl -e bash -lc "cd /mnt/f/Coding/rocm-wsl-ai && python3 -m venv ~/.venvs/rocmwsl && source ~/.venvs/rocmwsl/bin/activate && python -m pip install --upgrade pip && pip install -e ."
+```
+
+2) Run the Web UI inside WSL:
+
+```bash
+export ROCMWSL_WEB_TOKEN="set-a-strong-token"   # optional but recommended on LAN
+rocmwsl-web                                     # serves on 0.0.0.0:8000
+```
+
+From Windows, open http://localhost:8000 in your browser (WSL2 forwards localhost).
+
+You can also launch it from PowerShell directly into WSL:
+
+```powershell
+wsl -e bash -lc "export ROCMWSL_WEB_TOKEN='set-a-strong-token'; rocmwsl-web"
+```
+
+Tip: Change the port if needed: run(host='0.0.0.0', port=XXXX). Example from within WSL:
+
+```bash
+python -c "from rocm_wsl_ai.web.app import run; run(host='0.0.0.0', port=9000)"
+```
+
+---
+
+## Using the Web UI
+
+### Dashboard
+
+- Cards show each tool’s status (running/stopped), PID, and actions.
+- Click Install to run the installer as a background job.
+- Start launches the tool (background when supported). Stop ends it.
+- Logs opens a live log stream (switch between SSE/WS). Use the filter box for regex filtering; stderr/stdout are color‑coded.
+
+### Tools page
+
+- Per‑tool settings:
+	- Interface URL (used for the “Open interface” link in cards)
+	- Host & Port helpers that auto‑compose common flags (e.g., --listen/--port)
+	- Extra Args to pass on start (stored and reused)
+- The UI keeps Host/Port and URL in sync for convenience.
+
+### Models page
+
+- See where models are located for different categories.
+- Build and refresh a searchable models index.
+- Link your models into supported tools folders.
+- Download preset model bundles (curated). Tasks run as jobs with progress.
+
+### Wizard
+
+- Configure base directory, venv, and optional defaults for tool flags (host/port/flags).
+- Saves defaults into a tools.json so starts can reuse them.
+
+### Help
+
+- Quick tips and troubleshooting pointers integrated into the UI.
+
+---
+
+## Updates
+
+To update the package:
+
+```powershell
+pip install -U rocm-wsl-ai
+```
+
+Your settings (tools.json), job history (jobs.json), and config live in the project’s config directory and are preserved across updates.
+
+---
+
+## Security
+
+- Optional token-based auth: set an environment variable before you start the server.
+
+```powershell
+$env:ROCMWSL_WEB_TOKEN = "your-long-random-token"
+rocmwsl-web
+```
+
+- With a token set, the UI redirects to a small login where you paste the token. APIs also accept the token via cookie, x-auth header, or token query parameter.
+- If you expose the server on your LAN (host 0.0.0.0), use a token. For public networks, prefer a proper reverse proxy and TLS.
+
+---
+
+## FAQs / Troubleshooting
+
+- The tool doesn’t start or shows “stopped” quickly.
+	- Open Logs to see errors in real‑time. Check Extra Args on Tools page. Verify the tool repository and dependencies are installed.
+- Interface link opens the wrong port.
+	- Edit the URL in the tool’s settings. Host/Port helpers can auto‑compose flags; the UI syncs URL and Host/Port.
+- SillyTavern install requires Node.
+	- The installer attempts to guide via nvm. If Node isn’t present, the job runs nvm install/use LTS and npm install in the SillyTavern folder.
+- Where are my settings stored?
+	- tools.json and jobs.json are saved next to your main config.toml (see Models page → Where for base folder hints).
+
+---
+
+## Uninstall
+
+```powershell
+pip uninstall rocm-wsl-ai
+```
+
+---
+
+## License
+
+MIT
+
+---
+
+## Releasing (maintainers)
+
+PyPI:
+
+```bash
+python -m pip install --upgrade build twine
+python -m build
+twine check dist/*
+twine upload dist/*
+```
+
+GitHub:
+- Tag the release (e.g., v0.2.0) and push tags
+- Create a GitHub Release with notes and attach wheels/sdist if desired
+
+After PyPI release, you can simplify README install instructions to a single line:
+
+```bash
+pip install rocm-wsl-ai
+```
+```powershell
+wsl --shutdown
+```
+
+## The TUI (optional)
+```bash
+rocmwsl menu   # launches the Textual TUI
+```
+Use arrow keys/Enter. Install “base” first, then pick your tools. Launch and update from the TUI or via CLI.
+
+## Typical first run
+1) Wizard: schnelle Ersteinrichtung (Base + optional ComfyUI)
+```bash
+rocmwsl wizard
+```
+oder manuell:
+1) Installation → Base (ROCm & PyTorch Nightly)
+2) Restart WSL if asked
+3) Installation → Pick your tools (e.g., ComfyUI, A1111, Ollama)
+4) Launch → Start your tools
+
+CLI equivalent
+```bash
+rocmwsl wizard --base-dir "$HOME/AI" --venv-name genai_env
+# oder manuell
+rocmwsl install base
+rocmwsl install comfyui
+rocmwsl start comfyui
+```
+
+## Upgrading
+Upgrades:
+- Update everything: `rocmwsl update all`
+- Update a single tool (e.g., ComfyUI): `rocmwsl update comfyui`
+- Update base (PyTorch Nightly): `rocmwsl update base`
+- Self-update (CLI/TUI):
+	- If installed via pipx: `pipx upgrade rocm-wsl-ai` or `pipx upgrade rocmwsl`
+	- From CLI: `rocmwsl update self`
+
+## Useful tips
+- Diagnose: `rocmwsl doctor` (prüft /dev/kfd, rocm-smi/rocminfo, Torch/HIP im venv)
+- Konfiguration: `~/.config/rocm-wsl-ai/config.toml`
+	```toml
+	[paths]
+	base_dir = "/home/<user>/AI"
+
+	[python]
+	venv_name = "genai_env"
+	```
+- If the TUI looks very plain, install whiptail (see Requirements)
+- If you changed groups during base install: restart WSL (`wsl --shutdown` from Windows)
+- Ollama’s systemd user service may require systemd in WSL; if it doesn’t start, run it manually via the scripts
+- For ROCm trouble, use the menu’s Driver Management and follow the prompts
+
+## License
+MIT
+
