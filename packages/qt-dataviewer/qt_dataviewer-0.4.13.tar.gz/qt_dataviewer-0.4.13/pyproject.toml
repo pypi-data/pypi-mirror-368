@@ -1,0 +1,88 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qt_dataviewer"
+version = "0.4.13" # tbump: version
+authors = [
+  { name="Sander de Snoo", email="s.l.desnoo@tudelft.nl" },
+]
+description = "QuTech Viewer for xarray Datasets. Supports Core-tools, Quantify and QCoDeS datasets."
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "pyqt5 >= 5.15",
+#    "pyqtgraph == 0.13.7.4",
+    "pyqtgraph >= 0.13.7",
+    "matplotlib >= 3.5.3",
+    "numpy >= 1.24",
+    "xarray",
+    "h5netcdf",
+]
+license = "MIT"
+license-files = [
+    "LICENSE",
+]
+
+[tool.setuptools.package-data]
+"qt_dataviewer.resources" = ["*.png"]
+
+
+[project.urls]
+# Homepage = "https://example.com"
+Documentation = "https://gitlab.tudelft.nl/qutech-qdlabs/qt-dataviewer/-/blob/main/README.md"
+Repository = "https://gitlab.tudelft.nl/qutech-qdlabs/qt-dataviewer"
+# Issues = "https://github.com/me/spam/issues"
+Changelog = "https://gitlab.tudelft.nl/qutech-qdlabs/qt-dataviewer/-/blob/main/CHANGELOG.md"
+
+[tool.tbump]
+# Uncomment this if your project is hosted on GitHub:
+# github_url = "https://github.com/<user or organization>/<project>/"
+
+[tool.tbump.version]
+current = "0.4.13"
+
+# Example of a semver regexp.
+# Make sure this matches current_version before
+# using tbump
+regex = '''
+  (?P<major>\d+)
+  \.
+  (?P<minor>\d+)
+  \.
+  (?P<patch>\d+)
+  '''
+
+[tool.tbump.git]
+message_template = "Bump to {new_version}"
+tag_template = "v{new_version}"
+
+# For each file to patch, add a [[tool.tbump.file]] config
+# section containing the path of the file, relative to the
+# tbump.toml location.
+[[tool.tbump.file]]
+src = "pyproject.toml"
+search = 'version = "{current_version}" # tbump: version'
+
+[[tool.tbump.file]]
+src = "qt_dataviewer/__init__.py"
+search = '__version__ = "{current_version}"'
+
+# You can specify a list of commands to
+# run after the files have been patched
+# and before the git commit is made
+
+#  [[tool.tbump.before_commit]]
+#  name = "check changelog"
+#  cmd = "grep -q {new_version} Changelog.rst"
+
+# Or run some commands after the git tag and the branch
+# have been pushed:
+#  [[tool.tbump.after_push]]
+#  name = "publish"
+#  cmd = "./publish.sh"
