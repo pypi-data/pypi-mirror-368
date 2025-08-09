@@ -1,0 +1,30 @@
+<details class="mb-4" open>
+  <summary class="cursor-pointer font-semibold text-lg bg-gray-100 px-4 py-2 rounded">
+    📦 {{ plugin_name|capitalize }}
+  </summary>
+  <div class="ml-4 mt-2">
+    {% if plugin_results %}
+      {% for r in plugin_results %}
+        <div class="mb-2">
+          <div class="text-sm font-medium text-gray-800">
+            {{ r.title if r.title is defined else 'Untitled Check' }}
+            <span class="ml-2 text-xs text-{{ 'red-600' if r.status == 'critical' else 'yellow-600' if r.status == 'warning' else 'gray-700' }}">
+              [{{ r.status|capitalize }}]
+            </span>
+          </div>
+          {% if r.messages %}
+            <ul class="list-disc ml-5 text-sm text-gray-700">
+              {% for m in r.messages %}
+                <li>{{ m }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="text-sm text-gray-500">No results reported.</p>
+    {% endif %}
+  </div>
+</details>
+
+
