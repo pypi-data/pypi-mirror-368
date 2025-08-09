@@ -1,0 +1,211 @@
+Metadata-Version: 2.1
+Name: deepcave
+Version: 1.4.1
+Summary: An interactive framework to visualize and analyze your AutoML process in real-time.
+Home-page: https://www.automl.org
+Author-email: m.wever@ai.uni-hannover.de
+License: Apache-2.0
+Project-URL: Documentation, https://github.com/automl/deepcave
+Project-URL: Source Code, https://github.com/automl/deepcave
+Platform: Linux
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Development Status :: 3 - Alpha
+Classifier: Natural Language :: English
+Classifier: Environment :: Console
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Education
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Classifier: Topic :: Scientific/Engineering
+Classifier: Topic :: Software Development
+Requires-Python: >=3.9, <3.11
+Description-Content-Type: text/markdown
+License-File: LICENSE.txt
+Requires-Dist: wheel>=0.41.2
+Requires-Dist: setuptools==68.2.2
+Requires-Dist: absl-py>=1.0.0
+Requires-Dist: jsonlines>=3.0.0
+Requires-Dist: pandas>=1.3.4
+Requires-Dist: matplotlib==3.9.0
+Requires-Dist: seaborn>=0.13.0
+Requires-Dist: pyyaml>=6.0.1
+Requires-Dist: kaleido>=0.2.1
+Requires-Dist: gplearn>=0.4.2
+Requires-Dist: sympy>=1.12
+Requires-Dist: requests>=2.31.0
+Requires-Dist: ConfigSpace==1.2.0
+Requires-Dist: pyrfr>=0.9.0
+Requires-Dist: dash==2.0.0
+Requires-Dist: dash-extensions==0.0.71
+Requires-Dist: dash-bootstrap-components==1.0.3
+Requires-Dist: redis>=4.1.4
+Requires-Dist: rq==1.10.1
+Requires-Dist: plotly==5.24.1
+Requires-Dist: werkzeug==2.0.3
+Requires-Dist: pyarrow==19.0.1
+Requires-Dist: fastparquet==2024.5.0
+Requires-Dist: pyPDPPartitioner>=0.1.9
+Provides-Extra: dev
+Requires-Dist: pytest>=4.6; extra == "dev"
+Requires-Dist: pytest-cov>=4.1.0; extra == "dev"
+Requires-Dist: pytest-xdist>=3.3.1; extra == "dev"
+Requires-Dist: pytest-timeout>=2.2.0; extra == "dev"
+Requires-Dist: mypy>=1.6.1; extra == "dev"
+Requires-Dist: isort>=5.12.0; extra == "dev"
+Requires-Dist: black>=23.11.0; extra == "dev"
+Requires-Dist: pydocstyle>=6.3.0; extra == "dev"
+Requires-Dist: pre-commit>=3.5.0; extra == "dev"
+Requires-Dist: flake8>=6.1.0; extra == "dev"
+Requires-Dist: rq==1.10.1; extra == "dev"
+Requires-Dist: pyPDPPartitioner>=0.1.9; extra == "dev"
+Requires-Dist: automl-sphinx-theme>=0.1.10; extra == "dev"
+Provides-Extra: examples
+Requires-Dist: torch>=2.1.0; extra == "examples"
+Requires-Dist: torchvision>=0.16.0; extra == "examples"
+Requires-Dist: pytorch-lightning>=2.1.1; extra == "examples"
+Provides-Extra: optuna
+Requires-Dist: optuna==3.6.1; extra == "optuna"
+Provides-Extra: bohb
+Requires-Dist: hpbandster==0.7.4; extra == "bohb"
+Provides-Extra: raytune
+Requires-Dist: ray[tune]==2.45.0; extra == "raytune"
+
+<img src="docs/images/DeepCAVE_Logo_wide.png" alt="Logo"/> 
+
+# DeepCAVE
+
+DeepCAVE is a visualization and analysis tool for AutoML, with a particular focus on
+hyperparameter optimization (HPO). Built on the Dash framework, it offers a fully
+interactive experience. The tool features a variety of plugins that enable efficient insight
+generation, aiding in understanding and debugging the application of HPO.
+Additionally, the powerful run interface and the modularized plugin structure allow extending the 
+tool at any time effortlessly.
+
+![Configuration Footprint](docs/images/plugins/configuration_footprint.png)
+
+
+## Installation
+
+First, make sure you have [redis-server](https://flaviocopes.com/redis-installation/) installed on
+your computer.
+
+Afterwards, follow the instructions to install DeepCAVE:
+```bash
+conda create -n DeepCAVE python=3.9
+conda activate DeepCAVE
+conda install -c anaconda swig
+pip install DeepCAVE
+```
+
+To load runs created with Optuna, the BOHB optimizer or RayTune, you need to install the
+respective packages by running:
+```bash
+pip install deepcave[optuna]
+pip install deepcave[bohb]
+pip install deepcave[raytune]
+```
+
+To try the examples for recording your results in DeepCAVE format, run this after installing:
+```bash
+pip install deepcave[examples]
+```
+
+If you want to contribute to DeepCAVE, use the following steps instead:
+```bash
+git clone https://github.com/automl/DeepCAVE.git
+cd DeepCAVE
+conda create -n DeepCAVE python=3.9
+conda activate DeepCAVE
+conda install -c anaconda swig
+make install-dev
+```
+
+Please visit the [documentation](https://automl.github.io/DeepCAVE/main/installation.html) to get
+further help (e.g. if you cannot install redis server or if you are on MacOS).
+
+
+## Visualizing and Evaluating
+
+The webserver as well as the queue/workers can be started by simply running:
+```bash
+deepcave --open
+```
+
+If you specify `--open` your webbrowser automatically opens at `http://127.0.0.1:8050/`.
+You can find more arguments and information (like using custom configurations) in the
+[documentation](https://automl.github.io/DeepCAVE/main/getting_started.html).
+
+
+## Example runs
+
+DeepCAVE comes with some pre-evaluated runs to get a feeling for what DeepCAVE can do.
+
+If you cloned the repository from GitHub via `git clone https://github.com/automl/DeepCAVE.git`,
+you can try out some examples by exploring the `logs` directory inside the DeepCAVE dashboard.
+For example, if you navigate to `logs/DeepCAVE/mnist_pytorch`, you can view its runs if you hit
+the `+` button left to them.
+
+
+## Features
+
+### Interactive Interface
+- **Interactive Dashboard:**  
+  The dashboard runs in a webbrowser and allows you to self-analyze your optimization runs interactively.
+  
+- **Run Selection Interface:**  
+  Easily select runs from your working directory directly within the interface.
+  
+- **Integrated Help and Documentation:**  
+  Use help buttons and integrated documentation within the interface to better understand the plugins.
+
+### Comprehensive Analysis Tools
+- **Extensive Plugin Collection:**  
+  Explore a wide range of plugins for in-depth performance, hyperparameter, and budget analysis.
+
+- **Analysis of Running Processes:**  
+  Analyze and monitor optimization processes as they occur, with automatic detection of run changes.
+  
+- **Group Analysis:**  
+  Choose groups of runs for combined analysis to gain deeper insights.
+
+### Flexible and Modular Architecture
+- **Modular Plugin Architecture:**  
+  Benefit from a modularized plugin structure with access to selected runs and groups, offering you maximum flexibility.
+  
+- **Asynchronous Execution:**  
+  Utilize asynchronous execution of resource-intensive plugins and caching of results to improve performance.
+
+### Broad Optimizer Support
+- **Optimizer Support:**  
+  Work with many frameworks and optimizers using our converters, including converters for SMAC, BOHB, AMLTK, and Optuna.
+  
+- **Native Format Saving:**  
+  Save AutoML runs from various frameworks in DeepCAVE's native format using the built-in recorder.
+  
+- **Flexible Data Loading:**  
+  Alternatively, load AutoML runs from other frameworks by converting them into a Pandas DataFrame.
+
+### Developer and API Features
+- **API Mode:**  
+  Interact with the code directly through API mode, allowing you to bypass the graphical interface if preferred.
+
+
+## Citation
+
+If you use DeepCAVE in one of your research projects, please cite our [ReALML@ICML'22 workshop paper](https://arxiv.org/abs/2206.03493):
+```
+@misc{sass-realml2022,
+    title = {DeepCAVE: An Interactive Analysis Tool for Automated Machine Learning},
+    author = {Sass, René and Bergman, Eddie and Biedenkapp, André and Hutter, Frank and Lindauer, Marius},
+    doi = {10.48550/ARXIV.2206.03493},
+    url = {https://arxiv.org/abs/2206.03493},
+    publisher = {arXiv},
+    year = {2022},
+    copyright = {arXiv.org perpetual, non-exclusive license}
+}
+```
+
+Copyright (C) 2021-2024 The DeepCAVE Authors
