@@ -1,0 +1,83 @@
+[build-system]
+# Minimum requirements for the build system to execute
+requires = [
+    # pinned < 65.5.1 because of Log error but Log was removed but still used  https://github.com/numpy/numpy/issues/22623
+    # numpy advised <60 but this gives Cannot install into user site directory with editable source
+    # >=64 editble install is possible
+    "setuptools>=67.0",
+    "cmake>=3.26",
+    "wheel",
+    "cython>=3.0",
+    # lowest NumPy we can use for a given Python,
+    # In part adapted from: https://github.com/scipy/oldest-supported-numpy/blob/main/setup.cfg
+    # and MDAnalysis
+    "numpy>=1.26.4",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jscatter"
+version = "1.8.0"
+description = "Combines dataArrays with attributes for fitting plotting and analysis including models for Xray and neutron scattering"
+readme = "README.rst"
+requires-python = ">=3.9"
+license = {file = "src/jscatter/LICENSE"}
+authors = [{name = "Ralf Biehl", email = "ra.biehl@fz-juelich.de"}]
+classifiers = [
+        "Development Status :: 5 - Production/Stable",
+        "Intended Audience :: Science/Research",
+        "Operating System :: POSIX :: Linux",
+        "Operating System :: MacOS :: MacOS X",
+        "Operating System :: Microsoft :: Windows :: Windows 10",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
+        "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+        "Programming Language :: Python",
+        "Topic :: Scientific/Engineering :: Physics",
+    ]
+dependencies = [
+    "numpy >= 1.26.4",
+    "scipy >= 1.10",
+    "matplotlib >= 3.7",
+    "Pillow >= 8.1",
+    "MDAnalysis >= 2.4.0",
+    "netcdf4",
+    "cython",
+    "fabio",
+    "pdb2pqr",
+    "requests",
+    "nglview",
+    "emcee",
+    ]
+
+[project.urls]
+homepage = "https://gitlab.com/biehl/jscatter"
+documentation = "http://jscatter.readthedocs.io/"
+repository = "https://gitlab.com/biehl/jscatter"
+live_demo = "https://mybinder.org/v2/gl/biehl/jscatter/master?filepath=src/jscatter/examples/notebooks"
+
+[tool.setuptools]
+    include-package-data = true
+[tool.setuptools.packages.find]
+    where = ["src"]
+[tool.setuptools.package-data]
+   jscatter = ["*.txt", "*.rst", "*.dat", "*.html", "*.ipynb", "*.md", "*.f95", "*.f90",
+    "*.tiff", "*.png", "*.jpg", "*.agr", "*.gif",
+    "*.Dq", "*.pdb", "*.pdh", "*.cif", "*.fq", "*.gz"]
+
+
+[tool.cibuildwheel]
+before-all = ["uname -a"]
+build = ["cp3{9,10,11,12,13}-*"]
+skip = ["*_ppc64le", "*_i686", "*_s390x", "*musllinux*"]
+build-verbosity = "3"
+
+[tool.cibuildwheel.linux]
+manylinux-x86_64-image = "manylinux_2_28"
+before-build = "rm -rf {project}/build"
+
+[[tool.cibuildwheel.overrides]]
+select = "*-win32"
