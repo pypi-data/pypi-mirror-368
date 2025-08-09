@@ -1,0 +1,163 @@
+Metadata-Version: 2.4
+Name: bipl
+Version: 0.6.3
+Summary: Openslide/libtiff/GDAL ndarray-like interface and lazy parallel tile-based processing
+Project-URL: homepage, https://github.com/arquolo/bipl
+Project-URL: repository, https://github.com
+Author-email: Paul Maevskikh <arquolo@gmail.com>
+Maintainer-email: Paul Maevskikh <arquolo@gmail.com>
+License: MIT License
+        
+        Copyright (c) 2019 Paul Maevskikh
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE.
+License-File: LICENSE
+Keywords: aperio,batch,bigtiff,gdal,geotiff,hamamatsu,images,lazy,libtiff,medical,mrxs,ndpi,openslide,osgeo,parallel,pathology,processing,pyramid,slide,svs,tiff,tile,whole-slide,wsi
+Classifier: Development Status :: 3 - Alpha
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.12
+Requires-Python: >=3.12
+Requires-Dist: glow~=0.15.0
+Requires-Dist: imagecodecs
+Requires-Dist: lxml
+Requires-Dist: numpy<3,>=1.21
+Requires-Dist: opencv-python-headless~=4.0
+Requires-Dist: packaging
+Requires-Dist: pillow
+Requires-Dist: pydantic-settings~=2.0
+Requires-Dist: pydantic~=2.0
+Requires-Dist: tqdm
+Provides-Extra: cov
+Requires-Dist: fastapi; extra == 'cov'
+Requires-Dist: geojson; extra == 'cov'
+Requires-Dist: uvicorn[standard]; extra == 'cov'
+Provides-Extra: dev
+Requires-Dist: black~=25.1; extra == 'dev'
+Requires-Dist: flake8-alphabetize; extra == 'dev'
+Requires-Dist: flake8-pie; extra == 'dev'
+Requires-Dist: flake8-pyi; extra == 'dev'
+Requires-Dist: flake8-pyproject; extra == 'dev'
+Requires-Dist: flake8-simplify; extra == 'dev'
+Requires-Dist: flake8~=7.0; extra == 'dev'
+Requires-Dist: isort; extra == 'dev'
+Requires-Dist: mypy~=1.15; extra == 'dev'
+Requires-Dist: pytest~=8.0; extra == 'dev'
+Requires-Dist: ruff~=0.11.6; extra == 'dev'
+Requires-Dist: yapf~=0.43.0; extra == 'dev'
+Provides-Extra: dev-core
+Requires-Dist: black~=25.1; extra == 'dev-core'
+Requires-Dist: flake8-pie; extra == 'dev-core'
+Requires-Dist: flake8-pyi; extra == 'dev-core'
+Requires-Dist: flake8-pyproject; extra == 'dev-core'
+Requires-Dist: flake8-simplify; extra == 'dev-core'
+Requires-Dist: flake8~=7.0; extra == 'dev-core'
+Requires-Dist: isort; extra == 'dev-core'
+Requires-Dist: mypy~=1.15; extra == 'dev-core'
+Requires-Dist: pytest~=8.0; extra == 'dev-core'
+Requires-Dist: ruff~=0.11.6; extra == 'dev-core'
+Requires-Dist: yapf~=0.43.0; extra == 'dev-core'
+Provides-Extra: dev-wemake
+Requires-Dist: black~=25.1; extra == 'dev-wemake'
+Requires-Dist: flake8-pie; extra == 'dev-wemake'
+Requires-Dist: flake8-pyi; extra == 'dev-wemake'
+Requires-Dist: flake8-pyproject; extra == 'dev-wemake'
+Requires-Dist: flake8-simplify; extra == 'dev-wemake'
+Requires-Dist: flake8~=7.0; extra == 'dev-wemake'
+Requires-Dist: isort; extra == 'dev-wemake'
+Requires-Dist: mypy~=1.15; extra == 'dev-wemake'
+Requires-Dist: pytest~=8.0; extra == 'dev-wemake'
+Requires-Dist: ruff~=0.11.6; extra == 'dev-wemake'
+Requires-Dist: wemake-python-styleguide~=0.15.0; extra == 'dev-wemake'
+Requires-Dist: yapf~=0.43.0; extra == 'dev-wemake'
+Provides-Extra: gdal
+Requires-Dist: gdal~=3.0; extra == 'gdal'
+Description-Content-Type: text/markdown
+
+# BIPL is a Big Image Python Library
+
+Library to read big pyramidal images like in formats like BigTiff, Aperio SVS, Leica MRXS.
+
+## `bipl.Slide` - ndarray-like reader for multiscale images (svs, tiff, etc...)
+<details>
+
+```python
+import numpy as np
+from bipl import Slide
+
+slide = Slide.open('test.svs')
+shape: tuple[int, ...] = slide.shape  # Native shape
+downsamples: tuple[int, ...] = slide.downsamples  # List of pre-existing sub-resolution levels
+
+# Get native miniature
+tmb: np.ndarray = slide.thumbnail()
+
+mpp: float = slide.mpp  # X um per pixel, native resolution
+image: np.ndarray = slide[:2048, :2048]  # Get numpy.ndarray of 2048x2048 from full resolution
+
+MPP = 16.  # Let's say we want slide at 16 um/px resolution
+downsample = MPP / slide.mpp
+mini = slide.pool(downsample)  # Gives `downsample`-times smaller image
+mini = slide.resample(MPP)  # Gives the same result
+
+# Those ones trigger ndarray conversion
+image: np.ndarray
+image = mini[:512, :512]  # Take a part of
+image = mini.numpy()  # Take a whole resolution level
+image = np.array(mini, copy=False)  # Use __array__ API
+```
+</details>
+
+## `bipl.Mosaic` - apply function for each tile of big image on desired scale.
+<details>
+
+```python
+import numpy as np
+from bipl import Mosaic, Slide
+
+m = Mosaic(step=512, overlap=0)  # Read at [0:512], [512:1024], ...
+
+# Open slide at 1:1 scale
+s = Slide.open('test.svs')
+
+# Target at 4 um/px resolution
+# If `test.svs` has some pyramid in it (i.e. 1:1, 1:4, 1:16), it will be used to speed up reads.
+s4 = s.resample(mpp=4.0)
+
+# Get iterator over tiles.
+# Reads will be at [0:512], [512:1024] ... @ MPP
+tiles = m.iterate(s4)
+
+# Read only subset of tiles according to binary mask (1s are read, 0s are not).
+# `s4.shape * scale = mask.shape`, `scale <= 1`
+tiles = tiles.select(mask, scale)
+
+# Read all data, trigger I/O. All the previous calls do not trigger any disk reads beyond metadata.
+images: list[np.ndarray] = [*tiles]
+```
+</details>
+
+## Installation
+
+```bash
+pip install bipl
+```
+bipl is compatible with: Python 3.10+.
+Tested on ArchLinux, Ubuntu 20.04/22.04, Windows 10/11.
