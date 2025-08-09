@@ -1,0 +1,33 @@
+# SPDX-FileCopyrightText: 2025 John Romkey
+#
+# SPDX-License-Identifier: MIT
+
+services:
+  circremote-base: &base
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: circremote
+    image: circremote:latest
+    volumes:
+      - .:/workspace:rw
+      - ~/.circremote:/home/circremote/.circremote:ro
+      - ~/.cache/circup:/home/circremote/.cache/circup:rw
+      - /dev/bus/usb:/dev/bus/usb:ro
+    working_dir: /workspace
+    network_mode: host
+    restart: no
+
+  circremote-shell:
+    <<: *base
+    stdin_open: true
+    tty: true
+    entrypoint: ["/bin/bash"]
+
+  circremote:
+    <<: *base
+
+  circremote-serial:
+    <<: *base
+    devices:
+      - "${CIRCREMOTE_SERIAL}:${CIRCREMOTE_SERIAL}"
