@@ -1,0 +1,264 @@
+[project]
+name = "entity-core"
+version = "0.0.10"
+description = "A flexible, plugin-based framework for building AI agents"
+authors = [
+    { name = "C. Thomas Brittain", email = "cthomasbrittain@hotmail.com" },
+]
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.11"
+keywords = [
+    "ai",
+    "agents",
+    "llm",
+    "framework",
+    "plugin",
+    "workflow",
+    "memory",
+    "rag",
+    "autonomous",
+    "assistant",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+    "Typing :: Typed",
+    "Framework :: AsyncIO",
+]
+
+[tool.poetry]
+package-mode = true
+
+packages = [{ include = "entity", from = "src" }]
+include = ["src/entity/py.typed"]
+
+[tool.poetry.scripts]
+entity-cli = "entity.cli.__main__:main"
+workflow-viz = "entity.tools.workflow_viz:main"
+
+
+[tool.poetry.urls]
+homepage = "https://github.com/Ladvien/entity"
+repository = "https://github.com/Ladvien/entity"
+documentation = "https://entity-core.readthedocs.io/en/latest/"
+"Bug Tracker" = "https://github.com/Ladvien/entity/issues"
+"Discussions" = "https://github.com/Ladvien/entity/discussions"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pyyaml = "^6.0.2"
+pydantic = "^2.0.0"
+httpx = "0.27.*"
+aioboto3 = "^13.0.0"
+duckdb = "^1.3.1"
+websockets = "^15.0"
+grpcio = "^1.62.2"
+grpcio-tools = "^1.62.2"
+huggingface_hub = "^0.23"
+rich = "^13.7"
+
+[tool.poetry.group.dev.dependencies]
+black = "^25.1.0"
+pytest = "^8.4.1"
+pytest-env = "^1.1.5"
+pytest-asyncio = "^0.25.0"
+pytest-cov = "^6.1.0"
+hypothesis = "^6.100"
+pytest-benchmark = "^4.0.0"
+flake8 = "7.0.0"
+bandit = "^1.8.5"
+poethepoet = "^0.36.0"
+vulture = "^2.14"
+httpx = "0.27.*"
+build = "^1.2"
+pre-commit = "^4.2.0"
+sphinx = "^8.2.0"
+sphinx-rtd-theme = "^3.0.0"
+isort = "^6.0.1"
+myst-parser = "^4.0.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poe]
+# envfile removed; tasks now declare necessary variables explicitly
+[tool.poe.tasks]
+patch = { cmd = "poetry version patch" }
+_build = { cmd = "poetry build" }
+_publish = { cmd = "poetry publish", env = { POETRY_PYPI_TOKEN_PYPI = "${POETRY_PYPI_TOKEN_PYPI}" } }
+release = ["patch", "_build", "_publish"]
+publish = { cmd = "poetry publish", env = { POETRY_PYPI_TOKEN_PYPI = "${POETRY_PYPI_TOKEN_PYPI}" } }
+
+# Development helpers
+start-db = { cmd = "docker compose up -d postgres" }
+start-test-services = { cmd = "docker compose up -d" }
+stop-test-services = { cmd = "docker compose down -v" }
+
+# ALL test tasks need the env variable
+test = { cmd = "pytest", env = { PYTHONPATH = "src" } }
+test-verbose = { cmd = "pytest -v", env = { PYTHONPATH = "src" } }
+test-coverage = { cmd = "pytest --cov=src --cov-report=html --cov-report=term-missing", env = { PYTHONPATH = "src" } }
+test-architecture = { cmd = "pytest tests/test_architecture/ -v", env = { PYTHONPATH = "src" } }
+test-plugins = { cmd = "pytest tests/test_plugins/ -v", env = { PYTHONPATH = "src" } }
+test-resources = { cmd = "pytest tests/test_resources/ -v", env = { PYTHONPATH = "src" } }
+test-decorators = { cmd = "pytest tests/test_decorators.py -v", env = { PYTHONPATH = "src" } }
+unit = { cmd = "pytest tests/unit", env = { PYTHONPATH = "src" } }
+integration = { cmd = "pytest tests/integration", env = { PYTHONPATH = "src" } }
+e2e = { cmd = "pytest tests/e2e", env = { PYTHONPATH = "src" } }
+
+[tool.poe.tasks.test-with-docker]
+sequence = [
+    { ref = "start-test-services" },
+    { cmd = "pytest -m integration -n auto", env = { PYTHONPATH = "src" } },
+    { ref = "stop-test-services" },
+]
+
+[tool.poe.tasks.setup-dev]
+cmd = "poetry install --with dev"
+
+[tool.poe.tasks.lint]
+sequence = [
+    { cmd = "poetry run black src tests" },
+    { cmd = "poetry run isort src tests" },
+    { cmd = "poetry run flake8 src tests" },
+]
+[tool.poe.tasks.validate]
+sequence = [
+    { cmd = "poetry run entity-cli --config config/dev.yaml verify" },
+    { cmd = "poetry run entity-cli --config config/prod.yaml verify" },
+    { cmd = "python -m src.entity.core.registry_validator" },
+]
+
+
+[tool.poe.tasks.check]
+sequence = [
+    { ref = "lint" },
+    { cmd = "poetry run mypy src" },
+    { cmd = "bandit -r src" },
+    { ref = "validate" },
+    { cmd = "pytest", env = { PYTHONPATH = "src" } },
+]
+
+# Documentation tasks
+[tool.poe.tasks.docs]
+cmd = "sphinx-build -b html docs/source docs/build"
+help = "Build documentation locally"
+
+[tool.poe.tasks.docs-serve]
+cmd = "python -m http.server 8000 -d docs/build"
+help = "Serve documentation locally on port 8000"
+
+[tool.poe.tasks.docs-clean]
+cmd = "rm -rf docs/build"
+help = "Clean documentation build files"
+
+[tool.poe.tasks.docs-check]
+cmd = "sphinx-build -b linkcheck docs/source docs/build"
+help = "Check documentation for broken links"
+
+# Pre-commit tasks
+[tool.poe.tasks.pre-commit-install]
+cmd = "pre-commit install"
+help = "Install pre-commit hooks"
+
+[tool.poe.tasks.pre-commit-run]
+cmd = "pre-commit run --all-files"
+help = "Run pre-commit on all files"
+
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+# Make sure src is in the Python path for pytest
+pythonpath = ["src"]
+
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+    "--strict-config",
+    "--color=yes",
+    "--durations=10",
+    "-m",
+    "not benchmark",
+]
+asyncio_mode = "auto"
+
+# Rest of your existing pytest config...
+markers = [
+    "unit: Unit tests (fast, isolated)",
+    "integration: Integration tests (slower, use real components)",
+    "slow: Slow tests (may take several seconds)",
+    "memory: Tests related to memory system",
+    "tools: Tests related to tool system",
+    "api: Tests related to API endpoints",
+    "cli: Tests related to CLI interface",
+    "benchmark: Performance benchmarking tests",
+    "examples: Tests that run example scripts",
+    "docker: Tests that require Docker",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+    "ignore::UserWarning:sentence_transformers.*",
+]
+minversion = "6.0"
+log_cli = true
+log_cli_level = "DEBUG"
+log_cli_format = "%(asctime)s [%(levelname)8s] %(name)s: %(message)s"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+
+
+# Coverage configuration
+[tool.coverage.run]
+source = ["src"]
+omit = ["*/tests/*", "*/test_*", "*/__pycache__/*", "*/venv/*", "*/.venv/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+]
+
+# Black formatting configuration
+[tool.black]
+line-length = 88
+target-version = ['py311']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | src/cli/templates
+  | src/entity/cli/templates
+  | templates/plugins
+)/
+'''
+
+[tool.vulture]
+exclude = ["*templates*", "src/entity/resources/memory.py"]
