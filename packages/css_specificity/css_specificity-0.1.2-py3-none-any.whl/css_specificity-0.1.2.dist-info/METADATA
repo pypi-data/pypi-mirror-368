@@ -1,0 +1,145 @@
+Metadata-Version: 2.3
+Name: css_specificity
+Version: 0.1.2
+Summary: A Python library for calculating the specificity of CSS selectors
+License: MIT
+Author: Devlink42
+Author-email: 8506859-devlink42@users.noreply.gitlab.com
+Requires-Python: >=3.9
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Requires-Dist: black (>=25.1.0,<26.0.0)
+Requires-Dist: tinycss2 (>=1.4.0,<2.0.0)
+Project-URL: CSS Specificity Doc, https://www.w3.org/TR/selectors-4/#specificity-rules
+Project-URL: Repository, https://gitlab.com/devlink42/css_specificity
+Description-Content-Type: text/markdown
+
+# CSS Specificity Calculator
+
+A Python library for calculating the [CSS specificity](https://www.w3.org/TR/selectors-4/#specificity) of CSS selectors.
+
+**What is CSS specificity?**
+
+CSS specificity determines which style rule is applied by browsers when multiple rules could apply to a given element.
+It is generally represented as a tuple (a, b, c) or a,b,c (IDs, classes/attributes/pseudo-classes, element/pseudo-elements).
+
+## ✨ Features
+
+- Computes specificity for a single CSS selector.
+- Supports all modern selector types:
+
+  - classes (`.foo`), IDs (`#bar`), element types (`div`), attributes (`[attr]`)
+  - pseudo-classes (`:hover`), pseudo-elements (`::after`, `:before`)
+  - functional pseudo-classes with correct specificity:
+    (`:is()`, `:not()`, `:has()`, `:where()`, per [Selectors Level 4](https://www.w3.org/TR/selectors-4/#specificity))
+  - custom pseudo-elements (e.g. `::part()`, `::slotted()`)
+- Written in modern Python with dataclass support.
+- No dependencies except [tinycss2](https://github.com/Kozea/tinycss2).
+- Fast, simple, and reusable as a module.
+
+## 🚀 Getting Started
+
+### Installation
+
+```sh
+pip install css_specificity
+```
+
+### Or clone this repo and use `poetry install` if developing locally:
+
+```sh
+git clone https://gitlab.com/devlink42/css_specificity.git
+cd css_specificity
+poetry install
+```
+
+## 💭Usage
+
+```python
+from css_specificity import SpecificityCalculator
+
+spec = SpecificityCalculator.calculate("body .foo#bar > a:hover::after")
+print(spec)  # Output: 1,2,3
+# a = ID count, b = class/attr/pseudo-class, c = type/pseudo-element
+print(spec.a, spec.b, spec.c)  # Output: 1 2 3
+```
+
+**Handling advanced selectors:**
+
+```python
+print(
+    SpecificityCalculator.calculate(
+        ".foo:is(#id, .bar)"
+    )
+)  # Output: 1,1,0 (because `#id` is the most specific within :is)
+```
+
+## 🫧 Features in depth and coming soon
+
+### ✅ Already supported
+
+- **Selectors Supported:**
+
+  - Universal (`*`), type (`div`), class (`.foo`), ID (`#id`)
+  - Attribute (`[href]`, `[type="text"]`)
+  - Pseudo-classes (`:hover`, `:focus`, etc.)
+  - Functional pseudo-classes per CSS4 with "max" specificity for `:is`, `:not`, `:has`, and for `:where()` replaced by zero
+  - Pseudo-elements (both `::before`, `::after`, etc. and legacy `:before`, etc.)
+  - Custom pseudo-elements (Web Components: `::part()`, `::slotted()`)
+- **Multiple selectors:**
+  The API currently works for a single selector string. If you have a selector list (`a, b, c`), split and process individually.
+
+### 🔜 Coming soon
+
+* [ ] Pseudo-classes function `:nth-child()` and `:nth-last-child()` =>
+the specificity of the pseudo class itself (counting as one pseudo-class selector)
+plus the specificity of the most specific complex selector in its selector list argument (if any).
+* [ ] Better handle complex nested parentheses for pseudo-classes function
+* [ ] Test and coverage
+* [ ] CLI tool
+* [ ] CI/CD Pipeline for testing and potentially publishing to PyPI automatically
+
+## 🚥 API
+
+### `SpecificityCalculator.calculate(selector: str) -> Specificity`
+
+Returns an instance for the given selector: `Specificity`
+
+- `a`: ID selectors count (`#foo`)
+- `b`: class selectors, attribute selectors, and pseudo-classes (`.foo`, `[type]`, `:hover`)
+- `c`: type selectors and pseudo-elements (`div`, `::before`)
+
+### `Specificity`
+
+A simple dataclass with fields `.a`, `.b`, `.c` (all integers), string representation, and comparison operators.
+
+## 🪛 CLI Usage
+
+_(Not yet supported, but planned for a future release. Contributions welcome!)_
+
+## 🫂 Contributing
+
+Contributions, bug reports, and feature requests are welcome!
+
+**Development setup:**
+
+- Clone the repo and use [Poetry](https://python-poetry.org/docs/) for virtualenv and tool management.
+- For code formatting, use [Black](https://black.readthedocs.io/en/stable/). (Pipeline coming soon to better check)
+- For linting, use [Flake8](https://flake8.pycqa.org/en/latest/). (Pipeline coming soon to better check)
+- For testing, use [Pytest](https://docs.pytest.org/en/stable/). (Pipeline coming soon to better check)
+- For commit messages, use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
+
+**Testing:**
+
+Tests are planned. MRs with test cases welcome!
+
+## 📜 License
+
+This project is licensed under [MIT License](LICENSE).
+
