@@ -1,0 +1,47 @@
+from datetime import datetime
+from typing import Any
+
+from sqlalchemy import BigInteger, DateTime, TextClause{% if not is_duplicate %}, Boolean{% endif %}{{ custom_imports }}
+from sqlalchemy.orm import Mapped, mapped_column
+
+from ..prefix.prefix_base import PrefixBase{% if not is_duplicate %}
+from ..settings.config import SettingsEngine{% endif %}
+
+
+class {{ classname }}(PrefixBase):
+    __incomplete_tablename__ = "{{ model_name }}"
+
+    id: Mapped[int] = mapped_column(
+        BigInteger,
+        primary_key=True,
+        index=True,{% if not is_duplicate %}
+        autoincrement=True,{% endif %}
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=TextClause("CURRENT_TIMESTAMP"),
+    ){% if not is_duplicate %}
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=TextClause(
+            SettingsEngine().get_updated_at(),  # pyright: ignore
+        ),
+    )
+    deleted: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        server_default=TextClause("FALSE"),
+    ){% if columns %}
+    {% for column in columns %}
+    {{ column.name }}: Mapped[{{ column.type }}] = mapped_column({{ column.sql_type }}, nullable=False){% endfor %}{% endif %}{% endif %}
+
+    def __repr__(self) -> str:
+      return f"<{{ classname }}(id={self.id})>"
+
+    def keys(self) -> list[str]:
+      return [column.key for column in self.__table__.columns]
+
+    def __getitem__(self, key) -> Any:
+      return getattr(self, key)
