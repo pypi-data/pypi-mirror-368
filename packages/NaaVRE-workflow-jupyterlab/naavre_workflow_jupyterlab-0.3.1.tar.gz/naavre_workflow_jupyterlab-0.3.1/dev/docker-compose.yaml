@@ -1,0 +1,43 @@
+name: naavre-workflow-jl-dev
+
+services:
+  workflow-service:
+    image: ghcr.io/naavre/naavre-workflow-service:v0.1.3
+    ports:
+      - "127.0.0.1:62438:8000"
+    environment:
+      DEBUG: true
+      VERIFY_SSL: false
+      DISABLE_AUTH: true
+      CONFIG_FILE_URL: /configuration.json
+      # FIXME: this is a quick and dirty fix using the minikube instance from https://github.com/NaaVRE/NaaVRE-dev-integration.
+      # It will be moved to configuration.json after addressing https://github.com/NaaVRE/NaaVRE-workflow-service/issues/3
+      SECRETS_CREATOR_API_ENDPOINT: https://naavre-dev.minikube.test/k8s-secret-creator/1.0.0/
+      SECRETS_CREATOR_API_TOKEN: token_ksc
+    volumes:
+      - ./workflow-config.json:/configuration.json
+
+  catalogue-service:
+    image: ghcr.io/naavre/naavre-catalogue-service:v0.1.6
+    ports:
+      - '127.0.0.1:56848:8000'
+    volumes:
+      - ./catalogue-fixtures.json:/code/app/fixtures.json
+    environment:
+      DEV_MODE: true
+      VERIFY_SSL: false
+      DISABLE_AUTH: true
+      DJANGO_SUPERUSER_USERNAME: admin
+      DJANGO_SUPERUSER_PASSWORD: admin
+      DJANGO_SUPERUSER_EMAIL: example@example.org
+      DB_HOST: catalogue-db
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres-password
+      DB_NAME: postgres
+      OIDC_CONFIGURATION_URL: https://naavre-dev.minikube.test/auth/realms/vre/.well-known/openid-configuration
+
+  catalogue-db:
+    image: postgres:17
+    environment:
+      POSTGRES_PASSWORD: postgres-password
