@@ -1,0 +1,78 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: ["*"]
+  workflow_dispatch: # allows you to trigger manually
+
+# When this workflow is queued, automatically cancel any previous running
+# or pending jobs from the same branch
+concurrency:
+  group: pytest-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash -l {0}
+
+jobs:
+  test:
+    name: ${{ matrix.os }} ${{ matrix.environment }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest # x86-64
+          - ubuntu-24.04-arm # ARM
+          - macos-13 # x86-64
+          - macos-latest # ARM
+          - windows-latest # x86-64
+        environment:
+          - smoke
+          - mindeps
+          - py311
+          - py313
+        include:
+          - os: ubuntu-latest
+            environment: upstream
+          - os: ubuntu-latest
+            environment: nogil
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Disregard pixi.lock (upstream/nogil only)
+        if: matrix.environment == 'upstream' || matrix.environment == 'nogil'
+        run: rm pixi.lock
+
+      - uses: prefix-dev/setup-pixi@v0.8.10
+        with:
+          pixi-version: v0.50.2
+          environments: ${{ matrix.environment }}
+          cache: ${{ matrix.environment != 'upstream' && matrix.environment != 'nogil' }}
+          locked: ${{ matrix.environment != 'upstream' && matrix.environment != 'nogil' }}
+
+      - name: Smoke test
+        run: pixi run -e ${{ matrix.environment }} smoke-test
+
+      - name: pytest with coverage
+        if: matrix.environment != 'nogil' && matrix.environment != 'smoke'
+        run: pixi run -e ${{ matrix.environment }} coverage
+
+      - name: Free-threading stress test
+        if: matrix.environment == 'nogil'
+        run: pixi run -e nogil tests --parallel-threads=4
+
+      - name: doctests
+        if: matrix.environment != 'mindeps' && matrix.environment != 'smoke'
+        run: pixi run -e ${{ matrix.environment }} doctests
+
+      - name: codecov.io
+        if: matrix.os != 'macos-13' && matrix.environment != 'nogil' && matrix.environment != 'smoke'
+        uses: codecov/codecov-action@v5
