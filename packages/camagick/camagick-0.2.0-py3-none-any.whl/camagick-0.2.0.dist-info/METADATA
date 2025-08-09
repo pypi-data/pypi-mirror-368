@@ -1,0 +1,899 @@
+Metadata-Version: 2.4
+Name: camagick
+Version: 0.2.0
+Summary: Command-line client tools for EPICS-CA data processing
+Author-email: Florin Boariu <florin.pt@rootshell.ro>, Matthias Rössle <matthias.roessle@helmholtz-berlin.de>
+License-Expression: GPL-3.0-or-later
+Project-URL: Source Code, https://gitlab.com/kmc3-xpp/camagick
+Project-URL: Bug Tracker, https://gitlab.com/kmc3-xpp/camagick/-/issues
+Classifier: Programming Language :: Python :: 3
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Development Status :: 2 - Pre-Alpha
+Classifier: Environment :: Console
+Classifier: Intended Audience :: Science/Research
+Classifier: Topic :: Scientific/Engineering
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: COPYING.md
+Requires-Dist: schema
+Requires-Dist: numpy
+Provides-Extra: all
+Requires-Dist: camagick[epics,hdf5,legacy,plot,tango,test,tiff,zarr]; extra == "all"
+Provides-Extra: epics
+Requires-Dist: xarray; extra == "epics"
+Requires-Dist: caproto; extra == "epics"
+Requires-Dist: parse; extra == "epics"
+Provides-Extra: tango
+Requires-Dist: pytango>=10.0; extra == "tango"
+Provides-Extra: legacy
+Requires-Dist: ophyd; extra == "legacy"
+Provides-Extra: tiff
+Requires-Dist: tifffile; extra == "tiff"
+Provides-Extra: zarr
+Requires-Dist: zarr; extra == "zarr"
+Provides-Extra: plot
+Requires-Dist: matplotlib; extra == "plot"
+Provides-Extra: hdf5
+Requires-Dist: h5py; extra == "hdf5"
+Provides-Extra: test
+Requires-Dist: pytest; extra == "test"
+Requires-Dist: pytest-cov; extra == "test"
+Requires-Dist: pytest-asyncio; extra == "test"
+Dynamic: license-file
+
+# About CAmagick / CAspy
+
+[![pipeline status](https://gitlab.com/kmc3-xpp/caspy/badges/master/pipeline.svg)](https://gitlab.com/kmc3-xpp/caspy/-/commits/master)
+[![coverage report](https://gitlab.com/kmc3-xpp/caspy/badges/master/coverage.svg)](https://gitlab.com/kmc3-xpp/caspy/-/commits/master)
+[![Latest Release](https://gitlab.com/kmc3-xpp/caspy/-/badges/release.svg)](https://gitlab.com/kmc3-xpp/caspy/-/releases)
+
+[TOC]
+
+CAspy is the Swiss Army-Knife in your SCADA toolbox; your silver bullet
+intended for [*Monday-morning Integration*](#what-is-monday-morning-integration),
+i.e. rapid, ad-hoc, last-minute
+installation of features and equipment into an existing setup:
+
+- 3rd-party measurement devices
+- superficial data processing and enhancements
+- live visualizaion and storage options.
+
+It is focused primarily on interaction with the
+[EPICS](https://epics-controls.org/) Channel-Access protocol, but there
+is nothing *fundamentally* tying CAspy to EPICS.
+In fact, it's rapidly expanding to support transfer protocols like
+[Tango](https://www.tango-controls.org/) and various data backends
+like [HDF5](https://www.hdfgroup.org/solutions/hdf5/),
+[Zarr](https://zarr.dev/),
+[Tiled](https://blueskyproject.io/tiled/) etc.
+
+The intended audience are beamline scientists, engineers, researchers
+tasked with operating and maintaining experimental endstations at
+synchrotrons, accelerators, universities, reactors and other research
+facilities.
+
+CAmagick is the name of the Python package of which the CAspy application
+is part of.
+
+# Quick Introduction
+## Download & First Start
+
+Either through PyPI:
+```
+$ pip install camagick[all]
+$ caspy -h
+```
+
+Or by downloading the Docker/Podman image:
+```
+podman run -ti --rm registry.gitlab.com/kmc3-xpp/camagick:latest -h
+```
+
+This would produce an output like the following:
+```
+usage: caspy [options] <pipe>
+
+Swiss Army Knife for scientific data collection.
+
+options:
+  -h, --help  show this help message and exit
+  -version    prints version information and exits
+  -list-all   list available data flow and processing pipe modules
+  -save SAVE  don't execute the pipeline, just dump command line arguments as YAML to stdout
+  -yaml YAML  load processing pipeline from YAML file
+
+Try `-list-all` for a list of processors.
+```
+
+CAspy has an extensive (if yet a bit unpolished) built-in help system.
+Feel free to explore, starting with its entry point, the `-list-all`
+option.
+
+
+## Quick And Simple Examples to Try Out
+
+CAspy needs data, for instance from EPICS process variables
+(PVs) available in your local network.
+If you don't have any EPICS PVs readily available, explore the
+[Ad-Hoc Random Data IOC](#an-ad-hoc-random-data-ioc) chapter of
+this document for information
+on how to rapidly spin up an IOC with test values.
+
+In these examples, we'll use the following variables for demonstration
+(feel free to replace by your own PVs):
+
+- `EXAMPLE:iffy` - a floating-point scalar value, e.g. as you'd receive from
+  a sensor or a single-value detector,
+  
+- `EXAMPLE:jedda` - an array of 2048 floating-point values, e.g. as you'd
+   receive them from an image detector, an oscilloscpoe or any other of
+   array-based detector.
+
+
+### Visualization of EPICS Data
+
+- Ploting the array data:
+  ```
+  caspy --from-epics EXAMPLE:jedda --to-plot
+  ```
+  (Press Ctrl+C in the terminal to make it stop.)
+
+- Storing the evolution of the scalar value in a loop-buffered array
+  and plotting:
+  ```
+  caspy --from-epics iffy prefix=EXAMPLE: --stack --to-plot
+  ```
+  
+- Reshaping array data as a 64x32 image and 2D plotting:
+  ```
+  caspy --from-epics EXAMPLE:jedda --reshape 64 32 --to-plot
+  ```
+  The `--reshape` filter expects as many unnamed arguments
+  as dimensions the dataset should be reshaped to.
+
+- Screenshots for the above
+
+  ![Ploting Jedda](./doc/screenshots/plot-example-jedda.png "Jedda 1D array"){width=30%}
+  ![Jedda as Image](./doc/screenshots/plot-example-image.png "Jedda as a 64x32 Image"){width=30%}
+  ![Plottin Iffy Evolution](./doc/screenshots/plot-example-iffy.png "Iffy time evolution"){width=30%}
+  
+
+### Data Processing and Filtering
+
+- You've already been implicitly introduced to numeric data processing
+  with `numpy` in [an earlier example](#visualization-of-epics-data).
+  Here we're showing more examples of using `numpy` functions, cortesy
+  of the `--npfun` processing filter. The hard rules are:
+  - only functions in the main `numpy.` Python namespace are allowed,
+  - they must accept *one* array as their first argument and deliver
+    *one* array as their return value,
+  - they may accept other optional arguments (named or direct).
+  For instance, summing over an array:
+  ```
+  $ caspy --from-epics EXAMPLE:jedda --npfun sum --to-summary
+  EXAMPLE_jedda: 1037.1276589787378
+  EXAMPLE_jedda: 1049.6264480584964
+  ...
+  ```
+  Or summing over one particular axis of a 2D array:
+  ```
+  $ caspy --from-epics EXAMPLE:jedda --reshape 64 32 --npfun sum axis=1 --to-summary
+  EXAMPLE_jedda: shape=(64,) <class 'float'>
+  EXAMPLE_jedda: shape=(64,) <class 'float'>
+  ...
+  ```
+  Or a different operation -- say, building a gradient:
+  ```
+  $ caspy --from-epics EXAMPLE:jedda --npfun gradient --to-summary
+  EXAMPLE_jedda: shape=(2048,) <class 'float'>
+  EXAMPLE_jedda: shape=(2048,) <class 'float'>
+  EXAMPLE_jedda: shape=(2048,) <class 'float'...
+  ```
+  
+  Note that in the last example, `numpy.gradient`
+  [might return](https://numpy.org/doc/stable/reference/generated/numpy.gradient.html)
+  a single
+  `numpy.ndarray`, or a tuple of arrays -- depending on the dimensionality.
+  Using the `--npfun gradient` filter on a multi-dimensional array
+  is undefined behavior in CAspy.
+  
+  By the way, here we've introduced one of the simplest, yet most useful,
+  built-in debugging tools of CAspy -- the `--to-summary` data sink.
+  The name
+  gives it away: it produces a summary of each of the data containers
+  within the processing pipeline. For scalar values, it prints the value
+  itself. For arrays, it prints quick info on the shape and data type.
+
+- Array slicing: calculating region of interests (ROIs).
+
+  Consider this:
+  ```
+  $ caspy --from-epics EXAMPLE:jedda --reshape 64 32 --slice 0 --to-summary
+  EXAMPLE_jedda: shape=(32,) <class 'float'>
+  EXAMPLE_jedda: shape=(32,) <class 'float'> ...
+  ```
+  
+  Or this: 
+  ```
+  $ caspy --from-epics EXAMPLE:jedda --reshape 64 32 --slice 0:10 3:8 --to-summary
+  EXAMPLE_jedda: shape=(10, 3) <class 'float'>
+  EXAMPLE_jedda: shape=(10, 3) <class 'float'> ...
+  ```
+  
+  What happened here is we selected a subset of the 64x32 "jedda" image, and this
+  results in corresponding 1D or 2D sub-arrays -- or "regions of interest" (ROIs),
+  as physicists love to call them.
+  
+  Adding an `--npfun sum` filter...
+  ```
+  $ caspy --from-epics EXAMPLE:jedda \
+          --reshape 64 32 \
+          --slice 0:10 3:8 \
+          --npfun sum 
+          --to-summary
+  ```
+  actually produces the total intensity value within the respective ROI:
+  ```
+  EXAMPLE_jedda: 14.627766643611942
+  EXAMPLE_jedda: 13.962308251634408
+  EXAMPLE_jedda: 14.93059507458529
+  ...
+  ```
+  
+  
+At the end of this subsection we'd like to take a moment and emphasize how
+CAspy is working internally: it is repeating the processing pipe specified
+on the command line, over and over again. See also
+[this systematic approach](#processing-model) for details. In all the
+examples -- the ones we've seen and the ones that still follow -- we've
+eventually 
+
+### Data Storage to Various Formats
+- Saving to HDF5
+  ```
+  $ caspy --from-epics EXAMPLE:iffy EXAMPLE:jedda \
+          --to-hdf5 my-data.h5#group/{tag} \
+          --to-summary
+  ``` 
+ The trailing `--to-summary` parameter is optional. But most output pipes,
+  including the `--to-hdf5` sink, 
+  produce the full path (outside and inside the HDF5 file) as a string,
+  so the `--to-summary`  will produce some output,
+  showing *that* and *where* the data is going to:
+  ```
+  ./my-data.h5#group/EXAMPLE_jedda[None]  ./my-data.h5#group/EXAMPLE_iffy[None]
+  ./my-data.h5#group/EXAMPLE_jedda[None]  ./my-data.h5#group/EXAMPLE_iffy[None]
+  ...
+  ```
+  You can inspect the HDF5 file for what's inside:
+  ```
+  $ h5ls -r my-data.h5
+  /                        Group
+  /group                   Group
+  /group/EXAMPLE_iffy      Dataset {83/Inf}
+  /group/EXAMPLE_jedda     Dataset {83/Inf, 2048}
+  ```
+
+- Saving to Zarr, analogously to the HDF5 example:
+  ```
+  $ caspy --from-epics EXAMPLE:iffy EXAMPLE:jedda \
+          --to-zarr my-data.zarr#group/{tag}
+  ```
+
+- Selecting a ROI and printing scalar values in a table:
+  ```
+  $ caspy --from-epics EXAMPLE:jedda \
+          --reshape 64 32 \
+          --slice 16:48 8:24 \
+          --npfun sum \
+          --to-summary mode=table
+  ```
+  Similarly to [the ROI example](#data-processing-and-filering) this
+  will integrate over a designated areay (this timeroughly 500 pixels)
+  in the middle of the 64x32 image, producing numbers randomly fluctuating 
+  around the value 250:
+  ```
+  # EXAMPLE_jedda
+  260.61935388471227
+  246.3464424926541
+  262.830143753871
+  ...
+  ```
+  
+  Remember that `--to-summary mode=table` is just a poor man's tabublar output.
+  When used in lieu of a data storage backend, it will deliver expected
+  results for scalar data only. For arrays, it will still just print a hint
+  as to the shape and data type of the array, no actual data.
+  
+  See also the [selective data processing](#selective-data-processing)
+  and the more complex
+  [calculating ROIs](#calculating-and-broadcasting-rois-alonside-other-values)
+  examples.
+
+### Ad-Hoc-IOC: Receiving and Broadcasting Results
+
+"[**Integration**](#what-is-monday-morning-integration)"
+only begins to be *really* fun when we can inject our own
+data into the EPICS network of your beamline.
+
+- Broadcasting ROIs of images as new PVs -- revisiting the previous example:
+  ```
+  $ caspy --from-epics EXAMPLE:jedda \
+          --reshape 64 32 \
+          --slice 16:48 8:24 \
+          --npfun sum \
+          --to-ioc prefix=RESULT:
+  ```
+  This will create an ad-hoc IOC, exporting `RESULT:EXAMPLE_jedda` as a new
+  EPCIS variable, as we can easily check in another terminal:
+  ```
+  $ camonitor RESULT:EXAMPLE_jedda
+  RESULT:EXAMPLE_jedda           2025-05-18 12:20:52.138180 248.042
+  RESULT:EXAMPLE_jedda           2025-05-18 12:20:53.165549 243.405
+  RESULT:EXAMPLE_jedda           2025-05-18 12:20:54.089684 245.534
+  ```
+
+- Receiving specific data from an EPICS client is just as much fun,
+  but it involves spinning up an ad-hoc IOC *as a data source*:
+  ```
+  $ caspy --from-ioc var="ene(0.0)" prefix=EXAMPLE: --to-summary
+  var: 0.0
+  ```
+  The output is owing to the `--to-summary` data sink; but the IOC
+  itself, exporting `EXAMPLE:ene` as a variable with initial value `0.0`,
+  exists with or without `--to-summary` to testify.
+  As a next step, we can now interact with the IOC using
+  any EPICS client, e.g. from another terminal:
+  ```
+  $ caget 
+  $ caput EXAMPLE:ene 3.14
+  $ caput EXAMPLE:ene 6.28
+  ```
+  All the while, the original `caspy` instance we used to spawn
+  the IOC will testify to data entering the processing pipe:
+  ```
+  ...
+  var: 3.14
+  var: 6.28
+  ```
+
+- A common pattern is receiving data e.g. as session or
+  "scan" ID information, and then using it to build storage paths:
+  ```
+  $ caspy --from-ioc scan="scan(0)" prefix=EXAMPLE: hang=False \
+          --from-epics EXAMPLE:jedda \
+          --demote scan \
+          --to-hdf5 my-data.h5#scan-{scan:03d}/data
+  ```
+  The IOC starts running with initial `scan=0` input data,
+  in addition to retrieving EPICS data from `EXAMPLE:jedda`.
+  The `hang=False` parameter here instructs CAspy to not wait
+  for a new value on each run of pipeline. Instead, as in the 
+  examples before, it's still only fresh values of `EXAMPLE:jedda`
+  that trigger a new run through the pipeline (and thus a saving
+  operation).
+
+  After a brief while we can check the contents of `my-data.h5`.
+  In our example, we'll realize that the `/scan-000/data` dataset
+  now has 21 data points:
+  ```
+  $ h5ls -r my-data.h5
+  /                        Group
+  /scan-000                Group
+  /scan-000/data           Dataset {21/Inf, 2048}
+  ```
+  A real-life scenario would now involve starting new scans
+  every once in a while. We simulate this by incrementing the
+  `scan` value every 10 seconds by virtue of a small Bash
+  loop (in reality this would be done by your experiment
+  orchestration system, e.g. Blyesky or Spec):
+  ```
+  $ for ((s=1; ;s++)); do caput $s; sleep 10; done
+  ```
+  If we check the the contents of the HDF5 target file later,
+  we'll find a number of "scans", each wihin its own HDF5 group,
+  with each dataset containing 10 data points (because our
+  `EXAMPLE:jedda` spits out a new data point every second) -- 
+  except for the most recent "scan", that is, which will
+  be somewhere in the middle of the acquisition process:
+  ```
+  $ h5ls -r my-data.h5
+  /                        Group
+  /scan-000                Group
+  /scan-000/data           Dataset {381/Inf, 2048}
+  /scan-001                Group
+  /scan-001/data           Dataset {10/Inf, 2048}
+  /scan-002
+  /scan-002/data           Dataset {10/Inf, 2048}
+  /scan-003
+  /scan-003/data           Dataset {7/Inf, 2048}
+  ```
+
+### Other Data Sources
+
+- Receiving data from Tango devices: CAspy implements a (as of now
+  very simple, polling-based) Tango data source, using
+  [pytango](https://tango-controls.readthedocs.io/projects/pytango/en/stable/).
+  This in turn requires `TANGO_HOST` to be set to the IP
+  and port of a central "Tango server" to connect to:
+  ```
+  $ export TANGO_HOST=10.128.14.84:1000
+  $ caspy --from-tango devices/keithley/1 cur=current vol=voltage
+  ```
+  In this example, a device called "devices/keithley/1" is exposed
+  by the Tango server at 10.128.14.84, and it offers the channels
+  "voltage" and "current". These channels will be known as "vol" and "cur"
+  in CAspy.
+
+- Receiving data from UNIX pipes: (WORK-IN-PROGRESS -- the idea here
+  is to receive data via `stdin`, or from other processes; this would
+  hugely enhance integration potential, as any device that can be read
+  or written to with e.g. a simple shell command could immediately 
+  start to participate in the local EPICS network!)
+
+- Ophyd signals: CAspy can import and use [Ophyd](https://blueskyproject.io/ophyd/)
+  classes in subscription mode:
+  ```
+  $ caspy --from-ophyd ophyd.signal:EpicsSignalRO EXAMPLE:jedda --to-summary
+  EXAMPLE_jedda: shape=(2048,) <class 'float'>
+  EXAMPLE_jedda: shape=(2048,) <class 'float'>
+  EXAMPLE_jedda: shape=(2048,) <class 'float'>
+  ...
+  ```
+  Currently, only Ophyd `EpicsSignal` classes are supported simply because
+  they are the only ones that offer a data event to begin with.
+  
+  (Ophyd `Device` classes are a WORK-IN-PROGRESS, and definitely fairly
+  high up on the wish list, because the ability to support a cleanly
+  written Ophyd device out of the box for data acquisition bears
+  tremendous integration potential. If you have a use case, we're
+  interested in hearing from you!)
+
+## Complex-Flow Examples
+
+This was already a lot of fun! But up until this point, all data
+processing flow was *linear*: retrieve data, push it through various
+transformation pipes, sink it somewhere into storage.
+But the more interesting use cases involve splitting up the processing
+pipeline, by various criteria.
+
+Out of the box CAspy supports two flow elements: the fanout alignment `{ ... }` 
+and the chaining `[ ... ]` alignment.
+
+Chaining is what we've been doing all along: all elements in a chain 
+are executed *sequentially*, with the output of the previous element
+being fed as input to the current one. The typical
+`caspy --from-epicss ... --to-summary` is, in fact, just a short version
+of:
+```
+$ caspy [ --from-epics ... --to-summary ]
+```
+
+Fanning out is *parallel* processing: it involves making N copies of 
+its input data, and sending each of those into its own processing element;
+then, at the end of the fanout, all results are being reunited.
+
+### Parallel Operations on the Same Dataset 
+
+Multiple operations can be executed on the same input data by
+invoking CAspy like this:
+```
+$ caspy --from-epics ... { --npfun sum --npfun min --npfun max } ...
+```
+...would calculate *all* of sum, minimum and maximum value of
+whatever input data it receives.
+
+Of course, chains and fanouts can -- and usually *have* -- to be combined:
+```
+$ caspy --from-epics EXAMPLE:jedda \
+		{ [ --npfun sum --rename {}_s ] \
+		  [ --npfun min --rename {}_m ] \
+		  { --npfun max --rename {}_M ] } \
+		--to-summary mode=table
+```
+This will generate the following output. Note the renaming of each
+variable, facilitated by the `--rename` filter, locally bound to
+its own subchain:
+```
+# EXAMPLE_jedda_s       EXAMPLE_jedda_m EXAMPLE_jedda_M
+1046.1680891731307      0.0016799877355430093   0.9994537778760137
+1043.0111802458446      0.0006056954049933339   0.9999756262387742
+1015.1539282981603      1.4248315970077918e-05  0.9992211875197418
+...
+```
+
+### Selective Data Processing
+
+Using fanout / chain combinations with appropriate filters,
+we can restrict processing steps to a subset of the input data:
+```
+$ caspy --from-epics EXAMPLE:jedda EXAMPLE:iffy \
+        {                                \
+          [ --only .*jedda --npfun sum ] \
+          --only .*iffy                  \
+        }                                \
+		--to-summary mode=table
+# EXAMPLE_jedda EXAMPLE_iffy
+1033.2037471761835      0.932708565100116
+1037.5297482365136      0.5966679885948641
+1019.5874831187512      0.3284404328958187
+...
+```
+Note that the 2nd branch of the fanout (`--only .*iffy`), being
+just a single pipe, doesn't need to be enclosed in
+chain `[ ... ]` brackets. (It wouldn't hurt if you did, though.)
+
+### Calculating and Broadcasting ROIs Alongside Other Values
+
+An example close to a real-world application is 
+receiving a data array, selecting a sub-region (a.k.a. ROI),
+publishing the ROI sum as an EPICS variable, and saving everything
+to a HDF5 file, while showing a plot of the data:
+```
+$ caspy --from-epics EXAMPLE:jedda     \
+        {                              \
+          [                            \
+            --reshape 64 32            \
+            --slice 16:48 8:24         \
+            --npfun sum                \
+            --rename {}_roi            \
+          ]                            \
+          --idem                       \
+        }                              \
+        {                              \
+          [                            \
+            --to-hdf5 my-data.h5#{tag} \
+          ]                            \
+          [                            \
+            {                          \
+              [ --only .*roi --stack ] \
+              [ --exclude .*roi ]      \
+            }                          \
+            --to-plot                  \
+          ]                            \
+          [                            \
+            --only .*roi               \
+            --to-ioc prefix=EXAMPLE:   \
+          ]                            \
+        }
+```
+There are various tricks in the setup above. For instance:
+- the use of `--idem`, the "pass everythong through" filter, 
+  which in combination with 
+  `{ ... }` (fanout) actually generates a copy of the data
+- the use of `--stack` to transform the ROI sum ino a
+  a plottable 1D array
+- the strategy of breaking the whole operation in two
+  consecutive "high-level" fanout structures: one
+  that "sources" data, the other one that sinks it
+  to two separate channels.
+
+You can try to `camonitor EXAMPLE:jedda_roi` and convince yourself
+that the data is, indeed, getting published.
+  
+This would *almost* be a real-world example if it wasn't for
+one minor detail: typically, not *all* data needs to end up
+in a HDF5 file. In reality, we'd only want to save data when
+"going live", i.e. actually measuring data for posterity.
+But many operations that transmit data through EPICS are only
+ephemeral -- e.g. calibrating the equipment. This is
+demonstrated
+[further below.](#storing-images-and-rois-in-scan-only-mode)
+
+### An Ad-Hoc Random Data IOC
+
+CAspy can be a good tool to quickly spin up complete IOCs,
+from scratch, in nothing but a few lines of Bash code.
+For such an example, we'll define the following requirements:
+- we need 2 measurement signals ("iffy" and "jedda" -- why yes,
+  the same ones we've been using in our example all along! :-)
+- for the sake of demonstration we'll use randomly generated
+  data, but keep in mind that we could've received this data
+  by *any* means supported by CAspy -- e.g. through Tango,
+  a Unix pipe, or just read it from a text file via stdin
+- we want a "busy" marker PV, which should be set to 1
+  while the system is "working", and blink at least once to
+  0 once the system has published a new set of (randomly
+  generated) data
+- we want this whole IOC to be written "in CAspy".
+
+Consider this:
+```
+$ caspy --from-scratch random iffy=1 jedda=2048  \
+        --to-ioc prefix=EXAMPLE:                 \
+        --from-ioc prefix=EXAMPLE: mark="mark"   \
+        --from-scratch zeros idle                \
+        --to-epics idle=EXAMPLE:mark             \
+        --pace Hz=1.0                            \
+        --from-scratch ones busy                 \
+        --to-epics busy=EXAMPLE:mark             \
+```
+This the output that is produced, for instance, when reading
+the `EXAMPLE:iffy` and `EXAMPLE:mark` PVs.
+We notice a clean "busy-data-idle" sequence repeating itself
+about once per second:
+```
+$ camonitor EXAMPLE:iffy EXAMPLE:mark
+EXAMPLE:mark                   2025-05-18 20:43:38.685545 1
+EXAMPLE:iffy                   2025-05-18 20:43:38.697051 0.464235
+EXAMPLE:mark                   2025-05-18 20:43:38.708127 0
+EXAMPLE:mark                   2025-05-18 20:43:39.687370 1
+EXAMPLE:iffy                   2025-05-18 20:43:39.698541 0.194035
+EXAMPLE:mark                   2025-05-18 20:43:39.709579 0
+...
+```
+
+Let's understand how this works:
+
+As to the other components, this is what makes the ad-hoc IOC tick:
+- The first two lines `--from-scratch ... --to-ioc ...` generate
+  and publish the data payload. The `--from-scratch` source  could
+  actually have been replaced by a *real* data source,
+  e.g. `--from-pipe ...`.
+- The two lines acattered throughout, generating `--from-scratch zeros idle`,
+  respectively `--from-scratch ones busy`,
+  prepare our data for the `:mark` variable. You see, CAspy doesn't have
+  the notion of "constants", "variables" or "operations"; it only
+  has a *data stream*, and processors to work on it. The 1 and 0 to
+  mark "busy" or "idle" need to come from somewhere -- this is where
+  they come from! (Their placement within the installment is strategic,
+  immediately before the `--to-epics` sink they're needed in. to avoid
+  having to use selective filters.)
+- The 3rd line `--from-ioc ... mark="mark"` is how we're hosting
+  the `EXAMPLE:mark` variable: as an IOC data *source*. The reason
+  why it's not something else (e.g. an IOC *sink*) is because the
+  way we write the busy-signal to it: we're sinking data into it
+  while we pretend to be an EPICS *client*, during the final 3 lines
+  (`--to-epics ...`).
+- The `--pace Hz=1.0` is designed to slow down the loop to about 1/second.
+  This is for demonstration purposes. The fact that it's placed
+  *exactly* between the "idle" and "busy" write operations is mostly
+  cosmetics.
+
+There are also other possibilities of arranging the commands, in particular
+if making use of fanout `{ ... }` ,chain `[ ... ]`, and filtering
+(`--only ...`,  `--exclude ...`) commands.
+
+The file `./examples/ad-hoc.spy` implements exactly this IOC. You
+can also start it with `caspy -y ./examples/ad-hoc.spy` :-)
+
+## Real-World Examples
+
+### Two-Way EPICS-Tango Bridge
+
+Consider a Tango server on 10.128.14.84 port 10000, exposing a device
+`device/keithley/1`, with the following properties `voltage`, `current`
+and `output`. The first two are floating-point numbers we wish 
+to be able to read; additionally, we want to control `voltage` from
+our EPICS-based experimental control system; and finally `output`
+is to toggle the main operation switch on/off, depending on the
+value it receives (1 or 0).
+
+In CAspy, we'd implement this in two steps:
+- the reading part (Tango to EPICS):
+  ```
+  $ TANGO_HOST=10.128.14.84:10000 \
+	caspy --from-tango devices/keithley/1 cur=current vol=voltage \
+		  --to-ioc prefix="KE:keith:" suffix=".RBV" 
+  ```
+- the writing part, in a different terminal (EPICS to Tango):
+  ```
+  $ TANGO_HOST=10.128.14.84:10000 \
+    caspy --from-ioc prefix="KE:keith:" vol="vol(0.0)" output="output(0)" \
+          --to-tango dev="devices/keithley/1"  vol="voltage" output="output"
+  ```
+
+This allows us to interact with the Tango device, via EPICS, by reading the 
+variables `KE:keith:vol.RBV` and `KE:keith:cur.RBV`, or by writing to
+`KE:keith:output`, respectively `...:vol` or `...:cur`:
+```
+$ caput KE:keith:output 0
+Old : KE:keith:output                1
+New : KE:keith:output                0
+
+$ camonitor KE:keith:vol KE:keith:vol.RBV KE:keith:cur.RBV
+KE:keith:vol                   2025-05-16 16:12:16.999676 0
+KE:keith:vol.RBV               2025-05-16 16:12:18.427048 1.51175e-06
+KE:keith:cur.RBV               2025-05-16 16:12:18.426978 -5.67967e-09
+KE:keith:vol                   2025-05-16 16:49:49.793313 0.05
+KE:keith:cur.RBV               2025-05-16 16:49:51.058931 -9.45977e-09
+KE:keith:vol.RBV               2025-05-16 16:49:51.059145 -2.08196e-07
+KE:keith:vol                   2025-05-16 16:56:41.466383 0.1
+KE:keith:cur.RBV               2025-05-16 16:56:42.897010 -1.3475e-08
+KE:keith:vol.RBV               2025-05-16 16:56:42.897155 2.11221e-08
+...
+```
+
+The important part here is that caspy (currently) cannot do this in one single
+instance.
+This is owing to the nature of the problem: CAspy is intended to process its
+entire pipeline, over and over again.
+But the problem requires frequent periodic runs while
+*retrieving* Tango data, and only sporadic runs when *setting* parameters.
+
+### Storing Images and ROIs in "Scan-Mode" Only
+
+We're revisiting the
+[ROI calculating / IOC example](#calculating-and-broadcasting-rois-alongside-other-values)
+from earlier. As demonstrated it is useful for live visualization purposes,
+but saving data in a production scenario is foiled by the fact that
+*every* image -- "true" measurements and alignment-only runs alike -- would
+end up in the HDF5 file.
+
+To avoid this, we're extending the script by an ad-hoc IOC feature,
+expecting two variables as input:
+- `scan`: this is a numerical scan ID (simetimes also called "run",
+  or "measurement plan"), as
+  [demonstrated earlier](#dd-hoc-ioc-receiving-and-broadcasting-results)
+- `frame`: this is *another* numerical ID, only not for the scan,
+  but for the data point (some people also call this "index")
+The idea is now that before every run, we need to update through EPICS
+the `...:scan` PV; and before every single data point we acquire, we
+need to increment `...:frame`. If `frame` is not set, the pipeline
+will not advance, and the data will not end up in the HDF5 file.
+
+In addition to requesting  our [fake detector signal](#an-ad-hoc-random-data-ioc)
+`EXAMPLE:jedda`, we'll wait for the `EXAMPLE:mark` value to jump to 0
+before retrieving data. This will ensure that we don't prematurely
+save bogus data when `frame` is written to.
+
+Let's look at the CAspy script:
+```
+$ caspy --from-ioc 'scan=scan(1)' 'frame=frame(0)' prefix=EXAMPLE:              \
+        --demote scan frame                                                     \
+        --from-epics EXAMPLE:jedda when=\"EXAMPLE:mark==0\"                     \
+        --reshape 64 32                                                         \
+		--to-hdf5 my-data.h5#scan-{scan:03d}/{tag} index=frame mode=a+ strict=0 \
+		--to-summary mode=table
+```
+
+On the first run, this will generate the following output:
+```
+# EXAMPLE_jedda
+my-data.h5#scan-001/EXAMPLE_jedda[0]
+```
+
+This means that the first available image has been written to disk. Now subsequent
+calls to `caput EXAMPLE:frame <nr>`, with increasing scan indices (1, 2, 3, ...),
+will let CAspy continue writing as frames pour in:
+```
+...
+my-data.h5#scan-001/EXAMPLE_jedda[1]
+my-data.h5#scan-001/EXAMPLE_jedda[2]
+my-data.h5#scan-001/EXAMPLE_jedda[3]
+...
+```
+
+If we change the scan number: `caput EXAMPLE:scan 2`, CAspy will continue writing
+to the same "frame index", but to a different data set:
+```
+my-data.h5#scan-002/EXAMPLE_jedda[3]
+...
+```
+
+If we attempt to reset the frame index to a value that would overwrite existing
+data (e.g. `caput EXAMPLE:frame 0`), in the configuration above CAspy will
+cowardly refuse to do it, but will not crash (as it was instructed *not* to crash):
+```
+ERROR:camagick.sink.hdf5:msg="Overwrite not permitted" index=0 file=my-data.h5 frames=3 dataset="/scan-002/EXAMPLE_jedda" file=""
+ERROR:camagick.sink.hdf5:msg="Ignoring frame index error as instructed" tag=None
+```
+
+Most of this functionality is owing to the specifics of the HDF5 saving
+module. Familiarize yourself with that -- it has many features that will
+happily load the gun for you if you wish to shoot yourself in the foot :-)
+But was designed with what we believed were "useful defaults" in mind.
+
+Now that the CAspy command saves data as it's supposed to, we can 
+extend it to generate a ROI, too, by inserting a suitably-placed
+fanout in the pipeline: `{ [ --slice 16:48 8:26 --npfun sum --rename {}_roi ]  [ ] }`
+
+The full command then looks like this:
+```
+$ caspy --from-ioc 'scan=scan(1)' 'frame=frame(0)' prefix=EXAMPLE:              \
+        --demote scan frame                                                     \
+        --from-epics EXAMPLE:jedda when=\"EXAMPLE:mark==0\"                     \
+        --reshape 64 32                                                         \
+        { [ --slice 16:48 8:26 --npfun sum --rename {}_roi ]  [ ] }             \
+        --to-hdf5 my-data.h5#scan-{scan:03d}/{tag} index=frame mode=a+ strict=0 \
+        --to-summary mode=table
+```
+
+An empty chain `[ ]` works exacly like `--idem`: just passes data
+through, effectively creating a copy if placed alone in a fanout branch.
+
+
+# Concept and Design Principles
+
+## CLI Usage
+
+- command line, ... possibly GUI..., built-in documentation
+
+## Data Model
+
+## Processing Model
+
+## Command Line Structure
+
+## YAML Recipes
+
+## API Based Operation
+
+- Examples?
+
+- Bluesky data callbacks as sources?
+
+# Miscellaneous
+
+## What is "Monday-Morning Integration"?
+
+Everyone will agree: cutting-edge research is messy, from a technical
+point of view.
+
+Yes, the typical experimental setup is in a shape that could be roughly
+describen as "stable, mostly".
+But the accepted reality of research is that minor adjustments
+are required constantly: more often than not, new equipment and measurement
+methods need to be (re-)introduced, adjusted, adapted, in order to
+accomodate new ideas, methods, and guest fellow scientists. Of course, all of this is
+for good reason -- it simply is a time-proven
+concept, as far as good science is concerned.
+
+Also accepted as a reality of research is that, as a consequence of
+necessary ad-hoc modifications of an existing experimental setup,
+two circumstances are largely inevitable:
+- that integration of new equipment and measurement details often
+  takes up many days at the beginning of a new experimental session
+  -- the bulk of a typical week-long beamtime;
+- that afterwards the scientist needs to spend a considerable
+  amount of their productive time piecing together their beamtime
+  spoils: data from various `.txt`, `.ini`, `.png` files, scattered
+  all over `/tmp`, `~/data` or `~/user` folders.
+
+But we'd like to argue otherwise.
+
+Planning and performing good science is daunting enough already.
+Purely technical challenges should be solved by engineers,
+not scientists. In particular:
+
+- new features and equipment should be "**integrated**" into the
+  existing setup:
+  notwithstanding the ad-hoc character, they should be *1st-class
+  citizens* with respect to control, experimental orchestration,
+  and data storage;
+
+- for integration to be the norm rather than the exception,
+  it should be finished swiftly on "**monday-morning**":
+  not only "faster" than before, but actually on the
+  first day of your endeavor; actually, even before your coffee gets
+  cold.
+
+The tongue-in-cheek "*before coffee gets cold*" remark can obviously
+be understood as a bit of an exaggeration... but can it, really?
+And why should it?
+
+This is the question that drives us.
+
+Obviously, there will be limits to how complex a method can
+be dealt with in an ad-hoc way. But in reality, *many* adaptations are
+very simple, boiling down to usage of a standard piece of equipment,
+in a standard way, or an additional step of simple post-processing
+yielding data that needs to be saved along with the main measurement
+signal.
+These are the low-hanging fruit that CAspy is trying to pluck.
+
+Its [usage paradigm](#cli-usage), and its [data](#data-model) &
+and [processing](#processing-model) models, are
+carefully designed to make simple tasks easy while keeping
+complex operations possible.
+
+## Limits
+
+a.k.a. "what CAspy is not"
+- visualization framework
+- EPICS GUI / panel designer
+- experimental control or orchestration interface
+
+## Bugs & Caveats
+
+
