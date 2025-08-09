@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stata-MCP Configuration</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Stata-MCP Configuration</h1>
+            <p class="subtitle">Configure your Stata installation and output settings</p>
+        </header>
+
+        {% if saved %}
+        <div class="message success">
+            <span class="icon">✅</span>
+            Configuration saved successfully!
+        </div>
+        {% endif %}
+
+        {% if errors %}
+        <div class="message error">
+            <span class="icon">❌</span>
+            <div>
+                <strong>Configuration errors:</strong>
+                <ul>
+                    {% for field, error in errors.items() %}
+                    {% if field != 'general' %}
+                    <li><strong>{{ field.replace('_', ' ').title() }}:</strong> {{ error }}</li>
+                    {% else %}
+                    <li>{{ error }}</li>
+                    {% endif %}
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+
+        <form method="post" id="configForm">
+            <div class="form-section">
+                <h2>Stata Configuration</h2>
+                <div class="form-group">
+                    <label for="stata_cli">
+                        Stata CLI Path
+                        <span class="tooltip" title="Full path to your Stata executable">ℹ️</span>
+                    </label>
+                    <div class="input-with-help">
+                        <input type="text" 
+                               id="stata_cli" 
+                               name="stata.stata_cli" 
+                               value="{{ config.stata.stata_cli }}" 
+                               placeholder="e.g., /usr/local/bin/stata-mp"
+                               required>
+                        <button type="button" class="help-btn" onclick="showStataHelp()">❓</button>
+                    </div>
+                    <div class="field-help">
+                        <p>Path to your Stata executable. Common locations:</p>
+                        <ul>
+                            <li><strong>macOS:</strong> /Applications/Stata/StataMP.app/Contents/MacOS/stata-mp</li>
+                            <li><strong>Linux:</strong> /usr/local/stata17/stata-mp</li>
+                            <li><strong>Windows:</strong> C:\Program Files\Stata17\StataMP-64.exe</li>
+                        </ul>
+                    </div>
+                    <div class="validation-message" id="stata.stata_cli_validation"></div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h2>Output Configuration</h2>
+                <div class="form-group">
+                    <label for="output_base_path">
+                        Output Base Path
+                        <span class="tooltip" title="Directory where Stata outputs will be saved">ℹ️</span>
+                    </label>
+                    <div class="input-with-help">
+                        <input type="text" 
+                               id="output_base_path" 
+                               name="stata-mcp.output_base_path" 
+                               value="{{ config['stata-mcp'].output_base_path }}"
+                               placeholder="e.g., ~/Documents/stata-mcp-output"
+                               required>
+                        <button type="button" class="help-btn" onclick="browseDirectory()">📁</button>
+                    </div>
+                    <div class="field-help">
+                        <p>Directory where all Stata outputs, datasets, and logs will be stored.</p>
+                        <p>The directory will be created if it doesn't exist.</p>
+                    </div>
+                    <div class="validation-message" id="stata-mcp.output_base_path_validation"></div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h2>LLM Configuration</h2>
+                
+                <div class="form-group">
+                    <label for="llm_type">
+                        LLM Type
+                        <span class="tooltip" title="Select which LLM provider to use">ℹ️</span>
+                    </label>
+                    <select id="llm_type" name="llm.LLM_TYPE" onchange="toggleLLMSections()">
+                        <option value="ollama" {% if config.llm.LLM_TYPE == 'ollama' %}selected{% endif %}>Ollama (Local)</option>
+                        <option value="openai" {% if config.llm.LLM_TYPE == 'openai' %}selected{% endif %}>OpenAI (Cloud)</option>
+                    </select>
+                    <div class="field-help">
+                        <p>Choose between local Ollama models or OpenAI cloud service.</p>
+                    </div>
+                    <div class="validation-message" id="llm.LLM_TYPE_validation"></div>
+                </div>
+
+                <div id="ollama-section" class="llm-subsection" style="{% if config.llm.LLM_TYPE != 'ollama' %}display: none;{% endif %}">
+                    <h3>Ollama Configuration</h3>
+                    <div class="form-group">
+                        <label for="ollama_model">
+                            Model Name
+                            <span class="tooltip" title="Name of the Ollama model to use">ℹ️</span>
+                        </label>
+                        <input type="text" 
+                               id="ollama_model" 
+                               name="llm.ollama.MODEL" 
+                               value="{{ config.llm.ollama.MODEL }}"
+                               placeholder="e.g., qwen2.5-coder:7b">
+                        <div class="field-help">
+                            <p>Available models: qwen2.5-coder:7b, llama2, codellama, etc.</p>
+                        </div>
+                        <div class="validation-message" id="llm.ollama.MODEL_validation"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ollama_url">
+                            Base URL
+                            <span class="tooltip" title="Ollama server URL">ℹ️</span>
+                        </label>
+                        <input type="text" 
+                               id="ollama_url" 
+                               name="llm.ollama.BASE_URL" 
+                               value="{{ config.llm.ollama.BASE_URL }}"
+                               placeholder="e.g., http://localhost:11434">
+                        <div class="field-help">
+                            <p>URL where your Ollama server is running (usually localhost:11434).</p>
+                        </div>
+                        <div class="validation-message" id="llm.ollama.BASE_URL_validation"></div>
+                    </div>
+                </div>
+
+                <div id="openai-section" class="llm-subsection" style="{% if config.llm.LLM_TYPE != 'openai' %}display: none;{% endif %}">
+                    <h3>OpenAI Configuration</h3>
+                    <div class="form-group">
+                        <label for="openai_model">
+                            Model Name
+                            <span class="tooltip" title="OpenAI model to use">ℹ️</span>
+                        </label>
+                        <input type="text" 
+                               id="openai_model" 
+                               name="llm.openai.MODEL" 
+                               value="{{ config.llm.openai.MODEL }}"
+                               placeholder="e.g., gpt-3.5-turbo">
+                        <div class="field-help">
+                            <p>Available models: gpt-3.5-turbo, gpt-4, gpt-4-turbo, etc.</p>
+                        </div>
+                        <div class="validation-message" id="llm.openai.MODEL_validation"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="openai_url">
+                            Base URL
+                            <span class="tooltip" title="OpenAI API endpoint">ℹ️</span>
+                        </label>
+                        <input type="text" 
+                               id="openai_url" 
+                               name="llm.openai.BASE_URL" 
+                               value="{{ config.llm.openai.BASE_URL }}"
+                               placeholder="e.g., https://api.openai.com/v1">
+                        <div class="field-help">
+                            <p>OpenAI API endpoint (usually https://api.openai.com/v1).</p>
+                        </div>
+                        <div class="validation-message" id="llm.openai.BASE_URL_validation"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="openai_key">
+                            API Key
+                            <span class="tooltip" title="Your OpenAI API key">ℹ️</span>
+                        </label>
+                        <input type="password" 
+                               id="openai_key" 
+                               name="llm.openai.API_KEY" 
+                               value="{{ config.llm.openai.API_KEY }}"
+                               placeholder="sk-...">
+                        <div class="field-help">
+                            <p>Your OpenAI API key (starts with 'sk-'). Keep this secret!</p>
+                        </div>
+                        <div class="validation-message" id="llm.openai.API_KEY_validation"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <span class="icon">💾</span>
+                    Save Configuration
+                </button>
+                
+                <div class="dropdown">
+                    <button type="button" class="btn btn-secondary dropdown-toggle">
+                        <span class="icon">⚙️</span>
+                        More Options
+                    </button>
+                    <div class="dropdown-content">
+                        <button type="button" onclick="exportConfig()">
+                            <span class="icon">📤</span>
+                            Export Configuration
+                        </button>
+                        <button type="button" onclick="importConfig()">
+                            <span class="icon">📥</span>
+                            Import Configuration
+                        </button>
+                        <button type="button" onclick="resetConfig()">
+                            <span class="icon">🔄</span>
+                            Reset to Defaults
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <!-- Hidden file input for import -->
+        <input type="file" id="importFile" accept=".json" style="display: none;">
+    </div>
+
+    <script src="{{ url_for('static', filename='config.js') }}"></script>
+</body>
+</html>
