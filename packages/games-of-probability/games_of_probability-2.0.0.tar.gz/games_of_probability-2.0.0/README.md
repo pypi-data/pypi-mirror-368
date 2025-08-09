@@ -1,0 +1,3 @@
+Games of probability (Vietnamese: Trò chơi xác suất)
+This module provides classes that are used as games of chance and things that based on probability (such as a coin to flip, cards to shuffle, or even a revolver to play Russian Roulette — it is just a game, I do not support violence), using the `random` module.
+This module is simple and not developed very well, as the person who created it (it's me!) is not a good coder.
