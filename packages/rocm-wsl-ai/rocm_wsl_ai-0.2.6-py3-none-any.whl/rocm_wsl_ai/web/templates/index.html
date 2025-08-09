@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ROCm-WSL-AI Web UI</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <link rel="stylesheet" href="/static/app.css">
+  <style>.status-ok{color:#15803d}.status-bad{color:#b91c1c}.fade-in{animation:fadeIn .25s ease-in}@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}</style>
+</head>
+<body>
+  <nav class="container-fluid">
+    <ul>
+      <li class="brand"><span class="logo">AI</span> <strong>ROCm‑WSL‑AI</strong></li>
+    </ul>
+    <ul>
+      <li><a href="/">Dashboard</a></li>
+      <li><a href="/wizard">Wizard</a></li>
+      <li><a href="/tools">Tools</a></li>
+      <li><a href="/models">Models</a></li>
+      <li><a href="/help">Hilfe</a></li>
+      <li><button id="themeToggle" type="button" class="secondary">Theme</button></li>
+    </ul>
+  </nav>
+  <main class="container">
+    <section class="hero card">
+      <h1>Dein AI Control Center</h1>
+      <p>Installiere, starte und verwalte lokale AI‑Tools mit einem modernen Web‑Dashboard. Live‑Logs, Jobs und bequeme Einstellungen inklusive.</p>
+    </section>
+
+    <section>
+      <h3>Tools</h3>
+      <div id="cards" class="grid">
+        {% for name, s in statuses.items() %}
+        <div id="card-{{ name }}" hx-get="/partials/tool-card/{{ name }}" hx-trigger="load, every 4s" hx-swap="outerHTML" class="fade-in"></div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section>
+      <h3>Aktivitäten</h3>
+      <div id="jobs" class="grid"></div>
+    </section>
+
+    <section>
+      <h3>Logs</h3>
+      <div class="toolbar card">
+        <input id="logFilter" class="grow" placeholder="Filter (Regex)" />
+        <label><input type="checkbox" id="autoScroll" checked /> Auto‑Scroll</label>
+        <label><input type="checkbox" id="useWS" /> WebSocket</label>
+        <button id="stopStream" class="secondary">Stop</button>
+      </div>
+      <pre id="logs" class="logs" style="max-height: 42vh; overflow: auto;"></pre>
+    </section>
+  </main>
+  <div id="toasts"></div>
+  <script src="/static/app.js"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/intersect.js"></script>
+  <script>
+    async function callApi(url, options) {
+  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, ...(options||{}) });
+  const data = await res.json().catch(()=>({ ok:false }));
+  if (!res.ok || data?.ok===false) toast(data?.error || `Fehler: ${res.status}`);
+  else toast('Aktion gestartet');
+  return data;
+    }
+
+    async function refreshStatus() {
+      const res = await fetch('/api/status');
+      const data = await res.json();
+      for (const [name, s] of Object.entries(data)) {
+        const card = [...document.querySelectorAll('#cards article')].find(a => a.querySelector(`[data-tool="${name}"]`));
+        if (!card) continue;
+        const badge = card.querySelector('.status-badge');
+        if (badge) {
+          if (s.alive) {
+            badge.classList.add('ok');
+            badge.classList.remove('bad');
+            badge.textContent = `läuft${s.pid ? ` · PID ${s.pid}` : ''}`;
+          } else {
+            badge.classList.remove('ok');
+            badge.classList.add('bad');
+            badge.textContent = 'gestoppt';
+          }
+        }
+        const link = card.querySelector('a[href^="http"]');
+        if (link && s.url) link.href = s.url;
+      }
+    }
+
+  let evtSrc = null;
+  let ws = null;
+    function applyFilter(line) {
+      const q = document.getElementById('logFilter').value.trim();
+      if (!q) return true;
+      try { return new RegExp(q, 'i').test(line); } catch { return true; }
+    }
+    function appendLog(text, channel) {
+      const pre = document.getElementById('logs');
+      const span = document.createElement('span');
+      if (channel === 'stderr') span.style.color = '#b91c1c';
+      if (channel === 'stdout') span.style.color = '#065f46';
+      span.textContent = text + '\n';
+      pre.appendChild(span);
+      const auto = document.getElementById('autoScroll').checked;
+      if (auto) pre.scrollTop = pre.scrollHeight;
+    }
+  async function showLogs(tool) {
+      if (evtSrc) { evtSrc.close(); evtSrc = null; }
+      if (ws) { ws.close(); ws = null; }
+      document.getElementById('logs').textContent = '';
+      // show paths
+      const res = await fetch(`/api/logs/${tool}`);
+      const data = await res.json();
+      let head = '';
+      if (data.stdout) head += `stdout: ${data.stdout}\n`;
+      if (data.stderr) head += `stderr: ${data.stderr}\n`;
+      if (head) appendLog(head);
+      else appendLog('Keine Logpfade gefunden.');
+
+      if (document.getElementById('useWS').checked) {
+        ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws/logs/${tool}`);
+        ws.onmessage = (ev) => {
+          try { const msg = JSON.parse(ev.data); if (msg?.line && applyFilter(msg.line)) appendLog(msg.line, msg.channel); } catch {}
+        };
+        ws.onerror = () => {};
+      } else {
+        // SSE: getrennte Events für stdout/stderr
+        evtSrc = new EventSource(`/api/logs/${tool}/stream`);
+        evtSrc.addEventListener('stdout', (ev) => { const line = ev.data; if (applyFilter(line)) appendLog(line, 'stdout'); });
+        evtSrc.addEventListener('stderr', (ev) => { const line = ev.data; if (applyFilter(line)) appendLog(line, 'stderr'); });
+        evtSrc.onerror = () => { /* silently stop */ };
+      }
+    }
+    document.getElementById('stopStream').addEventListener('click', () => { if (evtSrc) { evtSrc.close(); evtSrc = null; } if (ws) { ws.close(); ws = null; } });
+
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('button[data-act]');
+      if (!btn) return;
+      const act = btn.getAttribute('data-act');
+      const tool = btn.getAttribute('data-tool');
+      if (act === 'install') {
+        const res = await callApi(`/api/install/${tool}`);
+        if (res?.job_id) trackJob(res.job_id);
+      } else if (act === 'start') {
+        await callApi(`/api/start/${tool}`, { method: 'POST' });
+        await refreshStatus();
+      } else if (act === 'stop') {
+        await callApi(`/api/stop/${tool}`, { method: 'POST' });
+        await refreshStatus();
+      } else if (act === 'logs') {
+        await showLogs(tool);
+      } else if (act === 'save-settings') {
+        const urlEl = document.getElementById(`url-${tool}`);
+        const argsEl = document.getElementById(`args-${tool}`);
+        const payload = { url: urlEl?.value || null, extra_args: argsEl?.value || null };
+        if (payload.url) {
+          try { const u = new URL(payload.url); if (!['http:', 'https:'].includes(u.protocol)) throw new Error(); } catch { showDialog('Invalid URL'); return; }
+        }
+        const res = await callApi(`/api/tools/${tool}/settings`, { body: JSON.stringify(payload) });
+        if (!res?.ok) showDialog(res?.detail || 'Failed to save'); else toast('Saved');
+        await refreshStatus();
+      }
+    });
+
+    // Autofill helpers similar to Tools page
+    function autoArgsFor(tool, host, port){
+      host = (host||'').trim();
+      port = (port||'').toString().trim();
+      const listenPort = `--listen --port ${port||'7860'}`;
+      const map = {
+        'a1111': listenPort,
+        'sdnext': listenPort,
+        'forge': listenPort,
+        'fooocus': listenPort,
+        'textgen': listenPort,
+        'comfyui': listenPort,
+        'fastchat': `--host ${host||'0.0.0.0'} --port ${port||'7861'}`,
+        'llama.cpp': `--host ${host||'0.0.0.0'} --port ${port||'8080'}`,
+        'koboldcpp': `--host ${host||'0.0.0.0'} --port ${port||'5001'}`,
+        'ollama': '',
+      };
+      return map[tool] || '';
+    }
+
+    function onHostPortChange(tool){
+      const argsEl = document.getElementById(`args-${tool}`);
+      const hostEl = document.getElementById(`host-${tool}`);
+      const portEl = document.getElementById(`port-${tool}`);
+      if (!argsEl || !hostEl || !portEl) return;
+      if (argsEl.dataset.autofill === '1'){
+        argsEl.value = autoArgsFor(tool, hostEl.value, portEl.value);
+      }
+    }
+
+    // Bidirectional sync with light feedback on change
+    document.addEventListener('input', (e)=>{
+      const el = e.target;
+      if (!el || !el.id) return;
+      if (el.id.startsWith('args-')){
+        el.dataset.autofill = '0';
+      }
+      if (el.id.startsWith('host-') || el.id.startsWith('port-')){
+        const tool = el.id.split('-')[1];
+        onHostPortChange(tool);
+        RocmUI.syncUrlFromHostPort(tool);
+      }
+    });
+    document.addEventListener('change', (e)=>{
+      const el = e.target;
+      if (!el || !el.id) return;
+      if (el.id.startsWith('host-') || el.id.startsWith('port-')){
+        const tool = el.id.split('-')[1];
+        RocmUI.syncUrlFromHostPort(tool);
+        toast('URL updated');
+      }
+      if (el.id.startsWith('url-')){
+        const tool = el.id.split('-')[1];
+        RocmUI.syncHostPortFromUrl(tool);
+        toast('Host/Port updated');
+      }
+    });
+
+    // Jobs handling
+    function renderJob(job) {
+      const el = document.createElement('article');
+      el.className = 'fade-in';
+      el.innerHTML = `
+        <div class="job">
+          <strong>${job.name}</strong>
+          <small>${new Date(job.created*1000).toLocaleTimeString()}</small>
+        </div>
+        <div class="progress-wrap" aria-busy="${job.status==='running'}">
+          <div class="progress-bar" style="width: ${(Math.max(0, Math.min(1, job.progress)) * 100).toFixed(0)}%"></div>
+        </div>
+        <small>${job.message || job.status}</small>
+        ${job.error ? `<pre class="logs">${job.error}</pre>` : ''}
+      `;
+      return el;
+    }
+    async function refreshJobs() {
+      const res = await fetch('/api/jobs');
+      const jobs = await res.json();
+      const wrap = document.getElementById('jobs');
+      wrap.innerHTML = '';
+      for (const j of jobs) wrap.appendChild(renderJob(j));
+    }
+    function trackJob(jobId) {
+      const iv = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/jobs/${jobId}`);
+          if (!res.ok) { clearInterval(iv); return; }
+          const job = await res.json();
+          await refreshJobs();
+          if (job.status === 'done' || job.status === 'error') {
+            clearInterval(iv);
+            await refreshStatus();
+          }
+        } catch { clearInterval(iv); }
+      }, 1000);
+    }
+
+  // initial poll
+    refreshJobs();
+    setInterval(refreshJobs, 3000);
+  // htmx übernimmt Card-Updates; zusätzliches Polling für Jobs bleibt
+
+  const { toast, showDialog } = RocmUI;
+  </script>
+  <dialog id="miniDialog"></dialog>
+  <script>
+    (function(){
+      const btn = document.getElementById('themeToggle');
+      function toggle(){
+        const cur = document.documentElement.getAttribute('data-theme');
+        const nxt = cur === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', nxt);
+        localStorage.setItem('theme', nxt);
+      }
+      btn?.addEventListener('click', toggle);
+      const saved = localStorage.getItem('theme');
+      if (saved) document.documentElement.setAttribute('data-theme', saved);
+    })();
+  </script>
+</body>
+</html>
