@@ -1,0 +1,94 @@
+[build-system]
+requires = ["setuptools"] 
+build-backend = "setuptools.build_meta" 
+
+[project]
+name = "Mighty-RL"
+version = "1.0.0"
+description = "A modular, meta-learning-ready RL library."
+authors = [{ name = "AutoRL@LUHAI", email = "a.mohan@ai.uni-hannover.de" }]
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+license = { file = "LICENSE" }
+keywords = [
+  "Reinforcement Learning",
+  "MetaRL",
+  "Generalization in RL"
+]
+classifiers = [
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3 :: Only",
+  "Development Status :: 3 - Alpha",
+  "Topic :: Utilities",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "License :: OSI Approved :: BSD License"
+]
+
+dependencies = [
+    "numpy<2",
+    "gymnasium",
+    "matplotlib~=3.4",
+    "seaborn~=0.11",
+    "tensorboard",
+    "hydra-core~=1.2",
+    "hydra-colorlog~=1.2",
+    "hydra-submitit-launcher~=1.2",
+    "pandas",
+    "scipy",
+    "rich~=12.4",
+    "wandb~=0.12",
+    "torch~=2.7",
+    "dill",
+    "imageio",
+    "evosax==0.1.6",
+    "rliable",
+    "seaborn", 
+    "uniplot",
+    "jax~=0.7",
+    "flax~=0.11"
+]
+
+[project.optional-dependencies]
+dev = ["ruff", "mypy", "build", "pytest", "pytest-cov"]
+carl = ["carl_bench[brax]==1.1.1"]
+dacbench = ["dacbench==0.4.0", "torchvision"]
+pufferlib = ["pufferlib==2.0.6"]
+docs = ["mkdocs", "mkdocs-material", "mkdocs-autorefs",
+        "mkdocs-gen-files", "mkdocs-literate-nav",
+        "mkdocs-glightbox", "mkdocs-glossary-plugin",
+        "mkdocstrings[python]", "markdown-exec[ansi]", "mike", "mkdocs-mermaid2-plugin"]
+examples = []
+
+[tool.setuptools.packages.find]
+include = ["mighty*", "examples"]
+
+[tool.ruff]
+extend-exclude = []
+
+[tool.ruff.lint]
+ignore = [
+  # Conflicts with the formatter
+  "COM812", "ISC001"
+]
+
+[tool.mypy]
+python_version = "3.11"
+disallow_untyped_defs = true
+show_error_codes = true
+no_implicit_optional = true
+warn_return_any = true
+warn_unused_ignores = true
+exclude = ["scripts", "docs", "test"]
+
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true
+
+[tool.coverage.run]
+omit = [
+    "mighty/mighty_utils/plotting.py",
+    "mighty/mighty_utils/test_helpers.py"
+    ]
