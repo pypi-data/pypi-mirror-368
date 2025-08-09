@@ -1,0 +1,228 @@
+{% load static %}
+{% load wagtailcore_tags wagtailimages_tags %}
+
+{% if cursos_suap %}
+	<section class="section-curso-cards-suap">
+        <div class="wrapper-text-cursos">
+            <h2 class="h2-cursos">{{ bloco_suap.title }}</h2>
+            <h4 class="h4-desc">{{ bloco_suap.description }}</h4>
+        </div>
+
+        <div class="wrapper-carousel-container01">
+            <div class="carousel-container01">
+                <div class="carousel-items01" id="cursos-suap-carousel">
+                    {% for curso in cursos_suap %}
+                    <div class="carousel-item-wrapper-suap">
+                        <div class="carousel-item-curso-suap">
+                            <div class="image-curso">
+                                {% if curso.imagem %}
+                                    <a href="{{ curso.link }}" title="{{ curso.titulo }}">
+                                        <img class="img-fluid" src="{{ curso.imagem }}" alt="{{ curso.titulo }}" width="236" height="140" loading="lazy">
+                                    </a>
+                                {% else %}
+                                    <a href="{{ curso.link }}" title="{{ curso.titulo }}">
+                                        {% if "Gestão de Pessoas" in curso.tema %}
+                                            <img class="img-fluid" src="{% static 'enap_designsystem/blocks/suap/default_2.png' %}" alt="Imagem padrão 2" width="236" height="140" loading="lazy">
+                                        {% else %}
+                                            <img class="img-fluid" src="{% static 'enap_designsystem/blocks/suap/default_1.png' %}" alt="Imagem padrão 1" width="236" height="140" loading="lazy">
+                                        {% endif %}
+                                    </a>
+                                {% endif %}
+                            </div>
+                            <div class="content-curso">
+                                
+                                <div class="card-body">
+                                <div class="tag">Aberto</div>
+                                <a class="h3-card" href="{{curso.link}}" style="
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+">{{ curso.titulo }}</a>
+<p class="card-text" style="
+display: -webkit-box;
+-webkit-line-clamp: 3;
+-webkit-box-orient: vertical;
+overflow: hidden;
+text-overflow: ellipsis;
+">{{ curso.descricao }}</p>
+                                </div>
+                                <p><a href="{{curso.link}}" class="btn1 ">Leia mais <i class="fa-solid fa-circle-chevron-right"></i></a></p>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="carousel-item-wrapper-suap">
+
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <button class="carousel-control-curso-suap carousel-control-curso-suap-prev"><img style="width: 40px; height: 40px;" src="{% static 'enap_designsystem/icons/iconleft.svg' %}" alt="Passar pro lado esquerdo"></button>
+                <button class="carousel-control-curso-suap carousel-control-curso-suap-next"><img style="width: 40px; height: 40px;" src="{% static 'enap_designsystem/icons/iconrig.svg' %}" alt="Passar pro lado direito"></button>
+            </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <a class="btn-todos" href="/busca/?q=&tipo=cursos&ordenacao=recentes" class="btn-todos">Ver todos os cursos</a>
+        </div>
+    </section>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const carousel = document.getElementById('cursos-suap-carousel');
+            const prevButton = document.querySelector('.carousel-control-curso-suap-prev');
+            const nextButton = document.querySelector('.carousel-control-curso-suap-next');
+            const items = carousel.querySelectorAll('.carousel-item-wrapper-suap');
+            
+            let currentIndex = 0;
+            let startX, moveX, initialPosition;
+            let isDragging = false;
+            let itemWidth, itemsGap, containerWidth, visibleItems, maxIndex;
+            
+            // Função para calcular dimensões
+            function calculateDimensions() {
+                if (items.length === 0) return;
+                
+                itemWidth = items[0].offsetWidth;
+                itemsGap = 25;
+                containerWidth = carousel.parentElement.offsetWidth;
+                
+                // Calcular quantos itens são visíveis
+                visibleItems = Math.floor(containerWidth / (itemWidth + itemsGap));
+                
+                // Se não couber nem um item completo, mostrar pelo menos 1
+                if (visibleItems === 0) visibleItems = 1;
+                
+                // Calcular o índice máximo
+                const totalItems = items.length;
+                maxIndex = Math.max(0, totalItems - visibleItems);
+                
+                console.log('Dimensões calculadas:', {
+                    itemWidth,
+                    containerWidth,
+                    visibleItems,
+                    totalItems,
+                    maxIndex
+                });
+            }
+            
+            // Função para exibir o slide
+            function showSlide(index) {
+                calculateDimensions(); // Recalcular sempre antes de mostrar
+                currentIndex = Math.max(0, Math.min(index, maxIndex));
+                const offset = currentIndex * (itemWidth + itemsGap);
+                carousel.style.transform = `translateX(-${offset}px)`;
+                
+                updateNavigationButtons();
+            }
+            
+            // Função para atualizar a visibilidade dos botões de navegação
+            function updateNavigationButtons() {
+                if (window.innerWidth <= 768) {
+                    // No mobile, esconder botões
+                    prevButton.style.display = 'none';
+                    nextButton.style.display = 'none';
+                    return;
+                }
+                
+                // Desktop - lógica original
+                if (currentIndex === 0) {
+                    prevButton.style.display = 'none';
+                    nextButton.style.display = maxIndex > 0 ? 'block' : 'none';
+                } else if (currentIndex >= maxIndex) {
+                    prevButton.style.display = 'block';
+                    nextButton.style.display = 'none';
+                } else {
+                    prevButton.style.display = 'block';
+                    nextButton.style.display = 'block';
+                }
+            }
+            
+            // Inicializar
+            calculateDimensions();
+            updateNavigationButtons();
+            
+            // Controles de seta - ajustar movimento baseado na tela
+            prevButton.addEventListener('click', () => {
+                const moveBy = window.innerWidth <= 768 ? 1 : 4;
+                showSlide(currentIndex - moveBy);
+            });
+            
+            nextButton.addEventListener('click', () => {
+                const moveBy = window.innerWidth <= 768 ? 1 : 4;
+                showSlide(currentIndex + moveBy);
+            });
+            
+            // Touch e arraste para mobile
+            carousel.addEventListener('touchstart', handleStart, { passive: true });
+            carousel.addEventListener('touchmove', handleMove, { passive: true });
+            carousel.addEventListener('touchend', handleEnd, { passive: true });
+            
+            // Mouse para desktop
+            carousel.addEventListener('mousedown', handleStart);
+            carousel.addEventListener('mousemove', handleMove);
+            carousel.addEventListener('mouseup', handleEnd);
+            carousel.addEventListener('mouseleave', handleEnd);
+            
+            function handleStart(e) {
+                isDragging = true;
+                startX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+                initialPosition = currentIndex * (itemWidth + itemsGap);
+                carousel.style.transition = 'none';
+            }
+            
+            function handleMove(e) {
+                if (!isDragging) return;
+                
+                moveX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+                const diff = moveX - startX;
+                
+                // Limitar o arrasto
+                if (currentIndex === 0 && diff > 50) {
+                    carousel.style.transform = `translateX(${diff / 3 - initialPosition}px)`;
+                } else if (currentIndex >= maxIndex && diff < -50) {
+                    carousel.style.transform = `translateX(${diff / 3 - initialPosition}px)`;
+                } else {
+                    carousel.style.transform = `translateX(${diff - initialPosition}px)`;
+                }
+            }
+            
+            function handleEnd() {
+                if (!isDragging) return;
+                isDragging = false;
+                
+                carousel.style.transition = 'transform 0.3s ease-in-out';
+                
+                if (!moveX || !startX) {
+                    showSlide(currentIndex);
+                    return;
+                }
+                
+                const diff = moveX - startX;
+                const threshold = 50;
+                
+                if (diff > threshold) {
+                    showSlide(currentIndex - 1);
+                } else if (diff < -threshold) {
+                    showSlide(currentIndex + 1);
+                } else {
+                    showSlide(currentIndex);
+                }
+            }
+            
+            // Ajustar o carrossel quando a janela é redimensionada
+            window.addEventListener('resize', function() {
+                setTimeout(() => {
+                    calculateDimensions();
+                    // Recalcular currentIndex se necessário
+                    if (currentIndex > maxIndex) {
+                        currentIndex = maxIndex;
+                    }
+                    showSlide(currentIndex);
+                }, 100);
+            });
+        });
+    </script>
+{% endif %}
