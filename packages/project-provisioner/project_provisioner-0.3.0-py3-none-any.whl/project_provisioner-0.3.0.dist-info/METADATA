@@ -1,0 +1,512 @@
+Metadata-Version: 2.4
+Name: project-provisioner
+Version: 0.3.0
+Summary: Uma ferramenta CLI para provisionar automaticamente novos projetos de dados no Azure DevOps e Databricks com integração completa ao Azure CLI.
+Home-page: https://github.com/joseamaro/project-provisioner
+Author: Jose Amaro
+Author-email: jose.amarodev@gmail.com
+Project-URL: Bug Reports, https://github.com/joseamaro/project-provisioner/issues
+Project-URL: Source, https://github.com/joseamaro/project-provisioner
+Keywords: databricks azure devops cli automation azure-cli
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Operating System :: OS Independent
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: System :: Systems Administration
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Requires-Dist: click
+Requires-Dist: PyYAML
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0.0; extra == "dev"
+Requires-Dist: pytest-mock>=3.10.0; extra == "dev"
+Requires-Dist: black>=23.0.0; extra == "dev"
+Requires-Dist: flake8>=6.0.0; extra == "dev"
+Requires-Dist: mypy>=1.0.0; extra == "dev"
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: keywords
+Dynamic: project-url
+Dynamic: provides-extra
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+# Project Provisioner CLI
+
+Uma ferramenta de linha de comando para automatizar o provisionamento de novos projetos de dados no Azure DevOps e Databricks.
+
+## 🚀 Instalação
+
+```bash
+pip install project-provisioner
+```
+
+## 📖 Uso Simplificado
+
+### Modo Interativo (Recomendado)
+```bash
+project-provisioner create-project --interactive
+```
+
+### Com Arquivo de Configuração
+```bash
+# 1. Criar arquivo de configuração
+project-provisioner init
+
+# 2. Editar o arquivo project-config.yaml
+
+# 3. Executar provisionamento
+project-provisioner create-project --config project-config.yaml
+```
+
+### Comando Rápido
+```bash
+project-provisioner create-project --project-name "meu-projeto" --organization "https://dev.azure.com/minha-org"
+```
+
+## 🎯 Principais Melhorias
+
+### ✅ **Antes (Complexo)**
+```bash
+project-provisioner create-project \
+    --project-name "my-new-data-project" \
+    --azure-devops-organization-url "https://dev.azure.com/your_organization" \
+    --azure-devops-project-name "YourExistingAzureDevOpsProject" \
+    --azure-devops-pat "YOUR_AZURE_DEVOPS_PAT" \
+    --azure-devops-username "your_azure_devops_username" \
+    --resource-group-name "rg-databricks-projects" \
+    --location "eastus" \
+    --databricks-workspace-name "dbr-ws-new-project" \
+    --databricks-sku "premium" \
+    --databricks-pat "YOUR_DATABRICKS_PAT" \
+    --scaffold-source-path "/path/to/your/scaffold/template"
+```
+
+### ✅ **Agora (Simples)**
+```bash
+project-provisioner create-project --interactive
+```
+
+## 🔧 Funcionalidades
+
+### Modo Interativo
+- ✅ Perguntas guiadas para configuração
+- ✅ Valores padrão inteligentes
+- ✅ Validação automática
+- ✅ Interface amigável
+
+### Arquivo de Configuração
+- ✅ Template YAML gerado automaticamente
+- ✅ Configuração reutilizável
+- ✅ Fácil edição e versionamento
+
+### Valores Padrão Inteligentes
+- ✅ Nomes gerados automaticamente
+- ✅ Região padrão: `brazilsouth`
+- ✅ SKU padrão: `premium`
+- ✅ Usuário detectado automaticamente
+
+## 📋 Exemplo de Arquivo de Configuração
+
+```yaml
+project_name: meu-projeto-dados
+azure_devops_organization_url: https://dev.azure.com/sua-organizacao
+azure_devops_project_name: DataProjects
+azure_devops_pat: SEU_PAT_AQUI
+azure_devops_username: seu-usuario
+resource_group_name: rg-meu-projeto-dados
+location: brazilsouth
+databricks_workspace_name: dbr-meu-projeto-dados
+databricks_sku: premium
+databricks_pat: SEU_DATABRICKS_PAT_AQUI
+scaffold_source_path: /caminho/para/seu/scaffold
+```
+
+## 🎯 Comandos Disponíveis
+
+```bash
+# Inicializar novo projeto com estrutura scaffold
+project-provisioner init
+
+# Inicializar apenas arquivo de configuração 
+project-provisioner init --config-only
+
+# Pular verificação e configuração do Azure CLI
+project-provisioner init --skip-azure-cli
+
+# Mostrar informações do Azure CLI
+project-provisioner show-azure-info
+
+# Mostrar informações e salvar no arquivo YAML
+project-provisioner show-azure-info --save-config
+
+# Criar projeto (modo interativo)
+project-provisioner create-project --interactive
+
+# Criar projeto com arquivo de configuração
+project-provisioner create-project --config config.yaml
+
+# Criar projeto com parâmetros mínimos
+project-provisioner create-project --project-name "meu-projeto"
+
+# Criar projeto usando dados do Azure CLI
+project-provisioner create-project --interactive --user-id "user@domain.com"
+
+# Ver ajuda
+project-provisioner --help
+```
+
+## 🔧 Verificação Automática do Azure CLI
+
+A partir da versão **0.3.0**, o comando `init` inclui verificação e configuração automática do Azure CLI:
+
+### ✅ **O que é verificado automaticamente:**
+- 🔍 **Instalação**: Detecta se o Azure CLI está instalado na máquina
+- 📦 **Instalação Automática**: Oferece instalar automaticamente se não estiver presente
+- 🔐 **Login**: Verifica se o usuário está logado no Azure CLI
+- 🌐 **Login Automático**: Oferece fazer login via navegador se necessário
+
+### 🖥️ **Suporte Multi-Plataforma:**
+- **macOS**: Instalação via Homebrew ou script oficial
+- **Linux**: Detecção automática de distribuição (Ubuntu/Debian, CentOS/RHEL/Fedora)
+- **Windows**: Instruções para instalação manual ou via winget
+
+### 📋 **Exemplo de Fluxo Automático:**
+```bash
+$ project-provisioner init
+
+🚀 Inicializando Novo Projeto
+========================================
+
+🔍 Verificando Azure CLI...
+❌ Azure CLI não está instalado
+Deseja instalar o Azure CLI agora? [Y/n]: y
+
+🔄 Instalando Azure CLI...
+📦 Instalando via Homebrew...
+✅ Azure CLI instalado com sucesso!
+
+🔐 É necessário fazer login no Azure CLI
+Deseja fazer login agora? [Y/n]: y
+🔄 Abrindo navegador para login...
+✅ Login realizado com sucesso!
+
+📁 Projeto: meu-projeto
+📍 Local: /Users/user/meu-projeto
+...
+```
+
+### ⚙️ **Opções de Controle:**
+```bash
+# Comportamento padrão (com verificação do Azure CLI)
+project-provisioner init
+
+# Pular verificação do Azure CLI (se necessário)
+project-provisioner init --skip-azure-cli
+
+# Outros comandos existentes continuam funcionando
+project-provisioner init --project-name "meu-projeto" --config-only
+```
+
+### 🚨 **Tratamento de Erros:**
+- ✅ Continua o processo mesmo se a instalação do Azure CLI falhar
+- ✅ Funciona normalmente sem Azure CLI (usando configuração padrão)
+- ✅ Mensagens informativas sobre o status e próximos passos
+- ✅ Graceful fallback para configuração manual quando necessário
+
+## 🔍 Integração com Azure CLI
+
+A ferramenta agora pode obter automaticamente dados do Azure CLI para preencher configurações:
+
+### ✅ **Dados Obtidos Automaticamente**
+- **Azure Account**: Tenant ID, Subscription ID, usuário logado
+- **Azure DevOps**: Organização padrão, projetos disponíveis
+- **Databricks**: Workspaces existentes, localizações, SKUs
+- **Resource Groups**: Grupos de recursos disponíveis
+
+### ✅ **Como Usar**
+```bash
+# 1. Inicializar novo projeto (NOVO!)
+project-provisioner init
+
+# 2. Verificar e salvar dados do Azure CLI (NOVO!)
+project-provisioner show-azure-info --save-config
+
+# 3. Criar projeto usando configuração
+project-provisioner create-project --config project-config.yaml
+
+# OU modo interativo com dados do Azure CLI
+project-provisioner create-project --interactive
+
+# Com usuário específico
+project-provisioner create-project --interactive --user-id "user@domain.com"
+```
+
+### ✅ **Benefícios**
+- ✅ **Scaffold Automático**: Criação de estrutura completa de pastas
+- ✅ **Preenchimento Automático**: Dados do Azure CLI salvos no YAML
+- ✅ **Fluxo Simplificado**: `init` → `show-azure-info --save-config` → `create-project`
+- ✅ Lista de projetos Azure DevOps disponíveis
+- ✅ Lista de workspaces Databricks existentes
+- ✅ Detecção automática de localização e SKU
+- ✅ Validação de permissões e recursos
+
+## 🚀 **Novo Fluxo de Trabalho Simplificado**
+
+### **1. Inicialização do Projeto**
+```bash
+project-provisioner init
+```
+**O que faz:**
+- Pergunta o nome do projeto interativamente
+- Cria estrutura completa de pastas scaffold:
+  - `src/` (databricks, python, sql)
+  - `tests/` (unit, integration)
+  - `config/` (ambientes)
+  - `docs/`, `scripts/`, `infrastructure/`
+- Gera arquivos essenciais (README.md, requirements.txt, .gitignore)
+- Tenta obter dados do Azure CLI automaticamente
+- Cria arquivo `project-config.yaml` pré-preenchido
+
+### **2. Configuração Automática com Azure CLI**
+```bash
+project-provisioner show-azure-info --save-config
+```
+**O que faz:**
+- Obtém dados da conta Azure logada
+- Lista projetos Azure DevOps disponíveis
+- Lista workspaces Databricks existentes
+- **Salva tudo automaticamente no project-config.yaml**
+- Mostra quais dados ainda precisam ser configurados
+
+### **3. Provisionamento Final**
+```bash
+project-provisioner create-project --config project-config.yaml
+```
+**O que faz:**
+- Usa configuração pré-preenchida
+- Cria repositório no Azure DevOps
+- Configura workspace Databricks
+- Faz deploy do scaffold criado
+
+### **📋 Exemplo Completo de Uso**
+```bash
+# 1. Inicializar novo projeto
+$ project-provisioner init
+🚀 Inicializando Novo Projeto
+========================================
+Nome do projeto [data-project-amaro]: meu-projeto-analise
+
+📁 Projeto: meu-projeto-analise
+📍 Local: /Users/amaro/meu-projeto-analise
+
+🔍 Tentando obter dados do Azure CLI...
+✅ Dados do Azure CLI obtidos com sucesso!
+✅ Arquivo de configuração criado: project-config.yaml
+
+Deseja criar a estrutura de pastas do projeto scaffold? [Y/n]: Y
+📁 Criando estrutura do projeto em: /Users/amaro/meu-projeto-analise
+   ✅ src/
+   ✅ src/databricks/
+   ✅ src/databricks/notebooks/
+   ✅ src/python/
+   ✅ tests/
+   ✅ config/
+   ✅ docs/
+   ✅ infrastructure/terraform/
+   ... (estrutura completa criada)
+
+🎉 Projeto 'meu-projeto-analise' inicializado com sucesso!
+
+# 2. Verificar e salvar dados do Azure
+$ project-provisioner show-azure-info --save-config
+🔍 Informações do Azure CLI
+========================================
+✅ Dados do Azure CLI obtidos com sucesso!
+   Tenant ID: 37cd273a-1cec-4aae-a297-41480ea54f8d
+   Organização DevOps: arcelormittal-corp
+   Projetos disponíveis: 3
+
+✅ Configuração salva em: project-config.yaml
+📝 Dados preenchidos automaticamente:
+   - Localização: brazilsouth
+   - Usuário: amaro
+   - Organização Azure DevOps: https://dev.azure.com/arcelormittal-corp
+
+🔑 Ainda é necessário configurar:
+   - Personal Access Token do Azure DevOps
+   - Personal Access Token do Databricks
+
+# 3. Editar tokens no arquivo YAML
+$ nano project-config.yaml  # Adicionar PATs
+
+# 4. Executar provisionamento
+$ project-provisioner create-project --config project-config.yaml
+🔧 Provisionando projeto: meu-projeto-analise
+📦 Criando repositório no Azure DevOps...
+📊 Configurando workspace Databricks...
+✅ Provisionamento concluído com sucesso!
+```
+
+## 🔐 Variáveis de Ambiente
+
+Os PATs podem ser fornecidos via variáveis de ambiente:
+- `AZURE_DEVOPS_PAT` - Personal Access Token do Azure DevOps
+- `DATABRICKS_PAT` - Personal Access Token do Databricks
+
+## 🧪 Testes
+
+### Execução Rápida
+```bash
+# Executar todos os testes
+./run_tests.sh
+
+# Ou executar manualmente
+pytest tests/ -v
+```
+
+### Executar Testes Específicos
+```bash
+# Instalar dependências de desenvolvimento
+pip install -e ".[dev]"
+
+# Executar todos os testes
+pytest
+
+# Executar testes com cobertura
+pytest --cov=project_provisioner --cov-report=term-missing
+
+# Executar testes específicos
+pytest tests/test_cli.py
+pytest tests/test_core.py
+pytest tests/test_config.py
+
+# Executar testes com relatório HTML
+pytest --cov=project_provisioner --cov-report=html
+```
+
+### Qualidade do Código
+```bash
+# Formatação automática
+black project_provisioner/ tests/
+
+# Verificação de estilo
+flake8 project_provisioner/ tests/
+
+# Verificação de tipos
+mypy project_provisioner/
+```
+
+### Estrutura de Testes
+```
+tests/
+├── __init__.py
+├── conftest.py          # Configurações e fixtures do pytest
+├── test_cli.py          # Testes do CLI (36 testes)
+├── test_core.py         # Testes da lógica principal (6 testes)
+└── test_config.py       # Testes de configuração (16 testes)
+```
+
+### Cobertura de Testes
+- **Total**: 82% de cobertura
+- **CLI**: 75% de cobertura
+- **Core**: 97% de cobertura
+- **36 testes** executando com sucesso
+
+### Tipos de Testes
+- ✅ **Testes Unitários**: Funções individuais
+- ✅ **Testes de Integração**: Fluxos completos
+- ✅ **Testes de Configuração**: Validação de YAML
+- ✅ **Testes de CLI**: Comandos e opções
+- ✅ **Testes de Mock**: Simulação de dependências externas
+
+## 📝 Próximos Passos
+
+Após o provisionamento:
+1. Navegue para o diretório do projeto: `cd nome-do-projeto`
+2. Configure seu ambiente de desenvolvimento
+3. Comece a desenvolver!
+
+## 🤝 Contribuição
+
+Para contribuir com melhorias:
+
+1. **Fork o projeto**
+2. **Crie uma branch para sua feature**
+   ```bash
+   git checkout -b feature/nova-funcionalidade
+   ```
+3. **Commit suas mudanças**
+   ```bash
+   git commit -m "Adiciona nova funcionalidade"
+   ```
+4. **Push para a branch**
+   ```bash
+   git push origin feature/nova-funcionalidade
+   ```
+5. **Abra um Pull Request**
+
+### Diretrizes de Contribuição
+
+- ✅ Escreva testes para novas funcionalidades
+- ✅ Mantenha a compatibilidade com versões anteriores
+- ✅ Documente mudanças no README
+- ✅ Siga o padrão de código existente
+- ✅ Execute `./run_tests.sh` antes de submeter
+
+### Desenvolvimento Local
+
+```bash
+# Clone o repositório
+git clone https://github.com/joseamaro/project-provisioner.git
+cd project-provisioner
+
+# Instale em modo desenvolvimento
+pip install -e ".[dev]"
+
+# Execute os testes
+./run_tests.sh
+
+# Faça suas alterações e teste novamente
+pytest tests/ -v
+```
+
+## 📊 Status do Projeto
+
+- **Versão**: 0.3.0
+- **Status**: Alpha
+- **Python**: >=3.8
+- **Dependências**: click, PyYAML
+- **Cobertura de Testes**: 82%
+- **Testes**: 36 testes passando
+- **Nova Funcionalidade**: Verificação e instalação automática do Azure CLI
+
+## 🐛 Reportar Bugs
+
+Se encontrar algum problema:
+
+1. Verifique se não foi reportado antes
+2. Crie uma issue com:
+   - Descrição detalhada do problema
+   - Passos para reproduzir
+   - Versão do Python e sistema operacional
+   - Logs de erro (se aplicável)
+
+## 📄 Licença
+
+Este projeto está licenciado sob a Licença MIT - veja o arquivo [LICENSE](LICENSE) para detalhes.
+
+
