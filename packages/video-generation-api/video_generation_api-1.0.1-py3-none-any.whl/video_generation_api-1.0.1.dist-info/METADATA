@@ -1,0 +1,446 @@
+Metadata-Version: 2.4
+Name: video-generation-api
+Version: 1.0.1
+Summary: A powerful Docker-based API for intelligent video generation with professional effects and subtitles
+Home-page: https://github.com/preangelleo/video-generation-docker
+Author: Leo Wang
+Author-email: Leo Wang <preangelleo@gmail.com>
+License: MIT
+Project-URL: homepage, https://github.com/preangelleo/video-generation-docker
+Project-URL: documentation, https://github.com/preangelleo/video-generation-docker#readme
+Project-URL: repository, https://github.com/preangelleo/video-generation-docker
+Project-URL: issues, https://github.com/preangelleo/video-generation-docker/issues
+Keywords: video,generation,api,docker,flask,moviepy,ffmpeg,subtitles,effects,animation
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Multimedia :: Video
+Classifier: Topic :: Multimedia :: Video :: Conversion
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: flask==3.0.0
+Requires-Dist: werkzeug==3.0.0
+Requires-Dist: moviepy==2.0.0
+Requires-Dist: opencv-python==4.8.1.78
+Requires-Dist: opencv-python-headless==4.8.1.78
+Requires-Dist: numpy==1.26.4
+Requires-Dist: Pillow==10.1.0
+Requires-Dist: imageio==2.31.5
+Requires-Dist: imageio-ffmpeg==0.4.9
+Requires-Dist: typing-extensions==4.8.0
+Requires-Dist: requests>=2.28.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0.0; extra == "dev"
+Requires-Dist: black>=22.0.0; extra == "dev"
+Requires-Dist: flake8>=6.0.0; extra == "dev"
+Dynamic: author
+Dynamic: home-page
+Dynamic: license-file
+Dynamic: requires-python
+
+# Video Generation API v1.0
+
+[中文版](https://github.com/preangelleo/video-generation-docker/blob/main/README_CN.md) | [PyPI](https://pypi.org/project/video-generation-api/)
+
+🎬 A powerful Docker-based API for intelligent video generation with professional effects and subtitles.
+
+## 📦 Installation
+
+### Option 1: Install from PyPI (Recommended for Python users)
+
+```bash
+pip install video-generation-api
+```
+
+### Option 2: Docker (Recommended for production)
+
+```bash
+# Pull the Docker image
+docker pull betashow/video-generation-api:latest
+
+# Run the container
+docker run -d \
+  --name video-api \
+  -p 5000:5000 \
+  betashow/video-generation-api:latest
+```
+
+## 🚀 Quick Start
+
+### Python Client (if installed via pip)
+
+```python
+from video_generation_api import VideoGenerationClient
+
+# Initialize client
+client = VideoGenerationClient("http://localhost:5000")
+
+# Create video
+result = client.create_video(
+    image_path="image.jpg",
+    audio_path="audio.mp3",
+    subtitle_path="subtitles.srt",
+    effects=["zoom_in"],
+    output_path="output.mp4"
+)
+```
+
+### API Server
+
+If using Docker, the API will be available at `http://localhost:5000`.
+
+If installed via pip, start the server with:
+
+```bash
+video-generation-api
+```
+
+## 🚀 Want to Deploy This on AWS?
+
+Check out our recommended deployment solution: **[CloudBurst Fargate](https://github.com/preangelleo/cloudburst-fargate)**
+
+CloudBurst Fargate is the next generation of our CloudBurst project, offering serverless deployment on AWS:
+- 🚀 **Serverless Architecture** - No servers to manage
+- 💰 **Pay Per Second** - Only pay for actual processing time
+- ⚡ **Auto-scaling** - Handle any workload automatically
+- 🔧 **Zero Maintenance** - AWS manages all infrastructure
+- 📊 **Better Cost Efficiency** - More efficient than EC2 instances
+
+For legacy EC2 instance deployment, see the original [CloudBurst](https://github.com/preangelleo/cloudburst) project.
+
+Perfect for production use cases where you need to generate videos on-demand without managing servers.
+
+## 📖 API Documentation
+
+### Core Endpoint: `/create_video_onestep`
+
+A single intelligent endpoint that automatically handles all video creation scenarios based on your input parameters.
+
+#### Request Format
+
+**URL**: `POST http://your-server:5000/create_video_onestep`
+
+**Headers**:
+```json
+{
+  "Content-Type": "application/json",
+  "X-Authentication-Key": "your-key-if-required"
+}
+```
+
+**Body Parameters**:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `input_image` | string | Yes | Base64 encoded image (JPG/PNG) |
+| `input_audio` | string | Yes | Base64 encoded audio (MP3/WAV) |
+| `subtitle` | string | No | Base64 encoded SRT subtitle file |
+| `effects` | array | No | Effects to apply. Available: `"zoom_in"`, `"zoom_out"`, `"pan_left"`, `"pan_right"`, `"random"` |
+| `language` | string | No | Subtitle language: `"chinese"` or `"english"` (default: chinese) |
+| `background_box` | boolean | No | Show subtitle background (default: true) |
+| `background_opacity` | float | No | Subtitle background transparency 0-1 (default: 0.2) **[See important note below](#subtitle-background-transparency)** |
+| `font_size` | integer | No | Subtitle font size in pixels (default: auto-calculated based on video size) |
+| `outline_color` | string | No | Subtitle outline color in ASS format (default: "&H00000000" - black) |
+| `is_portrait` | boolean | No | Force portrait orientation (default: auto-detect) |
+| `watermark` | string | No | Base64 encoded watermark image |
+| `output_filename` | string | No | Preferred output filename |
+
+#### Processing Scenarios
+
+The API automatically detects and optimizes for 4 scenarios:
+
+| Scenario | Effects | Subtitles | Description |
+|----------|---------|-----------|-------------|
+| **Baseline** | ❌ | ❌ | Simple image + audio merge (fastest) |
+| **Subtitles Only** | ❌ | ✅ | Basic video with professional subtitles |
+| **Effects Only** | ✅ | ❌ | Cinematic zoom/pan effects |
+| **Full Featured** | ✅ | ✅ | Effects + professional subtitles |
+
+#### Response Format
+
+```json
+{
+  "success": true,
+  "file_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "download_endpoint": "/download/f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "filename": "output.mp4",
+  "size": 15728640,
+  "scenario": "full_featured"
+}
+```
+
+#### Complete Examples
+
+**1. Baseline (Simplest)**
+```python
+import requests
+import base64
+
+def encode_file(filepath):
+    with open(filepath, 'rb') as f:
+        return base64.b64encode(f.read()).decode('utf-8')
+
+# Prepare inputs
+image_b64 = encode_file('image.jpg')
+audio_b64 = encode_file('audio.mp3')
+
+# Make request
+response = requests.post('http://localhost:5000/create_video_onestep', 
+    json={
+        'input_image': image_b64,
+        'input_audio': audio_b64
+    }
+)
+
+result = response.json()
+if result['success']:
+    # Download the video
+    download_url = f"http://localhost:5000{result['download_endpoint']}"
+    video = requests.get(download_url)
+    with open('output.mp4', 'wb') as f:
+        f.write(video.content)
+```
+
+**2. With Chinese Subtitles**
+```python
+subtitle_b64 = encode_file('subtitles.srt')
+
+response = requests.post('http://localhost:5000/create_video_onestep',
+    json={
+        'input_image': image_b64,
+        'input_audio': audio_b64,
+        'subtitle': subtitle_b64,
+        'language': 'chinese',
+        'background_box': True,
+        'background_opacity': 0.2
+    }
+)
+```
+
+**3. With Effects**
+```python
+# Zoom effects (randomly picks one)
+response = requests.post('http://localhost:5000/create_video_onestep',
+    json={
+        'input_image': image_b64,
+        'input_audio': audio_b64,
+        'effects': ['zoom_in', 'zoom_out']  # Randomly chooses zoom_in OR zoom_out
+    }
+)
+
+# Pan effects
+response = requests.post('http://localhost:5000/create_video_onestep',
+    json={
+        'input_image': image_b64,
+        'input_audio': audio_b64,
+        'effects': ['pan_left']  # Pan from right to center
+    }
+)
+
+# Let system choose randomly from all effects
+response = requests.post('http://localhost:5000/create_video_onestep',
+    json={
+        'input_image': image_b64,
+        'input_audio': audio_b64,
+        'effects': ['random']  # System picks any available effect
+    }
+)
+```
+
+**4. Full Featured (Effects + Subtitles)**
+```python
+response = requests.post('http://localhost:5000/create_video_onestep',
+    json={
+        'input_image': image_b64,
+        'input_audio': audio_b64,
+        'subtitle': subtitle_b64,
+        'effects': ['zoom_in', 'zoom_out'],
+        'language': 'chinese'
+    }
+)
+```
+
+**5. Advanced Subtitle Customization**
+```python
+response = requests.post('http://localhost:5000/create_video_onestep',
+    json={
+        'input_image': image_b64,
+        'input_audio': audio_b64,
+        'subtitle': subtitle_b64,
+        'language': 'chinese',
+        'font_size': 48,                    # Custom font size
+        'outline_color': '&H00FF0000',      # Blue outline
+        'background_box': True,             # Show background
+        'background_opacity': 0.3           # 30% transparent (dark background)
+    }
+)
+```
+
+### Other Endpoints
+
+#### Health Check
+```bash
+GET /health
+```
+
+Returns API status, FFmpeg version, and available endpoints.
+
+#### Download Video
+```bash
+GET /download/{file_id}
+```
+
+Download the generated video file. Files expire after 1 hour.
+
+#### Cleanup Expired Files
+```bash
+GET /cleanup
+```
+
+Manually trigger cleanup of expired files.
+
+## 🔧 Authentication
+
+The API supports two modes:
+
+### Default Mode (No Authentication)
+By default, the API is open and requires no authentication.
+
+### Secure Mode
+Set the `AUTHENTICATION_KEY` environment variable to enable authentication:
+
+```bash
+docker run -d \
+  -e AUTHENTICATION_KEY=your-secure-uuid-here \
+  -p 5000:5000 \
+  betashow/video-generation-api:latest
+```
+
+Then include the key in your requests:
+```python
+headers = {
+    'Content-Type': 'application/json',
+    'X-Authentication-Key': 'your-secure-uuid-here'
+}
+```
+
+## 🎯 Features
+
+- **Intelligent Processing**: Automatically optimizes based on input parameters
+- **Professional Subtitles**: High-quality subtitle rendering (not FFmpeg filters)
+- **Auto-Orientation**: Detects portrait/landscape videos automatically
+- **Cinematic Effects**: Hollywood-style zoom and pan effects
+- **Multi-Language**: Supports Chinese and English with proper fonts
+- **GPU Acceleration**: Automatic GPU detection and usage when available
+
+## 🎨 Advanced Subtitle Styling
+
+### Subtitle Background Transparency
+
+⚠️ **IMPORTANT**: The `background_opacity` parameter controls **transparency**, not opacity!
+
+| Value | Visual Result | Description |
+|-------|--------------|-------------|
+| **0.0** | Solid black | Completely opaque background |
+| **0.2** | Dark background | **Default** - Good readability |
+| **0.5** | Semi-transparent | 50% see-through |
+| **0.7** | Very transparent | Old default - quite see-through |
+| **1.0** | No background | Completely transparent |
+
+**Examples**:
+- For **darker, more readable** subtitles: Use **lower** values (0.0 - 0.3)
+- For **more transparent** subtitles: Use **higher** values (0.5 - 1.0)
+- Recommended: **0.2** (the new default) provides excellent readability
+
+```python
+# Dark, readable background (recommended)
+'background_opacity': 0.2
+
+# Solid black background
+'background_opacity': 0.0
+
+# Very transparent (hard to read)
+'background_opacity': 0.8
+```
+
+### Color Format (ASS/SSA Style)
+The `outline_color` parameter uses ASS subtitle format: `&HAABBGGRR` where:
+- AA = Alpha (transparency): 00 = opaque, FF = transparent
+- BB = Blue component (00-FF)
+- GG = Green component (00-FF)  
+- RR = Red component (00-FF)
+
+**Common Colors**:
+- `&H00000000` - Black (default)
+- `&H00FFFFFF` - White
+- `&H000000FF` - Red
+- `&H0000FF00` - Green
+- `&H00FF0000` - Blue
+- `&H0000FFFF` - Yellow
+- `&H00FF00FF` - Magenta
+
+### Font Size Guidelines
+If not specified, font size is auto-calculated based on video resolution:
+- **1080p Landscape**: ~45px for Chinese, ~60px for English
+- **1080p Portrait**: ~21px for Chinese, ~30px for English
+- **4K Videos**: Proportionally larger
+
+## 📋 Requirements
+
+- Docker
+- 2GB+ RAM (4GB recommended)
+- 10GB+ free disk space
+- GPU (optional, for faster processing)
+
+## 🎬 Output Examples
+
+See what this API can generate:
+
+**English Example**:
+[![English Video Example](https://img.youtube.com/vi/JiWsyuyw1ao/maxresdefault.jpg)](https://www.youtube.com/watch?v=JiWsyuyw1ao)
+
+**Chinese Example**:
+[![Chinese Video Example](https://img.youtube.com/vi/WYFyUAk9F6k/maxresdefault.jpg)](https://www.youtube.com/watch?v=WYFyUAk9F6k)
+
+**Features Demonstrated**:
+- ✅ Professional subtitles with semi-transparent background
+- ✅ Smooth zoom effects (Ken Burns effect)
+- ✅ Perfect audio-visual synchronization
+- ✅ High-quality 1080p video output
+- ✅ Support for both English and Chinese
+
+Both examples were generated using the "Full Featured" mode with subtitles and effects enabled.
+
+## 🐳 Docker Image Details
+
+The image includes:
+- Ubuntu 22.04 base
+- FFmpeg with GPU support
+- Python 3.10
+- Chinese fonts (LXGW WenKai Bold)
+- All required video processing libraries
+
+## 📝 Notes
+
+- All file inputs must be Base64 encoded
+- Generated videos expire after 1 hour
+- The API returns relative download paths, not full URLs
+- This is designed for on-demand, disposable container usage
+
+## 🚨 Important
+
+This Docker image is designed for temporary, on-demand usage. The container can be destroyed and recreated as needed - all paths are relative and no persistent storage is required.
+
+---
+
+**Ready to generate amazing videos? Start the container and make your first request!**
