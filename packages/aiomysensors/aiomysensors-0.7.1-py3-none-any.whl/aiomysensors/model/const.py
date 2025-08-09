@@ -1,0 +1,6 @@
+"""Provide shared model constants."""
+
+BROADCAST_ID = 255
+DEFAULT_PROTOCOL_VERSION = "1.4"
+MAX_NODE_ID = 254
+SYSTEM_CHILD_ID = 255
