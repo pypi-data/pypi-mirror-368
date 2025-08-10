@@ -1,0 +1,69 @@
+[project]
+name = "podgenai"
+version = "0.15.1"
+description = "GPT-4 based informational audiobook/podcast mp3 generator"
+authors = [
+    { name = "Ouroboros Chrysopoeia", email = "impredicative@users.noreply.github.com" }
+]
+dependencies = [
+    "click>=8.2.1",  # https://github.com/pallets/click/releases
+    "openai>=1.99.6",  # https://github.com/openai/openai-python/releases
+    "pathvalidate>=3.3.1",  # https://github.com/thombashi/pathvalidate/releases
+    "python-dotenv>=1.1.1",  # https://github.com/theskumar/python-dotenv/releases
+    "semantic-text-splitter>=0.22.0,<0.23.0",  # https://github.com/benbrandt/text-splitter/releases https://github.com/benbrandt/text-splitter/issues/605
+]
+readme = "README.md"
+requires-python = ">= 3.12"
+keywords = ["podcast", "mp3", "audiobook", "gpt-4o", "aicast"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Natural Language :: English",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+    "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
+    "Programming Language :: Python :: 3.12"
+]
+
+[project.scripts]
+podgenai = "podgenai.__main__:main"
+
+[project.urls]
+Repository = "https://github.com/impredicative/podgenai"
+
+[build-system]
+requires = ["hatchling==1.26.3"]  # Without a version spec, hatchling==1.27.0 is used which fails to publish. Ref: https://github.com/astral-sh/rye/issues/1446#issuecomment-2545154562
+build-backend = "hatchling.build"
+
+[tool.rye]
+managed = true
+dev-dependencies = []
+universal = true
+
+[tool.rye.scripts]  # Run as "rye run <command>"
+check = { chain = ["check-lint", "check-fmt" ] }
+"check-lint" = "rye lint"
+"check-fmt" = "rye fmt --check"
+fix = { chain = ["fix-lint", "fix-fmt" ] }
+"fix-lint" = "rye lint --fix"
+"fix-fmt" = "rye fmt"
+lockup = "rye lock --update-all"
+syncup = "rye sync --update-all"
+build = "rye build --clean --verbose"
+publish = "rye publish --verbose"
+release = { chain = ["check", "build", "publish"]}
+describe = "python ./scripts/print_cached_episode_description.py"
+serve = "python -m http.server 8000"  # For downloading generated mp3 from GitHub Codespace.
+
+[tool.hatch.build]
+exclude = [".env", "archive/", "docs/", "scripts/", "work/"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/podgenai"]
+
+[tool.ruff]
+line-length = 320
+
+[tool.ruff.lint]
+ignore = ["E731"]
