@@ -1,0 +1,118 @@
+[project]
+name = "vietnam-provinces"
+description = "Library to provide list of Vietnam administrative divisions (tỉnh thành, quận huyện, phường xã)."
+authors = [{ name = "Nguyễn Hồng Quân", email = "ng.hong.quan@gmail.com" }]
+license = { text = "GPL-3.0-or-later" }
+requires-python = "<4.0,>=3.10"
+dynamic = ["version"]
+dependencies = []
+readme = "README.rst"
+keywords = ["Vietnam", "administrative", "division", "locality"]
+classifiers = [
+    "Natural Language :: Vietnamese",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Intended Audience :: Telecommunications Industry",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Localization",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+]
+
+[project.urls]
+Homepage = "https://github.com/sunshine-tech/VietnamProvinces"
+Repository = "https://github.com/sunshine-tech/VietnamProvinces.git"
+Documentation = "https://vietnamprovinces.readthedocs.io"
+Changelog = "https://github.com/sunshine-tech/VietnamProvinces/blob/main/CHANGELOG.md"
+
+[dependency-groups]
+dev = [
+    "pytest >= 8.4.1",
+    "devtools >= 0.12.2",
+    "python-rapidjson >= 1.20",
+    "click >= 8.2.1",
+    "pydantic >= 2.11.7",
+    "logbook >= 1.8.1",
+    "httpx >= 0.28.1",
+    "mypy >= 1.16.1",
+    "ptpython>=3.0.30",
+    "unidecode>=1.4.0",
+]
+lint = ["pre-commit >= 4.2.0", "ruff >= 0.12.7"]
+docs = [
+    "enum-tools>=0.13.0",
+    "furo>=2025.7.19",
+    "myst-parser>=4.0.1",
+    "sphinx-autobuild>=2024.10.3",
+    "sphinx-book-theme>=1.1.4",
+    "sphinx-toolbox>=4.0.0",
+]
+
+[tool.ruff]
+# Assume Python 3.13.
+target-version = "py313"
+line-length = 120
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+
+[tool.ruff.lint]
+# Enable Pyflakes `E` and `F` codes by default.
+select = ['E', 'F', 'I']
+ignore = []
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.per-file-ignores]
+"vietnam_provinces/__init__.py" = ["F401"]
+
+[tool.ruff.lint.isort]
+lines-after-imports = 2
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.mypy]
+python_version = "3.13"
+plugins = ["pydantic.mypy"]
+# These options are recommended by Pydantic.
+follow_imports = "silent"
+warn_redundant_casts = true
+warn_unused_ignores = true
+disallow_any_generics = true
+exclude = ['dev/_\w+\.py']
+disable_error_code = 'prop-decorator'
+
+[[tool.mypy.overrides]]
+module = ["fast_enum", "logbook.*"]
+ignore_missing_imports = true
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+[build-system]
+requires = ["flit_core >= 3.4"]
+build-backend = "flit_core.buildapi"
