@@ -1,0 +1,6 @@
+from polyfeatures.processing import process_polymer_smiles
+from polyfeatures.calculate_features import identify_backbone_atoms
+from polyfeatures.calculate_features import calculate_backbone_features
+from polyfeatures.calculate_features import calculate_sidechain_features
+from polyfeatures.calculate_features import calculate_extra_features
+from polyfeatures.analyze import analyze_polymers
