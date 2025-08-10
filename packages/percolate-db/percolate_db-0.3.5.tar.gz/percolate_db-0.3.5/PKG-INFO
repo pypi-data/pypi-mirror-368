@@ -1,0 +1,104 @@
+Metadata-Version: 2.1
+Name: percolate-db
+Version: 0.3.5
+Summary: A client for working with the [Percolate database](https://github.com/Percolation-Labs/percolate)
+License: MIT
+Author: mr-saoirse
+Author-email: amartey@gmail.com
+Requires-Python: >=3.10,<4.0
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Requires-Dist: aiobotocore
+Requires-Dist: aiohttp (>=3.8,<4.0)
+Requires-Dist: apscheduler (>=3.10.1,<4.0.0)
+Requires-Dist: boto3 (>=1.26.0,<2.0.0)
+Requires-Dist: docstring-parser (>=0.16)
+Requires-Dist: duckdb (>=0.10.0,<0.11.0)
+Requires-Dist: fastapi (>=0.110.1)
+Requires-Dist: fastmcp (>=2.10.1)
+Requires-Dist: html2text (>=2024.2.26,<2025.0.0)
+Requires-Dist: httpcore (>=1.0.0,<2.0.0)
+Requires-Dist: httpx (>=0.28.1)
+Requires-Dist: hypercorn (>=0.17.3)
+Requires-Dist: itsdangerous (>=2.2.0,<3.0.0)
+Requires-Dist: kuzu (>=0.0.11,<0.0.12)
+Requires-Dist: loguru (>=0.7.3)
+Requires-Dist: mammoth (>=1.9.0,<2.0.0)
+Requires-Dist: markdown (>=3.8,<4.0)
+Requires-Dist: minio (>=7.2.15)
+Requires-Dist: openai (>=1.0)
+Requires-Dist: pdf2image
+Requires-Dist: polars (>=0.20.5,<0.21.0)
+Requires-Dist: psycopg2-binary (>=2.0.0)
+Requires-Dist: pyarrow (>=19.0.1,<20.0.0)
+Requires-Dist: pydantic (>=2.0.0)
+Requires-Dist: pydantic-settings (>=2.0.0,<3.0.0)
+Requires-Dist: pyjwt (>=2.10.1,<3.0.0)
+Requires-Dist: pymupdf (==1.24.13)
+Requires-Dist: pytest-asyncio (>=0.24.0,<0.25.0)
+Requires-Dist: python-jose[cryptography] (>=3.3.0,<4.0.0)
+Requires-Dist: python-multipart (>0)
+Requires-Dist: pyyaml (>=6.0.2)
+Requires-Dist: requests (>=2.32.3)
+Requires-Dist: tenacity (>=8.0.0)
+Requires-Dist: typer (>=0.11.0)
+Requires-Dist: uvicorn (>=0.17.0)
+Description-Content-Type: text/markdown
+
+# Percolate API
+
+The API supports the database by providing a REST interface for maintenance tasks or to test the concepts of adding APIs to AI systems.
+The docker compose master file will include the API so by using docker compose up in the root, you should have an API running on port 5008.
+
+But you can also launch it from here as describe below.
+
+From this folder location (we use port 5000 for dev and 5008 for docker to avoid conflict on ports)
+
+```bash
+uvicorn percolate.api.main:app --port 5000 --reload
+#browse to http://127.0.0.1:5000/docs for swagger
+```
+
+Or from docker - you can use a local docker build. For example
+
+```bash
+# build with some tag
+docker build -t p8-api .
+# run it in the background -> this will spit out a container id or you can use a name like p8c
+docker run -d -p 5008:5008 --name p8c p8-api
+# browse to localhost:5008/docs and you should see the swagger
+# troubleshoot launch using the container ID output from the earlier step
+docker log p8c
+```
+
+To clean up
+
+```bash
+#docker stop p8c OR
+docker rm -f p8c
+#docker system prune -f
+```
+
+
+
+## Tests
+
+WIP - run tests in the python directory with `pytest .` - at the moment there is a test application of the schema on a test database that assumes the docker instance is running.
+
+## Note on Jupyter
+
+There are a number of notebooks used for illustration and/or testing
+
+git attribute removes contents on commit to avoid checking in output cells.
+
+```bash
+git config --global filter.strip-notebook-output.clean "jq --indent 1 '.cells[] |= if .outputs then .outputs = [] else . end | .metadata = {}' 2>/dev/null || cat"
+```
+
+
+# Issues encountered
+- https://github.com/fsspec/s3fs/issues/932
+- https://github.com/boto/boto3/issues/3738 [XAmzContentSHA256Mismatch]
+- -https://github.com/boto/boto3/issues/4392 | https://github.com/boto/boto3/issues/4400 
