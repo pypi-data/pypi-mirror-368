@@ -1,0 +1,76 @@
+name:  CI with qt, py3.12
+# includes qt-related tests
+
+on:
+  workflow_dispatch:
+
+env:
+  OS: "linux"
+  PYTHON_VERSION: "3.12"
+  QT_BINDING: "pyside6"
+  REQUIREMENTS_FILE: "requirements-all-linux-py3.12.txt"
+
+jobs:
+  check:
+    name: "CI with ubuntu, py3.12, pip"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: "Install and upgrade"
+        run: |
+          python -m pip install --upgrade pip
+      - name: "Install locan[test,dev]"
+        run: |
+          python -m pip install .[test,dev]
+      - name: "Format with black"
+        run: black --check --diff "."
+      - name: "Lint with ruff"
+        run: ruff check --output-format=github "."
+      - name: "Type check with mypy"
+        run: mypy
+
+      # For testing with Qt on linux
+      - uses: tlambert03/setup-qt-libs@v1
+
+      - name: "Install locan[test]"
+        run: pip install ${{ env.QT_BINDING }} .[test-qt]
+      - name: "Run tests"
+        if: runner.os != 'Windows'
+        uses: coactions/setup-xvfb@v1
+        with:
+          run: pytest
+      - name: "Run tests on Windows"
+        if: runner.os == 'Windows'
+        env:
+          MPLBACKEND: agg
+        run: pytest
+
+      - name: "Install and upgrade"
+        run: |
+          pip install pip-tools
+      - name: "Install locan with extra requirements"
+        run: |
+          pip install ${{ env.QT_BINDING }} .[all]
+      - name: "Run tests"
+        uses: coactions/setup-xvfb@v1
+        with:
+          run: coverage run -m pytest --junitxml=./test-results-${{ env.PYTHON_VERSION }}.xml
+      - name: "Prepare coverage reports"
+        run: coverage xml
+      - name: "Check coverage"
+        run: coverage report --fail-under=90
+
+      - name: "Upload coverage to CodeCov"
+        if: ${{ github.ref == 'refs/heads/main' }}
+        uses: codecov/codecov-action@v5
+        with:
+          fail_ci_if_error: true
+          files: coverage.xml
+          flags: unittests
+          token: ${{ secrets.CODECOV_TOKEN }}
+          name: "CodeCov report"
+          verbose: true

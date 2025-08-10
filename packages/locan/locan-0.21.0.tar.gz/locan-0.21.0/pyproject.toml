@@ -1,0 +1,378 @@
+[build-system]
+requires = [
+    "setuptools>=64",
+    "setuptools_scm[toml]>=8"
+    ]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+locan = ["py.typed", "*.pyi"]
+
+[tool.setuptools_scm]
+version_file = "src/locan/_version.py"
+version_scheme = "release-branch-semver"
+fallback_version = "0.21-fallback"
+
+[project]
+name = "locan"
+description = "Analysis software for single-molecule localization microscopy"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {file = "LICENSE.md"}
+authors = [
+  {name = "Locan Developers"},
+]
+maintainers = [
+  {name = "Sören Doose"}
+]
+keywords = [
+    "fluorescence", "super-resolution", " single-molecule localization microscopy",
+    "smlm", "storm", "dstorm", "palm", "paint"
+]
+classifiers = [
+    "Environment :: Console",
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: C",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX",
+    "Operating System :: Unix",
+    "Operating System :: MacOS",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+dynamic = ["version"]
+dependencies = [
+    "asdf",
+    "boost-histogram",
+    "cython",
+    "fast-histogram",
+    "lazy_loader>=0.3",
+    "lmfit",
+    "matplotlib",
+    "networkx",
+    "numpy>1.20.0",
+    "pandas",
+    "protobuf>=6.31.1",
+    "qtpy!=2.3.0",
+    "ruamel.yaml",
+    "scikit-image",
+    "scikit-learn",
+    "scipy",
+    "shapely!=2.0.0,!=2.0.1",
+    "tifffile",
+    "tomli>=1.1.0; python_version<'3.11'",
+    "tqdm",
+    "typing_extensions",
+]
+
+[project.optional-dependencies]
+color = ["colorcet"]
+hdf5 = ["h5py"]
+http = ["httpx"]
+napari = ["napari>=0.5.3"]
+pyqt5 = ["PyQt5"]
+pyside2 = ["PySide2"]
+pyside6 = ["pyside6!=6.8.0"]
+register = [
+    "open3d-cpu!=0.12.0; platform_system=='Linux' and python_version<'3.13'",
+    "open3d!=0.12.0; platform_system!='Linux' and python_version<'3.13'",
+]
+scatter_density = [
+    "mpl_scatter_density",
+    "setuptools",
+]
+test = [
+    "pytest",
+]
+track = ["trackpy"]
+all = [
+    "colorcet",
+    "h5py",
+    "locan[http]",
+    "locan[napari]",
+    "locan[register]",
+    "locan[scatter_density]",
+    "locan[test]",
+    "trackpy",
+]
+gpu = [
+    "cupy-cuda12x",
+    "open3d!=0.12.0; python_version<'3.13'"
+]
+# todo: with pip>25.1.0
+# deprecate extra dependencies for test-qt and docs and dev
+# change github workflows and dockerfiles
+test-qt = [
+    "pytest",
+    "pytest-qt;python_version<'3.13'",
+]
+docs = [
+    "furo",
+    "ipython",
+    "myst-nb",
+    "ray[default];python_version<'3.13'",
+    "sphinx",
+    "sphinx-autodoc-typehints",
+    "sphinx-copybutton",
+]
+dev = [
+    "asv",
+    "black~=25.0",
+    "build",
+    "coverage[toml]",
+    "mypy",
+    "pandas-stubs",  # required by mypy
+    "pre-commit",
+    "ruff",
+    "twine",
+    "types-networkx",  # required by mypy
+    "types-protobuf",  # required by mypy
+    "types-shapely",  # required by mypy
+    "types-tqdm",  # required by mypy
+]
+
+[project.urls]
+homepage = "https://github.com/super-resolution/locan"
+documentation = "https://locan.readthedocs.io/"
+repository = "https://github.com/super-resolution/locan"
+issues = "https://github.com/super-resolution/locan/issues"
+changelog = "https://github.com/super-resolution/locan"
+
+[project.scripts]
+locan = "locan.__main__:main"
+
+
+[dependency-groups]
+test = [
+    "pytest",
+    "coverage",
+]
+test-qt = [
+    {include-group = "test"},
+    "pytest-qt;python_version<'3.13'",
+]
+lint = [
+    "black~=25.0",
+    "ruff",
+]
+typing = [
+    "mypy",
+    "pandas-stubs",
+    "types-networkx",
+    "types-protobuf",
+    "types-shapely",
+    "types-tqdm",
+]
+benchmark = [
+    "asv;python_version<'3.13'",
+]
+dev = [
+    "pre-commit",
+    {include-group = "test"},
+    {include-group = "lint"},
+    {include-group = "typing"},
+]
+docs = [
+    "furo",
+    "ipython",
+    "myst-nb",
+    "ray[default];python_version<'3.13'",
+    "sphinx",
+    "sphinx-autodoc-typehints",
+    "sphinx-copybutton",
+]
+
+
+[tool.black]
+line_length = 88
+
+[tool.pytest.ini_options]
+testpaths = [
+    "src/locan/tests",
+    "tests"
+]
+filterwarnings = [
+    "ignore:RoiLegacy.to_yaml is deprecated*:DeprecationWarning",
+    ]
+addopts = "--import-mode=importlib --strict-markers -m 'not gui and not visual'"
+markers = [
+    "gui: marks tests that require user interaction (skipped by default)",
+    "visual: marks tests that require visual inspection (skipped by default)",
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
+
+[tool.coverage.run]
+source = [
+    "locan"
+]
+omit = [
+    "tests/*",
+    "*/locan/tests/*",
+    "*/locan/scripts/*",
+    "*/locan/__main__.py",
+    "*/locan/data/metadata_pb2.py",
+    "*/locan/data/metadata_pb2.pyi",
+    "*/locan/analysis/metadata_analysis_pb2.py",
+    "*/locan/analysis/metadata_analysis_pb2.pyi",
+    "*/locan/locan_io/locdata/manifest_pb2.py",
+    "*/locan/locan_io/locdata/manifest_pb2.pyi",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "class .*\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.ruff]
+line-length = 88
+# automatically exclude files that are ignored by .gitignore
+exclude = [
+    ".*",
+    "dist",
+    "docs",
+    "docker",
+    "*/*_pb2.py",
+    "*/*_pb2.pyi",
+    "src/locan/_version.py",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "Q",  # flake8-quotes
+    "YTT",  # flake8-2020
+    "S",  # flake8-bandit
+    "UP",  # pyupgrade
+    "BLE",  # flake8-blind-exception
+    "ISC",  # flake8-implicit-str-concat
+    "NPY",  # numpy-specific rules
+    # "PT", # flake8-pytest-style
+]
+# Rules - https://github.com/charliermarsh/ruff#reference:
+# B905 `zip()` without an explicit `strict=` parameter - should be used from py310.
+# E402 module-import-not-at-top-of-file
+# E501 line-too-long
+# F403 import-star-used
+# F405 undefined-local-with-import-star-usage
+# I001 unsorted-imports
+# Q000 bad-quotes-inline-string
+# S101 assert
+# S307 suspicious-eval-usage
+# S404 `subprocess` module is possibly insecure
+# S603 `subprocess` call: check for execution of untrusted input
+# S605 start-process-with-a-shell
+# S607 start-process-with-partial-path
+ignore = ["E501", "B905"]
+extend-select = ["NPY201"]
+preview = true
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["E402", "F401", "F403", "F405", "I001"]
+"__init__.pyi" = ["E401", "F401", "I001"]
+"test_*.py" = ["S101", "S307", "S403", "S404", "S605", "S607"]
+"test_simulation.py" = ["F841"]
+"tests/data/adapter/test_adapter_open3d.py" = ["E402"]
+"benchmarks/benchmarks/*.py" = ["S101"]
+
+[tool.ruff.lint.flake8-quotes]
+docstring-quotes = "double"
+
+[tool.ruff.lint.flake8-import-conventions]
+[tool.ruff.lint.flake8-import-conventions.aliases]
+numpy = "np"
+pandas = "pd"
+matplotlib = "mpl"
+"matplotlib.pyplot" = "plt"
+open3d = "o3d"
+scipy = "sp"
+networkx = "nx"
+boost_histogram = "bh"
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.mypy]
+files = [
+    "$MYPY_CONFIG_FILE_DIR/src",
+    "$MYPY_CONFIG_FILE_DIR/tests/"
+]
+strict = true
+
+# warn-unused-ignores is not quite reproducible
+warn_unused_ignores = false
+
+# exclude autogenerated protobuf files
+[[tool.mypy.overrides]]
+module = [
+    'locan.analysis.metadata_analysis_pb2',
+    'locan.data.metadata_pb2',
+    'locan.locan_io.locdata.manifest_pb2',
+]
+ignore_errors = true
+
+# all attr-defined errors are due to star imports
+[[tool.mypy.overrides]]
+module = [
+    'locan.tests.*',
+]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = false
+disable_error_code = ["attr-defined"]
+
+# all attr-defined errors are due to star imports
+[[tool.mypy.overrides]]
+module = [
+    'tests.*',
+]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = false
+disable_error_code = ["attr-defined"]
+
+[[tool.mypy.overrides]]
+module = [
+    'asdf',
+    'colorcet',
+    'fast_histogram',
+    'h5py',
+    'lmfit.*',
+    'mpl_scatter_density',
+    'napari',
+    'open3d',
+    'scipy.*',
+    'sklearn.*',
+    'trackpy',
+    'vispy',
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    'locan.visualize.transform',
+    'locan.analysis.nearest_neighbor',
+    'locan.analysis.localization_precision',
+]
+disallow_subclassing_any = false
