@@ -1,0 +1,105 @@
+# Copyright (C) 2018 Sebastian Pipping <sebastian@pipping.org>
+# Licensed under GNU Affero GPL v3 or later
+
+networks:
+  ssl-reverse-proxy:
+    external: true
+
+services:
+  postgres:
+    image: postgres:17.5-alpine3.21  # due to postgresql17-client 17.5-r0 in Alpine 3.21
+    volumes:
+      - ~/.jawanndenn-docker-pgdata/:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${JAWANNDENN_POSTGRES_USER:?}
+      POSTGRES_PASSWORD: ${JAWANNDENN_POSTGRES_PASSWORD:?}
+      POSTGRES_DB: ${JAWANNDENN_POSTGRES_NAME:?}
+    logging:
+      driver: 'none'
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_READ_SEARCH
+      - FOWNER
+      - SETGID
+      - SETUID
+    restart: unless-stopped
+
+  redis:
+    image: redis:8.0.1-alpine3.21
+    volumes:
+      - ~/.jawanndenn-docker-redis/:/data
+    logging:
+      driver: 'none'
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    restart: unless-stopped
+
+  jawanndenn:
+    depends_on:
+      - postgres
+      - redis
+    build: .
+    ports:
+      - 127.0.0.1:54080:54080
+    networks:
+      - default
+      - ssl-reverse-proxy
+    environment:
+      # KEEP IN SYNC with container "cron" below
+      DJANGO_SETTINGS_MODULE: jawanndenn.settings
+      JAWANNDENN_ALLOWED_HOSTS: ${JAWANNDENN_ALLOWED_HOSTS}
+      JAWANNDENN_DEBUG: ${JAWANNDENN_DEBUG}
+      JAWANNDENN_MAX_POLLS: ${JAWANNDENN_MAX_POLLS:-1000}
+      JAWANNDENN_POSTGRES_HOST: postgres
+      JAWANNDENN_POSTGRES_PORT: 5432
+      JAWANNDENN_POSTGRES_NAME: ${JAWANNDENN_POSTGRES_NAME:?}
+      JAWANNDENN_POSTGRES_USER: ${JAWANNDENN_POSTGRES_USER:?}
+      JAWANNDENN_POSTGRES_PASSWORD: ${JAWANNDENN_POSTGRES_PASSWORD:?}
+      JAWANNDENN_REDIS_HOST: redis
+      JAWANNDENN_REDIS_PORT: 6379
+      JAWANNDENN_SECRET_KEY: ${JAWANNDENN_SECRET_KEY:?}
+      JAWANNDENN_SENTRY_DSN: ${JAWANNDENN_SENTRY_DSN}
+      JAWANNDENN_URL_PREFIX: ${JAWANNDENN_URL_PREFIX}
+      # KEEP IN SYNC with container "cron" below
+    user: 1001:1001
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+    tty: true
+
+  cron:
+    build: .
+    command: ["sh", "-c", "/usr/bin/supercronic -sentry-dsn \"${JAWANNDENN_SENTRY_DSN}\" ~/crontab"]
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - default
+    environment:
+      # KEEP IN SYNC with container "jawanndenn" above
+      DJANGO_SETTINGS_MODULE: jawanndenn.settings
+      JAWANNDENN_ALLOWED_HOSTS: ${JAWANNDENN_ALLOWED_HOSTS}
+      JAWANNDENN_DEBUG: ${JAWANNDENN_DEBUG}
+      JAWANNDENN_MAX_POLLS: ${JAWANNDENN_MAX_POLLS:-1000}
+      JAWANNDENN_POSTGRES_HOST: postgres
+      JAWANNDENN_POSTGRES_PORT: 5432
+      JAWANNDENN_POSTGRES_NAME: ${JAWANNDENN_POSTGRES_NAME:?}
+      JAWANNDENN_POSTGRES_USER: ${JAWANNDENN_POSTGRES_USER:?}
+      JAWANNDENN_POSTGRES_PASSWORD: ${JAWANNDENN_POSTGRES_PASSWORD:?}
+      JAWANNDENN_REDIS_HOST: redis
+      JAWANNDENN_REDIS_PORT: 6379
+      JAWANNDENN_SECRET_KEY: ${JAWANNDENN_SECRET_KEY:?}
+      JAWANNDENN_SENTRY_DSN: ${JAWANNDENN_SENTRY_DSN}
+      JAWANNDENN_URL_PREFIX: ${JAWANNDENN_URL_PREFIX}
+      # KEEP IN SYNC with container "jawanndenn" above
+    user: 1001:1001
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+    tty: true
