@@ -1,0 +1,99 @@
+# Total Time Formatter
+
+![PyPI Version](https://img.shields.io/pypi/v/total-time-formatter)
+
+A simple yet powerful Python library to convert various time inputs into a total duration format (`HH:MM:SS`), where hours can exceed 24.
+
+This tool is perfect for applications that need to calculate and display total durations, such as project time tracking, equipment runtime, or simply formatting time data consistently.
+
+### Key Features
+
+* **Flexible Inputs**: Handles `datetime` strings, time-only strings (`HH:MM:SS`), and native `timedelta` objects.
+* **Total Hour Calculation**: Correctly calculates total hours from inputs that include date information, allowing hour counts beyond 24.
+* **High Precision Control**: Offers precise control over how fractional seconds are handled: truncate, round up, or keep the exact original precision down to the microsecond.
+* **Dependency-Free**: Pure Python with no external dependencies.
+
+### Installation
+
+Install the library directly from PyPI:
+
+```bash
+pip install total-time-formatter
+```
+
+### How to Use
+
+Import the main function and the precision mode constants to get started.
+
+```python
+from total_time_formatter import format_total_hours, TRUNCATE, ROUND_UP, KEEP_PRECISION
+from datetime import timedelta
+```
+
+#### 1. Converting a Datetime String
+
+When you provide a full datetime string, the library calculates the total duration from a default reference date (`1900-01-01`).
+
+```python
+date_str = "1900-01-03 10:30:15" 
+# Duration = 2 full days (48h) + 10h = 58 hours
+
+duration = format_total_hours(date_str)
+
+print(f"Input: '{date_str}'")
+print(f"Total Duration: {duration}")
+# Expected Output: Total Duration: 58:30:15
+```
+
+#### 2. Converting a Time-Only String (Duration)
+
+If you provide a string that already represents a duration, it will be formatted correctly.
+
+```python
+duration_str = "48:25:10"
+formatted = format_total_hours(duration_str)
+
+print(f"Input: '{duration_str}'")
+print(f"Formatted Duration: {formatted}")
+# Expected Output: Formatted Duration: 48:25:10
+```
+
+#### 3. Converting a `timedelta` Object
+
+The function can also directly format `timedelta` objects.
+
+```python
+td_object = timedelta(hours=75, minutes=5, seconds=22)
+formatted = format_total_hours(td_object)
+
+print(f"Input: {td_object}")
+print(f"Formatted Duration: {formatted}")
+# Expected Output: Formatted Duration: 75:05:22
+```
+
+#### 4. Controlling Precision
+
+This is where the library shines. You can control how to handle fractional seconds using the `precision_mode` argument.
+
+```python
+time_with_ms = "10:20:30.789123"
+
+# a) Truncate (default behavior)
+truncated = format_total_hours(time_with_ms, precision_mode=TRUNCATE)
+print(f"Truncated: {truncated}")
+# Expected Output: Truncated: 10:20:30
+
+# b) Round Up
+rounded = format_total_hours(time_with_ms, precision_mode=ROUND_UP)
+print(f"Rounded Up: {rounded}")
+# Expected Output: Rounded Up: 10:20:31
+
+# c) Keep Exact Precision
+precise = format_total_hours(time_with_ms, precision_mode=KEEP_PRECISION)
+print(f"Precise: {precise}")
+# Expected Output: Precise: 10:20:30.789123
+```
+
+### License
+
+This project is licensed under the MIT License - see the `LICENSE` file for details.
