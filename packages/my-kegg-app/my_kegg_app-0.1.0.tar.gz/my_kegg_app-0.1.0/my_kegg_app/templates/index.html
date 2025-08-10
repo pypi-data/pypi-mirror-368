@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>KEGG Reaction & EC Finder</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</head>
+<body>
+  <div class="flex-container">
+    <div class="container">
+      <h1>KEGG Map Reactions Explorer</h1>
+      <form method="post" class="input-form">
+        <input name="map_id" required placeholder="mapXXXX" style="width:160px;">
+        <input type="submit" value="Search Pathway">
+      </form>
+
+      {% if kegg_reactions %}
+        <h2>Reaction Summary for <span style="color:#eb7a57">{{ map_id }}</span></h2>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Reaction ID</th>
+                <th>EC Number(s)</th>
+                <th>In afm{{ map_id[3:] }}?</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in kegg_reactions %}
+              <tr>
+                <td><a href="#" onclick="loadKeggInfo('{{ r }}'); return false;">{{ r }}</a></td>
+                <td>
+                  {% if reaction_to_ec[r] %}
+                    {% for ec in reaction_to_ec[r] %}
+                      <a href="#" onclick="loadEcInfo('{{ ec }}'); return false;">{{ ec }}</a>{% if not loop.last %}, {% endif %}
+                    {% endfor %}
+                  {% else %}No EC number{% endif %}
+                </td>
+                <td style="text-align:center">{% if r in afm_reactions %}✅{% else %}❌{% endif %}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </div>
+
+    <div id="side-panel"><em>Click a reaction ID or EC number to see details here.</em></div>
+  </div>
+</body>
+</html>
