@@ -1,0 +1,125 @@
+# 📜 4. Crashens Detector Suppression Policy Configuration
+# Controls detector behavior and suppression rules
+
+suppression_rules:
+  # Retry Loop Detector - Highest priority (detects fundamental issues)
+  retry_loop:
+    enabled: true
+    suppress_if_retry_loop: false  # Can't suppress itself
+    
+  # Fallback Storm Detector - Detects chaotic model switching  
+  fallback_storm:
+    enabled: true
+    suppress_if_retry_loop: true   # 🧪 Test Case: Toggle suppression
+    
+  # Fallback Failure Detector - Detects unnecessary expensive calls
+  fallback_failure:
+    enabled: true
+    suppress_if_retry_loop: true   # Usually suppressed by retry detection
+    
+  # Overkill Model Detector - Detects expensive models for simple tasks
+  overkill_model:
+    enabled: true
+    suppress_if_retry_loop: false  # Independent of retry patterns
+
+# 📊 5. Budget Policy Enforcement (v0.1+ Feature)
+budget_policies:
+  - name: high_cost_model_budget
+    model: "gpt-4"
+    monthly_cap_usd: 1000
+    threshold_alerts:
+      - percentage: 70
+        action: send_slack_alert
+        message: "GPT-4 budget at 70% (${spent}/${budget})"
+      - percentage: 90
+        action: send_slack_alert
+        message: "🚨 GPT-4 budget at 90% - consider cost controls"
+      - percentage: 100
+        action: block_requests
+        message: "GPT-4 monthly budget exceeded - requests blocked"
+        
+  - name: claude_opus_budget
+    model: "claude-3-opus"
+    monthly_cap_usd: 500
+    threshold_alerts:
+      - percentage: 80
+        action: send_slack_alert
+      - percentage: 100
+        action: block_requests
+
+# 🧠 2. Enhanced Overkill Model Policies
+policies:
+  - name: overkill_model_detection
+    enabled: true
+    trigger_conditions:
+      model_is: ["gpt-4", "gpt-4-32k", "claude-3-opus"]
+      input_tokens_lt: 50
+      simple_task_keywords: ["summarize", "translate", "what is", "hello", "hi"]
+      # Optional: comment_tags: ["#low_priority", "#simple"]
+    actions:
+      - type: log_event
+        severity: "medium"
+      - type: send_slack_alert
+        template: "💰 Overkill detected: ${model} for ${prompt_preview} (${cost_estimate})"
+      - type: suggest_routing
+        route_to: "gpt-3.5-turbo"
+        savings_estimate: true
+
+# 🌩️ 3. Enhanced Fallback Policies        
+  - name: fallback_storm_detection
+    enabled: true
+    trigger_conditions:
+      min_calls: 3
+      min_distinct_models: 2
+      max_trace_window_minutes: 3
+    suppression_rules:
+      suppress_if_retry_loop: true
+    actions:
+      - type: log_event
+        severity: "high"
+      - type: send_slack_alert
+        template: "🌪️ Fallback storm: ${models_used} in ${duration}min (waste: ${waste_usd})"
+        
+  - name: fallback_failure_detection
+    enabled: true
+    trigger_conditions:
+      time_window_minutes: 5
+      cheaper_fails_before_expensive_succeeds: true
+    suppression_rules:
+      suppress_if_retry_loop: true
+    actions:
+      - type: log_event
+        severity: "medium"
+      - type: send_slack_alert
+        template: "💸 Fallback failure pattern detected (waste: ${waste_usd})"
+
+# Global settings
+global:
+  include_suppressed_by_default: false
+  show_suppression_summary: true
+  transparency_mode: true  # Always show what was suppressed and why
+
+# 🔧 Enhanced Detector Thresholds
+thresholds:
+  retry_loop:
+    max_retries: 3
+    time_window_minutes: 5
+    max_retry_interval_minutes: 2
+    
+  fallback_storm:
+    min_calls: 3
+    min_models: 2
+    max_trace_window_minutes: 3
+    
+  fallback_failure:
+    time_window_seconds: 300
+    
+  overkill_model:
+    max_prompt_tokens: 20
+    max_prompt_chars: 150
+    expensive_models:
+      - "gpt-4"
+      - "gpt-4-32k" 
+      - "gpt-4-turbo"
+      - "claude-3-opus"
+      - "claude-3-sonnet"
