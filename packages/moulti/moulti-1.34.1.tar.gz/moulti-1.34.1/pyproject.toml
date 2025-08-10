@@ -1,0 +1,169 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "moulti"
+dynamic = ["version"]
+dependencies = [
+	'argcomplete',
+	'pyperclip',
+	'textual==1.0.*',
+	'unidiff',
+]
+requires-python = ">= 3.10"
+authors = [
+	{ name = "Xavier G.", email = "xavier.moulti@kindwolf.org" },
+]
+description = """\
+	Moulti is a CLI-driven Terminal User Interface (TUI) displaying \
+	arbitrary outputs inside visual, collapsible blocks called steps.\
+"""
+readme = "README.md"
+license = { "file" = "LICENSE" }
+keywords = [
+	"ansible",
+	"cli",
+	"collapsible",
+	"curses",
+	"diff",
+	"multiplex",
+	"output",
+	"script",
+	"steps",
+	"terminal",
+	"textual",
+	"tui",
+]
+classifiers = [
+	"Environment :: Console :: Curses",
+	"Intended Audience :: Developers",
+	"Intended Audience :: System Administrators",
+	"License :: OSI Approved :: MIT License",
+	"Operating System :: MacOS :: MacOS X",
+	"Operating System :: POSIX :: BSD :: FreeBSD",
+	"Operating System :: POSIX :: BSD :: NetBSD",
+	"Operating System :: POSIX :: BSD :: OpenBSD",
+	"Operating System :: POSIX :: Linux",
+	"Programming Language :: Python :: 3 :: Only",
+	"Topic :: System :: Logging",
+	"Topic :: Utilities",
+]
+
+[project.optional-dependencies]
+tinker = [
+	"bpython",
+	"textual-dev",
+]
+check-py = [
+	"mypy",
+	"pylint",
+]
+check-rust = [
+	"ruff",
+]
+check = [
+	"moulti[check-py,check-rust]",
+]
+test = [
+	"pytest",
+	"pytest-asyncio",
+	"pytest-forked",
+	"pytest-textual-snapshot",
+	"pytest-xdist",
+]
+release = [
+	"build",
+	"twine",
+]
+doc = [
+	"mkdocs-material[imaging]",
+	"mkdocs-inline-select-svg-plugin",
+]
+dev = [
+	"moulti[tinker,check,test,release,doc]",
+]
+ci = [
+	"moulti[check,test]",
+]
+# Installing ruff on *BSD systems requires a Rust compiler + time + energy:
+bsd-ci = [
+	"moulti[check-py,test]",
+]
+
+[project.urls]
+Homepage = "https://moulti.run/"
+Documentation = "https://moulti.run/"
+Repository = "https://github.com/xavierog/moulti.git"
+Issues = "https://github.com/xavierog/moulti/issues"
+Changelog = "https://github.com/xavierog/moulti/blob/master/CHANGELOG.md"
+
+[project.scripts]
+moulti = "moulti.precli:main"
+moulti-askpass = "moulti.askpass:main"
+moulti-askpass-become-password = "moulti.askpass:main"
+moulti-askpass-connection-password = "moulti.askpass:main"
+moulti-askpass-vault-client = "moulti.askpass:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+packages = [
+	"moulti",
+	"moulti.ansible",
+	"moulti.widgets",
+	"moulti.widgets.abstractquestion",
+	"moulti.widgets.abstractstep",
+	"moulti.widgets.buttonquestion",
+	"moulti.widgets.collapsiblestep",
+	"moulti.widgets.divider",
+	"moulti.widgets.inputquestion",
+	"moulti.widgets.question",
+	"moulti.widgets.step",
+]
+script-files = [
+	"examples/moulti-functions.bash",
+	"examples/moulti-man",
+]
+
+[tool.setuptools.dynamic]
+version = { attr = "moulti.__version__" }
+
+[tool.ruff]
+line-length = 120
+
+[tool.mypy]
+python_version = "3.10"
+disallow_untyped_defs = true
+
+[tool.pylint.format]
+indent-string = "\t"
+max-line-length = 120
+ignore-long-lines = "add_argument"
+
+[tool.pylint."messages control"]
+disable = [
+	"broad-exception-caught",
+	"missing-class-docstring",
+	"missing-function-docstring",
+	"missing-module-docstring",
+	"too-few-public-methods",
+	"too-many-ancestors",
+	"too-many-arguments",
+	"too-many-branches",
+	"too-many-instance-attributes",
+	"too-many-locals",
+	"too-many-positional-arguments",
+	"too-many-public-methods",
+	"too-many-statements",
+]
+
+[tool.pytest.ini_options]
+# Recommended in https://textual.textualize.io/guide/testing/#testing-frameworks-for-textual
+asyncio_mode = "auto"
+# Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope.
+asyncio_default_fixture_loop_scope = "function"
+addopts = ["-n", "auto", "--forked"]
+testpaths = ["tests"]
+filterwarnings = [
+	"ignore:.*may lead to deadlocks in the child.*:DeprecationWarning"
+]
