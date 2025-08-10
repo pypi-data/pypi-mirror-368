@@ -1,0 +1,122 @@
+name: Create Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - pyproject.toml
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (leave empty to use pyproject.toml version)'
+        required: false
+        type: string
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    outputs:
+      version-changed: ${{ steps.check.outputs.changed }}
+      new-version: ${{ steps.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check if version changed
+        id: check
+        run: |
+          # Get current version from pyproject.toml
+          CURRENT_VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+          echo "Current version: $CURRENT_VERSION"
+          
+          # Get previous version from the previous commit
+          git checkout HEAD~1 -- pyproject.toml 2>/dev/null || true
+          if [ -f pyproject.toml ]; then
+            PREVIOUS_VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+          else
+            PREVIOUS_VERSION=""
+          fi
+          echo "Previous version: $PREVIOUS_VERSION"
+          
+          # Restore current pyproject.toml
+          git checkout HEAD -- pyproject.toml
+          
+          if [ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ] && [ -n "$CURRENT_VERSION" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            echo "Version changed from $PREVIOUS_VERSION to $CURRENT_VERSION"
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "Version unchanged"
+          fi
+
+  create-release:
+    needs: [check-version]
+    if: |
+      always() && (
+        (github.event_name == 'push' && needs.check-version.outputs.version-changed == 'true') ||
+        github.event_name == 'workflow_dispatch'
+      )
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ -n "${{ github.event.inputs.version }}" ]; then
+              echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+              echo "Using manual input version: ${{ github.event.inputs.version }}"
+            else
+              PYPROJECT_VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+              echo "version=$PYPROJECT_VERSION" >> $GITHUB_OUTPUT
+              echo "Using pyproject.toml version: $PYPROJECT_VERSION"
+            fi
+          else
+            echo "version=${{ needs.check-version.outputs.new-version }}" >> $GITHUB_OUTPUT
+            echo "Using detected version: ${{ needs.check-version.outputs.new-version }}"
+          fi
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Build package
+        run: uv build
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Release v${{ steps.version.outputs.version }}
+          body: |
+            ## Changes in v${{ steps.version.outputs.version }}
+            
+            ${{ github.event_name == 'workflow_dispatch' && 'This release was manually created.' || 'This release was automatically created when the version in pyproject.toml was updated.' }}
+            
+            ### Installation
+            ```bash
+            pip install baynext-cli==${{ steps.version.outputs.version }}
+            ```
+            
+            See the [changelog](CHANGELOG.md) for detailed changes.
+          files: |
+            dist/baynext_cli-${{ steps.version.outputs.version }}-py3-none-any.whl
+            dist/baynext-cli-${{ steps.version.outputs.version }}.tar.gz
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to PyPI
+        env:
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        run: uv publish --token $PYPI_TOKEN
