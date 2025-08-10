@@ -1,0 +1,14 @@
+"""
+
+| **RF Central**, a *Python Package* receive high power RF data from different centrals
+
+|
+
+"""
+
+__version__ = "1.0.0"
+
+__all__ = (
+    "__version__",
+    "main",
+)
