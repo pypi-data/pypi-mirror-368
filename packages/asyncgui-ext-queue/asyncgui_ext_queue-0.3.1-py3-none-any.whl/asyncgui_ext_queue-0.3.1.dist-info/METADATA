@@ -1,0 +1,72 @@
+Metadata-Version: 2.3
+Name: asyncgui-ext-queue
+Version: 0.3.1
+Summary: An asyncio.Queue equivalence for asyncgui
+License: MIT
+Keywords: async
+Author: Nattōsai Mitō
+Author-email: flow4re2c@gmail.com
+Requires-Python: >=3.10,<4.0
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Topic :: Software Development :: Libraries
+Requires-Dist: asyncgui (>=0.9.3,<1.0.0)
+Project-URL: Homepage, https://github.com/asyncgui/asyncgui-ext-queue
+Project-URL: Repository, https://github.com/asyncgui/asyncgui-ext-queue
+Description-Content-Type: text/markdown
+
+# Queue
+
+An `asyncio.Queue` equivalence for asyncgui.
+
+```python
+import asyncgui as ag
+from asyncgui_ext.queue import Queue
+
+async def producer(q):
+    for c in "ABC":
+        await q.put(c)
+        print('produced', c)
+
+async def consumer(q):
+    async for c in q:
+        print('consumed', c)
+
+q = Queue(capacity=1)
+ag.start(producer(q))
+ag.start(consumer(q))
+```
+
+```
+produced A
+produced B
+consumed A
+produced C
+consumed B
+consumed C
+```
+
+## Installation
+
+Pin the minor version.
+
+```
+poetry add asyncgui-ext-queue@~0.3
+pip install "asyncgui-ext-queue>=0.3,<0.4"
+```
+
+## Tested on
+
+- CPython 3.10
+- CPython 3.11
+- CPython 3.12
+- CPython 3.13
+
