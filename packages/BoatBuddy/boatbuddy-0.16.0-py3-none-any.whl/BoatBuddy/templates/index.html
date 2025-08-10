@@ -1,0 +1,2316 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div id="set_anchor_alarm_modal" tabindex="-1" class="modal fade" data-backdrop="static"
+     xmlns="http://www.w3.org/1999/html"
+     role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content" id="set_anchor_alarm_modal_content">
+            <div class="modal-header">
+                <h5 class="modal-title">Anchor alarm configuration</h5>
+            </div>
+            <div class="modal-body">
+                <h4>Anchor position</h4>
+                <div class="container mb-2 border rounded">
+                    <div class="row border-bottom justify-content-center py-1">
+                        <label class="col col-sm-3">
+                            <input type="radio" name="toggleRadio" value="default"
+                                   id="default_anchor_configuration_button_id"
+                                   onchange="toggleAnchorConfigurationMode()" checked> Default
+                        </label>
+                        <label class="col col-sm-4">
+                            <input type="radio" name="toggleRadio" value="alternative"
+                                   id="alternative_anchor_configuration_button_id"
+                                   onchange="toggleAnchorConfigurationMode()"> Alternative
+                        </label>
+                    </div>
+                    <div class="row align-items-center py-1" id="default_anchor_configuration_div_id">
+                        <div class="col col-sm py-1">
+                            <div class="row">
+                                <div class="col">
+                                    Latitude:
+                                </div>
+                                <div class="col">
+                                    <input type="text" id="set_anchor_alarm_latitude_text_id"
+                                           placeholder="Latitude"/>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col">
+                                    Longitude:
+                                </div>
+                                <div class="col">
+                                    <input type="text" id="set_anchor_alarm_longitude_text_id"
+                                           placeholder="Longitude"/>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm">
+                            <button class="btn btn-outline-primary mb-2 mt-2" type="button"
+                                    onclick="useCurrentPosition()">
+                                <span><i class="bi bi-crosshair"></i>&nbspUse current position</span>
+                            </button>
+                            <button id="use_last_anchor_position_button_id" class="btn btn-outline-primary mb-2"
+                                    type="button" onclick="useLastAnchorPosition()" disabled>
+                                <span><i class="bi bi-crosshair"></i>&nbspUse last anchor position</span>
+                            </button>
+                            <button id="use_home_position_button_id" class="btn btn-outline-primary mb-2" type="button"
+                                    onclick="useHomePosition()">
+                                <span><i class="bi bi-house-check"></i>&nbspUse home position</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="alternative_anchor_configuration_div_id" class="hidden">
+                        <div class="col col-sm">
+                            <div class="row mt-2 mb-2">
+                            <span>Bearing to anchor:&nbsp<input type="number" id="set_anchor_alarm_bearing_text_id"
+                                                                placeholder="Bearing (in degrees)"/></span>
+                            </div>
+                            <div class="row mb-2">
+                            <span>Distance to anchor:&nbsp<input type="number" id="set_anchor_alarm_distance_text_id"
+                                                                 placeholder="Distance (in meters)"/></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <h4>Allowed distance</h4>
+                <div class="container mb-2 border rounded">
+                    <div class="row border-bottom justify-content-center py-1">
+                        <input type="number" step="1" style="width: 80px;"
+                               id="set_anchor_alarm_allowed_distance_text_id"
+                               placeholder="Distance (in meters)"/>&nbspmeters
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="d-flex col" id="set_anchor_check_your_input_div_id"
+                     style="visibility: hidden; display: none">
+                    <div class="text-danger">Check your input!</div>
+                </div>
+                <button type="button" class="btn btn-success" onclick="setAnchor()">
+                    Set Anchor
+                </button>
+                <button type="button" class="close btn btn-secondary" onclick="hideSetAnchorAlarmModal()">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="update_anchor_alarm_modal" tabindex="-1" class="modal fade" data-backdrop="static"
+     xmlns="http://www.w3.org/1999/html"
+     role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content" id="update_anchor_alarm_modal_content">
+            <div class="modal-header">
+                <h5 class="modal-title">Anchor alarm configuration</h5>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-12 col-sm-7">
+                        <div class="container mb-2 border rounded">
+                            <h4>Anchor position</h4>
+                            <div class="row mb-2">
+                                <div class="col">
+                                    <div class="row">
+                                                <span>Latitude:&nbsp<span
+                                                        id="update_anchor_alarm_latitude_label_id"></span></span>
+                                    </div>
+                                    <div class="row">
+                                    <span>Longitude:&nbsp<span
+                                            id="update_anchor_alarm_longitude_label_id"></span></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-5">
+                        <h4>Allowed distance</h4>
+                        <span><input type="number" style="width: 80px;" step="1"
+                                     id="update_anchor_alarm_allowed_distance_text_id"
+                                     placeholder="Distance (in meters)"/>&nbspmeters</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="d-flex col" id="update_anchor_check_your_input_div_id"
+                     style="visibility: hidden; display: none">
+                    <div class="text-danger">Check your input!</div>
+                </div>
+                <button type="button" class="btn btn-success" onclick="updateAnchor()">
+                    <span>Update Allowed Distance</span>
+                </button>
+                <button type="button" class="btn btn-danger" onclick="showCancelAnchorAlarmModal()">
+                    <span>Cancel Alarm</span>
+                </button>
+                <button type="button" class="close btn btn-secondary" onclick="hideUpdateAnchorAlarmModal()">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="cancel_anchor_alarm_modal" tabindex="-1" class="modal fade" data-backdrop="static"
+     xmlns="http://www.w3.org/1999/html">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content" id="cancel_anchor_alarm_modal_content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cancel anchor alarm?</h5>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to cancel the existing anchor alarm?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="hideCancelAnchorAlarmModal()">No</button>
+                <button type="button" class="btn btn-primary" onclick="cancelAnchorAlarm()">Yes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="reset_maximum_distance_modal" tabindex="-1" class="modal fade" data-backdrop="static"
+     xmlns="http://www.w3.org/1999/html">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content" id="reset_maximum_distance_modal_content">
+            <div class="modal-header">
+                <h5 class="modal-title">Reset maximum distance metric?</h5>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to reset the maximum recorded distance for your current anchor alarm?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="hideResetMaximumDistanceModal()">No</button>
+                <button type="button" class="btn btn-primary" onclick="resetMaximumDistanceMetric()">Yes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container p-0 my-1">
+    <div id="warning_notification" class="alert alert-warning ms-2 me-2 mb-0 text-danger" role="alert"
+         style="display: none">
+        <span><i class="bi bi-exclamation-triangle mb-2 me-2"></i><span id="warning_notification_message">This is the warning notification message placeholder</span></span>
+    </div>
+    <div id="success_notification" class="alert alert-success ms-2 me-2 mb-0" role="alert"
+         style="display: none">
+        <span><i class="bi bi-check-square mb-2 me-2"></i><span id="success_notification_message">This is the success notification message placeholder</span></span>
+    </div>
+</div>
+
+<div class="container px-1">
+    <div class="d-lg-flex flex-lg-row d-sm-flex flex-sm-row mb-1">
+        <div class="col-xl-4 col-xxl-3 col-lg-5 col-md-4 col-sm-4 col-12 border border-5 border-success rounded text-center">
+            <!-- System metrics column-->
+            <h5 class="fw-bolder mb-2">{{boat_name}} Dashboard</h5>
+            <div class="container px-0 mx-0 d-flex">
+                <div class="row align-items-center mx-0 px-0" id="electrical_system_metrics_row_id"></div>
+            </div>
+        </div>
+        <div class="col mt-2 mt-sm-0 ps-sm-1">
+            <div class="row px-0 mx-0 d-flex">
+                <ul class="nav nav-tabs p-0 m-0" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="anchor-tab" data-bs-toggle="tab" data-bs-target="#anchor"
+                                type="button" role="tab" aria-controls="anchor" aria-selected="true">Anchor
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="nmea-tab" data-bs-toggle="tab" data-bs-target="#nmea"
+                                type="button" role="tab" aria-controls="nmea" aria-selected="false">Instruments
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="sensors-tab" data-bs-toggle="tab" data-bs-target="#sensors"
+                                type="button" role="tab" aria-controls="sensors" aria-selected="false">Sensors
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="relays-tab" data-bs-toggle="tab" data-bs-target="#relays"
+                                type="button" role="tab" aria-controls="relays" aria-selected="false">Relays
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="session-tab" data-bs-toggle="tab" data-bs-target="#session"
+                                type="button" role="tab" aria-controls="session" aria-selected="false">Session
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="row border border-5 border-danger rounded text-center px-0 mx-0 d-flex">
+                <div class="tab-content p-0">
+                    <div class="tab-pane fade show active" id="anchor" role="tabpanel" aria-labelledby="anchor-tab"
+                         style="position: relative;">
+                        <!-- Anchor panel-->
+                        <div id="anchor_alarm_is_not_set_message" class="container-fluid align-self-center">
+                            <h5 class="mt-2">Anchor alarm is not set</h5>
+                        </div>
+                        <div id="anchor_container" style="display: none; visibility: hidden;"
+                             class="container-fluid align-self-top">
+                            <div class="row text-start">
+                                <div class="col-12 col-sm-6 col-xxl-3 mb-2">
+                                    <h5 class="fw-bolder mb-0">Timers</h5>
+                                    <span>Strt. time Local:&nbsp;<span id="anchor_start_time"></span></span>
+                                    <br>
+                                    <span>Strt. time UTC:&nbsp;<span id="anchor_start_time_utc"></span></span>
+                                    <br>
+                                    <span>Duration:&nbsp<span
+                                            id="anchor_duration"></span></span>
+                                </div>
+                                <div class="col-12 col-sm-6 col-xxl-3 mb-2">
+                                    <h5 class="fw-bolder mb-0">Distance</h5>
+                                    <span class="text-warning fw-bold" style="cursor: pointer;"
+                                          onclick="showUpdateAnchorAlarmModal()">Allowed Distance:&nbsp<span
+                                            id="anchor_allowed_distance"></span>&nbspm</span>
+                                    <br>
+                                    <span id="distance_from_anchor_span" class="fw-bold">Distance from anchor:&nbsp<span
+                                            id="anchor_distance"></span>&nbspm</span>
+                                    <br>
+                                    <span class="text-warning fw-bold" style="cursor: pointer;"
+                                          onclick="showResetMaximumDistanceModal()">Max. Distance:&nbsp<span
+                                            id="max_anchor_distance"></span>&nbspmeters</span>
+                                </div>
+                                <div class="col-12 col-sm-6 col-xxl-3 mb-2">
+                                    <h5 class="fw-bolder mb-0">Anchor position</h5>
+                                    <span>Latitude:&nbsp<span id="anchor_latitude"></span></span>
+                                    <br>
+                                    <span>Longitude:&nbsp<span id="anchor_longitude"></span></span>
+                                    <br>
+                                    <span>Anchor Bearing:&nbsp<span
+                                            id="anchor_bearing"></span>&nbspdegrees</span>
+                                </div>
+                                <div class="col-12 col-sm-6 col-xxl-3 mb-2">
+                                    <h5 class="fw-bolder mb-0">Current position</h5>
+                                    <span>Latitude:&nbsp<span id="current_latitude"></span></span>
+                                    <br>
+                                    <span>Longitude:&nbsp<span id="current_longitude"></span></span>
+                                    <br>
+                                    <span>GPS Accuracy:&nbsp<span
+                                            id="gps_accuracy"></span></span>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <hr class="mt-1 mb-1"/>
+                            </div>
+                            <div id="anchor-map-container">
+                                <div id="anchor-map-container-buttons-top-right">
+                                    <div class="card bg-light border-dark p-1">
+                                        <button id="default_map_layer_button" type="button" class="btn btn-warning"
+                                                onclick="showDefaultMapLayer()" style="margin-bottom: 5px;"
+                                                disabled>Default
+                                        </button>
+                                        <button type="button" id="satellite_map_layer_button"
+                                                class="btn btn-secondary text-light"
+                                                onclick="showSatelliteMapLayer()">Satellite
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="anchor-map-container-buttons-bottom-left">
+                                    <div class="card bg-light border-dark p-1">
+                                        <button id="track_current_position_button" class="btn btn-warning"
+                                                onclick="trackCurrentPositionStateChange();"
+                                                style="margin-bottom: 5px;">
+                                            <i class="bi bi-crosshair"></i>
+                                        </button>
+                                        <button id="show_hide_boat_tracks_button" class="btn btn-warning"
+                                                onclick="showHideBoatTracksStateChange();">
+                                            <i class="bi bi-cookie"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="anchor-map-container-buttons-bottom-right">
+                                    <div class="card bg-light border-dark p-1">
+                                        <button id="zoom_in_button" type="button" class="btn btn-secondary"
+                                                onclick="zoomIn();"
+                                                ontouchstart="this.classList.remove('btn-secondary'); this.classList.add('btn-warning');"
+                                                ontouchend="this.classList.remove('btn-warning'); this.classList.add('btn-secondary');"
+                                                onmousedown="this.classList.remove('btn-secondary'); this.classList.add('btn-warning');"
+                                                onmouseup="this.classList.remove('btn-warning'); this.classList.add('btn-secondary');"
+                                                style="margin-bottom: 5px;">
+                                            <i class="bi bi-zoom-in"></i></button>
+                                        <button id="zoom_out_button" type="button" class="btn btn-secondary"
+                                                onclick="zoomOut();"
+                                                ontouchstart="this.classList.remove('btn-secondary'); this.classList.add('btn-warning');"
+                                                ontouchend="this.classList.remove('btn-warning'); this.classList.add('btn-secondary');"
+                                                onmousedown="this.classList.remove('btn-secondary'); this.classList.add('btn-warning');"
+                                                onmouseup="this.classList.remove('btn-warning'); this.classList.add('btn-secondary');">
+                                            <i class="bi bi-zoom-out"></i></button>
+                                    </div>
+                                </div>
+                                <div id="anchor-map"></div>
+                            </div>
+                        </div>
+                        <div id="anchor_section_gps_module_is_down_overlay"
+                             style="position: absolute;top: 0;left: 0;width: 100%;height: 100%;background-color: rgba(255, 0, 0, 0.5); display: none; visibility: hidden; align-items: center; justify-content: center;">
+                            <h3 class="text-white">Anchor alarm is not running because the GPS module is down!</h3>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="sensors" role="tabpanel" aria-labelledby="sensors-tab">
+                        <div id="no_available_sensors_message" class="container-fluid align-self-center">
+                            <h5>No available sensors</h5>
+                        </div>
+                        <div id="sensors_container" class="container" style="display: none; visibility: hidden;">
+                            <div id="sensors_row_id" class="row align-items-center">
+
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="relays" role="tabpanel" aria-labelledby="relays-tab">
+                        <div id="no_available_relays_message" class="container-fluid align-self-center">
+                            <h5>No available relays</h5>
+                        </div>
+                        <div id="relays_container" class="container fs-4" style="display: none; visibility: hidden;">
+                            <div class="row align-items-center">
+                                <div class="col d-flex justify-content-center">
+                                    <div class="form-check form-switch form-check-reverse">
+                                        <input class="form-check-input" type="checkbox" role="switch"
+                                               id="flexSwitch1Check" data-relay-number="1" onchange="toggleRelay(1)">
+                                        <label id="flexSwitch1Label" class="form-check-label" for="flexSwitch1Check">Relay 1</label>
+                                    </div>
+                                </div>
+                                <div class="col d-flex justify-content-center">
+                                    <div class="form-check form-switch form-check-reverse">
+                                        <input class="form-check-input" type="checkbox" role="switch"
+                                               id="flexSwitch2Check" data-relay-number="2" onchange="toggleRelay(2)">
+                                        <label id="flexSwitch2Label" class="form-check-label" for="flexSwitch2Check">Relay 2</label>
+                                    </div>
+                                </div>
+                                <div class="col d-flex justify-content-center">
+                                    <div class="form-check form-switch form-check-reverse">
+                                        <input class="form-check-input" type="checkbox" role="switch"
+                                               id="flexSwitch3Check" data-relay-number="3" onchange="toggleRelay(3)">
+                                        <label id="flexSwitch3Label" class="form-check-label" for="flexSwitch3Check">Relay 3</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row align-items-center">
+                                <div class="col d-flex justify-content-center">
+                                    <div class="form-check form-switch form-check-reverse">
+                                        <input class="form-check-input" type="checkbox" role="switch"
+                                               id="flexSwitch4Check" data-relay-number="4" onchange="toggleRelay(4)">
+                                        <label id="flexSwitch4Label" class="form-check-label" for="flexSwitch4Check">Relay 4</label>
+                                    </div>
+                                </div>
+                                <div class="col d-flex justify-content-center">
+                                    <div class="form-check form-switch form-check-reverse">
+                                        <input class="form-check-input" type="checkbox" role="switch"
+                                               id="flexSwitch5Check" data-relay-number="5" onchange="toggleRelay(5)">
+                                        <label id="flexSwitch5Label" class="form-check-label" for="flexSwitch5Check">Relay 5</label>
+                                    </div>
+                                </div>
+                                <div class="col d-flex justify-content-center">
+                                    <div class="form-check form-switch form-check-reverse">
+                                        <input class="form-check-input" type="checkbox" role="switch"
+                                               id="flexSwitch6Check" data-relay-number="6" onchange="toggleRelay(6)">
+                                        <label id="flexSwitch6Label" class="form-check-label" for="flexSwitch6Check">Relay 6</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="nmea" role="tabpanel" aria-labelledby="nmea-tab">
+                        <!-- NMEA panel-->
+                        <div id="no_available_nmea_instruments_message" class="container-fluid align-self-center">
+                            <h5 class="mt-2">No available NMEA0183 instruments</h5>
+                        </div>
+                        <div id="nmea_container" class="container" style="display: none; visibility: hidden;">
+                            <div id="nmea_metrics_row_id" class="row align-items-center">
+
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="session" role="tabpanel" aria-labelledby="session-tab">
+                        <!-- Session panel-->
+                        <div id="no_session_message" class="container-fluid align-self-center">
+                            <h5 class="mt-2">No session in progress</h5>
+                        </div>
+                        <div id="session_container" style="display: none; visibility: hidden;"
+                             class="container-fluid align-self-top">
+                            <h5 id="session_name">Session name</h5>
+                            <div class="row text-start">
+                                <div class="col">
+                                    <span>Start time (Local):&nbsp;<span id="start_time"></span></span>
+                                </div>
+                                <div class="col">
+                                    <span>Start time (UTC):&nbsp;<span id="start_time_utc"></span></span>
+                                </div>
+                            </div>
+                            <div class="row text-start">
+                                <span>Duration:&nbsp;<span id="duration"></span></span>
+                            </div>
+                            <div class="row">
+                                <hr class="mt-1 mb-1"/>
+                            </div>
+                            <div class="row text-start">
+                                <div class="col">
+                                    <span>Starting GPS latitude:&nbsp;<span id="start_gps_lat"></span></span>
+                                </div>
+                                <div class="col">
+                                    <span>Starting GPS longitude:&nbsp;<span id="start_gps_lon"></span></span>
+                                </div>
+                            </div>
+                            <div class="row text-start">
+                                <div class="col">
+                                    <span>Distance:&nbsp;<span id="distance"></span>&nbsp;miles</span>
+                                </div>
+                                <div class="col">
+                                    <span>Heading:&nbsp;<span id="heading"></span>&nbsp;Degrees</span>
+                                </div>
+                            </div>
+                            <div class="row text-start">
+                                <div class="col">
+                                    <span>Average wind speed:&nbsp;<span
+                                            id="average_wind_speed"></span>&nbsp;knots</span>
+                                </div>
+                                <div class="col">
+                                    <span>Average wind direction:&nbsp;<span id="average_wind_direction"></span>&nbsp;Degrees</span>
+                                </div>
+                            </div>
+                            <div class="row text-start">
+                                <div class="col">
+                                    <span>Average water temperature:&nbsp;<span id="average_water_temperature"></span>&nbsp;Celsius</span>
+                                </div>
+                                <div class="col">
+                                    <span>Average depth:&nbsp;<span id="average_depth"></span>&nbsp;meters</span>
+                                </div>
+                            </div>
+                            <div class="row text-start">
+                                <div class="col">
+                                    <span>Average speed over ground:&nbsp;<span
+                                            id="average_sog"></span>&nbsp;knots</span>
+                                </div>
+                                <div class="col">
+                                    <span>Average speed over water:&nbsp;<span
+                                            id="average_sow"></span>&nbsp;knots</span>
+                                </div>
+                            </div>
+                            <div class="row text-start">
+                                <div class="col">
+                        <span>Housing battery max voltage:&nbsp;<span
+                                id="housing_battery_max_voltage"></span>&nbsp;V</span>
+                                </div>
+                                <div class="col">
+                        <span>Housing battery min voltage:&nbsp;<span
+                                id="housing_battery_min_voltage"></span>&nbsp;V</span>
+                                </div>
+                            </div>
+                            <div class="row text-start">
+                                <div class="col">
+                        <span>Housing battery avg. voltage:&nbsp;<span
+                                id="housing_battery_avg_voltage"></span>&nbsp;V</span>
+                                </div>
+                                <div class="col">
+                        <span>Housing battery max current:&nbsp;<span
+                                id="housing_battery_max_current"></span>&nbsp;A</span>
+                                </div>
+                            </div>
+                            <div class="row text-start">
+                                <div class="col">
+                        <span>Housing battery avg. current:&nbsp;<span
+                                id="housing_battery_avg_current"></span>&nbsp;A</span>
+                                </div>
+                                <div class="col">
+                                    <span>Housing battery max power:&nbsp;<span id="housing_battery_max_power"></span>&nbsp;W</span>
+                                </div>
+                            </div>
+                            <div class="row text-start">
+                                <div class="col">
+                        <span>Housing battery avg. power:&nbsp;<span
+                                id="housing_battery_avg_power"></span>&nbsp;W</span>
+                                </div>
+                                <div class="col">
+                                    <span>PV max power:&nbsp;<span id="pv_max_power"></span>&nbsp;W</span>
+                                </div>
+                            </div>
+                            <div class="row text-start">
+                                <div class="col">
+                                    <span>PV avg. power:&nbsp;<span id="pv_avg_power"></span>&nbsp;W</span>
+                                </div>
+                                <div class="col">
+                                    <span>PV max current:&nbsp;<span id="pv_max_current"></span>&nbsp;A</span>
+                                </div>
+                            </div>
+                            <div class="row text-start">
+                                <div class="col">
+                                    <span>PV avg. current:&nbsp;<span id="pv_avg_current"></span>&nbsp;A</span>
+                                </div>
+                                <div class="col">
+                        <span>Starter battery max voltage:&nbsp;<span
+                                id="starter_battery_max_voltage"></span>&nbsp;V</span>
+                                </div>
+                            </div>
+                            <div class="row text-start">
+                                <div class="col">
+                        <span>Starter battery min voltage:&nbsp;<span
+                                id="starter_battery_min_voltage"></span>&nbsp;V</span>
+                                </div>
+                                <div class="col">
+                        <span>Starter battery avg. voltage:&nbsp;<span
+                                id="starter_battery_avg_voltage"></span>&nbsp;V</span>
+                                </div>
+                            </div>
+                            <div class="row text-start">
+                                <div class="col">
+                                    <span>Tank 1 max level:&nbsp;<span id="tank1_max_level"></span>&nbsp;%</span>
+                                </div>
+                                <div class="col">
+                                    <span>Tank 1 min level:&nbsp;<span id="tank1_min_level"></span>&nbsp;%</span>
+                                </div>
+                            </div>
+                            <div class="row text-start">
+                                <div class="col">
+                                    <span>Tank 1 avg. level:&nbsp;<span id="tank1_avg_level"></span>&nbsp;%</span>
+                                </div>
+                                <div class="col">
+                                    <span>Tank 2 max level:&nbsp;<span id="tank2_max_level"></span>&nbsp;%</span>
+                                </div>
+                            </div>
+                            <div class="row text-start">
+                                <div class="col">
+                                    <span>Tank 2 min level:&nbsp;<span id="tank2_min_level"></span>&nbsp;%</span>
+                                </div>
+                                <div class="col">
+                                    <span>Tank 2 avg. level:&nbsp;<span id="tank2_avg_level"></span>&nbsp;%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row p-0 m-0">
+        <div class="col d-flex justify-content-center p-0 m-0">
+            <span>
+                <span class="spinner-grow text-danger me-2" style="width: 1rem; height: 1rem;"
+                      id="victron_modbus_tcp_module_spinner" role="status"></span>Victron Modbus TCP:&nbsp;<span
+                    id="victron_modbus_tcp_module_status"></span>
+            </span>
+        </div>
+        <div class="col d-flex justify-content-center p-0 m-0">
+            <span>
+                <span class="spinner-grow text-danger me-2" style="width: 1rem; height: 1rem;"
+                      id="victron_ble_module_spinner" role="status"></span>Victron BLE:&nbsp;<span
+                    id="victron_ble_module_status"></span>
+            </span>
+        </div>
+        <div class="col d-flex justify-content-center p-0 m-0">
+            <span>
+                <span class="spinner-grow text-danger me-2" style="width: 1rem; height: 1rem;" id="nmea_module_spinner"
+                      role="status"></span>NMEA0183:&nbsp;<span id="nmea_module_status"></span>
+            </span>
+        </div>
+        <div class="col d-flex justify-content-center p-0 m-0">
+            <span>
+                <span class="spinner-grow text-danger me-2" style="width: 1rem; height: 1rem;"
+                      id="bb_micro_module_spinner"
+                      role="status"></span>{{application_name}} Micro:&nbsp;<span id="bb_micro_module_status"></span>
+            </span>
+        </div>
+        <div class="col d-flex justify-content-center p-0 m-0">
+            <span>
+                <span class="spinner-grow text-danger me-2" style="width: 1rem; height: 1rem;" id="gps_module_spinner"
+                      role="status"></span>GPS Dongle:&nbsp;<span id="gps_module_status"></span>
+            </span>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    first_refresh_data_call = true;
+    first_refresh_anchor_data_call = true;
+    light_theme = true;
+
+    {% if session_run_mode == 'manual' %}
+    document.getElementById('session_button_id').disabled = false;
+    {% else %}
+    document.getElementById('session_button_id').disabled = true;
+    {% endif %}
+
+    {% if anchor_alarm_module %}
+    document.getElementById('anchor_alarm_section').style.display = 'block';
+    document.getElementById('anchor_alarm_section').style.visibility = 'visible';
+    {% else %}
+    document.getElementById('anchor_alarm_section').style.display = 'none';
+    document.getElementById('anchor_alarm_section').style.visibility = 'hidden';
+    {% endif %}
+
+    {% if home_position_available %}
+    document.getElementById('use_home_position_button_id').style.display = 'block';
+    document.getElementById('use_home_position_button_id').style.visibility = 'visible';
+    {% else %}
+    document.getElementById('use_home_position_button_id').style.display = 'none';
+    document.getElementById('use_home_position_button_id').style.visibility = 'hidden';
+    {% endif %}
+
+    anchorMap = new ol.Map({
+        layers: [
+                new ol.layer.Tile({
+                source: new ol.source.OSM()
+            })
+        ],
+        target: 'anchor-map',
+        controls: []
+    });
+
+    anchorDecimalLatitude = '';
+    anchorDecimalLongitude = '';
+    anchorAllowedDistance = '';
+    anchorPositionHistory = '';
+    boatMarker = undefined;
+    lastPositionLatitude = '';
+    lastPositionLongitude = '';
+
+    const connectionLostModal = new bootstrap.Modal(document.getElementById('connection_lost_modal'), {backdrop: 'static'});
+    const setAnchorAlarmModal = new bootstrap.Modal(document.getElementById('set_anchor_alarm_modal'), {backdrop: 'static'});
+    const updateAnchorAlarmModal = new bootstrap.Modal(document.getElementById('update_anchor_alarm_modal'), {backdrop: 'static'});
+    const cancelAnchorAlarmModal = new bootstrap.Modal(document.getElementById('cancel_anchor_alarm_modal'), {backdrop: 'static'});
+    const resetMaximumDistanceModal = new bootstrap.Modal(document.getElementById('reset_maximum_distance_modal'), {backdrop: 'static'});
+
+    {% if metrics_electrical_system | length > 0 %}
+    var metrics_electrical_system_dictionary = {{ metrics_electrical_system|tojson|safe }};
+    var elementsList = {};
+
+    // Draw electrical system panel components
+    for (var key in metrics_electrical_system_dictionary) {
+        if (metrics_electrical_system_dictionary.hasOwnProperty(key)) {
+            var currentItem = metrics_electrical_system_dictionary[key];
+
+            if (currentItem['type'] == 'gauge') {
+                // Create a new col element
+                var col = document.createElement('div');
+                col.className = "col-12 col-lg-6 d-flex justify-content-center";
+
+                var gaugeDiv = document.createElement('div');
+                gaugeDiv.className = "GaugeMeter-Dark";
+                gaugeDiv.id = key;
+                gaugeDiv.setAttribute("data-label", currentItem['name']);
+                gaugeDiv.setAttribute("data-label_color", "White");
+                gaugeDiv.setAttribute("data-min", currentItem['min_value']);
+                gaugeDiv.setAttribute("data-total", currentItem['max_value']);
+                gaugeDiv.setAttribute("data-size", "170");
+                gaugeDiv.setAttribute("data-animate_gauge_colors", false);
+                gaugeDiv.setAttribute("data-animate_text_colors", false);
+                gaugeDiv.setAttribute("data-animationstep", 0);
+                gaugeDiv.setAttribute("data-back", "Silver");
+
+                if (currentItem['style'] == 'common_gauge') {
+                    gaugeDiv.setAttribute("data-append", "%");
+                    gaugeDiv.setAttribute("data-theme", "Red-Gold-Green");
+                    gaugeDiv.setAttribute("data-width", "15");
+                    gaugeDiv.setAttribute("data-style", "Arch");
+                    gaugeDiv.setAttribute("data-text_size", "0.22");
+                } else if (currentItem['style'] == 'battery_voltage_gauge') {
+                    gaugeDiv.setAttribute("data-append", "V");
+                    gaugeDiv.setAttribute("data-theme", "Red-Gold-Green");
+                    gaugeDiv.setAttribute("data-width", "15");
+                    gaugeDiv.setAttribute("data-style", "Arch");
+                    gaugeDiv.setAttribute("data-text_size", "0.2");
+                    gaugeDiv.setAttribute("data-showvalue", true);
+                    gaugeDiv.setAttribute("data-stripe", "4");
+                } else if (currentItem['style'] == 'power_gauge') {
+                    gaugeDiv.setAttribute("data-append", "W");
+                    gaugeDiv.setAttribute("data-theme", "Gold-Green");
+                    gaugeDiv.setAttribute("data-width", "15");
+                    gaugeDiv.setAttribute("data-style", "Arch");
+                    gaugeDiv.setAttribute("data-text_size", "0.22");
+                    gaugeDiv.setAttribute("data-showvalue", true);
+                } else if (currentItem['style'] == 'power_gauge_alternative') {
+                    gaugeDiv.setAttribute("data-append", "W");
+                    gaugeDiv.setAttribute("data-theme", "Red-Gold-Green");
+                    gaugeDiv.setAttribute("data-width", "15");
+                    gaugeDiv.setAttribute("data-style", "Arch");
+                    gaugeDiv.setAttribute("data-text_size", "0.22");
+                    gaugeDiv.setAttribute("data-showvalue", true);
+                    gaugeDiv.setAttribute("data-middle_value_format", true);
+                } else if (currentItem['style'] == 'current_gauge') {
+                    gaugeDiv.setAttribute("data-append", "A");
+                    gaugeDiv.setAttribute("data-theme", "Red-Gold-Green");
+                    gaugeDiv.setAttribute("data-width", "15");
+                    gaugeDiv.setAttribute("data-style", "Arch");
+                    gaugeDiv.setAttribute("data-text_size", "0.22");
+                    gaugeDiv.setAttribute("data-showvalue", true);
+                    gaugeDiv.setAttribute("data-middle_value_format", true);
+                } else if (currentItem['style'] == 'auxiliary_temperature_gauge') {
+                    gaugeDiv.setAttribute("data-append", "°");
+                    gaugeDiv.setAttribute("data-theme", "Red-Gold-Green");
+                    gaugeDiv.setAttribute("data-width", "15");
+                    gaugeDiv.setAttribute("data-style", "Arch");
+                    gaugeDiv.setAttribute("data-text_size", "0.22");
+                    gaugeDiv.setAttribute("data-showvalue", true);
+                    gaugeDiv.setAttribute("data-middle_value_format", true);
+                }
+
+                col.appendChild(gaugeDiv)
+
+                elementsList[currentItem['order']] = col;
+            } else if (currentItem['type'] == 'list') {
+                // Create a new col element
+                var col = document.createElement('div');
+                col.className = "col-12 col-lg-6 d-flex justify-content-center";
+
+                var summaryBox = document.createElement('div');
+                summaryBox.id = "summary-box-id";
+                summaryBox.className = "container border-1 border border-light rounded gx-0 gy-0 text-start";
+                col.appendChild(summaryBox);
+
+                itemsList = currentItem['items'];
+                for (var listItemKey in itemsList) {
+                    if (itemsList.hasOwnProperty(listItemKey)) {
+                        var row = document.createElement('div');
+                        row.className = "row ps-1";
+                        summaryBox.appendChild(row);
+
+                        var nameField = document.createElement('span');
+                        nameField.textContent = itemsList[listItemKey]['name'] + ": ";
+                        row.appendChild(nameField);
+
+                        var valueField = document.createElement('span');
+                        valueField.id = listItemKey;
+                        nameField.appendChild(valueField);
+                    }
+                }
+
+                elementsList[currentItem['order']] = col;
+            }
+        }
+    }
+
+    if (Object.entries(elementsList).length > 0) {
+        document.getElementById('electrical_system_metrics_row_id').appendChild(elementsList[Object.entries(elementsList).length.toString()]);
+
+        if (Object.entries(elementsList).length > 1) {
+            for (let i = Object.entries(elementsList).length - 1; i > 0; i--) {
+                document.getElementById('electrical_system_metrics_row_id').insertBefore(elementsList[i.toString()], document.getElementById('electrical_system_metrics_row_id').childNodes[0])
+            }
+        }
+    }
+    {% endif %}
+
+    {% if metrics_nmea | length > 0 %}
+    var metrics_nmea_dictionary = {{ metrics_nmea|tojson|safe }};
+    var nmeaElementsList = {};
+
+    // Draw nmea system panel components
+    for (var key in metrics_nmea_dictionary) {
+        if (metrics_nmea_dictionary.hasOwnProperty(key)) {
+            var currentItem = metrics_nmea_dictionary[key];
+
+            // Create a new col element
+            var col = document.createElement('div');
+            col.className = "col d-flex justify-content-center py-2";
+
+            if (currentItem['type'] == 'temperature_gauge') {
+                var gaugeDiv = document.createElement('div');
+                gaugeDiv.className = "GaugeMeter-Dark";
+                gaugeDiv.id = key;
+                gaugeDiv.setAttribute("data-label", currentItem['name']);
+                gaugeDiv.setAttribute("data-label_color", "White");
+                gaugeDiv.setAttribute("data-min", currentItem['min_value']);
+                gaugeDiv.setAttribute("data-total", currentItem['max_value']);
+                gaugeDiv.setAttribute("data-size", "170");
+                gaugeDiv.setAttribute("data-append", "°C");
+                gaugeDiv.setAttribute("data-theme", "Green-Gold-Red");
+                gaugeDiv.setAttribute("data-width", "15");
+                gaugeDiv.setAttribute("data-style", "Semi");
+                gaugeDiv.setAttribute("data-animate_gauge_colors", false);
+                gaugeDiv.setAttribute("data-animate_text_colors", false);
+                gaugeDiv.setAttribute("data-text_size", "0.22");
+                gaugeDiv.setAttribute("data-animationstep", 0);
+                gaugeDiv.setAttribute("data-showvalue", true);
+                gaugeDiv.setAttribute("data-back", "Silver");
+
+                col.appendChild(gaugeDiv)
+            } else if (currentItem['type'] == 'label') {
+                var depthSpan = document.createElement('span');
+                depthSpan.textContent = currentItem['name'] + " (in meters): ";
+                col.appendChild(depthSpan);
+
+                var labelSpan = document.createElement('span');
+                labelSpan.id = key;
+                depthSpan.appendChild(labelSpan);
+            } else if (currentItem['type'] == 'wind-component') {
+                var windComponentDiv = document.createElement('div');
+                windComponentDiv.id = key;
+                windComponentDiv.setAttribute("data-title", currentItem['name']);
+
+                col.appendChild(windComponentDiv);
+            } else if (currentItem['type'] == 'navigation-component') {
+                var navigationComponentDiv = document.createElement('div');
+                navigationComponentDiv.id = key;
+                navigationComponentDiv.setAttribute("data-title", currentItem['name']);
+
+                col.appendChild(navigationComponentDiv);
+            }
+
+            nmeaElementsList[currentItem['order']] = col;
+        }
+    }
+
+    if (Object.entries(nmeaElementsList).length > 0) {
+        document.getElementById('nmea_metrics_row_id').appendChild(nmeaElementsList[Object.entries(nmeaElementsList).length.toString()]);
+
+        if (Object.entries(nmeaElementsList).length > 1) {
+            for (let i = Object.entries(nmeaElementsList).length - 1; i > 0; i--) {
+                document.getElementById('nmea_metrics_row_id').insertBefore(nmeaElementsList[i.toString()], document.getElementById('nmea_metrics_row_id').childNodes[0])
+            }
+        }
+    }
+    {% endif %}
+
+    {% if metrics_bb_micro | length > 0 %}
+    var metrics_bb_micro_dictionary = {{ metrics_bb_micro|tojson|safe }};
+    var bbMicroElementsList = {};
+
+    // Draw BB Micro sensors components
+    for (var key in metrics_bb_micro_dictionary) {
+        if (metrics_bb_micro_dictionary.hasOwnProperty(key)) {
+            var currentItem = metrics_bb_micro_dictionary[key];
+
+            // Create a new col element
+            var col = document.createElement('div');
+            col.className = "col d-flex justify-content-center";
+
+            if (currentItem['type'] == 'gauge') {
+                if (currentItem['style'] == 'air_pressure_gauge') {
+                    var gaugeDiv = document.createElement('canvas');
+                    gaugeDiv.id = key;
+                    gaugeDiv.setAttribute("data-type", "radial-gauge");
+                    gaugeDiv.setAttribute("data-min-value", currentItem['min_value']);
+                    gaugeDiv.setAttribute("data-max-value", currentItem['max_value']);
+                    gaugeDiv.setAttribute("data-major-ticks", "Storm,Rain,Change,Fair,Very Dry");
+                    gaugeDiv.setAttribute("data-highlights", "false");
+                    gaugeDiv.setAttribute("data-minor-ticks", "10");
+                    gaugeDiv.setAttribute("data-ticks-angle", "270");
+                    gaugeDiv.setAttribute("data-start-angle", "45");
+                    gaugeDiv.setAttribute("data-stroke-ticks", "false");
+                    gaugeDiv.setAttribute("data-color-plate", "#222");
+                    gaugeDiv.setAttribute("data-color-major-ticks", "#f5f5f5");
+                    gaugeDiv.setAttribute("data-color-minor-ticks", "#ddd");
+                    gaugeDiv.setAttribute("data-color-numbers", "#ccc");
+                    gaugeDiv.setAttribute("data-color-needle", "rgba(240, 128, 128, 1)");
+                    gaugeDiv.setAttribute("data-color-needle-end", "rgba(255, 160, 122, .9)");
+                    gaugeDiv.setAttribute("data-value-box", "true");
+                    gaugeDiv.setAttribute("data-value-text-shadow", "true");
+                    gaugeDiv.setAttribute("data-color-circle-inner", "#fff");
+                    gaugeDiv.setAttribute("data-color-needle-circle-outer", "#ccc");
+                    gaugeDiv.setAttribute("data-needle-circle-size", "20");
+                    gaugeDiv.setAttribute("data-needle-circle-outer", "false");
+                    gaugeDiv.setAttribute("data-animation-rule", "linear");
+                    gaugeDiv.setAttribute("data-needle-type", "line");
+                    gaugeDiv.setAttribute("data-needle-width", "5");
+                    gaugeDiv.setAttribute("data-borders", "false");
+                    gaugeDiv.setAttribute("data-border-inner-width", "0");
+                    gaugeDiv.setAttribute("data-border-middle-width", "0");
+                    gaugeDiv.setAttribute("data-border-outer-width", "5");
+                    gaugeDiv.setAttribute("data-color-border-outer", "#fff");
+                    gaugeDiv.setAttribute("data-color-border-outer-end", "#fff");
+                    gaugeDiv.setAttribute("data-color-needle-shadow-down", "#222");
+                    gaugeDiv.setAttribute("data-color-title", "#fff");
+                    gaugeDiv.setAttribute("data-border-shadow-width", "0");
+                    gaugeDiv.setAttribute("data-animation-duration", "500");
+                    gaugeDiv.setAttribute("data-title", currentItem['name']);
+                    gaugeDiv.setAttribute("data-color-value-box-background", "#fff");
+                    gaugeDiv.setAttribute("data-font-title-size", "32");
+                    gaugeDiv.setAttribute("data-font-value-size", "55");
+                    gaugeDiv.setAttribute("data-width", "170px");
+                    gaugeDiv.setAttribute("data-height", "170px");
+                    gaugeDiv.setAttribute("data-value-dec", "0");
+
+                    col.appendChild(gaugeDiv)
+                } else if (currentItem['style'] == 'temperature_gauge') {
+                    var gaugeDiv = document.createElement('div');
+                    gaugeDiv.className = "GaugeMeter-Dark";
+                    gaugeDiv.id = key;
+                    gaugeDiv.setAttribute("data-label", currentItem['name']);
+                    gaugeDiv.setAttribute("data-label_color", "White");
+                    gaugeDiv.setAttribute("data-min", currentItem['min_value']);
+                    gaugeDiv.setAttribute("data-total", currentItem['max_value']);
+                    gaugeDiv.setAttribute("data-size", "170");
+                    gaugeDiv.setAttribute("data-append", "°C");
+                    gaugeDiv.setAttribute("data-theme", "Blue-Green-Gold");
+                    gaugeDiv.setAttribute("data-width", "15");
+                    gaugeDiv.setAttribute("data-style", "Arch");
+                    gaugeDiv.setAttribute("data-animate_gauge_colors", false);
+                    gaugeDiv.setAttribute("data-animate_text_colors", false);
+                    gaugeDiv.setAttribute("data-text_size", "0.22");
+                    gaugeDiv.setAttribute("data-animationstep", 0);
+                    gaugeDiv.setAttribute("data-showvalue", true);
+                    gaugeDiv.setAttribute("data-back", "Silver");
+
+                    col.appendChild(gaugeDiv)
+                } else if (currentItem['style'] == 'humidity_gauge') {
+                    var gaugeDiv = document.createElement('div');
+                    gaugeDiv.className = "GaugeMeter-Dark";
+                    gaugeDiv.id = key;
+                    gaugeDiv.setAttribute("data-label", currentItem['name']);
+                    gaugeDiv.setAttribute("data-label_color", "White");
+                    gaugeDiv.setAttribute("data-min", currentItem['min_value']);
+                    gaugeDiv.setAttribute("data-total", currentItem['max_value']);
+                    gaugeDiv.setAttribute("data-size", "170");
+                    gaugeDiv.setAttribute("data-append", "%");
+                    gaugeDiv.setAttribute("data-theme", "Gold-Green-Red");
+                    gaugeDiv.setAttribute("data-width", "15");
+                    gaugeDiv.setAttribute("data-style", "Arch");
+                    gaugeDiv.setAttribute("data-animate_gauge_colors", false);
+                    gaugeDiv.setAttribute("data-animate_text_colors", false);
+                    gaugeDiv.setAttribute("data-text_size", "0.22");
+                    gaugeDiv.setAttribute("data-animationstep", 0);
+                    gaugeDiv.setAttribute("data-showvalue", true);
+                    gaugeDiv.setAttribute("data-back", "Silver");
+
+                    col.appendChild(gaugeDiv)
+                } else if (currentItem['style'] == 'air_quality_gauge') {
+                    var gaugeDiv = document.createElement('div');
+                    gaugeDiv.className = "GaugeMeter-Dark";
+                    gaugeDiv.id = key;
+                    gaugeDiv.setAttribute("data-label", currentItem['name']);
+                    gaugeDiv.setAttribute("data-label_color", "White");
+                    gaugeDiv.setAttribute("data-min", currentItem['min_value']);
+                    gaugeDiv.setAttribute("data-total", currentItem['max_value']);
+                    gaugeDiv.setAttribute("data-size", "170");
+                    gaugeDiv.setAttribute("data-append", "%");
+                    gaugeDiv.setAttribute("data-theme", "Green-Green-Red");
+                    gaugeDiv.setAttribute("data-width", "15");
+                    gaugeDiv.setAttribute("data-style", "Arch");
+                    gaugeDiv.setAttribute("data-animate_gauge_colors", false);
+                    gaugeDiv.setAttribute("data-animate_text_colors", false);
+                    gaugeDiv.setAttribute("data-text_size", "0.22");
+                    gaugeDiv.setAttribute("data-animationstep", 0);
+                    gaugeDiv.setAttribute("data-showvalue", true);
+                    gaugeDiv.setAttribute("data-back", "Silver");
+
+                    col.appendChild(gaugeDiv)
+                }
+            }
+
+            bbMicroElementsList[currentItem['order']] = col;
+        }
+    }
+
+    if (Object.entries(bbMicroElementsList).length > 0) {
+        document.getElementById('sensors_row_id').appendChild(bbMicroElementsList[Object.entries(bbMicroElementsList).length.toString()]);
+
+        if (Object.entries(bbMicroElementsList).length > 1) {
+            for (let i = Object.entries(bbMicroElementsList).length - 1; i > 0; i--) {
+                document.getElementById('sensors_row_id').insertBefore(bbMicroElementsList[i.toString()], document.getElementById('sensors_row_id').childNodes[0])
+            }
+        }
+    }
+    {% endif %}
+
+    // Create the OpenStreetMap layer
+    const osmLayer = new ol.layer.Tile({
+      source: new ol.source.OSM(),
+      maxZoom: 19 // Adjust max zoom level as needed
+    });
+
+    // Create the Mapbox Satellite layer
+    const mapboxSatelliteLayer = new ol.layer.Tile({
+        source: new ol.source.OSM ({
+            // Set the OSM source to use satellite imagery
+            url: 'https://{a-c}.tiles.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}.png?access_token={{anchor_alarm_mapbox_api_key}}',
+            maxZoom: 19 // Adjust max zoom level as needed
+        })
+    });
+
+    function trackCurrentPositionStateChange() {
+        if (document.getElementById('track_current_position_button').classList.contains("btn-secondary")) {
+            document.getElementById('track_current_position_button').classList.remove("btn-secondary");
+            document.getElementById('track_current_position_button').classList.add("btn-warning");
+        } else {
+            document.getElementById('track_current_position_button').classList.remove("btn-warning");
+            document.getElementById('track_current_position_button').classList.add("btn-secondary");
+        }
+    }
+
+    function showHideBoatTracksStateChange() {
+        if (document.getElementById('show_hide_boat_tracks_button').classList.contains("btn-secondary")) {
+            document.getElementById('show_hide_boat_tracks_button').classList.remove("btn-secondary");
+            document.getElementById('show_hide_boat_tracks_button').classList.add("btn-warning");
+        } else {
+            document.getElementById('show_hide_boat_tracks_button').classList.remove("btn-warning");
+            document.getElementById('show_hide_boat_tracks_button').classList.add("btn-secondary");
+        }
+    }
+
+    function toggleAnchorConfigurationMode() {
+        document.getElementById('alternative_anchor_configuration_div_id').classList.toggle('hidden');
+        document.getElementById('default_anchor_configuration_div_id').classList.toggle('hidden');
+    }
+
+    function useCurrentPosition() {
+        // Fill up GPS anchor position on the set anchor dialog from last gps coordinates
+        $.ajax({
+            type: 'GET',
+            url: '/gps_coordinates',
+            success: function(data) {
+                document.getElementById('set_anchor_alarm_latitude_text_id').value = data['gps_latitude']
+                document.getElementById('set_anchor_alarm_longitude_text_id').value = data['gps_longitude'];
+            }
+        });
+    }
+
+    function useHomePosition() {
+        // Fill up GPS anchor position on the set anchor dialog from last gps coordinates
+        $.ajax({
+            type: 'GET',
+            url: '/home_gps_coordinates',
+            success: function(data) {
+                document.getElementById('set_anchor_alarm_latitude_text_id').value = data['gps_latitude']
+                document.getElementById('set_anchor_alarm_longitude_text_id').value = data['gps_longitude'];
+            }
+        });
+    }
+
+    function dmsToDD(dms) {
+        dms = dms.replace('\"', '');
+        dms = dms.replace('\'', ' ');
+        dms = dms.replace('°', ' ');
+        const [degrees, minutes, seconds, hemisphere] = dms.split(' ');
+        const dd = parseFloat(degrees) + parseFloat(minutes) / 60 + parseFloat(seconds) / 3600;
+
+        if (hemisphere === 'S' || hemisphere === 'W') {
+            return -dd; // For south (S) or west (W) hemispheres
+        }
+
+        return dd;
+    }
+
+    function radiusFromValue(value) {
+        const earthRadius = 6371000; // Earth's radius in meters
+        const circumference = 2 * Math.PI * earthRadius;
+        const scale = circumference / 360;
+
+        return (value / scale)
+    }
+
+    function showDefaultMapLayer() {
+        anchorMap.removeLayer(mapboxSatelliteLayer);
+        anchorMap.addLayer(osmLayer);
+
+        // Disable the default map layer button and enable the satellite button
+        document.getElementById('default_map_layer_button').disabled = true;
+        document.getElementById("default_map_layer_button").classList.remove('btn-secondary');
+        document.getElementById("default_map_layer_button").classList.remove('text-light');
+        document.getElementById("default_map_layer_button").classList.add('btn-warning');
+        document.getElementById('satellite_map_layer_button').disabled = false;
+        document.getElementById("satellite_map_layer_button").classList.remove('btn-warning');
+        document.getElementById("satellite_map_layer_button").classList.add('btn-secondary');
+        document.getElementById("satellite_map_layer_button").classList.add('text-light');
+
+
+        // redraw map layers
+        redrawMapLayers();
+    }
+
+    function showSatelliteMapLayer() {
+        anchorMap.removeLayer(osmLayer);
+        anchorMap.addLayer(mapboxSatelliteLayer);
+
+        // Disable the satellite button and enable the default button
+        document.getElementById('satellite_map_layer_button').disabled = true;
+        document.getElementById("satellite_map_layer_button").classList.remove('btn-secondary');
+        document.getElementById("satellite_map_layer_button").classList.remove('text-light');
+        document.getElementById("satellite_map_layer_button").classList.add('btn-warning');
+        document.getElementById('default_map_layer_button').disabled = false;
+        document.getElementById("default_map_layer_button").classList.remove('btn-warning');
+        document.getElementById("default_map_layer_button").classList.add('btn-secondary');
+        document.getElementById("default_map_layer_button").classList.add('text-light');
+
+        // redraw map layers
+        redrawMapLayers();
+    }
+
+    function zoomIn() {
+        // Get the current view from the map
+        const view = anchorMap.getView();
+
+        // Get the current zoom level
+        currentZoom = view.getZoom();
+
+        // Set the new zoom level for the view
+        view.setZoom(currentZoom + 1);
+    }
+
+    function zoomOut() {
+        // Get the current view from the map
+        const view = anchorMap.getView();
+
+        // Get the current zoom level
+        currentZoom = view.getZoom();
+
+        // Set the new zoom level for the view
+        view.setZoom(currentZoom - 1);
+    }
+
+    function clearMapLayers() {
+        // Get a reference to the map's layers
+        const mapLayers = anchorMap.getLayers();
+
+        // Loop through the layers and remove each one
+        mapLayers.forEach((layer) => {
+            if (layer !== osmLayer && layer !== mapboxSatelliteLayer) {
+                anchorMap.removeLayer(layer);
+            }
+        });
+    }
+
+    function redrawMapLayers() {
+        // first clear all map layers except the tile layer
+        clearMapLayers();
+
+        // Calculate the anchor circle's geometry taking into consideration the allowed distance
+        var radiusMeters = radiusFromValue(anchorAllowedDistance) * 1.02;
+
+        // Create a feature for the circle
+        var circleFeature = new ol.Feature({
+          geometry: new ol.geom.Circle([anchorDecimalLongitude, anchorDecimalLatitude], radiusMeters),
+        });
+
+        circleFeature.setStyle(
+          new ol.style.Style({
+            renderer(coordinates, state) {
+              const [[x, y], [x1, y1]] = coordinates;
+              const ctx = state.context;
+              const dx = x1 - x;
+              const dy = y1 - y;
+              const radius = Math.sqrt(dx * dx + dy * dy);
+
+              const innerRadius = 0;
+              const outerRadius = radius * 1.4;
+
+              const gradient = ctx.createRadialGradient(
+                x,
+                y,
+                innerRadius,
+                x,
+                y,
+                outerRadius,
+              );
+              gradient.addColorStop(0, 'rgba(0,0,255,0.1)');
+              gradient.addColorStop(0.99, 'rgba(150,0,0,0.2)');
+              gradient.addColorStop(1, 'rgba(255,0,0,0.8)');
+              ctx.beginPath();
+              ctx.arc(x, y, radius, 0, 2 * Math.PI, true);
+              ctx.fillStyle = gradient;
+              ctx.fill();
+
+              ctx.arc(x, y, radius, 0, 2 * Math.PI, true);
+              ctx.strokeStyle = 'rgba(255,0,0,1)';
+              ctx.stroke();
+            },
+          }),
+        );
+
+        // Create a vector source for the circle feature
+        var vectorSource = new ol.source.Vector({
+          features: [circleFeature],
+        });
+
+        vectorLayer = new ol.layer.Vector({
+          source: vectorSource,
+        });
+
+        // Add the circle layer to the map
+        anchorMap.addLayer(vectorLayer);
+
+        // Create a point geometry at the specified coordinates
+        var imagePoint = new ol.geom.Point([anchorDecimalLongitude, anchorDecimalLatitude]);
+
+        // Create a feature for the point geometry
+        var imageFeature = new ol.Feature({
+          geometry: imagePoint,
+        });
+
+        // Create a vector source for the feature
+        var imageSource = new ol.source.Vector({
+          features: [imageFeature],
+        });
+
+        // Create a custom icon style for the point
+        var iconStyle = new ol.style.Style({
+          image: new ol.style.Icon({
+            src: '/static/anchor.png', // Path to your image file
+            scale: 0.5, // Adjust the scale of the image as needed
+          }),
+        });
+
+        // Create a vector layer for the feature
+        var anchorLayer = new ol.layer.Vector({
+          source: imageSource,
+          style: iconStyle, // Apply the custom icon style
+        });
+
+        // Add the anchor layer to the map
+        anchorMap.addLayer(anchorLayer);
+
+        // draw position history markers if provided
+        if (document.getElementById('show_hide_boat_tracks_button').classList.contains("btn-warning") &&
+            anchorPositionHistory && anchorPositionHistory.length > 0) {
+            // Create a vector source for the position dots feature
+            positionHistoryVectorSource = new ol.source.Vector();
+
+            // Create a style for the dots (points)
+            positionHistoryDotStyle = new ol.style.Style({
+              image: new ol.style.Circle({
+                radius: 5, // Adjust the size of the dots as needed
+                fill: new ol.style.Fill({ color: 'yellow' }), // Dot color
+                stroke: new ol.style.Stroke({ color: 'black', width: 1 }), // Dot border color
+              }),
+            });
+
+            // Create a vector layer and add features (points) to it
+            positionHistoryVectorLayer = new ol.layer.Vector({
+              source: positionHistoryVectorSource,
+              style: positionHistoryDotStyle,
+            });
+
+            for (let i = 0; i < anchorPositionHistory.length; i++) {
+                relevantPositionLatitude = anchorPositionHistory[i][0];
+                relevantPositionLongitude = anchorPositionHistory[i][1];
+                decimalLon = dmsToDD(relevantPositionLongitude);
+                decimalLat = dmsToDD(relevantPositionLatitude);
+
+                const point = new ol.Feature({
+                    geometry: new ol.geom.Point([decimalLon, decimalLat]),
+                });
+                positionHistoryVectorSource.addFeature(point);
+            }
+
+            // Add the dots layer to the map
+            anchorMap.addLayer(positionHistoryVectorLayer);
+        }
+    }
+
+    function drawAnchorOnMap(latitude, longitude, allowed_distance, position_history) {
+        divContainer = document.getElementById('anchor-map'); // Replace 'yourDivId' with the actual ID of your div
+        // Empty the div by setting its innerHTML to an empty string
+        divContainer.innerHTML = '';
+
+        tileLayer = osmLayer;
+
+        if (document.getElementById('satellite_map_layer_button').disabled) {
+            tileLayer = mapboxSatelliteLayer;
+        }
+
+        // re-initialize the anchor map
+        anchorMap = new ol.Map({
+            layers: [tileLayer],
+            target: 'anchor-map',
+            controls: []
+        });
+
+        {% if anchor_alarm_mapbox_api_key | length > 0 %}
+
+        {% else %}
+        document.getElementById('satellite_map_layer_button').disabled = true;
+        document.getElementById("satellite_map_layer_button").classList.remove('text-light');
+        {% endif %}
+
+        decimalLat = dmsToDD(latitude);
+        decimalLon = dmsToDD(longitude)
+
+        anchorDecimalLatitude = decimalLat;
+        anchorDecimalLongitude = decimalLon;
+
+        anchorView = new ol.View({
+            projection: 'EPSG:4326',
+            center: [decimalLon, decimalLat],
+            maxZoom: 19,
+            enableRotation: false
+        });
+
+        anchorMap.setView(anchorView);
+
+        anchorAllowedDistance = allowed_distance;
+        anchorPositionHistory = position_history;
+
+        redrawMapLayers();
+
+        // Get the current view from the map
+        view = anchorMap.getView();
+
+        // Set the new zoom level at 19 for the view
+        view.setZoom(19);
+    }
+
+    function isValidGPSCoordinate(value) {
+        // Regular expression for matching valid GPS coordinates
+        // The pattern allows for degrees (0-90) and minutes/seconds (0-59), with the hemisphere at the end (N, S, E, or W)
+        const regex = /^(-?\d{1,3})°(\d{1,2})'((\d{1,2}(\.\d*)?)|(\.\d+))" [NSEW]$/;
+
+        return regex.test(value);
+    }
+
+    function setAnchor() {
+        // validate the form before proceeding any further
+        if (document.getElementById("default_anchor_configuration_button_id").checked) {
+            if (!isValidGPSCoordinate(document.getElementById("set_anchor_alarm_latitude_text_id").value) ||
+                !isValidGPSCoordinate(document.getElementById("set_anchor_alarm_longitude_text_id").value) ||
+                parseInt(document.getElementById("set_anchor_alarm_allowed_distance_text_id").value) <= 0) {
+                document.getElementById('set_anchor_check_your_input_div_id').style.display = 'block';
+                document.getElementById('set_anchor_check_your_input_div_id').style.visibility = 'visible';
+                return;
+            }
+            else {
+                document.getElementById('set_anchor_check_your_input_div_id').style.display = 'none';
+                document.getElementById('set_anchor_check_your_input_div_id').style.visibility = 'hidden';
+            }
+        }
+        else {
+            if (parseInt(document.getElementById("set_anchor_alarm_bearing_text_id").value) > 359 ||
+                parseInt(document.getElementById("set_anchor_alarm_bearing_text_id").value) < 0 ||
+                parseInt(document.getElementById("set_anchor_alarm_distance_text_id").value) < 0 ||
+                parseInt(document.getElementById("set_anchor_alarm_allowed_distance_text_id").value) <= 0) {
+                document.getElementById('set_anchor_check_your_input_div_id').style.display = 'block';
+                document.getElementById('set_anchor_check_your_input_div_id').style.visibility = 'visible';
+                return;
+            }
+            else {
+                document.getElementById('set_anchor_check_your_input_div_id').style.display = 'none';
+                document.getElementById('set_anchor_check_your_input_div_id').style.visibility = 'hidden';
+            }
+        }
+
+        hideSetAnchorAlarmModal();
+        $('#loading_modal').modal('show');
+
+        if (document.getElementById("default_anchor_configuration_button_id").checked) {
+            $.ajax({
+                url: '/set_anchor',
+                method: 'POST',
+                data: { latitude: document.getElementById("set_anchor_alarm_latitude_text_id").value,
+                        longitude: document.getElementById("set_anchor_alarm_longitude_text_id").value,
+                        allowed_distance: document.getElementById("set_anchor_alarm_allowed_distance_text_id").value },
+                success: function (response) {
+                    $('#loading_modal').modal('hide');
+                    if (!response)
+                        notify_warning('Error while setting anchor alarm! Please check your anchor configuration');
+                    else {
+                        notify_success('Anchor alarm successfully set!');
+
+                        // draw the anchor position and allowed distance radius on the map
+                        latitude = document.getElementById("set_anchor_alarm_latitude_text_id").value;
+                        longitude = document.getElementById("set_anchor_alarm_longitude_text_id").value;
+                        anchorAllowedDistance = parseInt(document.getElementById("set_anchor_alarm_allowed_distance_text_id").value);
+
+                        // switch to the anchor tab
+                        var anchorTab = new bootstrap.Tab(document.getElementById("anchor-tab"));
+                        anchorTab.show();
+
+                        // draw anchor on map
+                        drawAnchorOnMap(latitude, longitude, anchorAllowedDistance, undefined);
+                    }
+                },
+                error: function (error) {
+                    $('#loading_modal').modal('hide');
+                    notify_warning('Error while setting anchor alarm! Please check your anchor configuration');
+                }
+            });
+        }
+        else {
+            $.ajax({
+                url: '/set_anchor_alternative',
+                method: 'POST',
+                data: { bearing: document.getElementById("set_anchor_alarm_bearing_text_id").value,
+                        distance: document.getElementById("set_anchor_alarm_distance_text_id").value,
+                        allowed_distance: document.getElementById("set_anchor_alarm_allowed_distance_text_id").value },
+                success: function (response) {
+                    $('#loading_modal').modal('hide');
+                    if (!response)
+                        notify_warning('Error while setting anchor alarm! Please check your anchor configuration');
+                    else {
+                        notify_success('Anchor alarm successfully set!');
+
+                        // draw the anchor position and allowed distance radius on the map
+                        latitude = document.getElementById("set_anchor_alarm_latitude_text_id").value;
+                        longitude = document.getElementById("set_anchor_alarm_longitude_text_id").value;
+                        anchorAllowedDistance = parseInt(document.getElementById("set_anchor_alarm_allowed_distance_text_id").value);
+
+                        // switch to the anchor tab
+                        var anchorTab = new bootstrap.Tab(document.getElementById("anchor-tab"));
+                        anchorTab.show();
+
+                        // draw anchor on map
+                        drawAnchorOnMap(latitude, longitude, anchorAllowedDistance, undefined);
+                    }
+                },
+                error: function (error) {
+                    $('#loading_modal').modal('hide');
+                    notify_warning('Error while setting anchor alarm! Please check your anchor configuration');
+                }
+            });
+        }
+    }
+
+    function updateAnchor() {
+        // validate the form before proceeding any further
+        if (parseInt(document.getElementById("update_anchor_alarm_allowed_distance_text_id").value) <= 0) {
+            document.getElementById('update_anchor_check_your_input_div_id').style.display = 'block';
+            document.getElementById('update_anchor_check_your_input_div_id').style.visibility = 'visible';
+            return;
+        }
+        else {
+            document.getElementById('update_anchor_check_your_input_div_id').style.display = 'none';
+            document.getElementById('update_anchor_check_your_input_div_id').style.visibility = 'hidden';
+        }
+
+        hideUpdateAnchorAlarmModal();
+        $('#loading_modal').modal('show');
+
+        $.ajax({
+            url: '/set_anchor',
+            method: 'POST',
+            data: { latitude: document.getElementById("update_anchor_alarm_latitude_label_id").innerHTML,
+                    longitude: document.getElementById("update_anchor_alarm_longitude_label_id").innerHTML,
+                    allowed_distance: document.getElementById("update_anchor_alarm_allowed_distance_text_id").value,
+                    preserve_history: true.toString()},
+            success: function (response) {
+                $('#loading_modal').modal('hide');
+                if (!response)
+                    notify_warning('Error while updating anchor alarm! Please check your anchor configuration');
+                else {
+                    notify_success('Anchor alarm successfully updated!');
+
+                    // draw the anchor position and allowed distance radius on the map
+                    latitude = document.getElementById("update_anchor_alarm_latitude_label_id").innerHTML;
+                    longitude = document.getElementById("update_anchor_alarm_longitude_label_id").innerHTML;
+                    anchorAllowedDistance = parseInt(document.getElementById("update_anchor_alarm_allowed_distance_text_id").value);
+
+                    // switch to the anchor tab
+                    var anchorTab = new bootstrap.Tab(document.getElementById("anchor-tab"));
+                    anchorTab.show();
+
+                    // draw anchor on map
+                    drawAnchorOnMap(latitude, longitude, anchorAllowedDistance, undefined);
+                }
+            },
+            error: function (error) {
+                $('#loading_modal').modal('hide');
+                notify_warning('Error while updating anchor alarm! Reason: ' + error);
+            }
+        });
+    }
+
+    function cancelAnchor() {
+        hideCancelAnchorAlarmModal();
+        hideSetAnchorAlarmModal();
+
+        $.ajax({
+            type: 'GET',
+            url: '/cancel_anchor',
+            success: function(data) {
+                notify_success('Anchor alarm successfully canceled!');
+            },
+            error: function (error) {
+                notify_warning('Error while canceling the anchor alarm! Reason: ' + error);
+            }
+        });
+    }
+
+    function resetMaximumDistanceMetric() {
+        hideResetMaximumDistanceModal();
+
+        $.ajax({
+            type: 'GET',
+            url: '/reset_max_anchor_distance',
+            success: function(data) {
+                notify_success('Anchor alarm recorded maximum distance successfully reset!');
+            },
+            error: function (error) {
+                notify_warning('Error while resetting the anchor alarm maximum distance metric! Reason: ' + error);
+            }
+        });
+    }
+
+    function toggleSession() {
+        $.ajax({
+            type: 'GET',
+            url: '/toggle_session',
+            success: function(data) {
+                // switch to the session tab
+                var sessionTab = new bootstrap.Tab(document.getElementById("session-tab"));
+                sessionTab.show();
+            }
+        });
+    }
+
+    function showSetAnchorAlarmModal() {
+        $('#loading_modal').modal('show');
+
+        $.ajax({
+            type: 'GET',
+            url: '/anchor_alarm_data',
+            success: function(data) {
+                $('#loading_modal').modal('hide');
+                document.getElementById('set_anchor_alarm_allowed_distance_text_id').value = data['anchor_alarm_default_allowed_distance'];
+
+                // Fill up GPS anchor position from last gps coordinates
+                document.getElementById('set_anchor_alarm_latitude_text_id').value = lastPositionLatitude
+                document.getElementById('set_anchor_alarm_longitude_text_id').value = lastPositionLongitude
+
+                // determine if a previous anchor position was collected
+                // and enable or disable the "Use last anchor position" button functionality accordingly
+                if (data['anchor_latitude'] != "" && data['anchor_longitude'] != "") {
+                    document.getElementById('use_last_anchor_position_button_id').disabled = false;
+                } else {
+                    document.getElementById('use_last_anchor_position_button_id').disabled = true;
+                }
+
+                // hide the check your input warning message
+                document.getElementById('set_anchor_check_your_input_div_id').style.display = 'none';
+                document.getElementById('set_anchor_check_your_input_div_id').style.visibility = 'hidden';
+
+                setAnchorAlarmModal.show();
+            },
+            error: function (error) {
+                $('#loading_modal').modal('hide');
+                notify_warning('Error while retrieving anchor alarm configuration! Reason: ' + error);
+            }
+        });
+    }
+
+    function useLastAnchorPosition() {
+        $('#loading_modal').modal('show');
+
+        $.ajax({
+            type: 'GET',
+            url: '/anchor_alarm_data',
+            success: function(data) {
+                $('#loading_modal').modal('hide');
+
+                // determine if a previous anchor position was collected
+                // and enable or disable the "Use last anchor position" button functionality accordingly
+                if (data['anchor_latitude'] != "" && data['anchor_longitude'] != "") {
+                    // Fill up GPS anchor position from last set anchor gps coordinates
+                    document.getElementById('set_anchor_alarm_latitude_text_id').value = data['anchor_latitude']
+                    document.getElementById('set_anchor_alarm_longitude_text_id').value = data['anchor_longitude']
+                }
+
+                // hide the check your input warning message
+                document.getElementById('set_anchor_check_your_input_div_id').style.display = 'none';
+                document.getElementById('set_anchor_check_your_input_div_id').style.visibility = 'hidden';
+
+                setAnchorAlarmModal.show();
+            },
+            error: function (error) {
+                $('#loading_modal').modal('hide');
+                notify_warning('Error while retrieving anchor alarm configuration! Reason: ' + error);
+            }
+        });
+    }
+
+    function showUpdateAnchorAlarmModal() {
+        $('#loading_modal').modal('show');
+
+        $.ajax({
+            type: 'GET',
+            url: '/anchor_alarm_data',
+            success: function(data) {
+                $('#loading_modal').modal('hide');
+                document.getElementById('update_anchor_alarm_allowed_distance_text_id').value = data['anchor_allowed_distance'];
+                document.getElementById('update_anchor_alarm_latitude_label_id').innerHTML = data['anchor_latitude']
+                document.getElementById('update_anchor_alarm_longitude_label_id').innerHTML = data['anchor_longitude'];
+
+                // hide the check your input warning message
+                document.getElementById('update_anchor_check_your_input_div_id').style.display = 'none';
+                document.getElementById('update_anchor_check_your_input_div_id').style.visibility = 'hidden';
+
+                updateAnchorAlarmModal.show();
+            },
+            error: function (error) {
+                $('#loading_modal').modal('hide');
+                notify_warning('Error while retrieving anchor alarm configuration! Reason: ' + error);
+            }
+        });
+    }
+
+    function hideUpdateAnchorAlarmModal() {
+        updateAnchorAlarmModal.hide();
+    }
+
+    function hideSetAnchorAlarmModal() {
+        setAnchorAlarmModal.hide();
+    }
+
+    function showCancelAnchorAlarmModal() {
+        cancelAnchorAlarmModal.show();
+    }
+
+    function hideCancelAnchorAlarmModal() {
+        cancelAnchorAlarmModal.hide();
+    }
+
+    function showResetMaximumDistanceModal() {
+        resetMaximumDistanceModal.show();
+    }
+
+    function hideResetMaximumDistanceModal() {
+        resetMaximumDistanceModal.hide();
+    }
+
+    function cancelAnchorAlarm() {
+        hideCancelAnchorAlarmModal();
+        hideUpdateAnchorAlarmModal();
+
+        $('#loading_modal').modal('show');
+
+        $.ajax({
+            type: 'GET',
+            url: '/cancel_anchor',
+            success: function(data) {
+                $('#loading_modal').modal('hide');
+                notify_success('Anchor alarm successfully canceled!');
+            },
+            error: function (error) {
+                $('#loading_modal').modal('hide');
+                notify_warning('Error while trying to cancel the anchor alarm! Reason: ' + error);
+            }
+        });
+    }
+
+    function switch_to_light_mode() {
+        light_theme = true;
+        document.getElementById("set_anchor_alarm_modal_content").classList.remove('bg-dark');
+        document.getElementById("update_anchor_alarm_modal_content").classList.remove('bg-dark');
+        document.getElementById("cancel_anchor_alarm_modal_content").classList.remove('bg-dark');
+        document.getElementById("reset_maximum_distance_modal_content").classList.remove('bg-dark');
+        document.getElementById("body-element-id").classList.add('text-dark');
+        document.getElementById("body-element-id").classList.remove('bg-dark');
+        document.getElementById("body-element-id").classList.remove('text-light');
+        document.getElementById("navbar-element-id").classList.remove('bg-dark');
+        document.getElementById("navbar-element-id").classList.add('bg-primary');
+        document.getElementById("about_us_modal_content").classList.remove('bg-dark');
+        document.getElementById("system_configuration_card").classList.remove('bg-dark');
+        document.getElementById("system_configuration_card").classList.add('text-dark');
+        document.getElementById("system_configuration_card").classList.remove('text-light');
+
+        if (document.getElementById("summary-box-id") !== null) {
+            document.getElementById("summary-box-id").classList.add('border-dark');
+            document.getElementById("summary-box-id").classList.remove('border-light');
+        }
+
+        const gauges = document.querySelectorAll(".GaugeMeter-Dark");
+        gauges.forEach(gauge => {
+            gauge.classList.remove('GaugeMeter-Dark');
+            gauge.classList.add('GaugeMeter-Light');
+            gauge.setAttribute("data-label_color", "Black");
+        });
+
+        const warning_elements = document.querySelectorAll(".text-warning");
+        warning_elements.forEach(element => {
+            element.classList.remove('text-warning');
+            element.classList.add('text-warning-emphasis');
+        });
+
+        const success_elements = document.querySelectorAll(".text-success");
+        success_elements.forEach(element => {
+            element.classList.remove('text-success');
+            element.classList.add('text-success-emphasis');
+        });
+    }
+
+    function switch_to_dark_mode() {
+        light_theme = false;
+        document.getElementById("set_anchor_alarm_modal_content").classList.add('bg-dark');
+        document.getElementById("update_anchor_alarm_modal_content").classList.add('bg-dark');
+        document.getElementById("cancel_anchor_alarm_modal_content").classList.add('bg-dark');
+        document.getElementById("reset_maximum_distance_modal_content").classList.add('bg-dark');
+        document.getElementById("body-element-id").classList.add('bg-dark');
+        document.getElementById("body-element-id").classList.add('text-light');
+        document.getElementById("body-element-id").classList.remove('text-dark');
+        document.getElementById("navbar-element-id").classList.remove('bg-primary');
+        document.getElementById("navbar-element-id").classList.add('bg-dark');
+        document.getElementById("about_us_modal_content").classList.add('bg-dark');
+        document.getElementById("system_configuration_card").classList.add('bg-dark');
+        document.getElementById("system_configuration_card").classList.add('text-light');
+        document.getElementById("system_configuration_card").classList.remove('text-dark');
+
+        if (document.getElementById("summary-box-id") !== null) {
+            document.getElementById("summary-box-id").classList.add('border-light');
+            document.getElementById("summary-box-id").classList.remove('border-dark');
+        }
+
+        const gauges = document.querySelectorAll(".GaugeMeter-Light");
+        gauges.forEach(gauge => {
+            gauge.classList.remove('GaugeMeter-Light');
+            gauge.classList.add('GaugeMeter-Dark');
+            gauge.setAttribute("data-label_color", "White");
+        });
+
+        const elements = document.querySelectorAll(".text-warning-emphasis");
+        elements.forEach(element => {
+            element.classList.remove('text-warning-emphasis');
+            element.classList.add('text-warning');
+        });
+
+        const success_elements = document.querySelectorAll(".text-success-emphasis");
+        success_elements.forEach(element => {
+            element.classList.remove('text-success-emphasis');
+            element.classList.add('text-success');
+        });
+    }
+
+    // Function to format minutes into "%d days %h hours %m minutes"
+    function formatMinutes(minutes) {
+        const days = Math.floor(minutes / (24 * 60));
+        const hours = Math.floor((minutes % (24 * 60)) / 60);
+        const remainingMinutes = minutes % 60;
+
+        return `${days} days ${hours} hrs ${remainingMinutes} m`;
+    }
+
+    function refreshData() {
+        $.ajax({
+            type: 'GET',
+            url: '/data',
+            success: function(data) {
+                // Update the relevant part of the webpage with the new data
+                if (data['web_theme'] == 'auto') {
+                    if (data['day_light']) {
+                        switch_to_light_mode();
+                    }
+                    else {
+                        switch_to_dark_mode();
+                    }
+                } else if (data['web_theme'] == 'light') {
+                        switch_to_light_mode();
+                } else if (data['web_theme'] == 'dark') {
+                        switch_to_dark_mode();
+                }
+
+                if (data['last_notification'] != '') {
+                    if (data['last_notification'].toLowerCase().includes('cleared')) {
+                        notify_success(data['last_notification'])
+                    } else {
+                        notify_warning(data['last_notification']);
+                    }
+                }
+
+                if (data['housing_battery_soc'] !== null && document.getElementById("housing_battery_soc_gauge") !== null) {
+                    $("#housing_battery_soc_gauge").gaugeMeter({used:parseInt(data['housing_battery_soc'])});
+                }
+
+                if (data['battery_voltage'] !== null && document.getElementById("battery_voltage_gauge") !== null) {
+                    $("#battery_voltage_gauge").gaugeMeter({used:parseFloat(data['battery_voltage'])});
+                }
+
+                if (data['starter_battery_voltage'] !== null && document.getElementById("starter_battery_voltage_gauge") !== null) {
+                    $("#starter_battery_voltage_gauge").gaugeMeter({used:parseFloat(data['starter_battery_voltage'])});
+                }
+
+                if (data['housing_battery_voltage'] !== null && document.getElementById("housing_battery_voltage_gauge") !== null) {
+                    $("#housing_battery_voltage_gauge").gaugeMeter({used:parseFloat(data['housing_battery_voltage'])});
+                }
+
+                if (data['housing_battery_current'] !== null && document.getElementById('housing_battery_current') !== null) {
+                    document.getElementById('housing_battery_current').innerHTML = data['housing_battery_current'] + 'A';
+                }
+
+                if (data['housing_battery_current'] !== null && document.getElementById("housing_battery_current_gauge") !== null) {
+                    $("#housing_battery_current_gauge").gaugeMeter({used:parseFloat(data['housing_battery_current'])});
+                }
+
+                if (data['auxiliary_temperature'] !== null && document.getElementById("auxiliary_temperature_gauge") !== null) {
+                    $("#auxiliary_temperature_gauge").gaugeMeter({used:parseInt(data['auxiliary_temperature'])});
+                }
+
+                if (data['housing_battery_power'] !== null && document.getElementById("housing_battery_power_gauge") !== null) {
+                    $("#housing_battery_power_gauge").gaugeMeter({used:parseInt(data['housing_battery_power'])});
+                }
+
+                if (data['pv_power'] !== null && document.getElementById("pv_power_gauge") !== null) {
+                    $("#pv_power_gauge").gaugeMeter({used:parseInt(data['pv_power'])});
+                }
+
+                if (data['fuel_tank'] !== null && document.getElementById("fuel_tank_gauge") !== null) {
+                    $("#fuel_tank_gauge").gaugeMeter({used:parseInt(data['fuel_tank'])});
+                }
+
+                if (data['water_tank'] !== null && document.getElementById("water_tank_gauge") !== null) {
+                    $("#water_tank_gauge").gaugeMeter({used:parseInt(data['water_tank'])});
+                }
+
+                if (data['active_input_source'] !== null && document.getElementById('active_input_source') !== null) {
+                    document.getElementById('active_input_source').innerHTML = data['active_input_source'];
+                }
+
+                if (data['ve_bus_state'] !== null && document.getElementById('ve_bus_state') !== null) {
+                    document.getElementById('ve_bus_state').innerHTML = data['ve_bus_state'];
+                }
+
+                if (data['housing_battery_state'] !== null && document.getElementById('housing_battery_state') !== null) {
+                    document.getElementById('housing_battery_state').innerHTML = data['housing_battery_state'];
+                }
+
+                if (data['pv_current'] !== null && document.getElementById('pv_current') !== null) {
+                    document.getElementById('pv_current').innerHTML = data['pv_current'] + 'A';
+                }
+
+                if (data['victron_modbus_tcp_module']) {
+                    document.getElementById('victron_modbus_tcp_module_status').innerHTML = data['victron_modbus_tcp_status'];
+                    if (data['victron_modbus_tcp_status'] == "Running") {
+                        document.getElementById("victron_modbus_tcp_module_spinner").className = "spinner-border text-success me-2";
+                    } else if (data['victron_modbus_tcp_status'] == "Down") {
+                        document.getElementById("victron_modbus_tcp_module_spinner").className = "spinner-grow text-danger me-2";
+                    } else if (data['victron_modbus_tcp_status'] == "Starting") {
+                        document.getElementById("victron_modbus_tcp_module_spinner").className = "spinner-grow text-warning me-2";
+                    }
+                } else {
+                    document.getElementById('victron_modbus_tcp_module_status').innerHTML = "Disabled";
+                    document.getElementById("victron_modbus_tcp_module_spinner").className = "spinner-grow text-secondary me-2";
+                }
+
+                if (data['victron_ble_module']) {
+                    document.getElementById('victron_ble_module_status').innerHTML = data['victron_ble_status'];
+                    if (data['victron_ble_status'] == "Running") {
+                        document.getElementById("victron_ble_module_spinner").className = "spinner-border text-success me-2";
+                    } else if (data['victron_ble_status'] == "Down") {
+                        document.getElementById("victron_ble_module_spinner").className = "spinner-grow text-danger me-2";
+                    } else if (data['victron_ble_status'] == "Starting") {
+                        document.getElementById("victron_ble_module_spinner").className = "spinner-grow text-warning me-2";
+                    }
+                } else {
+                    document.getElementById('victron_ble_module_status').innerHTML = "Disabled";
+                    document.getElementById("victron_ble_module_spinner").className = "spinner-grow text-secondary me-2";
+                }
+
+                if (data['nmea_module']) {
+                    document.getElementById('nmea_module_status').innerHTML = data['nmea_status'];
+                    if (data['nmea_status'] == "Running") {
+                        document.getElementById("nmea_module_spinner").className = "spinner-border text-success me-2";
+
+                        document.getElementById('no_available_nmea_instruments_message').style.display = 'none';
+                        document.getElementById('no_available_nmea_instruments_message').style.visibility = 'hidden';
+                        document.getElementById('nmea_container').style.display = 'block';
+                        document.getElementById('nmea_container').style.visibility = 'visible';
+                    } else if (data['nmea_status'] == "Down") {
+                        document.getElementById("nmea_module_spinner").className = "spinner-grow text-danger me-2";
+                        document.getElementById('no_available_nmea_instruments_message').style.display = 'block';
+                        document.getElementById('no_available_nmea_instruments_message').style.visibility = 'visible';
+                        document.getElementById('nmea_container').style.display = 'none';
+                        document.getElementById('nmea_container').style.visibility = 'hidden';
+                    } else if (data['nmea_status'] == "Starting") {
+                        document.getElementById("nmea_module_spinner").className = "spinner-grow text-warning me-2";
+                        document.getElementById('no_available_nmea_instruments_message').style.display = 'block';
+                        document.getElementById('no_available_nmea_instruments_message').style.visibility = 'visible';
+                        document.getElementById('nmea_container').style.display = 'none';
+                        document.getElementById('nmea_container').style.visibility = 'hidden';
+                    }
+                } else {
+                    document.getElementById('nmea_module_status').innerHTML = "Disabled";
+                    document.getElementById("nmea_module_spinner").className = "spinner-grow text-secondary me-2";
+                    document.getElementById('no_available_nmea_instruments_message').style.display = 'block';
+                    document.getElementById('no_available_nmea_instruments_message').style.visibility = 'visible';
+                    document.getElementById('nmea_container').style.display = 'none';
+                    document.getElementById('nmea_container').style.visibility = 'hidden';
+                    document.getElementById('nmea-tab').style.display = 'none';
+                    document.getElementById('nmea-tab').style.visibility = 'hidden';
+                }
+
+                if (data['gps_module']) {
+                    document.getElementById('gps_module_status').innerHTML = data['gps_status'];
+                    if (data['gps_status'] == "Running") {
+                        document.getElementById("gps_module_spinner").className = "spinner-border text-success me-2";
+                    } else if (data['gps_status'] == "Down") {
+                        document.getElementById("gps_module_spinner").className = "spinner-grow text-danger me-2";
+                    } else if (data['gps_status'] == "Starting") {
+                        document.getElementById("gps_module_spinner").className = "spinner-grow text-warning me-2";
+                    }
+                } else {
+                    document.getElementById('gps_module_status').innerHTML = "Disabled";
+                    document.getElementById("gps_module_spinner").className = "spinner-grow text-secondary me-2";
+                }
+
+                if (data['bb_micro_module']) {
+                    document.getElementById('bb_micro_module_status').innerHTML = data['bb_micro_status'];
+                    if (data['bb_micro_status'] == "Running") {
+                        document.getElementById("bb_micro_module_spinner").className = "spinner-border text-success me-2";
+
+                        document.getElementById('no_available_sensors_message').style.display = 'none';
+                        document.getElementById('no_available_sensors_message').style.visibility = 'hidden';
+                        document.getElementById('sensors_container').style.display = 'block';
+                        document.getElementById('sensors_container').style.visibility = 'visible';
+                        document.getElementById('no_available_relays_message').style.display = 'none';
+                        document.getElementById('no_available_relays_message').style.visibility = 'hidden';
+                        document.getElementById('relays_container').style.display = 'block';
+                        document.getElementById('relays_container').style.visibility = 'visible';
+                    } else if (data['bb_micro_status'] == "Down") {
+                        document.getElementById("bb_micro_module_spinner").className = "spinner-grow text-danger me-2";
+
+                        document.getElementById('no_available_sensors_message').style.display = 'block';
+                        document.getElementById('no_available_sensors_message').style.visibility = 'visible';
+                        document.getElementById('sensors_container').style.display = 'none';
+                        document.getElementById('sensors_container').style.visibility = 'hidden';
+                        document.getElementById('no_available_relays_message').style.display = 'block';
+                        document.getElementById('no_available_relays_message').style.visibility = 'visible';
+                        document.getElementById('relays_container').style.display = 'none';
+                        document.getElementById('relays_container').style.visibility = 'hidden';
+                    } else if (data['bb_micro_status'] == "Starting") {
+                        document.getElementById("bb_micro_module_spinner").className = "spinner-grow text-warning me-2";
+
+                        document.getElementById('no_available_sensors_message').style.display = 'block';
+                        document.getElementById('no_available_sensors_message').style.visibility = 'visible';
+                        document.getElementById('sensors_container').style.display = 'none';
+                        document.getElementById('sensors_container').style.visibility = 'hidden';
+                        document.getElementById('no_available_relays_message').style.display = 'block';
+                        document.getElementById('no_available_relays_message').style.visibility = 'visible';
+                        document.getElementById('relays_container').style.display = 'none';
+                        document.getElementById('relays_container').style.visibility = 'hidden';
+                    }
+                } else {
+                    document.getElementById('bb_micro_module_status').innerHTML = "Disabled";
+                    document.getElementById("bb_micro_module_spinner").className = "spinner-grow text-secondary me-2";
+                    document.getElementById('sensors-tab').style.display = 'none';
+                    document.getElementById('sensors-tab').style.visibility = 'hidden';
+                    document.getElementById('relays-tab').style.display = 'none';
+                    document.getElementById('relays-tab').style.visibility = 'hidden';
+                }
+
+                if (data['status'] === "idle") {
+                    if (document.getElementById("session_button_id").classList.contains('btn-danger'))
+                    {
+                        document.getElementById('session_button_text').innerHTML = "Start Session";
+                        document.getElementById("session_button_id").classList.remove('btn-danger');
+                        document.getElementById("session_button_id").classList.add('btn-success');
+                        document.getElementById('session_button_spinner').style.display = 'none';
+                        document.getElementById('session_button_spinner').style.visibility = 'hidden';
+                    }
+
+                    document.getElementById('session_container').style.display = 'none';
+                    document.getElementById('session_container').style.visibility = 'hidden';
+                    document.getElementById('no_session_message').style.display = 'block';
+                    document.getElementById('no_session_message').style.visibility = 'visible';
+                    document.getElementById('session_name').innerHTML = "Session name";
+                }
+                else
+                {
+                    if (document.getElementById("session_button_id").classList.contains('btn-success'))
+                    {
+                        document.getElementById('session_button_text').innerHTML = "End Session";
+                        document.getElementById("session_button_id").classList.remove('btn-success');
+                        document.getElementById("session_button_id").classList.add('btn-danger');
+                        document.getElementById('session_button_spinner').style.display = 'inline-block';
+                        document.getElementById('session_button_spinner').style.visibility = 'visible';
+                    }
+                    document.getElementById('no_session_message').style.display = 'none';
+                    document.getElementById('no_session_message').style.visibility = 'hidden';
+                    document.getElementById('session_container').style.display = 'block';
+                    document.getElementById('session_container').style.visibility = 'visible';
+                    document.getElementById('session_name').innerHTML = data['session_name'];
+                    document.getElementById('start_time').innerHTML = data['start_time'];
+                    document.getElementById('start_time_utc').innerHTML = data['start_time_utc'];
+                    document.getElementById('duration').innerHTML = data['duration'];
+                    document.getElementById('start_gps_lat').innerHTML = data['start_gps_lat'];
+                    document.getElementById('start_gps_lon').innerHTML = data['start_gps_lon'];
+                    document.getElementById('distance').innerHTML = data['distance'];
+                    document.getElementById('heading').innerHTML = data['heading'];
+                    document.getElementById('average_wind_speed').innerHTML = data['average_wind_speed'];
+                    document.getElementById('average_wind_direction').innerHTML = data['average_wind_direction'];
+                    document.getElementById('average_water_temperature').innerHTML = data['average_water_temperature'];
+                    document.getElementById('average_depth').innerHTML = data['average_depth'];
+                    document.getElementById('average_sog').innerHTML = data['average_sog'];
+                    document.getElementById('average_sow').innerHTML = data['average_sow'];
+                    document.getElementById('housing_battery_max_voltage').innerHTML = data['housing_battery_max_voltage'];
+                    document.getElementById('housing_battery_min_voltage').innerHTML = data['housing_battery_min_voltage'];
+                    document.getElementById('housing_battery_avg_voltage').innerHTML = data['housing_battery_avg_voltage'];
+                    document.getElementById('housing_battery_max_current').innerHTML = data['housing_battery_max_current'];
+                    document.getElementById('housing_battery_avg_current').innerHTML = data['housing_battery_avg_current'];
+                    document.getElementById('housing_battery_max_power').innerHTML = data['housing_battery_max_power'];
+                    document.getElementById('housing_battery_avg_power').innerHTML = data['housing_battery_avg_power'];
+                    document.getElementById('pv_max_power').innerHTML = data['pv_max_power'];
+                    document.getElementById('pv_avg_power').innerHTML = data['pv_avg_power'];
+                    document.getElementById('pv_max_current').innerHTML = data['pv_max_current'];
+                    document.getElementById('pv_avg_current').innerHTML = data['pv_avg_current'];
+                    document.getElementById('starter_battery_max_voltage').innerHTML = data['starter_battery_max_voltage'];
+                    document.getElementById('starter_battery_min_voltage').innerHTML = data['starter_battery_min_voltage'];
+                    document.getElementById('starter_battery_avg_voltage').innerHTML = data['starter_battery_avg_voltage'];
+                    document.getElementById('tank1_max_level').innerHTML = data['tank1_max_level'];
+                    document.getElementById('tank1_min_level').innerHTML = data['tank1_min_level'];
+                    document.getElementById('tank1_avg_level').innerHTML = data['tank1_avg_level'];
+                    document.getElementById('tank2_max_level').innerHTML = data['tank2_max_level'];
+                    document.getElementById('tank2_min_level').innerHTML = data['tank2_min_level'];
+                    document.getElementById('tank2_avg_level').innerHTML = data['tank2_avg_level'];
+                }
+
+                if (first_refresh_data_call) {
+                    $('#loading_modal').modal('hide');
+                    first_refresh_data_call = false;
+                }
+            },
+            error: function (error) {
+                if (first_refresh_data_call) {
+                    $('#loading_modal').modal('hide');
+                    first_refresh_data_call = false;
+                }
+            }
+        });
+    }
+
+    function refreshAnchorData() {
+        // Refresh anchor data if anchor alarm is active
+        $.ajax({
+            type: 'GET',
+            url: '/anchor_alarm_data',
+            success: function(data) {
+                if (data['anchor_alarm_module'] && data['anchor_is_set']) {
+                    anchorAllowedDistance = data['anchor_allowed_distance'];
+
+                    if (first_refresh_anchor_data_call) {
+                        drawAnchorOnMap(data['anchor_latitude'], data['anchor_longitude'], anchorAllowedDistance, data['position_history']);
+                        first_refresh_anchor_data_call = false;
+                    }
+
+                    document.getElementById('anchor_alarm_is_not_set_message').style.display = 'none';
+                    document.getElementById('anchor_alarm_is_not_set_message').style.visibility = 'hidden';
+                    document.getElementById('anchor_container').style.display = 'block';
+                    document.getElementById('anchor_container').style.visibility = 'visible';
+                    document.getElementById('anchor_latitude').innerHTML = data['anchor_latitude'];
+                    document.getElementById('anchor_longitude').innerHTML = data['anchor_longitude'];
+                    document.getElementById('anchor_start_time').innerHTML = data['anchor_timestamp_local'];
+                    document.getElementById('anchor_start_time_utc').innerHTML = data['anchor_timestamp_utc'];
+                    document.getElementById('current_latitude').innerHTML = data['current_latitude'];
+                    document.getElementById('current_longitude').innerHTML = data['current_longitude'];
+                    document.getElementById('anchor_distance').innerHTML = data['anchor_distance'];
+                    document.getElementById('anchor_allowed_distance').innerHTML = data['anchor_allowed_distance'];
+                    document.getElementById('anchor_duration').innerHTML = formatMinutes(Math.round(data['anchor_duration_in_seconds'] / 60));
+                    document.getElementById('anchor_bearing').innerHTML = data['anchor_bearing'];
+                    document.getElementById('gps_accuracy').innerHTML = data['gps_accuracy'];
+                    document.getElementById('max_anchor_distance').innerHTML = data['max_anchor_distance'];
+
+                    if (data['anchor_distance'] > data['anchor_allowed_distance']) {
+                        document.getElementById("distance_from_anchor_span").classList.add('text-danger');
+                    }
+                    else {
+                        document.getElementById("distance_from_anchor_span").classList.remove('text-danger');
+                    }
+
+                    // draw relevant boat positions on the map
+                    if (data['position_history'] && data['position_history'].length > 0) {
+                        anchorPositionHistory = data['position_history'];
+                        redrawMapLayers();
+                    }
+
+                    // Draw the boat marker on the map for the current boat position
+                    if (boatMarker)
+                        anchorMap.removeOverlay(boatMarker);
+
+                    decimalLon = dmsToDD(data['current_longitude']);
+                    decimalLat = dmsToDD(data['current_latitude']);
+                    boatMarker = new ol.Overlay({
+                      position: [decimalLon, decimalLat], // Convert GPS coordinates to map coordinates
+                      positioning: 'center-center',
+                      element: document.createElement('div')
+                    });
+                    boatMarker.getElement().className = 'boat-marker'; // Apply CSS class for styling
+                    anchorMap.addOverlay(boatMarker);
+
+                    if (document.getElementById('track_current_position_button').classList.contains("btn-warning")) {
+                        // recenter the map to the latest boat position
+                        anchorMap.getView().setCenter([decimalLon, decimalLat]);
+                    }
+
+                    if (data['gps_module_running']) {
+                        document.getElementById('anchor_section_gps_module_is_down_overlay').style.display = 'none';
+                        document.getElementById('anchor_section_gps_module_is_down_overlay').style.visibility = 'hidden';
+                    }
+                    else {
+                        document.getElementById('anchor_section_gps_module_is_down_overlay').style.display = 'flex';
+                        document.getElementById('anchor_section_gps_module_is_down_overlay').style.visibility = 'visible';
+                    }
+                }
+                else {
+                    document.getElementById('anchor_container').style.display = 'none';
+                    document.getElementById('anchor_container').style.visibility = 'hidden';
+                    document.getElementById('anchor_alarm_is_not_set_message').style.display = 'block';
+                    document.getElementById('anchor_alarm_is_not_set_message').style.visibility = 'visible';
+
+                    // reset the corresponding anchor related page variable
+                    first_refresh_anchor_data_call = true;
+                }
+            }
+        });
+    }
+
+    function refreshNMEAInstrumentsData() {
+        $.ajax({
+            type: 'GET',
+            url: '/nmea_data',
+            success: function(data) {
+                //Populate the nmea0183 instruments fields
+                if (data['nmea_module']) {
+                    if (data['nmea_status'] == "Running") {
+                        if (document.getElementById("navigation_component") !== null && data['heading'].trim().length && data['speed_over_ground'].trim().length && data['speed_over_water'].trim().length) {
+                            if (window.navigationComponent == undefined) { 
+                                window.navigationComponent = new NavigationComponent('navigation_component', document.getElementById("navigation_component").getAttribute("data-title"));
+                            }
+                            window.navigationComponent.update(parseInt(data['heading']), parseFloat(data['speed_over_ground']), parseFloat(data['speed_over_water']));
+                        }
+
+                        if (document.getElementById("true_wind_component") !== null && data['true_wind_speed'].trim().length && data['true_wind_direction'].trim().length) {
+                            if (window.trueWindComponent == undefined) {                            
+                                window.trueWindComponent = new WindComponent('true_wind_component', document.getElementById("true_wind_component").getAttribute("data-title"));
+                            }                            
+                        window.trueWindComponent.update(parseFloat(data['true_wind_speed']), parseInt(data['true_wind_direction']));                                        
+                        }
+
+                        if (document.getElementById("apparent_wind_component") !== null && data['apparent_wind_speed'].trim().length && data['apparent_wind_angle'].trim().length) {
+                            if (window.apparentWindComponent == undefined) {                            
+                                window.apparentWindComponent = new WindComponent('apparent_wind_component', document.getElementById("apparent_wind_component").getAttribute("data-title"));
+                            }                            
+                            window.apparentWindComponent.update(parseFloat(data['apparent_wind_speed']), parseInt(data['apparent_wind_angle']));                                        
+                        }                        
+
+                        if (document.getElementById("water_temperature_gauge") !== null && data['water_temperature'].trim().length) {
+                            $("#water_temperature_gauge").gaugeMeter({used:parseFloat(data['water_temperature'])});
+                        }                        
+
+                        if (document.getElementById('depth_label') !== null && data['depth'].trim().length) {
+                            document.getElementById('depth_label').innerHTML = data['depth'] + ' m';
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function refreshSensorsData() {
+        $.ajax({
+            type: 'GET',
+            url: '/sensors_data',
+            success: function(data) {
+                //Populate the BB Micro sensors fields
+                if (data['bb_micro_module']) {
+                    if (data['bb_micro_status'] == "Running") {
+                        if (document.getElementById("atmospheric_pressure_gauge") !== null && data['barometric_pressure'].trim().length) {
+                            document.getElementById("atmospheric_pressure_gauge").setAttribute("data-value", data['barometric_pressure']);
+                        }
+
+                        if ($("#air_temperature_gauge") !== null && data['air_temperature'].trim().length) {
+                            $("#air_temperature_gauge").gaugeMeter({used:parseFloat(data['air_temperature'])});
+                        }
+
+                        if ($("#humidity_gauge") !== null && data['humidity'].trim().length) {
+                            $("#humidity_gauge").gaugeMeter({used:parseFloat(data['humidity'])});
+                        }
+
+                        if ($("#air_quality_gauge") !== null && data['air_quality'].trim().length) {
+                            $("#air_quality_gauge").gaugeMeter({used:parseFloat(data['air_quality'])});
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function refreshRelaysData() {
+        $.ajax({
+            type: 'GET',
+            url: '/relays_data',
+            success: function(data) {
+                //Populate the BB Micro sensors fields
+                if (data['bb_micro_module']) {
+                    if (data['bb_micro_status'] == "Running") {
+                        $("#flexSwitch1Label").text(data['relay_1_name'])
+                        if (data['relay_1'] === "True" ) {
+                            $("#flexSwitch1Check").prop('checked', true);
+                        } else {
+                            $("#flexSwitch1Check").prop('checked', false);
+                        }
+
+                        $("#flexSwitch2Label").text(data['relay_2_name'])
+                        if (data['relay_2'] === "True") {
+                            $("#flexSwitch2Check").prop('checked', true);
+                        } else {
+                            $("#flexSwitch2Check").prop('checked', false);
+                        }
+
+                        $("#flexSwitch3Label").text(data['relay_3_name'])
+                        if (data['relay_3'] === "True") {
+                            $("#flexSwitch3Check").prop('checked', true);
+                        } else {
+                            $("#flexSwitch3Check").prop('checked', false);
+                        }
+
+                        $("#flexSwitch4Label").text(data['relay_4_name'])
+                        if (data['relay_4'] === "True") {
+                            $("#flexSwitch4Check").prop('checked', true);
+                        } else {
+                            $("#flexSwitch4Check").prop('checked', false);
+                        }
+
+                        $("#flexSwitch5Label").text(data['relay_5_name'])
+                        if (data['relay_5'] === "True") {
+                            $("#flexSwitch5Check").prop('checked', true);
+                        } else {
+                            $("#flexSwitch5Check").prop('checked', false);
+                        }
+
+                        $("#flexSwitch6Label").text(data['relay_6_name'])
+                        if (data['relay_6'] === "True") {
+                            $("#flexSwitch6Check").prop('checked', true);
+                        } else {
+                            $("#flexSwitch6Check").prop('checked', false);
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function toggleRelay(relay_number) {
+        $.ajax({
+            method: 'POST',
+            url: '/toggle_relay',
+            data: {
+                relay_number: relay_number
+            },
+            success: function(data) {
+
+            }
+        });
+    }
+
+    function getGPSPosition() {
+        $.ajax({
+            type: 'GET',
+            url: '/gps_coordinates',
+            success: function(data) {
+                lastPositionLatitude = data['gps_latitude']
+                lastPositionLongitude = data['gps_longitude'];
+            }
+        });
+    }
+
+    $(document).ready(function() {
+        $('#loading_modal').modal('show');
+        $(".GaugeMeter").gaugeMeter();
+        // Call the refreshData function every 1 seconds
+        setInterval(refreshData, 1000);
+        setInterval(refreshAnchorData, 1000);
+        setInterval(refreshNMEAInstrumentsData, 1000);
+        setInterval(refreshSensorsData, 1000);
+        setInterval(refreshRelaysData, 2000);
+        setInterval(getGPSPosition, 2000);
+    });
+
+    function notify_success(message) {
+        $('#success_notification_message').html(message);
+        $("#success_notification").fadeIn();
+        setTimeout(function () {
+            $("#success_notification").fadeOut();
+        }, 5000);
+    }
+
+    function notify_warning(message) {
+        $('#warning_notification_message').html(message);
+        $("#warning_notification").fadeIn();
+        setTimeout(function () {
+            $("#warning_notification").fadeOut();
+        }, 5000);
+    }
+</script>
+
+{% endblock %}
