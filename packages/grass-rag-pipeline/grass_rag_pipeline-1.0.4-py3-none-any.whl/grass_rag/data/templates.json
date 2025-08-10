@@ -1,0 +1,66 @@
+{
+  "slope": {
+    "id": "slope",
+    "keywords": ["slope", "gradient", "steepness", "terrain analysis", "elevation analysis"],
+    "response": "To calculate slope from a DEM in GRASS GIS:\n\n```bash\nr.slope.aspect elevation=input_dem slope=slope_output aspect=aspect_output\n```\n\n**Parameters:**\n- `elevation`: Input DEM raster map\n- `slope`: Output slope raster (degrees or percent)\n- `aspect`: Output aspect raster (degrees from north)\n- `format`: Output format (degrees, percent)\n\n**Advanced options:**\n```bash\nr.slope.aspect elevation=elevation@PERMANENT slope=slope_degrees aspect=aspect_degrees format=degrees zscale=1.0\n```\n\n**Analysis tips:**\n- Use `zscale` parameter for unit conversion\n- Combine with `r.colors` for visualization\n- Apply `r.mask` to limit analysis area\n\nThis provides comprehensive terrain analysis including slope gradient and aspect direction.",
+    "quality_score": 0.95,
+    "category": "terrain_analysis",
+    "metadata": {
+      "commands": ["r.slope.aspect"],
+      "difficulty": "beginner",
+      "tags": ["terrain", "dem", "slope", "aspect"]
+    }
+  },
+  
+  "import": {
+    "id": "import",
+    "keywords": ["import", "load", "input", "read", "bring in", "ingest"],
+    "response": "To import raster data into GRASS GIS:\n\n```bash\nr.import input=/path/to/raster.tif output=imported_raster\n```\n\n**Advanced import with options:**\n```bash\nr.import input=/path/to/raster.tif output=imported_raster extent=region resample=bilinear\n```\n\n**Parameters:**\n- `input`: Path to input raster file\n- `output`: Name for output raster in GRASS\n- `extent`: Import extent (region, input)\n- `resample`: Resampling method (nearest, bilinear, bicubic)\n\n**Supported formats:** GeoTIFF, NetCDF, HDF, IMG, ASCII, JPEG2000\n\n**Best practices:**\n- Check projection with `r.info`\n- Set computational region first\n- Use `r.external` for large files to save space\n\nThis automatically handles projection transformation and format conversion.",
+    "quality_score": 0.92,
+    "category": "data_management",
+    "metadata": {
+      "commands": ["r.import", "r.external"],
+      "difficulty": "beginner",
+      "tags": ["import", "raster", "data"]
+    }
+  },
+  
+  "export": {
+    "id": "export",
+    "keywords": ["export", "save", "output", "write", "extract", "convert"],
+    "response": "To export raster data from GRASS GIS:\n\n```bash\nr.out.gdal input=raster_name output=/path/to/output.tif format=GTiff\n```\n\n**Advanced export with compression:**\n```bash\nr.out.gdal input=raster_name output=/path/to/output.tif format=GTiff createopt=\"COMPRESS=LZW,TILED=YES\"\n```\n\n**Parameters:**\n- `input`: GRASS raster map name\n- `output`: Output file path\n- `format`: Output format (GTiff, NetCDF, PNG, JPEG, etc.)\n- `createopt`: Driver-specific creation options\n\n**Common formats:**\n- GeoTIFF: `format=GTiff`\n- NetCDF: `format=netCDF`\n- PNG: `format=PNG`\n\n**Quality optimization:**\n- Use compression for smaller files\n- Maintain data type with `type` parameter\n- Set nodata values appropriately\n\nThis exports with complete geospatial metadata preservation.",
+    "quality_score": 0.93,
+    "category": "data_management",
+    "metadata": {
+      "commands": ["r.out.gdal"],
+      "difficulty": "beginner",
+      "tags": ["export", "raster", "data"]
+    }
+  },
+  
+  "contour": {
+    "id": "contour",
+    "keywords": ["contour", "isolines", "elevation lines", "topographic", "level curves"],
+    "response": "To create contour lines from elevation data:\n\n```bash\nr.contour input=elevation output=contours step=10\n```\n\n**Advanced contour generation:**\n```bash\nr.contour input=elevation output=contours step=10 levels=100,200,300,400,500\n```\n\n**Parameters:**\n- `input`: Input elevation raster\n- `output`: Output vector contour map\n- `step`: Contour interval\n- `levels`: Specific elevation levels\n- `minlevel`: Minimum contour level\n- `maxlevel`: Maximum contour level\n\n**Professional workflow:**\n```bash\n# Set region to elevation map\ng.region raster=elevation\n# Generate contours every 10 meters\nr.contour input=elevation output=contours_10m step=10\n# Smooth contours\nv.generalize input=contours_10m output=contours_smooth method=douglas threshold=0.5\n```\n\nCreates accurate contour lines with customizable intervals and smoothing options.",
+    "quality_score": 0.94,
+    "category": "terrain_analysis",
+    "metadata": {
+      "commands": ["r.contour", "v.generalize"],
+      "difficulty": "intermediate",
+      "tags": ["contour", "elevation", "vector"]
+    }
+  },
+  
+  "overlay": {
+    "id": "overlay",
+    "keywords": ["overlay", "intersect", "union", "clip", "spatial analysis", "combine"],
+    "response": "To perform vector overlay analysis:\n\n```bash\nv.overlay ainput=vector1 binput=vector2 output=result operator=and\n```\n\n**Complete overlay operations:**\n```bash\n# Intersection\nv.overlay ainput=parcels binput=zoning output=parcels_zoned operator=and\n# Union\nv.overlay ainput=layer1 binput=layer2 output=combined operator=or\n# Difference\nv.overlay ainput=total_area binput=excluded_area output=usable_area operator=not\n```\n\n**Parameters:**\n- `ainput`: First input vector map\n- `binput`: Second input vector map\n- `output`: Output overlay result\n- `operator`: Overlay operation (and, or, not, xor)\n\n**Operators explained:**\n- `and`: Intersection (areas in both inputs)\n- `or`: Union (areas in either input)\n- `not`: Difference (areas in A but not B)\n- `xor`: Symmetric difference (areas in either but not both)\n\n**Quality tips:**\n- Clean topology with `v.clean` first\n- Use `snap` threshold for precision\n- Check results with `v.info`\n\nPerforms precise spatial overlay operations with comprehensive geometric analysis.",
+    "quality_score": 0.91,
+    "category": "vector_analysis",
+    "metadata": {
+      "commands": ["v.overlay", "v.clean"],
+      "difficulty": "intermediate",
+      "tags": ["overlay", "vector", "spatial"]
+    }
+  }
+}
