@@ -1,0 +1,43 @@
+[project]
+name = "veri-agents-aiware"
+version = "0.1.3"
+description = "Veritone Agents Toolkit: aiWARE-related tools"
+authors = [
+  {name = "Markus Toman", email = "mtoman@veritone.com"},
+  {name = "Teo Boley", email = "tboley@veritone.com"},
+]
+requires-python = ">=3.12"
+dependencies = [
+  "veri-agents-common[graphql,langchain-openai]>=0.1.3",
+]
+
+[project.optional-dependencies]
+# as optional dep so it can be referenced in workspace pyproject.toml
+all = []
+dev = ["veri-agents-aiware[all]==0.1.1"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "ariadne-codegen>=0.14.0",
+]
+
+[tool.ariadne-codegen]
+remote_schema_url = "https://api.us-1.veritone.com/v3/graphql"
+queries_path = "src/veri_agents_aiware/aiware_client/graphql/operations"
+target_package_name = "client"
+target_package_path = "src/veri_agents_aiware/aiware_client/graphql"
+client_name = "AiwareGraphQL"
+convert_to_snake_case = false
+async_client = false
+
+[tool.ariadne-codegen.scalars.JSONData]
+type = "veri_agents_aiware.aiware_client.graphql.schemas.JSONData"
+parse = "veri_agents_aiware.aiware_client.graphql.schemas.parse_jsondata"
+serialize = "veri_agents_aiware.aiware_client.graphql.schemas.serialize_jsondata"
+
+[tool.ariadne-codegen.scalars.DateTime]
+type = "datetime.datetime"
