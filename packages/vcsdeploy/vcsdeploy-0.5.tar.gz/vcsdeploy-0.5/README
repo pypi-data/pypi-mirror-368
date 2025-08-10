@@ -1,0 +1,61 @@
+.. -*- restructuredtext -*-
+
+vcsdeploy
+==========
+
+Easily deploy your applications through your VCS
+=================================================
+
+``vcsdeploy`` allows you to easily deploy updates of your application to your
+customers through your favorite Version Control System.  So far, only
+mercurial is supported, but it should be very easy to add support for
+additional VCSs.
+
+The idea is that the application is installed by cloning the repository.
+Every version of the application is represented as a Mercurial ``tag``: when
+``vcsdeploy`` runs, it pulls changes from the designed remote repository, and
+it displays a window showing all the available versions.  The user can then
+select the appropriate version and update the application to it.
+
+
+Example of usage
+----------------
+
+Suppose your application ``myapp`` is installed in ``c:\\myapp``.  You need to
+write a basic config file, say ``myapp-config.py``::
+
+    class Config(object):
+        path = 'c:\\myapp'
+        version_regex = '^Version'
+
+
+``path`` contains the local repository which contains the application.  The
+repository must be configured in a way that ``hg pull`` pulls the remote
+repository without asking the user for any password, e.g. by using the ``ssh``
+protocol or by `storing the http password`_.
+
+.. _`storing the http password`: http://mercurial.selenic.com/wiki/FAQ#FAQ.2BAC8-CommonProblems.How_can_I_store_my_HTTP_login_once_and_for_all_.3F
+
+``version_regex`` is a regular expression which is tested against all the tags
+found in the repository, to make sure that the user will see only the tags
+that start with ``Version``.  This way, we can still use Mercurial tags for
+internal development reasons, without cluttering what is displayed to the
+final user.
+
+Then, we just need to launch ``vcsdeploy.pyw /path/to/myapp-config.py`` to
+start ``vcsdeploy``.
+
+
+Requirements
+------------
+
+To run ``vcsdeploy`` you need:
+
+  - PyQt4
+
+  - mercurial installed as a Python package (i.e., you need to be able to do
+    ``import mercurial`` from Python)
+
+  - the `py lib`_ (``easy_install py``)
+
+.. _`py lib`: http://pylib.org/
