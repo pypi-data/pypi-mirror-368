@@ -1,0 +1,124 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "localdex"
+version = "0.3.3"
+description = "A local Pokemon data repository/Pokedex with fast offline access"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "LocalDex Team", email = "localdex@example.com"}
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Games/Entertainment",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "requests",
+    "typing-extensions",
+
+]
+
+[project.optional-dependencies]
+# Core data sets
+core = []  # No additional dependencies for core data
+gen1 = []  # Generation 1 data
+gen2 = []  # Generation 2 data
+gen3 = []  # Generation 3 data
+gen4 = []  # Generation 4 data
+gen5 = []  # Generation 5 data
+gen6 = []  # Generation 6 data
+gen7 = []  # Generation 7 data
+gen8 = []  # Generation 8 data
+gen9 = []  # Generation 9 data
+
+# Additional data sets
+learnsets = []  # Detailed move learnsets
+items = []  # Item data
+abilities = []  # Ability data
+
+# Full installation includes everything
+full = [
+    "localdex[gen1,gen2,gen3,gen4,gen5,gen6,gen7,gen8,gen9,learnsets,items,abilities]"
+]
+
+# Development dependencies
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.10.0",
+    "black>=22.0.0",
+    "isort>=5.0.0",
+    "mypy>=1.0.0",
+    "flake8>=5.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/colefoster/localdex"
+Documentation = "https://localdex.readthedocs.io/"
+Repository = "https://github.com/colefoster/localdex"
+"Bug Tracker" = "https://github.com/colefoster/localdex/issues"
+
+[project.scripts]
+localdex = "localdex.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["localdex*"]
+
+[tool.setuptools.package-data]
+localdex = [
+    "data/*.json",
+    "data/*/*.json",
+
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+    "--disable-warnings",
+    "--color=yes"
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests"
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning"
+]
+
+
