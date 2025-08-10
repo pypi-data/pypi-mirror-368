@@ -1,0 +1,156 @@
+# bash2gitlab
+
+> Compile pure Bash scripts into your `.gitlab-ci.yml`. Get powerful IDE support for your scripts while keeping them
+centralized and reusable.
+
+Tired of writing Bash inside YAML strings with no syntax highlighting, linting, or testing? `bash2gitlab` lets you
+develop your CI logic in standard `.sh` files and then compiles them into your GitLab CI configuration, giving you the
+best of both worlds.
+
+---
+
+### Before
+
+Your IDE sees a single YAML string, and your scripts are trapped in one file.
+
+`.gitlab-ci.yml`:
+
+```yaml
+build-job:
+  script:
+    - echo "Setting up environment..."
+    - export APP_VERSION=$(cat version.txt)
+    - echo "Building project version $APP_VERSION"
+    - make build
+    - echo "Build complete."
+```
+
+### After
+
+Your IDE provides full support for Bash, and your scripts can be versioned, shared, and tested independently.
+
+`scripts/build.sh`:
+
+```bash
+#!/usr/bin/env bash
+set -eo pipefail
+
+echo "Setting up environment..."
+export APP_VERSION=$(cat version.txt)
+echo "Building project version $APP_VERSION"
+make build
+echo "Build complete."
+```
+
+uncompiled.gitlab-ci.yml
+```yaml
+build-job:
+  script:
+    - ./scripts/build.sh
+```
+
+Run `bash2gitlab compile`, and the final, valid `.gitlab-ci.yml` is generated for you.
+
+---
+
+## Who is this for?
+
+This tool is for you if:
+
+* You manage CI/CD templates in a centralized repository and `include:` them in many other projects.
+* Your `.gitlab-ci.yml` files contain thousands of lines of shell scripts.
+* You want to write, test, and debug your CI scripts locally without involving Docker or a full pipeline simulation.
+* Your IDE's lack of Bash support in YAML files is slowing you down.
+
+If your CI/CD configuration is simple or contained entirely within a single repository, you might not need this tool.
+
+## Installation
+
+`bash2gitlab` is a standalone command-line tool. Installation with `pipx` is recommended to avoid dependency conflicts.
+
+```bash
+# Recommended
+pipx install bash2gitlab
+
+# Or via pip
+pip install bash2gitlab
+```
+
+## Getting Started: A Quick Tour
+
+1. **Initialize Your Project**
+   Run `bash2gitlab init` to create a configuration file (`.bash2gitlab.toml`) and directories to organize your source
+   files.
+
+2. **"Shred" an Existing Configuration (Optional)**
+   If you have an existing `.gitlab-ci.yml` with inline scripts, you can extract them automatically:
+
+```bash
+bash2gitlab shred --in .gitlab-ci.yml --out my-project/
+```
+
+3. **Write and Edit Your Scripts**
+   Create or edit your `.sh` files in the `scripts` directory. Write standard, clean Bash—your IDE will thank you. In
+   your source YAML (`uncompiled.yml`):
+
+```yaml
+my-job:
+ script:
+   - ./scripts/my-script.sh
+```
+
+4. **Compile**
+   Compile your source YAML and scripts into a final, GitLab-ready configuration:
+
+```bash
+bash2gitlab compile --in my-project/ --out compiled/
+```
+
+   This generates a `compiled/.gitlab-ci.yml` file, ready to be deployed to your project's root.
+
+## Usage and Commands
+
+`bash2gitlab` provides a few core commands to manage your workflow.
+
+| Command        | Description                                                                    |
+|:---------------|:-------------------------------------------------------------------------------|
+| `init`         | Initializes a new `bash2gitlab` project and config file.                       |
+| `compile`      | Compiles source YAML and `.sh` files into a final `.gitlab-ci.yml`.            |
+| `shred`        | Extracts inline scripts from a `.gitlab-ci.yml` into separate `.sh` files.     |
+| `copy2local`   | Copies compiled files from a central repo to a local project for testing.      |
+| `detect-drift` | Report what unexpected changes were made to the generated files.               |
+| `map-deploy`   | Copies compiled files from a central repo to a many local project for testing. |
+| `commit-map`   | Copies intential changes in local projects back to the central repo.           |
+
+For detailed options on any command, run `bash2gitlab <command> --help`.
+
+---
+
+## Advanced Topics
+
+#### Bash Completion
+
+Enable tab completion in your shell by running the global activation command once:
+
+```bash
+activate-global-python-argcomplete
+```
+
+#### Global Variables
+
+To define variables that should be inlined into the global `variables:` block of your `.gitlab-ci.yml`, create a
+`global_variables.sh` file in your input directory.
+
+#### Limitations
+
+* **No `include:` Inlining:** This tool only inlines `.sh` file references. It does not process or merge GitLab's
+  `include:` statements for other YAML files.
+* **Single Statement Invocations:** The script invocation must be on its own line. Multi-statement lines like
+  `echo "hello" && script.sh` are not supported.
+* **Comments:** Comments in the source YAML may not be preserved in the final compiled output.
+
+## How It Compares
+
+* **[gitlab-ci-local](https://github.com/firecow/gitlab-ci-local):** This is an excellent tool for running your entire
+  GitLab pipeline in local Docker containers. `bash2gitlab` is different—it focuses on the "unit testing" of your Bash
+  logic itself, assuming you can and want to execute your scripts on your local machine without the overhead of Docker.
