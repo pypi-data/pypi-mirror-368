@@ -1,0 +1,167 @@
+# FastCrawl
+
+<p align="left">
+<a href="https://github.com/ilarionkuleshov/fastcrawl/actions/workflows/code-quality.yml/?query=event%3Apush+branch%3Amain">
+    <img src="https://github.com/ilarionkuleshov/fastcrawl/actions/workflows/code-quality.yml/badge.svg?event=push&branch=main">
+</a>
+<a href="https://coverage-badge.samuelcolvin.workers.dev/redirect/ilarionkuleshov/fastcrawl">
+    <img src="https://coverage-badge.samuelcolvin.workers.dev/ilarionkuleshov/fastcrawl.svg">
+</a>
+<a href="https://pypi.org/project/fastcrawl">
+    <img src="https://img.shields.io/pypi/v/fastcrawl?color=%2334D058">
+</a>
+<a href="https://pypi.org/project/fastcrawl">
+    <img src="https://img.shields.io/pypi/pyversions/fastcrawl.svg?color=%2334D058">
+</a>
+</p>
+
+FastCrawl is a Python library for web crawling and scraping, inspired by [Scrapy](https://github.com/scrapy/scrapy) and the clean, decorator-based API design of [FastAPI](https://github.com/fastapi/fastapi).
+
+FastCrawl is designed to run seamlessly in asynchronous applications and uses [Pydantic](https://github.com/pydantic/pydantic) models for automatic data validation and serialization of scraped items. Built on top of [Httpx](https://github.com/encode/httpx), it provides a lightweight foundation for creating custom crawlers. The library supports defining custom pipelines for processing scraped items. While its functionality is still growing, FastCrawl offers flexible settings options for the crawler, HTTP client, requests, and more.
+
+
+## Installation
+FastCrawl is available on PyPI and can be installed using pip:
+```bash
+pip install fastcrawl
+```
+
+
+## Usage
+Here's a complete example that demonstrates FastCrawl's capabilities by scraping quotes and author information from [quotes.toscrape.com](https://quotes.toscrape.com). This crawler will:
+
+- Parse quotes from listing pages
+- Follow pagination links to get all quotes
+- Extract author URLs and fetch detailed author information
+- Save both quotes and authors to separate CSV files
+- Demonstrate type-safe data models and pipeline processing
+
+```python
+# quotes_crawler.py
+import csv
+from datetime import datetime
+from typing import Iterator
+
+from pydantic import BaseModel
+
+from fastcrawl import FastCrawl, HttpSettings, Request, Response
+
+
+class Quote(BaseModel):
+    content: str
+    author_name: str | None
+    tags: list[str]
+
+
+class Author(BaseModel):
+    name: str
+    born_date: datetime | None
+    born_location: str | None
+    description: str | None
+
+
+app = FastCrawl(http_settings=HttpSettings(follow_redirects=True))
+
+
+@app.handler("https://quotes.toscrape.com/")
+def parse_quote_page(response: Response) -> Iterator[Quote | Request]:
+    print(f"Parsing quote page: {response.url}")
+
+    for quote in response.selector.xpath(".//div[@class='quote']"):
+        author_url = quote.xpath(".//a[starts-with(@href, '/author/')]/@href").get()
+        if author_url:
+            yield Request(
+                url=response.url.join(author_url),
+                handler=parse_author_page,
+            )
+
+        content = quote.xpath("./span[@class='text']/text()").get()
+        if not content:
+            continue
+
+        author_name = quote.xpath(".//small[@itemprop='author']/text()").get()
+        tags = quote.xpath(".//a[@class='tag']/text()").getall()
+        yield Quote(content=content, author_name=author_name, tags=tags)
+
+    next_page_url = response.selector.xpath(".//li[@class='next']/a/@href").get()
+    if next_page_url:
+        yield Request(
+            url=response.url.join(next_page_url),
+            handler=parse_quote_page,
+        )
+
+
+@app.handler()
+def parse_author_page(response: Response) -> Author | None:
+    print(f"Parsing author page: {response.url}")
+
+    name = response.selector.xpath(".//h3[@class='author-title']/text()").get()
+    if not name:
+        return None
+
+    born_date_str = response.selector.xpath(".//span[@class='author-born-date']/text()").get()
+    if born_date_str:
+        born_date = datetime.strptime(born_date_str, "%B %d, %Y")
+    else:
+        born_date = None
+
+    born_location = response.selector.xpath(".//span[@class='author-born-location']/text()").get()
+    description = response.selector.xpath(".//div[@class='author-description']/text()").get()
+
+    return Author(
+        name=name,
+        born_date=born_date,
+        born_location=born_location,
+        description=description,
+    )
+
+
+@app.pipeline()
+def save_quote(item: Quote) -> Quote:
+    with open("quotes.csv", "a", encoding="utf-8") as file:
+        writer = csv.writer(file)
+        tags = ", ".join(item.tags)
+        writer.writerow([item.content, item.author_name, tags])
+    return item
+
+
+@app.pipeline()
+def save_author(item: Author) -> Author:
+    with open("authors.csv", "a", encoding="utf-8") as file:
+        writer = csv.writer(file)
+        writer.writerow([item.name, item.born_date, item.born_location, item.description])
+    return item
+```
+
+### What this example demonstrates:
+
+- **Two Pydantic models** (`Quote` and `Author`) define the structure of scraped data with automatic validation
+- **Main handler** (`parse_quote_page`) extracts quotes from listing pages and generates requests for author detail pages
+- **Secondary handler** (`parse_author_page`) processes individual author pages
+- **Request generation** using `yield Request()` to follow author links and pagination
+- **Pipeline functions** that save data to CSV files - each item type flows through its specific pipeline
+- **Type hints** throughout ensure IDE support and catch errors early
+
+To run quotes crawler, use CLI command:
+```bash
+fastcrawl run quotes_crawler.py
+```
+
+
+## How it works
+
+FastCrawl combines the simplicity of decorator-based handler registration with the power of Pydantic for data validation:
+
+- **Handlers**: Use the `@app.handler()` decorator to define URL patterns and their corresponding parsing functions. Each handler receives a `Response` object containing the HTTP response and a built-in CSS/XPath selector powered by [Parsel](https://github.com/scrapy/parsel). Handlers can return scraped items, new `Request` objects to crawl additional pages, or both using Python generators.
+
+- **Request Generation**: Handlers can yield `Request` objects to dynamically generate new URLs to crawl. This enables following pagination links, crawling detail pages from listing pages, and building complex crawling workflows.
+
+- **Pydantic Models**: Define your scraped data structure using Pydantic models. This provides automatic data validation, type conversion, and serialization. If the scraped data doesn't match your model schema, FastCrawl will raise validation errors early.
+
+- **Pipelines**: Use the `@app.pipeline()` decorator to define data processing steps. Items flow through pipelines in the order they're defined, allowing you to clean, transform, or store your data.
+
+- **Type Safety**: FastCrawl leverages Python's type hints and Pydantic's validation to catch errors early and provide better IDE support.
+
+
+## License
+This project is licensed under the MIT License.
