@@ -1,0 +1,77 @@
+Metadata-Version: 2.4
+Name: SigScaffold
+Version: 0.1.0
+Summary: A tool to derive parameter information from Python functions and classes for contract generation.
+Author: Jake
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Dynamic: license-file
+
+# SigScaffold
+
+A lightweight Python tool to derive structured information from the signatures of functions and classes.
+
+`SigScaffold` inspects any callable (like a function or a class constructor) and extracts details about its parameters, including their names, types, and default values. This is particularly useful for automatically generating documentation, configuration files, or API contracts.
+
+## Features
+
+- Get parameter names and their type annotations.
+- Recursively inspect signatures of class-based parameters.
+- Identify which parameters are required.
+- Generate sensible default values for all parameters.
+- No external dependencies.
+
+## Installation
+
+```bash
+pip install sig-scaffold
+```
+
+## Usage
+
+Here is a quick example of how to use `SigScaffold`:
+
+```python
+from sig_scaffold import SigScaffold
+
+# -- Define a class to inspect ---
+class DatabaseConfig:
+    def __init__(self, host: str, port: int = 5432):
+        self.host = host
+        self.port = port
+
+def connect(db_config: DatabaseConfig, timeout: int = 30):
+    """Connects to a database with the given configuration."""
+    pass
+
+# -- Use SigScaffold ---
+
+# 1. Inspect the 'connect' function
+scaffold = SigScaffold(connect)
+
+# 2. Get parameter types (with recursion)
+# This will look inside the DatabaseConfig class as well.
+param_types = scaffold.get_param_types(recursive=True)
+print("Parameter Types:")
+# Expected output:
+# {
+#   'db_config': {'host': <class 'str'>, 'port': <class 'int'>},
+#   'timeout': <class 'int'>
+# }
+import json
+print(json.dumps(
+    {k: str(v) for k, v in param_types.items()},
+    indent=2
+))
+
+
+# 3. Get only the required parameters
+required = scaffold.get_required_params()
+print(f"\nRequired Parameters: {required}")
+# Expected output: ['db_config']
+
+# 4. Generate default values for all parameters
+defaults = scaffold.generate_defaults()
+print(f"\nGenerated Defaults: {defaults}")
+# Expected output: {'db_config': '', 'timeout': 30}
