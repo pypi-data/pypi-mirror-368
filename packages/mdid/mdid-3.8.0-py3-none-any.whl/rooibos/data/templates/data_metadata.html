@@ -1,0 +1,96 @@
+{% load humanize %}
+{% load static %}
+
+<div class='metadata'>
+
+{% if COMPACT_METADATA_VIEW %}
+
+
+{% spaceless %}
+{% for value in values %}
+
+    {% if value.subitem %}
+        <span>; </span>
+    {% else %}
+
+        {% if not forloop.first %}
+        </div>
+    </div>
+        {% endif %}
+
+    <div class='metadata-{% if value.subitem %}sub{% endif %}item'>
+        <div class='label{% cycle '' ' altrow' %}'>{{ value.resolved_label }}:</div>
+        <div class='value{% cycle '' ' altrow' %}'>
+
+    {% endif %}
+
+    {% if value.crosslinked %}
+            <a href="{% url "solr-search" %}?c={{ value.field.full_name }}_s:{{ value.value|urlencode }}">{{ value.value }}</a>
+    {% elif value.markdown_html %}
+            {{ value.markdown_html|safe }}
+    {% else %}
+            <span>{{ value.value|default:"&nbsp;" }}</span>
+    {% endif %}
+
+    {% if value.owner %}
+        <img src="{% static 'images/user.png' %}" class="user-icon" style="vertical-align: middle;" title="{{ value.owner.username }}" />
+    {% endif %}
+
+    {% if forloop.last %}
+        </div>
+    </div>
+    {% endif %}
+
+
+{% endfor %}
+{% endspaceless %}
+
+{% else %}
+
+
+{% for value in values %}
+
+    <div class='metadata-{% if value.subitem %}sub{% endif %}item'>
+        <div class='label{% cycle '' ' altrow' %}'>{{ value.resolved_label }}:</div>
+        <div class='value{% cycle '' ' altrow' %}'>
+{% if value.crosslinked %}
+        <a href="{% url "solr-search" %}?c={{ value.field.full_name }}_s:{{ value.value|urlencode }}">{{ value.value }}</a>
+{% elif value.markdown_html %}
+        {{ value.markdown_html|safe }}
+{% else %}
+        {{ value.value|default:"&nbsp;" }}
+{% endif %}
+{% if value.owner %}
+        <img src="{% static 'images/user.png' %}" class="user-icon" style="vertical-align: middle;" title="{{ value.owner.username }}" />
+{% endif %}
+        </div>
+    </div>
+
+{% endfor %}
+
+
+{% endif %}
+
+
+{% for collection in collections %}
+    <div class='metadata-item'>
+        <div class='label{% cycle '' ' altrow' %}'>Collection:</div>
+        <div class='value{% cycle '' ' altrow' %}'>{{ collection.title }}</div>
+    </div>
+{% endfor %}
+
+{% if record.created %}
+    <div class='metadata-item'>
+        <div class='label'>Record created:</div>
+        <div class='value'>{{ record.created|naturalday }}</div>
+    </div>
+{% endif %}
+
+{% if record.modified %}
+    <div class='metadata-item'>
+        <div class='label'>Last modified:</div>
+        <div class='value'>{{ record.modified|naturalday }}</div>
+    </div>
+{% endif %}
+
+</div>

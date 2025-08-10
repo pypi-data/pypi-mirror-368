@@ -1,0 +1,104 @@
+{% extends "master.html" %}
+{% load humanize %}
+{% load ui %}
+{% load workers %}
+
+{% block sidebar %}
+{% var as related_pages %}
+{"pages": [
+    {"url": "{% url "ui-management" %}", "title": "Management"}
+]}
+{% endvar %}
+
+{{ block.super }}
+
+{% endblock %}
+
+
+{% block javascript %}
+{{ block.super }}
+<script type="text/javascript">
+    $(document).ready(function() {
+        checkbox = $('<input type="checkbox">').click(function() {
+            var c = this.checked;
+            $("input[name=r]").each(function() { this.checked = c; });
+        });
+        $("#remove-col").append(checkbox);
+    });
+</script>
+{% endblock %}
+
+
+{% block content %}
+
+<h1>Jobs</h1>
+
+<form action="{{ request.get_full_path }}" method="POST">{% csrf_token %}
+    <input type="submit" name="testjob" value="Run Test Job" />
+</form>
+
+{% if jobs %}
+
+<div class="pagination">
+    {% if jobs.has_previous %}
+        <a href="?page={{ jobs.previous_page_number }}">previous</a>
+    {% endif %}
+
+    <span class="current">
+        Page {{ jobs.number }} of {{ jobs.paginator.num_pages }}
+    </span>
+
+    {% if jobs.has_next %}
+        <a href="?page={{ jobs.next_page_number }}">next</a>
+    {% endif %}
+</div>
+
+<a href="{{ request.get_full_path }}">Refresh Job List</a>
+
+<form action="{{ request.get_full_path }}" method="POST">{% csrf_token %}
+<table class="wide-table">
+<tr>
+{% if request.user.is_superuser %}
+    <th>ID</th>
+    <th>Owner</th>
+{% endif %}
+    <th>Function</th>
+{% if request.user.is_superuser %}
+    <th>Arguments</th>
+{% endif %}
+    <th>Status</th>
+    <th>Created</th>
+    <th>Completed</th>
+    <th>Result</th>
+    <th id="remove-col" style="text-align: center;"></th>
+</tr>
+{% for job in jobs %}
+<tr class="{% cycle '' 'altrow' %}{% ifequal highlight job.task_id %} highlight-row{% endifequal %}{% ifequal highlight job.id %} highlight-row{% endifequal %}">
+{% if request.user.is_superuser %}
+    <td>{{ job.id }} <!-- {{ job.task_id }} --></td>
+    <td>{{ job.owner.username }}</td>
+{% endif %}
+    <td>{{ job.function }}</td>
+{% if request.user.is_superuser %}
+    <td class="job-args">{{ job.args|format_worker_args }}</td>
+{% endif %}
+    <td>{{ job.status }}</td>
+    <td>{{ job.created|naturalday }} {{ job.created|time }}</td>
+    <td>{{ job.date_done|naturalday }} {{ job.date_done|time }}<br />({{ job.date_done|timesince }})</td>
+    <td>{{ job.result|default:"-"|format_worker_result }}</td>
+    <td style="text-align: center;">{% if job.completed or request.user.is_superuser %}<input type="checkbox" value="{{ job.id }}" name="r" />{% endif %}</td>
+</tr>
+{% endfor %}
+<tr>
+    <td colspan="{% if request.user.is_superuser %}8{% else %}5{% endif %}"></td>
+    <td><input type="submit" name="remove" value="Remove" /></td>
+</tr>
+</table>
+</form>
+{% else %}
+
+You do not currently have any past or present jobs.
+
+{% endif %}
+
+{% endblock %}

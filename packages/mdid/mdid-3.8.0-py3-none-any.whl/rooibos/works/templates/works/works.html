@@ -1,0 +1,488 @@
+{% extends "master.html" %}
+
+{% block javascript %}
+{{ block.super }}
+
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.0/angular.min.js"></script>
+<script src="https://rawgit.com/brantwills/Angular-Paging/v2.2.0/dist/paging.min.js"></script>
+
+<script>
+
+angular.module('clientApp', ['bw.paging'])
+
+.filter('encodeURIComponent', function() {
+    return window.encodeURIComponent;
+})
+
+.controller('MainController', [
+    '$scope', '$http', '$timeout', '$window', '$filter',
+    function ($scope, $http, $timeout, $window, $filter) {
+
+        var getKeyword = function () {
+            var args = window.location.search.split(/[&?]/);
+            var result = '';
+            angular.forEach(args, function (arg) {
+                if (arg.substring(0, 3) === 'kw=') {
+                    result = decodeURIComponent(arg.substring(3).replace(/\+/g, ' '));
+                }
+            });
+            return result;
+        };
+
+        var initialLoad = true;
+
+        $scope.isLoading = function () {
+           return initialLoad || $http.pendingRequests.length !== 0;
+        };
+
+        $scope.search = {
+            page: 1,
+            pageSize: 50,
+            onlyFindWorks: true, //false,
+            keyword: getKeyword(),
+            work: '',
+            loading: false
+        };
+
+        $scope.formatting = {
+            fullThumbs: false
+        };
+
+        var timeoutPromise;
+
+        $scope.$watch('search.keyword', function () {
+            $timeout.cancel(timeoutPromise);
+            timeoutPromise = $timeout(function () {
+                $scope.results = {
+                    hits: 0,
+                    records: []
+                };
+                $scope.loadMore();
+            }, 500);
+        }, true);
+
+        $scope.loadMore = function (goToPage, clear) {
+            $scope.loading = true;
+            if (clear) {
+                $scope.results = {
+                    hits: 0,
+                    records: []
+                };
+            }
+            var pageSize = $scope.search.pageSize;
+            var page = goToPage || $scope.search.page;
+            var args = [
+                's=vra.title_sort+asc,title_sort+asc',
+                'ps=' + pageSize,
+                'page=' + page,
+                'kw=' + encodeURIComponent($scope.search.keyword)
+            ];
+            if ($scope.search.work) {
+                args.push('c=relation.IsPartOf_t:' + encodeURIComponent($scope.search.work));
+            }
+            if ($scope.search.onlyFindWorks) {
+                args.push('c=primary_work_record:*');
+            }
+            var url = '/works/search/' +
+                '?callback=JSON_CALLBACK&' + args.join('&');
+            $http.jsonp(
+                url
+            ).success(function (data) {
+                $scope.search.page = page;
+                angular.forEach(data.records, function (record) {
+                    record.largeThumbUrl = 'url(\'' + record.largeThumb + '\')';
+                });
+                $scope.results.hits = data.hits;
+                $scope.results.records = $scope.results.records.concat(data.records);
+                $scope.loading = false;
+            }).error(function () {
+                $scope.loading = false;
+                console.log('error');
+            });
+
+        };
+
+        var populateMetadataBox = function (html) {
+            if ($scope.metadataBox) {
+                $scope.metadataBox.html('Loading...');
+                $scope.metadataBox = undefined;
+            }
+            $timeout(function () {
+                $scope.metadataBox = angular
+                    .element('.work.selected ~ .metadatabox')
+                    .filter(':visible:first')
+                    .html(html);
+
+                var $window = angular.element(window);
+                var windowTop = $window.scrollTop();
+                var windowBottom = windowTop + $window.height();
+                var boxTop = $scope.metadataBox.position().top;
+                var boxBottom = boxTop + $scope.metadataBox.outerHeight();
+                var recordTop = boxTop - 310;
+                if (recordTop < windowTop) {
+                    angular.element('html, body')
+                        .animate({ scrollTop: recordTop + 'px' });
+                } else if (boxBottom > windowBottom) {
+                    var newTop = Math.max(
+                        recordTop,
+                        boxBottom - $window.height()
+                    );
+                    angular.element('html, body')
+                        .animate({ scrollTop: newTop + 'px' });
+                }
+
+            });
+        };
+
+        var makeMetadataSidebar = function () {
+            var work = $filter('encodeURIComponent')($scope.selectedRecord.works[0]);
+            var imgsrc = $scope.selectedRecord.image + '400x400/';
+            var link = '<a href="/explore/explore/?s=identifier_sort&c=work:' + work + '" target="_blank">';
+            var img = '<img src="' + imgsrc + '" />';
+            return '<div class="metadata-sidebar">' +
+                    link +
+                    img +
+                    '<br />' +
+                    '<span class="btn btn-primary all-images">' +
+                    'All images for this work' +
+                    '</span>' +
+                    '</a>' +
+                    '</div>';
+        };
+
+        $scope.select = function ($event, record) {
+            var selected = record.selected;
+            if ($scope.selectedRecord) {
+                $scope.selectedRecord.selected = false;
+                $scope.selectedRecord = undefined;
+            }
+            record.selected = !selected;
+            if (record.selected) {
+                $scope.selectedRecord = record;
+                populateMetadataBox('Loading...');
+                $http.get(
+                    '/data/record-preview/' + record.id + '/'
+                ).success(function (html) {
+                    populateMetadataBox(makeMetadataSidebar() + html);
+                }).error(function () {
+                    populateMetadataBox('An error occurred loading metadata');
+                });
+
+            }
+        };
+
+        angular.element(window).on('resize', function () {
+            if ($scope.metadataBox && !$scope.metadataBox.is(':visible')) {
+                populateMetadataBox($scope.metadataBox.html());
+            }
+        });
+
+        angular.element(document).ready(function () {
+            initialLoad = false;
+        });
+    }
+])
+;
+
+</script>
+{% endblock %}
+
+{% block stylesheets %}
+{{ block.super }}
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" crossorigin="anonymous">
+
+<style>
+
+/* fix bootstrap impact on header */
+#header * {
+    box-sizing: content-box;
+}
+
+.work {
+    display: block;
+    padding: 2px;
+    height: 250px;
+}
+
+.work.selected-row {
+    margin-bottom: 250px;
+}
+
+.max-width .work {
+    max-width: 250px;
+}
+
+.work-inner {
+    background: url("../../images/spinner.gif") center no-repeat;
+    background-size: cover;
+    background-position: center top;
+    height: 100%;
+}
+
+.full-thumbs .work-inner,
+.work:hover .work-inner {
+    background-size: contain;
+    background-position: center center;
+    background-color: #cccccc;
+}
+
+.work-title {
+    position: absolute;
+    bottom: 2px;
+    left: 2px;
+    right: 2px;
+    background-color: rgba(50, 50, 50, .5);
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+    padding: 2px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+.work:hover .work-title {
+    background-color: rgba(50, 50, 50, .8);
+    white-space: normal;
+    max-height: 180px;
+}
+
+.record-work-image-count {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+}
+
+.record-work-image-count .badge {
+    background-color: rgba(50, 50, 50, .5);
+    cursor: pointer;
+}
+
+.record-work-image-count .badge:hover {
+    background-color: rgba(50, 50, 50, .8);
+}
+
+.work.selected .metadata-arrow-box {
+  position: relative;
+  background: #88b7d5;
+}
+
+.work.selected:focus {
+  outline: none;
+}
+
+.work.selected .metadata-arrow-box:after {
+  top: 100%;
+  left: 50%;
+  border: solid transparent;
+  content: " ";
+  height: 0;
+  width: 0;
+  position: absolute;
+  pointer-events: none;
+  border-color: rgba(136, 183, 213, 0);
+  border-top-color: #88b7d5;
+  border-width: 22px;
+  margin-left: -22px;
+}
+
+.metadatabox {
+  background-color: white;
+  padding: 10px;
+  border: solid 4px #88b7d5;
+  border-radius: 5px;
+  min-height: 300px;
+  margin: 27px 0 15px 0;
+}
+
+.metadata-sidebar {
+    float: right;
+    text-align: center;
+}
+
+.metadata-sidebar .btn {
+    margin-top: 10px;
+}
+
+.odd-row {
+    background-color: #f3f3ff;
+}
+
+.all-images {
+    background-color: rgb(136, 183, 213);
+    border-color: rgb(136, 183, 213);
+}
+
+.metadatabox:nth-child(2n) {
+  display: none;
+}
+.work.selected ~ .metadatabox:nth-child(4n) {
+  display: block;
+}
+.work.selected ~ .metadatabox:nth-child(4n) ~ .metadatabox { /* specificity 5 */
+  display: none;
+}
+
+
+@media (min-width: 768px) {
+  .work.selected ~ .metadatabox:nth-child(4n) {
+    display: none;
+  }
+  .work.selected ~ .metadatabox.s1:nth-child(6n) {
+    display: block;
+  }
+  .work.selected ~ .metadatabox.s1:nth-child(6n) ~ .metadatabox {
+    display: none;
+  }
+}
+
+@media (min-width: 992px) {
+  .work.selected ~ .metadatabox.s1:nth-child(6n) {
+    display: none;
+  }
+  .work.selected ~ .metadatabox.s1.s2:nth-child(8n) {
+    display: block;
+  }
+  .work.selected ~ .metadatabox.s1.s2:nth-child(8n) ~ .metadatabox {
+    display: none;
+  }
+}
+
+@media (min-width: 1200px) {
+  .work.selected ~ .metadatabox.s1.s2:nth-child(8n) {
+    display: none;
+  }
+  .work.selected ~ .metadatabox.s1.s2.s3:nth-child(12n) {
+    display: block;
+  }
+  .work.selected ~ .metadatabox.s1.s2.s3:nth-child(12n) ~ .metadatabox {
+    display: none;
+  }
+}
+
+.work.selected ~ .metadatabox.s1.s2.s3:last-child {
+  display: block;
+}
+
+[ng\:cloak], [ng-cloak], .ng-cloak {
+  display: none !important;
+}
+
+
+div.metadata div.label {
+    font-size: 100%;
+    color: black;
+    line-height: normal;
+}
+
+.record-preview .altrow {
+    background-color: rgb(247, 247, 247);
+}
+
+.record-preview div.metadata div.label {
+    width: 180px;
+}
+
+/* Hide download link */
+.record-preview div.metadata {
+    display: none;
+}
+.record-preview div.metadata:first-child {
+    display: block;
+}
+
+
+</style>
+
+{% endblock %}
+
+
+{% block sidebar %}
+{{ block.super }}
+{% endblock %}
+
+
+{% block content %}
+
+
+<div ng-app="clientApp" ng-controller="MainController">
+
+<h1>
+    <span ng-hide="results.hits>0">Works</span>
+    <span ng-show="results.hits===1">1 Work</span>
+    <span ng-show="results.hits>1"><span ng-bind="results.hits"></span> Works</span>
+
+    <span ng-show="search.keyword" ng-cloak>
+        (<span ng-bind="search.keyword"></span>)
+    </span>
+</h1>
+
+
+<div class="container-fluid with-navbar" ng-cloak>
+
+    <div class="row full-thumbs">
+
+        <div ng-repeat-start="record in results.records"
+             class="col-lg-2 col-md-3 col-sm-4 col-xs-6 work"
+             ng-class="{'selected': record.selected}"
+             ng-click="select($event, record)"
+                >
+
+            <div class="work-inner"
+                 ng-style="{'background-image': record.largeThumbUrl}">
+            </div>
+
+            <div class="work-title" ng-bind="record.title">
+            </div>
+
+            <div class="record-work-image-count">
+                <a ng-href="/explore/explore/?c=work:{% templatetag openvariable %}record.works[0] | encodeURIComponent{% templatetag closevariable %}" target="_blank">
+                    <span class="badge" ng-bind="record.work_images">
+                    </span>
+                </a>
+            </div>
+
+            <div class="metadata-arrow-box">
+
+            </div>
+
+        </div>
+
+        <div ng-repeat-end="record in results.records"
+             class="col-lg-12 col-md-12 col-sm-12 col-xs-12 metadatabox s1 s2 s3"
+                >
+            Loading...
+        </div>
+
+    </div>
+
+</div>
+
+
+<div ng-show="isLoading()">
+    <i>Loading...</i>
+</div>
+
+<div ng-hide="isLoading() || results.records.length" ng-cloak>
+    No works found.
+</div>
+
+<div ng-hide="isLoading()" style="text-align: right;" ng-cloak>
+    <div paging
+         page="search.page"
+         page-size="search.pageSize"
+         total="results.hits"
+         paging-action="loadMore(page,1)"
+         ng-show="results.hits>0"
+    ></div>
+    <button ng-click="loadMore(search.page + 1)"
+            ng-show="search.page * search.pageSize < results.hits"
+            class="btn btn-primary btn-lg">
+        Load more works
+    </button>
+</div>
+
+</div>
+
+{% endblock %}

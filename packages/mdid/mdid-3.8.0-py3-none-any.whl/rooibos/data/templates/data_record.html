@@ -1,0 +1,490 @@
+{% extends "master.html" %}
+{% load ui %}
+{% load viewers %}
+{% load data %}
+{% load access_control %}
+{% load static %}
+
+{% block javascript %}
+{{ block.super }}
+
+<script type="text/javascript">
+    $(document).ready(function() {
+        $(".submit-on-select-change select").change(function () { this.form.submit(); });
+        $(".submit-on-select-change :submit").remove();
+
+        function hide_empty(elements, speed) {
+            $("input:checkbox:not(:checked),input:text[value=],input[type=number][value=]",
+                elements).closest("span.row").hide(speed);
+        }
+        hide_empty(".advanced");
+        $(".advanced-switch input").attr("checked", false).click(function(e) {
+            e = $(this).closest(".fieldvalue-edit").find(".advanced");
+            if (this.checked) e.show("fast"); else hide_empty(e, "fast");
+            });
+        $(".advanced-switch").show();
+        $(".orderinput").hide();
+
+        var reorder = function () {
+            $("#fieldvalues .fieldvalue-edit:even").removeClass('altrow');
+            $("#fieldvalues .fieldvalue-edit:odd").addClass('altrow');
+            $(".orderinput input").each(function(i, element) {
+                // only set order if a field is selected
+                element = $(element);
+                var id = element.attr('id');
+                if ($('#' + id.substring(0, id.length - 5) + "field").val()) {
+                    element.val(i + 1);
+                }
+            });
+        };
+
+        $("#fieldvalues").css("cursor", "move").sortable({
+            axis: 'y',
+            stop: function(event, ui) {
+                reorder();
+            },
+            start: function(event, ui) {
+                ui.helper.removeClass('altrow');
+            },
+            });
+
+        var autocomplete = function(element) {
+            var f = $('#' + element.id.substring(0, element.id.length - 5) + "field");
+            $(element).autocomplete('{% url "api-solr-autocomplete" %}', {
+                extraParams: {field: function(a,b,c) { return f.val(); }},
+                formatItem: function(row, pos, num, query) { return decodeURIComponent(row); },
+                formatResult: function(row, pos, num) { return decodeURIComponent(row); },
+                });
+            };
+
+        $(".autocomplete :input").each(function() {
+                autocomplete(this);
+            });
+
+        $("form.delete-record-form").submit(function() {
+            return confirm("Are you sure you want to delete this record?");
+        });
+        $("form.delete-media-form").submit(function() {
+            return confirm("Are you sure you want to delete this media?");
+        });
+
+
+        var addRow = function (event) {
+            event.preventDefault();
+            var total_forms = $("#id_fv-TOTAL_FORMS");
+            var num = parseInt(total_forms.val());
+            total_forms.val(num + 1);
+            var source = $(event.target).closest(".fieldvalue-edit");
+            var copy = source.clone(true).insertAfter(source);
+            copy.find("input,textarea,select,label").each(function (i, element) {
+                element = $(element);
+                var name = element.attr('name'),
+                    id = element.attr('id'),
+                    for_ = element.attr('for');
+                if (name) {
+                    element.attr('name', name.replace(/^fv-\d+/, 'fv-' + num));
+                    if (name.substring(name.length - 3) === "-id") {
+                        element.val('');
+                    }
+                }
+                if (id) {
+                    element.attr('id', id.replace(/^id_fv-\d+/, 'id_fv-' + num));
+                }
+                if (for_) {
+                    element.attr('for', for_.replace(/^fv-\d+/, 'fv-' + num));
+                }
+            });
+            reorder();
+
+            // remove all event handlers (get rid of autocomplete, which is tied to source element)
+            var textarea = $("textarea", copy).val("");
+            var parent = textarea.parent();
+            textarea.remove().appendTo(parent);
+            // re-add autocomplete
+            autocomplete(textarea[0]);
+        };
+
+        $(".fieldvalue-edit").append("<button class='addrow'> + </button>");
+        $(".fieldvalue-edit button.addrow").live('click', addRow);
+
+        var viewers = $('#data_record_viewers a');
+        if (viewers.length === 1) {
+            // make thumbnail link to available viewer
+            $('#data_record_thumbnail .record a')
+                .off('click')
+                .attr('href', viewers.eq(0).attr('href'));
+        }
+    });
+</script>
+
+{% endblock %}
+
+
+{% block sidebar %}
+{{ block.super }}
+
+{% if record.id %}
+<div class="facet active-facet" id="data_record_thumbnail">
+    <div class="facet-header">Thumbnail</div>
+    <div class="facet-body">
+        {% record record "True" "thumb" "True" %}
+
+        {% if download_image %}
+            <a href="{% url "storage-retrieve-image-nosize" record.id record.name %}?forcedl">Download Image</a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{% if back_url %}
+<div class="facet active-facet" id="data_record_back">
+    <div class="facet-header">Go Back</div>
+    <div class="facet-body">
+        <a href="{{ back_url }}">Return to previous page</a>
+    </div>
+</div>
+{% endif %}
+
+{% if part_of_works or related_works %}
+<div class="facet active-facet" id="data_record_back">
+    <div class="facet-header">Work</div>
+    <div class="facet-body">
+        {% if part_of_works %}
+        <a href="{% url "solr-search" %}?c=work:{{ part_of_works|safeseq|join:'|'|urlencode }}">
+            All images of this work
+        </a><br />
+        {% endif %}
+        {% if related_works %}
+        <a href="{% url "solr-search" %}?c=work:{{ related_works|safeseq|join:'|'|urlencode }}">
+            Images of related works
+        </a><br />
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{% if not fv_formset %}
+<div class="facet active-facet" id="data_record_viewers">
+    <div class="facet-header">Viewers</div>
+    <div class="facet-body">
+        {% list_viewers record request.get_full_path '<br />' %}
+    </div>
+</div>
+{% endif %}
+
+{% if record.owner %}
+<div class="facet active-facet" id="data_record_owner">
+    <div class="facet-header">Owner</div>
+    <div class="facet-body">
+        {{ record.owner.get_full_name }} ({{ record.owner.username }})
+    </div>
+</div>
+{% endif %}
+
+{% if request.user.is_authenticated and record.id %}
+<div class="facet active-facet" id="data_record_editing">
+    <div class="facet-header">Editing</div>
+    <div class="facet-body">
+        <div>
+{% if can_edit and record.id and not fv_formset %}
+        <a href="{% url "data-record-edit" record.id record.name %}">Edit Record</a><br />
+        {% if user|accessible_objects:"data.Collection,rw"|length %}
+        <a href="{% url "data-record-copy" record.id record.name %}">Duplicate Record</a><br />
+        {% endif %}
+{% endif %}
+{% if record.id and not fv_formset %}
+        <a href="{% url "data-record-edit-customize" record.id record.name %}">Customize Record</a><br />
+{% endif %}
+{% if fv_formset and record.id %}
+        <a href="{% if next %}{{ next }}{% else %}{% url "data-record" record.id record.name %}{% endif %}">Cancel Editing</a><br />
+{% endif %}
+{% if record.owner %}{% ifequal record.owner request.user %}
+  {% add_tags_form record "suggested" "Suggest" %}
+{% endifequal %}{% endif %}
+{% if can_edit and record.id and not fv_formset %}
+    <form class="delete-record-form" method="post" action="{% url "data-record-delete" record.id record.name %}">{% csrf_token %}
+        <input type="submit" name="delete_record" value="Delete Record" />
+    </form>
+{% endif %}
+
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if can_edit and record.id and not fv_formset %}
+<div class="facet active-facet" id="data_record_usage">
+    <div class="facet-header">Usage</div>
+    <div class="facet-body">
+        <a href="{% url "presentation-record-usage" record.id record.name %}">
+            Used in {{ record_usage|default:"no" }} presentation{{ record_usage|pluralize }}
+        </a>
+    </div>
+</div>
+{% endif %}
+
+{% if record.id and not fv_formset %}
+{% if request.user.is_authenticated %}
+<div class="facet active-facet" id="data_record_your_tags">
+    <div class="facet-header">Your Tags</div>
+    <div class="facet-body">
+    {% owned_tags_for_object record for request.user as tags %}
+    {% for tag in tags %}
+        {% tag tag record "True" %}
+    {% empty %}
+        Not tagged yet.
+    {% endfor %}
+    {% add_tags_form record %}
+    </div>
+</div>
+{% endif %}
+
+<div class="facet active-facet" id="data_record_all_tags">
+    <div class="facet-header">All Tags</div>
+    <div class="facet-body">
+        <div>
+    {% owned_tags_for_object record except request.user as tags %}
+    {% for tag in tags %}
+        {% tag tag record %}
+    {% empty %}
+        Not tagged yet.
+    {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if record.parent %}
+<div class="facet active-facet" id="data_record_parent">
+    <div class="facet-header">Parent record</div>
+    <div class="facet-body">
+        {% record record.parent "True" "thumb" "True" %}
+    </div>
+</div>
+{% endif %}
+
+{% if record.id and record.record_set.count %}
+<div class="facet active-facet" id="data_record_children">
+    <div class="facet-header">Child records</div>
+    <div class="facet-body" style="max-height: 400px; overflow: auto;">
+        {% for child in record.record_set.all %}
+        {% record child "True" "thumb" "True" %}
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+
+{% if not fv_formset %}
+
+{% if media or can_edit %}
+<div class="facet active-facet" id="data_record_media">
+    <div class="facet-header">Media</div>
+    <div class="facet-body">
+    {% if media %}
+    <ul>
+    {% for m in media %}
+        <li>
+            {% if m.downloadable_in_template %}
+            {{ m.name }}
+            <a href="{{ m.get_absolute_url }}">Download</a> |
+            <a href="{{ m.get_absolute_url }}?inline" target="_blank">Open</a>
+            {% else %}
+            {{ m.name }}
+            {% endif %}
+            {{ m.mimetype }}
+            {% if m.width and m.height %}
+                {{ m.width }}x{{ m.height }}
+            {% endif %}
+            {% if m.editable_in_template %}
+            <br />
+                {{ m.url }}
+            <form class="delete-media-form" method="POST" action="{% url "storage-media-delete" m.id m.name %}?next={{ request.get_full_path }}">{% csrf_token %}
+                <input type="submit" value="Delete Media" />
+            </form>
+            {% endif %}
+        </li>
+    {% endfor %}
+    </ul>
+    {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endif %}
+
+
+{% if upload_form %}
+<div class="facet active-facet" id="data_record_upload_media">
+    <div class="facet-header">Upload Media</div>
+    <div class="facet-body">
+{% if record.id %}
+{% include "storage_upload_sidebar.html" %}
+{% else %}
+Please save the record before uploading media.
+{% endif %}
+    </div>
+</div>
+{% endif %}
+
+
+{% if can_manage %}
+  <div class="facet active-facet" id="data_record_sidebar_permissions">
+    <div class="facet-header">Permissions <a href="{% permissions_modify_url record %}"><img src="{% static 'images/edit.png' %}" class="facet-button" /></a></div>
+    <div class="facet-body">
+        {% permissions_display record "Inherited from collection" %}
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}
+
+
+{% block content %}
+
+<h1>{{ record.title|default:"Untitled" }}</h1>
+
+{% if not fv_formset %}
+
+{% if display_image %}
+    <div style="position:relative; width: calc(100% - 220px); padding-bottom: min(60vh, 50%);">
+        <iframe src="{% url "data-mirador-embedded" record.id record.name %}" style="position:absolute; left:0; top:0; width:100%; height:100%"></iframe>
+    </div>
+{% endif %}
+
+<form id="metadata-form" class="submit-on-select-change" action="." method="GET" style="margin-top: 20px;">
+Display metadata as: {{ fieldsetform.fieldset }}
+<input type="submit" value="Change" />
+</form>
+
+<div>
+    {% metadata record fieldset 1 %}
+</div>
+
+<br style="clear: left;" /><br />
+
+<h2>Collection Memberships</h2>
+
+<table>
+    <tr>
+    <th>Collection</th>
+    <th>{% if record.owner %}Shared{% else %}Visible{% endif %}</th>
+    </tr>
+
+{% for item in collection_items %}
+<tr class="{% cycle '' 'altrow' %}">
+    <td>
+        {{ item.collection.title }}
+    </td>
+    <td style="text-align: center;">
+        {{ item.hidden|yesno:"no,yes" }}
+    </td>
+</tr>
+{% endfor %}
+</table>
+
+
+{% else %}
+
+<h2>
+    {% if customize %}
+        Annotate Record
+    {% else %}
+        {% if context %}
+            Annotate Record for {{ context.title }}
+        {% else %}
+            {{ record.id|yesno:"Edit,Create" }} Record
+        {% endif %}
+    {% endif %}
+</h2>
+
+
+{% if fieldsetform %}
+<form method="GET" action="" class="submit-on-select-change">
+    Edit using fields template: {{ fieldsetform.fieldset }}
+    <input type="submit" value="Edit" />
+</form>
+{% endif %}
+
+
+<form method="POST" action="">{% csrf_token %}
+
+{% if c_formset %}
+    {{ c_formset.management_form }}
+
+<div id="collection-membership" style="margin-top: 20px;">
+
+    <div id="collection-membership-header">
+        <div>Collection Memberships</div>
+        <div>Member</div>
+        <div>{{ record.owner|yesno:"Shared,Visible" }}</div>
+    </div>
+
+    <div id="collection-membership-rows">
+    {% for form in c_formset.forms %}
+    <div class="{% cycle 'altrow' '' %}" style="clear: left;">
+        <div>{{ form.id }}{{ form.title }}</div>
+        <div>{{ form.member }}</div>
+        <div>{{ form.shared }}</div>
+        &nbsp;
+    </div>
+    {% endfor %}
+    </div>
+
+</div>
+
+{% endif %}
+
+<div style="clear: left; padding: 20px 0;">
+<input type="submit" value="Save" />
+<input type="submit" name="save_and_continue" value="Save and Continue Editing" />
+</div>
+
+
+    {{ fv_formset.management_form }}
+    <div style="margin-top: 20px;">
+        <div id="fieldvalues">
+
+    {% for form in fv_formset.forms %}
+        <div class="fieldvalue-edit{% cycle '' ' altrow' %}">
+            {{ form.errors }}
+            {{ form.id }}
+            {{ form.context_type }}
+            {{ form.context_id }}
+            <div class="fvcol">
+                <span class="row"><label for="{{ form.label.html_name }}">Label:</label> {{ form.label }}</span>
+                <span class="row"><label for="{{ form.field.html_name }}">Field:</label> {{ form.field }}</span>
+                <span class="row advanced"><label for="{{ form.refinement.html_name }}">Refine:</label> {{ form.refinement }}</span>
+            </div>
+            <div class="fvcol">
+                <span class="row autocomplete">{{ form.value }}</span>
+            </div>
+            <div class="fvcol narrow">
+                <span class="row advanced"><label for="{{ form.date_start.html_name }}">Start year:</label> {{ form.date_start }}</span>
+                <span class="row advanced"><label for="{{ form.date_end.html_name }}">End year:</label> {{ form.date_end }}</span>
+                <span class="row advanced"><label for="{{ form.numeric_value.html_name }}">Numeric:</label> {{ form.numeric_value }}</span>
+            </div>
+            <div class="fvcol narrow">
+                <span class="row advanced"><label for="{{ form.language.html_name }}">Language:</label> {{ form.language }}</span>
+                <span class="row orderinput"><label for="{{ form.order.html_name }}">Order:</label> {{ form.order }}</span>
+                <span class="row advanced"><label for="{{ form.group.html_name }}">Group:</label> {{ form.group }}</span>
+            </div>
+            <div class="fvcol">
+                <span class="row advanced"><label for="{{ form.hidden.html_name }}">Hide:</label> {{ form.hidden }}</span>
+                <span class="row"><label for="{{ form.DELETE.html_name }}">Delete:</label> {{ form.DELETE }}</span>
+                <span class="row advanced-switch" style="display: none;"><label>Advanced:</label> <input type="checkbox" /></span>
+            </div>
+        </div>
+    {% endfor %}
+        </div>
+
+
+<div style="clear: left; padding: 20px 0;">
+<input type="submit" value="Save" />
+<input type="submit" name="save_and_continue" value="Save and Continue Editing" />
+</div>
+
+    </div>
+</form>
+{% endif %}
+
+{% endblock %}
