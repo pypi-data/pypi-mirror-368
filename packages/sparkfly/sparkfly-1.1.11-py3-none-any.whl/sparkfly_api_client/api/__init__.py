@@ -1,0 +1,23 @@
+# flake8: noqa
+
+# import apis into api package
+from sparkfly_api_client.api.audiences_api import AudiencesApi
+from sparkfly_api_client.api.authentication_api import AuthenticationApi
+from sparkfly_api_client.api.bi_store_lists_api import BIStoreListsApi
+from sparkfly_api_client.api.campaigns_api import CampaignsApi
+from sparkfly_api_client.api.ctm_api import CtmApi
+from sparkfly_api_client.api.eligible_item_sets_api import EligibleItemSetsApi
+from sparkfly_api_client.api.email_opt_in_api import EmailOptInApi
+from sparkfly_api_client.api.impressions_api import ImpressionsApi
+from sparkfly_api_client.api.items_api import ItemsApi
+from sparkfly_api_client.api.member_privacy_api import MemberPrivacyApi
+from sparkfly_api_client.api.members_api import MembersApi
+from sparkfly_api_client.api.offer_lists_api import OfferListsApi
+from sparkfly_api_client.api.offer_pos_offer_codes_api import OfferPOSOfferCodesApi
+from sparkfly_api_client.api.offer_states_api import OfferStatesApi
+from sparkfly_api_client.api.offers_api import OffersApi
+from sparkfly_api_client.api.pos_offer_codes_api import POSOfferCodesApi
+from sparkfly_api_client.api.store_lists_api import StoreListsApi
+from sparkfly_api_client.api.stores_api import StoresApi
+from sparkfly_api_client.api.templates_api import TemplatesApi
+
