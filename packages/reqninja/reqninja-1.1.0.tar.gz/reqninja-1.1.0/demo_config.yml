@@ -1,0 +1,29 @@
+default_retries: 3
+default_headers:
+  Content-Type: application/json
+  User-Agent: ReqNinja-Demo/1.0
+
+profiles:
+  dev:
+    base_url: https://httpbin.org
+    headers:
+      X-Environment: development
+      X-Debug: "true"
+    retry_policy:
+      total: 2
+      backoff_factor: 0.3
+  
+  prod:
+    base_url: https://api.production.com
+    headers:
+      Authorization: Bearer ${PROD_TOKEN}
+      X-Environment: production
+    retry_policy:
+      total: 5
+      backoff_factor: 1.0
+      status_forcelist: [429, 500, 502, 503, 504]
+
+retry_policy:
+  total: 3
+  status_forcelist: [429, 500, 502, 503, 504]
+  backoff_factor: 0.5
