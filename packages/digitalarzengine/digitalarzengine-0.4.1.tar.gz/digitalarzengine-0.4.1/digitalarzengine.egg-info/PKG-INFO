@@ -1,0 +1,142 @@
+Metadata-Version: 2.1
+Name: digitalarzengine
+Version: 0.4.1
+Summary: DigitalArzEngine for GEE, raster and vector data processing
+Home-page: UNKNOWN
+Author: Ather Ashraf
+Author-email: atherashraf@gmail.com
+License: UNKNOWN
+Keywords: raster,vector,digital earth engine
+Platform: UNKNOWN
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Programming Language :: Python :: 3
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+
+# DigitalArzEngine
+
+**DigitalArzEngine** is a Python library designed to streamline raster data processing by extending the capabilities of the [`rasterio`](https://rasterio.readthedocs.io/) library. It provides a suite of tools for efficient geospatial transformations, mosaicing, and analysis, making it ideal for researchers, analysts, and developers working with geospatial raster data.
+
+## 🚀 Features
+
+- **Mosaicing:** Seamlessly merge multiple raster datasets into a unified output.
+- **Summary Statistics:** Extract key metrics such as minimum, maximum, mean, and standard deviation from raster layers.
+- **Reprojection & Resampling:** Transform raster datasets to different coordinate systems and resolutions with ease.
+- **Clipping & Masking:** Apply geometric masks or clip rasters to specific regions of interest.
+- **Pixel-wise Analysis:** Enable pixel-level operations for customized raster computations.
+- **Efficient I/O Handling:** Support for reading, writing, and converting between various raster formats.
+
+## 📦 Installation
+
+To install the library using pip:
+
+```bash
+pip install digitalarzengine
+```
+
+---
+
+## 📚 DataManager Utility Class
+
+The `DataManager` class is a powerful and modular tool for handling geospatial data using SQLite databases. It supports structured storage of JSON records alongside geometric data (as WKB), with metadata tracking, querying, and integration with `GeoPandas`.
+
+### ✅ Benefits and Usage
+
+- **Structured Storage**: Stores geospatial records (geometry + attributes) in a portable `.db` format.
+- **Metadata Management**: Tracks field names, geometry columns, and record counts.
+- **Geometry Support**: Accepts and stores geometries as WKB with support for reprojection to EPSG:4326.
+- **Integration with GeoPandas**: Easily convert the stored data into DataFrames and GeoDataFrames.
+- **Custom Query Support**: Run filtered SQL queries and retrieve results as structured pandas objects.
+- **Extendable Schema**: Dynamically add and update fields in your dataset.
+
+### 🔧 Example Use-Cases
+
+- Saving extracted geospatial features from remote sensing workflows.
+- Iteratively storing geospatial model outputs with spatial context.
+- Lightweight local spatial database for machine learning input.
+
+### 🔄 Core Methods
+
+- `add_record`, `update_record`, `delete_record`, `get_record`
+- `get_data_as_df`, `get_data_as_gdf`, `get_gdf_list_under_aoi`
+- `record_exists`, `change_key`, `add_column`, `update_column`
+- Context manager support (`with DataManager(...) as dm:`)
+
+This utility class is designed to complement the raster processing tools in `DigitalArzEngine`, making it easier to work with both raster and vector data consistently.
+
+---
+
+## 🗃️ DBManager Utility Class
+
+The `DBManager` class provides a secure and flexible way to interact with PostgreSQL/PostGIS databases. It builds SQLAlchemy engines from settings and supports reading data directly into Pandas or GeoPandas.
+
+### ✅ Benefits and Usage
+
+- **Secure Configuration**: Pulls database credentials from a centralized encrypted config using `CryptoUtils`.
+- **Flexible Access**: Supports multiple environments or databases through the `from_config` method.
+- **SQLAlchemy Integration**: Simplifies connection management and avoids hardcoding sensitive details.
+- **Read GeoData**: Loads spatial tables directly into `GeoDataFrame` using `read_postgis`.
+- **Exclude Geometry When Needed**: Supports reading attribute-only tables as plain DataFrames.
+
+### 🔧 Example Use-Cases
+
+```python
+    import os
+from digitalarzengine.settings import DATA_DIR
+from digitalarzengine.adapters.data_manager import DataManager
+
+output_dir = os.path.join(DATA_DIR, 'pak', 'snow_cover/stats')
+data_manager = DataManager(output_dir, base_name="snow_cover_normal_data",
+                           purpose="snow cover normal data from 2001 to 2024")
+data_manager.add_record("key_value", {})
+```
+- Connecting securely to remote geospatial databases for querying.
+- Reading and processing large PostGIS tables as GeoDataFrames.
+- Integrating web dashboards or data pipelines with PostgreSQL/PostGIS backends.
+
+### 🔄 Core Methods
+
+- `from_config(db_key)`: Load credentials and settings from `DATABASES`
+- `get_engine()`: Return SQLAlchemy engine object
+- `read_as_geo_dataframe()`: Read spatial data into GeoDataFrame
+- `read_as_dataframe()`: Read tabular data with option to exclude geometry
+- `get_geometry_columns()`: Identify spatial fields in the schema
+
+### ⚙️ Configuration Example
+
+Below is a sample `DATABASES` configuration dictionary to be placed in `digitalarzengine/settings.py`:
+
+```python
+DATABASES = {
+    "drm": {
+        "ENGINE": "postgresql+psycopg2",
+        "NAME": "drm",
+        "USER": "dafast",
+        "PASSWORD": "***********************************",
+        "HOST": os.getenv("DB_HOST", "localhost"),
+        "PORT": "5432",
+    }
+}
+```
+
+> ⚠️ Note: The password here is shown encrypted. It should be decrypted using `CryptoUtils` at runtime.
+
+The `DBManager` is ideal for scenarios where spatial data needs to be read or processed securely from enterprise databases, complementing local `DataManager` workflows.
+
+For more advanced usage patterns and custom queries, see the source or documentation site (coming soon).
+
+## 👨‍💻 Developed by
+
+**Ather Ashraf**
+Geospatial Data Scientist and AI Specialist
+
+* 📧 Email: [atherashraf@gmail.com](mailto:atherashraf@gmail.com)
+* 🌐 LinkedIn: [https://sa.linkedin.com/in/ather-ashraf](https://sa.linkedin.com/in/ather-ashraf)
+* 📜 Google Scholar: [View Profile](https://scholar.google.com.pk/citations?user=XbqhyrsAAAAJ&hl=en)
+* 📱 WhatsApp: +966557252342 | +923224785104
+
+---
+
+
