@@ -1,0 +1,83 @@
+Metadata-Version: 2.3
+Name: pydantic-super-model
+Version: 0.0.1
+Summary: Pydantic BaseModel supercharged with essential methods
+License: MIT
+Author: Julien Kmec
+Author-email: me@julien.dev
+Requires-Python: >=3.10,<3.14
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Provides-Extra: dev
+Requires-Dist: black (>=24.0) ; extra == "dev"
+Requires-Dist: coverage (>=7.6) ; extra == "dev"
+Requires-Dist: pydantic (>=2.11.7,<3.0.0)
+Requires-Dist: pytest (>=8.0) ; extra == "dev"
+Requires-Dist: pytest-asyncio (>=0.23) ; extra == "dev"
+Requires-Dist: pytest-cov (>=6.1.1,<7.0.0) ; extra == "dev"
+Requires-Dist: python-generics (>=0.2.3,<0.3.0)
+Description-Content-Type: text/markdown
+
+# Super Model for Pydantic
+
+I created this package because I needed a centralized place
+for a Pydantic BaseModel that can 1) return the generic type of the BaseModel
+and 2) return which field(s) have a certain Annotation.
+
+## Installation
+
+Install with [pip](https://pip.pypa.io/en/stable/)
+```bash
+pip install super_model
+```
+
+## Features
+
+- Generic support
+- Able to retrieve field(s) with a specific Annotation
+
+## Generic Example
+
+```python
+
+from super_model import BaseModel
+
+class UserWithType[T](BaseModel):
+    """User model with a generic type."""
+
+    id: T
+    name: str
+
+user = UserWithType[int](id=1, name="John Doe")
+
+user_type = user.get_type() # int
+```
+
+## Annotation Example
+
+```python
+
+from typing import Annotated
+from super_model import BaseModel
+
+
+class _PrimaryKeyAnnotation:
+    pass
+
+PrimaryKey = Annotated[int, _PrimaryKeyAnnotation]
+
+class UserWithAnnotation(BaseModel):
+    """User model with an Annotation for a field."""
+
+    id: PrimaryKey
+    name: str
+
+user = UserWithAnnotation(id=1, name="John Doe")
+
+annotations = user.get_annotated_fields(PrimaryKey)
+# {"id": 1}
+```
