@@ -1,0 +1,186 @@
+[build-system]
+requires = ["setuptools>=61", "setuptools-scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "regvelo"
+dynamic = ["version"]
+description = "Estimation of RNA velocity with variational inference."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "BSD-3-Clause" }
+authors = [
+  { name = "Weixu Wang", email = "weixu.wang@helmholtz-munich.de" }
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
+  "License :: OSI Approved :: BSD License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Natural Language :: English",
+]
+dependencies = [
+  "anndata >=0.10.8",
+  "scanpy >=1.10.3",
+  "scvelo >=0.3.2",
+  "scvi-tools >=1.0.0,<1.2.1",
+  "scikit-learn >=0.21.2",
+  "velovi >=0.3.1",
+  "torchode >=0.1.6",
+  "cellrank >=2.0.0",
+  "matplotlib >=3.7.3",
+  "pandas >=2.0.3",
+  "seaborn >=0.13.2",
+  "numpy >=1.25.2",
+  "scipy >=1.11.1,<1.16.0",
+  "torch <2.6.0",
+  "rich >=10.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "black >=20.8b1",
+  "pytest >=4.4",
+  "pytest-cov",
+  "ruff",
+  "codecov >=2.0.8",
+  "scanpy",
+  "loompy",
+  "jupyter",
+  "pre-commit >=2.7.1",
+]
+docs = [
+  "sphinx >=4.1",
+  "furo >=2022.09.29",
+  "scanpydoc >=0.5",
+  "ipython >=7.1.1",
+  "myst-nb",
+  "sphinx-book-theme >=1.0.0",
+  "sphinx-copybutton",
+  "sphinxcontrib-bibtex ==2.6.3",
+  "ipykernel",
+  "sphinx_design >=0.3.0",
+  "sphinx_autodoc_typehints >=1.10.3",
+]
+tutorials = [
+  "scanpy",
+  "matplotlib",
+]
+
+[project.urls]
+documentation = "https://regvelo.readthedocs.io/"
+source = "https://github.com/theislab/regvelo"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools_scm]
+version_scheme = "release-branch-semver"
+local_scheme = "no-local-version"
+
+[tool.black]
+include = '\.pyi?$'
+exclude = '''
+(
+  /(
+      \.eggs
+    | \.git
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+  )/
+)
+'''
+
+[tool.ruff]
+src = ["."]
+line-length = 119
+target-version = "py310"
+select = [
+    "F",  # Errors detected by Pyflakes
+    "E",  # Error detected by Pycodestyle
+    "W",  # Warning detected by Pycodestyle
+    "I",  # isort
+    "D",  # pydocstyle
+    "B",  # flake8-bugbear
+    "TID",  # flake8-tidy-imports
+    "C4",  # flake8-comprehensions
+    "BLE",  # flake8-blind-except
+    "UP",  # pyupgrade
+    "RUF100",  # Report unused noqa directives
+]
+ignore = [
+    # line too long -> we accept long comment lines; black gets rid of long code lines
+    "E501",
+    # Do not assign a lambda expression, use a def -> lambda expression assignments are convenient
+    "E731",
+    # allow I, O, l as variable names -> I is the identity matrix
+    "E741",
+    # Missing docstring in public package
+    "D104",
+    # Missing docstring in public module
+    "D100",
+    # Missing docstring in __init__
+    "D107",
+    # Errors from function calls in argument defaults. These are fine when the result is immutable.
+    "B008",
+    # __magic__ methods are are often self-explanatory, allow missing docstrings
+    "D105",
+    # first line should end with a period [Bug: doesn't work with single-line docstrings]
+    "D400",
+    # First line should be in imperative mood; try rephrasing
+    "D401",
+    ## Disable one in each pair of mutually incompatible rules
+    # We don’t want a blank line before a class docstring
+    "D203",
+    # We want docstrings to start immediately after the opening triple quote
+    "D213",
+    # Missing argument description in the docstring TODO: enable
+    "D417",
+]
+
+[tool.ruff.per-file-ignores]
+"docs/*" = ["I", "BLE001"]
+"tests/*" = ["D"]
+"*/__init__.py" = ["F401"]
+"regvelo/__init__.py" = ["I"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+xfail_strict = true
+
+[tool.coverage.run]
+branch = true
+parallel = true
+source = ["src/"]
+omit = [
+    "*/__init__.py",
+]
+
+[tool.jupytext]
+formats = "ipynb,md"
+
+[tool.cruft]
+skip = [
+    "tests",
+    "src/**/__init__.py",
+    "src/**/basic.py",
+    "docs/api.md",
+    "docs/changelog.md",
+    "docs/references.bib",
+    "docs/references.md",
+    "docs/notebooks/example.ipynb",
+]
