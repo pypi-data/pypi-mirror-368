@@ -1,0 +1,118 @@
+[project]
+name = "mylightsystems"
+version = "0.0.9"
+description = "Asynchronous Python client for MyLight Systems."
+authors = [{ name = "Pierre-Emmanuel Mercier", email = "acesyde@gmail.com" }]
+maintainers = [
+    { name = "Pierre-Emmanuel Mercier", email = "acesyde@gmail.com" },
+]
+license = "MIT"
+readme = "README.md"
+keywords = ["MyLight Systems", "api", "async", "client"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Framework :: AsyncIO",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+requires-python = ">=3.13"
+dependencies = [
+    "aiohttp>=3.0.0,<4.0.0",
+    "yarl>=1.6.0,<2.0.0",
+    "mashumaro>=3.11,<4.0.0",
+    "orjson>=3.9.0,<4.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/acesyde/python-mylight-systems-api-client"
+Repository = "https://github.com/acesyde/python-mylight-systems-api-client"
+Documentation = "https://github.com/acesyde/python-mylight-systems-api-client"
+"Bug Tracker" = "https://github.com/acesyde/python-mylight-systems-api-client/issues"
+Changelog = "https://github.com/acesyde/python-mylight-systems-api-client/releases"
+
+[tool.poetry]
+packages = [{ include = "mylightsystems", from = "src" }]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.2,<9.0.0",
+    "pytest-asyncio>=1.0.0,<2.0.0",
+    "pytest-cov>=6.0.0,<7.0.0",
+    "aioresponses>=0.7.6,<1.0.0",
+    "ruff>=0.4.0,<1.0.0",
+]
+
+[tool.ruff]
+line-length = 120
+indent-width = 4
+exclude = [
+    ".venv",
+    ".codeclimate.yml",
+    ".codecov.yml",
+    ".coveragerc",
+    ".editorconfig",
+    ".gitattributes",
+    ".gitignore",
+    ".pre-commit-config.yaml",
+    "mise.toml",
+    "mise.lock",
+]
+
+[tool.pytest.ini_options]
+addopts = "-rxf -x -v -l --cov=./ --cov-report=xml"
+pythonpath = ["src"]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff.lint]
+select = [
+    "E",     # pycodestyle
+    "F",     # pyflakes
+    "I",     # isort
+    "C90",   # mccabe
+    "N",     # pep8-naming
+    "G",     # flake8-logging-format
+    "S",     # flake8-bandit
+    "ASYNC", # flake8-async,
+    "PL",    # pylint
+]
+ignore = [
+    "G004",    # logging-fstring-interpolation
+    "E501",    # line-too-long
+    "RET505",  # no-else-return
+    "RET507",  # no-else-continue
+    "UP032",   # f-string
+    "BLE001",  # broad-exception-caught
+    "PLR2004", # magic-value-comparison
+    "S101",    # assert
+    "PLR0915", # too-many-statements
+]
+
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint.mccabe]
+max-complexity = 15
+
+[tool.ruff.lint.pylint]
+max-args = 10
+max-positional-args = 10
+max-returns = 10
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["**/tests/**", "**/__init__.py", "**/__main__.py"]
+
+[tool.vulture]
+min_confidence = 80
+paths = ["src", "tests"]
+verbose = true
+
+[build-system]
+build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=1.0.0"]
