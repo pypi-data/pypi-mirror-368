@@ -1,0 +1,150 @@
+Metadata-Version: 2.4
+Name: structuretoolkit
+Version: 0.0.33
+Summary: build, analyse and visualise atomistic structures for materials science
+Project-URL: Homepage, https://github.com/pyiron/structuretoolkit
+Project-URL: Documentation, https://github.com/pyiron/structuretoolkit
+Project-URL: Repository, https://github.com/pyiron/structuretoolkit
+Author-email: Jan Janssen <janssen@mpie.de>
+License: BSD 3-Clause License
+        
+        Copyright (c) 2018, Max-Planck-Institut für Eisenforschung GmbH - Computational Materials Design (CM) Department
+        All rights reserved.
+        
+        Redistribution and use in source and binary forms, with or without
+        modification, are permitted provided that the following conditions are met:
+        
+        * Redistributions of source code must retain the above copyright notice, this
+          list of conditions and the following disclaimer.
+        
+        * Redistributions in binary form must reproduce the above copyright notice,
+          this list of conditions and the following disclaimer in the documentation
+          and/or other materials provided with the distribution.
+        
+        * Neither the name of the copyright holder nor the names of its
+          contributors may be used to endorse or promote products derived from
+          this software without specific prior written permission.
+        
+        THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+        AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+        IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+        DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+        FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+        DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+        SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+        CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+        OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+        OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+License-File: LICENSE
+Keywords: pyiron
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Scientific/Engineering :: Physics
+Requires-Python: <3.13,>=3.9
+Requires-Dist: ase<=3.25.0,>=3.20.1
+Requires-Dist: numpy<=1.26.4,>=1.23.5
+Requires-Dist: scipy<=1.15.2,>=1.9.3
+Provides-Extra: clusters
+Requires-Dist: scikit-learn==1.6.1; extra == 'clusters'
+Provides-Extra: dscribe
+Requires-Dist: dscribe==2.1.1; extra == 'dscribe'
+Provides-Extra: grainboundary
+Requires-Dist: aimsgb<=1.1.1,>=1.0.2; extra == 'grainboundary'
+Requires-Dist: pymatgen<=2025.3.10,>=2022.2.1; extra == 'grainboundary'
+Provides-Extra: matplotlib
+Requires-Dist: matplotlib==3.10.3; extra == 'matplotlib'
+Provides-Extra: nglview
+Requires-Dist: nglview<=3.1.4,>=2.7.7; extra == 'nglview'
+Provides-Extra: phonopy
+Requires-Dist: phonopy<=2.43.1,>=2.16.2; extra == 'phonopy'
+Requires-Dist: spglib<=2.6.0,>=1.16.5; extra == 'phonopy'
+Provides-Extra: plotly
+Requires-Dist: plotly<=6.2.0,>=4.14.3; extra == 'plotly'
+Provides-Extra: pyscal
+Requires-Dist: pyscal3<=3.3.0,>=3.2.5; extra == 'pyscal'
+Provides-Extra: pyxtal
+Requires-Dist: pyxtal<=1.1.0,>=0.5.5; extra == 'pyxtal'
+Provides-Extra: surface
+Requires-Dist: pymatgen<=2025.3.10,>=2022.2.1; extra == 'surface'
+Requires-Dist: spglib<=2.6.0,>=1.16.5; extra == 'surface'
+Provides-Extra: symmetry
+Requires-Dist: spglib<=2.6.0,>=1.16.5; extra == 'symmetry'
+Description-Content-Type: text/markdown
+
+# structuretoolkit 
+
+[![Pipeline](https://github.com/pyiron/structuretoolkit/actions/workflows/pipeline.yml/badge.svg)](https://github.com/pyiron/structuretoolkit/actions/workflows/pipeline.yml)
+[![codecov](https://codecov.io/gh/pyiron/structuretoolkit/graph/badge.svg?token=B6I4OACKND)](https://codecov.io/gh/pyiron/structuretoolkit)
+
+Originally developed as part of the `pyiron_atomistics` module the `structuretoolkit` was release as standalone library
+for analysing, building and visualising atomistic structures. Internally it uses the `ase.atoms.Atoms` class to 
+represent atomistic structures in python. The `structuretoolkit` is integrated inside `pyiron_atomistics`.
+
+## Disclaimer 
+The `structuretoolkit` is currently under development. 
+
+## Example
+
+```python
+import structuretoolkit as stk
+from ase.build import bulk
+
+structure = bulk("Al", cubic=True)
+stk.analyse.get_adaptive_cna_descriptors(structure)
+stk.plot3d(structure)
+```
+
+## Features 
+### Analysis
+* `stk.analyse.get_neighbors()`
+* `stk.analyse.get_neighborhood()`
+* `stk.analyse.get_equivalent_atoms()`
+* `stk.analyse.get_steinhardt_parameters()`
+* `stk.analyse.get_centro_symmetry_descriptors()` 
+* `stk.analyse.get_diamond_structure_descriptors()` 
+* `stk.analyse.get_adaptive_cna_descriptors()` 
+* `stk.analyse.get_voronoi_volumes()` 
+* `stk.analyse.find_solids()`
+* `stk.analyse.get_mean_positions()`
+* `stk.analyse.get_average_of_unique_labels()`
+* `stk.analyse.get_interstitials()`
+* `stk.analyse.get_layers()`
+* `stk.analyse.get_voronoi_vertices()`
+* `stk.analyse.get_voronoi_neighbors()`
+* `stk.analyse.get_delaunay_neighbors()`
+* `stk.analyse.get_cluster_positions()`
+* `stk.analyse.get_strain()`
+
+### Build
+* `stk.build.get_grainboundary_info()`
+* `stk.build.grainboundary()`
+* `stk.build.high_index_surface()`
+* `stk.build.get_high_index_surface_info()`
+* `stk.build.sqs_structures()`
+* `stk.build.pyxtal()`
+* `stk.build.B2()`
+* `stk.build.C14()`
+* `stk.build.C15()`
+* `stk.build.C36()`
+* `stk.build.D03()`
+
+### Visualize 
+* `stk.visualize.plot3d()`
+
+### Common 
+* `stk.common.ase_to_pymatgen()`
+* `stk.common.pymatgen_to_ase()`
+* `stk.common.pymatgen_read_from_file()`
+* `stk.common.ase_to_pyscal()`
+* `stk.common.apply_strain()`
+* `stk.common.center_coordinates_in_unit_cell()`
+* `stk.common.get_extended_positions()`
+* `stk.common.get_vertical_length()`
+* `stk.common.get_wrapped_coordinates()`
+* `stk.common.select_index()`

@@ -1,0 +1,128 @@
+[build-system]
+requires = ["ase", "numpy", "scipy", "hatchling==1.27.0", "hatch-vcs==0.5.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "structuretoolkit"
+description = "build, analyse and visualise atomistic structures for materials science"
+authors = [
+    { name = "Jan Janssen", email = "janssen@mpie.de" },
+]
+readme = "README.md"
+license = { file = "LICENSE" }
+keywords = ["pyiron"]
+requires-python = ">=3.9, <3.13"
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Topic :: Scientific/Engineering :: Physics",
+    "License :: OSI Approved :: BSD License",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "ase>=3.20.1,<=3.25.0",
+    "numpy>=1.23.5,<=1.26.4",
+    "scipy>=1.9.3,<=1.15.2",
+]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/pyiron/structuretoolkit"
+Documentation = "https://github.com/pyiron/structuretoolkit"
+Repository = "https://github.com/pyiron/structuretoolkit"
+
+[project.optional-dependencies]
+dscribe = ["dscribe==2.1.1"]
+grainboundary = [
+    "aimsgb>=1.0.2,<=1.1.1",
+    "pymatgen>=2022.2.1,<=2025.3.10",
+]
+pyscal = ["pyscal3>=3.2.5,<=3.3.0"]
+nglview = ["nglview>=2.7.7,<=3.1.4"]
+matplotlib = ["matplotlib==3.10.3"]
+plotly = ["plotly>=4.14.3,<=6.2.0"]
+clusters = ["scikit-learn==1.6.1"]
+symmetry = ["spglib>=1.16.5,<=2.6.0"]
+surface = [
+    "spglib>=1.16.5,<=2.6.0",
+    "pymatgen>=2022.2.1,<=2025.3.10",
+]
+phonopy = [
+    "phonopy>=2.16.2,<=2.43.1",
+    "spglib>=1.16.5,<=2.6.0",
+]
+pyxtal = ["pyxtal>=0.5.5,<=1.1.0"]
+
+[tool.ruff]
+exclude = [".ci_support", "tests", "setup.py", "_version.py"]
+
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+    # flake8-comprehensions
+    "C4",
+    # eradicate
+    "ERA",
+    # pylint
+    "PL",
+]
+ignore = [
+    # ignore functions in argument defaults
+    "B008",
+    # ignore exception naming
+    "B904",
+    # ignore line-length violations
+    "E501",
+    # ignore equality comparisons for numpy arrays
+    "E712",
+    # ignore bare except
+    "E722",
+    # ignore ambiguous variable name
+    "E741",
+    # ignore imports which are not at the top of a module
+    "PLC0415",
+    # Too many arguments in function definition
+    "PLR0913",
+    # Magic value used in comparison
+    "PLR2004",
+    # Too many branches
+    "PLR0912",
+    # Too many statements
+    "PLR0915",
+]
+
+[tool.hatch.build.hooks.vcs]
+version-file = "structuretoolkit/_version.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "structuretoolkit"
+]
+
+[tool.hatch.build.targets.wheel]
+packages = [
+    "structuretoolkit"
+]
+
+[tool.hatch.version]
+source = "vcs"
+path = "structuretoolkit/_version.py"
+
+[tool.coverage.run]
+omit = ["structuretoolkit/_version.py", "tests/*"]
+command_line = "-m unittest discover tests"
