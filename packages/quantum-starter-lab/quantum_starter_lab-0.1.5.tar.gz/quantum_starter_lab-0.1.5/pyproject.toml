@@ -1,0 +1,109 @@
+[build-system]
+requires = ["hatchling >=1.0.0", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "quantum-starter-lab"
+dynamic = ["version"]  # Enables automatic versioning from Git tags
+description = "A Python package for quantum computing demos, simulations, and NISQ research tools."
+authors = [
+    { name = "Pranava Kumar", email = "pranavakumar.it@gmail.com" },
+]
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.10"
+keywords = ["quantum computing", "qiskit", "cirq", "nisq", "quantum algorithms", "simulation", "education", "research"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Education",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Operating System :: OS Independent",
+]
+
+# Core dependencies with pinned versions for stability and reproducibility
+dependencies = [
+    "numpy >=1.26.0,<2.0.0",
+    "qiskit >=1.0.0,<2.0.0",
+    "qiskit-aer >=0.14.0,<1.0.0",
+    "matplotlib >=3.8.0,<4.0.0",
+    "cirq >=1.3.0,<2.0.0", # Adjusted for broader compatibility; change if needed
+    "pyqt6>=6.9.1",
+]
+
+# Dependencies for developers (testing, linting, typing, docs)
+dev = [
+    "pytest >=8.0.0,<9.0.0",
+    "hypothesis >=6.0.0,<7.0.0",
+    "ruff >=0.3.0,<1.0.0",
+    "black >=24.0.0,<25.0.0",
+    "mypy >=1.0.0,<2.0.0",
+    "types-requests",  # Example type stubs; add more as needed
+    "pre-commit >=3.0.0,<4.0.0",
+    "coverage >=7.0.0,<8.0.0",
+    "mkdocs >=1.5.0,<2.0.0",
+    "mkdocs-material >=9.0.0,<10.0.0",
+    "sphinx >=7.0.0,<8.0.0",  # For API documentation
+]
+
+[project.urls]
+"Repository" = "https://github.com/Pranava-Kumar/quantum-starter-lab"
+"Documentation" = "https://pranava-kumar.github.io/quantum-starter-lab"  # Update if you host docs
+"Changelog" = "https://github.com/Pranava-Kumar/quantum-starter-lab/blob/main/RELEASE_NOTES.md"
+
+# CLI entrypoint for the 'qsl' command
+[project.scripts]
+qsl = "quantum_starter_lab.cli:main"
+
+# Hatchling configuration for dynamic metadata
+[tool.hatch.version]
+source = "vcs"  # Uses Git tags for version (e.g., v0.1.4)
+
+# MyPy configuration for type checking
+[tool.mypy]
+files = ["src", "tests"]
+ignore_missing_imports = true
+strict = false  # Set to true for stricter checks later
+warn_redundant_casts = true
+warn_unused_ignores = true
+disallow_untyped_defs = true  # Encourage type hints for functions
+
+# Ruff configuration for linting
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",  # Standard Python errors/warnings
+    "I",           # Import sorting
+    "UP",          # Pyupgrade for modern Python
+    "B",           # Bugbear for common pitfalls
+]
+ignore = ["E501"]  # Optional: Ignore line length if you prefer flexibility
+
+# Pytest configuration (optional, if using pytest.ini separately)
+[tool.pytest.ini_options]
+addopts = "-v --hypothesis-show-statistics"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
+
+# Coverage configuration for tests
+[tool.coverage.run]
+branch = true
+source = ["src/quantum_starter_lab"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+]
+fail_under = 80  # Aim for at least 80% coverage
