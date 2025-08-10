@@ -1,0 +1,153 @@
+# TestAPIX Base Configuration
+# Generated on {{ created_date }} with TestAPIX v{{ testapix_version }}
+#
+# This file contains the default configuration that applies to all environments.
+# Environment-specific files (local.yaml, staging.yaml, etc.) will override these values.
+#
+# Configuration follows a layered approach (highest to lowest precedence):
+# 1. Runtime overrides (passed to load_config)
+# 2. Environment variables (TESTAPIX_* prefix)
+# 3. Environment-specific YAML files
+# 4. This base configuration file
+# 5. Default values in TestAPIX
+
+project_name: "{{ project_name }}"
+log_level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+
+# HTTP Client Configuration
+# These settings control how TestAPIX makes HTTP requests
+http:
+  # Base URL for all API requests
+  # Can be overridden with TESTAPIX_HTTP__BASE_URL environment variable
+  base_url: "{{ base_url }}"
+
+  # Request timeout in seconds
+  # Balance between allowing slow operations and failing fast
+  timeout: 30.0
+
+  # Retry configuration for handling transient failures
+  retries: 3              # Number of retry attempts
+  retry_delay: 1.0        # Initial delay between retries (seconds)
+  retry_backoff: 2.0      # Multiplier for exponential backoff
+
+  # HTTP behavior
+  follow_redirects: true  # Automatically follow 3xx redirects
+  verify_ssl: true        # Verify SSL certificates (set false for self-signed certs)
+
+  # Default headers sent with every request
+  # These can be overridden per-request
+  headers:
+    User-Agent: "TestAPIX-{{ project_name }}/1.0"
+    Accept: "application/json"
+    Content-Type: "application/json"
+    # Add custom headers as needed:
+    # X-Client-Version: "1.0.0"
+    # X-Request-Source: "pytest"
+
+{% if auth_type %}
+# Authentication Configuration
+# Credentials should NEVER be hardcoded here!
+# Use environment variables or secure secret management
+auth:
+  type: "{{ auth_type }}"
+
+  {% if auth_type == 'bearer' %}
+  # Bearer token authentication
+  # Set via TESTAPIX_AUTH__TOKEN environment variable
+  token: "${TESTAPIX_AUTH_TOKEN}"  # Will be replaced from env var
+  # Optional: Add token prefix if your API uses something other than "Bearer"
+  # token_prefix: "Bearer"
+
+  {% elif auth_type == 'api_key' %}
+  # API Key authentication
+  # Set via TESTAPIX_AUTH__API_KEY environment variable
+  api_key: "${TESTAPIX_API_KEY}"  # Will be replaced from env var
+  header_name: "X-API-Key"  # Adjust based on your API's requirements
+  # Some APIs use different header names like:
+  # header_name: "Authorization"
+  # header_name: "X-Auth-Token"
+
+  {% elif auth_type == 'oauth2' %}
+  # OAuth2 authentication
+  # All credentials via environment variables
+  client_id: "${TESTAPIX_CLIENT_ID}"
+  client_secret: "${TESTAPIX_CLIENT_SECRET}"
+  token_url: "${TESTAPIX_TOKEN_URL}"
+  # Scopes required by your API (space-separated)
+  scope: "read write"
+  # Optional: Additional OAuth2 parameters
+  # grant_type: "client_credentials"  # Default
+  # audience: "https://api.example.com"
+
+  {% elif auth_type == 'basic' %}
+  # Basic authentication
+  # Credentials via environment variables
+  username: "${TESTAPIX_AUTH_USERNAME}"
+  password: "${TESTAPIX_AUTH_PASSWORD}"
+  {% endif %}
+{% endif %}
+
+# Database Configuration
+# Used for test data cleanup and direct database validation
+database:
+  enabled: false  # Enable to use database features
+
+  # Connection URL (set via TESTAPIX_DATABASE__URL env var)
+  # Examples:
+  # PostgreSQL: postgresql://user:pass@localhost:5432/dbname
+  # MySQL: mysql://user:pass@localhost:3306/dbname
+  # SQLite: sqlite:///path/to/database.db
+  # url: "${TESTAPIX_DATABASE_URL}"
+
+  # Test data cleanup strategy
+  # - immediate: Clean up right after each test
+  # - batch: Clean up after test suite completes
+  # - manual: No automatic cleanup
+  # - environment: Clean up based on environment (e.g., not in production)
+  cleanup_strategy: "immediate"
+
+  # Batch cleanup settings
+  cleanup_batch_size: 100  # Records per batch
+
+# Reporting Configuration
+# Controls how test results are formatted and saved
+reporting:
+  enabled: true
+
+  # Output formats (can specify multiple)
+  # - console: Human-readable terminal output
+  # - html: Detailed HTML reports with request/response data
+  # - json: Machine-readable JSON format
+  # - junit: JUnit XML for CI/CD integration
+  formats:
+    - "console"
+    - "html"
+
+  # Directory for saving report files
+  output_dir: "reports"
+
+  # What to include in reports
+  include_request_data: true   # Full request details
+  include_response_data: true  # Full response bodies
+  include_timing: true         # Performance metrics
+
+  # Truncate large responses in reports (bytes)
+  max_response_size: 10000  # 10KB
+
+# Test Execution Settings
+# Control how tests are run
+parallel_workers: 1        # Number of parallel test workers (1 = sequential)
+test_data_cleanup: true    # Automatically clean up test data
+fail_fast: false          # Stop on first test failure
+random_seed: null         # Set for reproducible test data (e.g., 12345)
+
+# Custom Settings
+# Add your project-specific configuration here
+# custom:
+#   feature_flags:
+#     new_api_version: false
+#   test_accounts:
+#     admin_user_id: "admin-123"
+#   api_limits:
+#     rate_limit: 1000
+#     rate_limit_window: "hour"
