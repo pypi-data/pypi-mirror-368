@@ -1,0 +1,74 @@
+[project]
+name = "bq_mcp_server"
+authors = [
+    {name = "takada-at", email = "takada-at@klab.com"}
+]
+version = "0.1.4"
+license = {file = "LICENSE"}
+description = "Python-based MCP (Model Context Protocol) server that retrieves dataset, table, and schema information from Google Cloud BigQuery"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.115.12",
+    "gcloud-aio-bigquery>=7.1.0",
+    "google-cloud-bigquery>=3.31.0",
+    "mcp[cli]>=1.6.0",
+    "pydantic>=2.11.3",
+    "python-dotenv>=1.1.0",
+]
+
+[dependency-groups]
+dev = [
+    "lizard>=1.17.31",
+    "mypy>=1.16.1",
+    "pytest>=8.3.5",
+    "pytest-asyncio>=0.26.0",
+    "pytest-cov>=6.2.1",
+    "ruff>=0.11.7",
+    "uvicorn>=0.34.2",
+]
+
+[build-system]
+requires = ["hatchling >= 1.26"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "bq_mcp_server/**",
+  "/tests",
+  "README.md",
+  "README-ja.md",
+]
+exclude = [
+  "uv.lock",
+  "dist/.DS_Store",
+]
+
+[project.scripts]
+bq_mcp_server = "bq_mcp_server.adapters.mcp_server:main"
+
+[project.urls]
+Homepage = "https://github.com/takada-at/bq_mcp_server"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=bq_mcp_server --cov-report=term-missing --cov-report=html"
+
+[tool.coverage.run]
+source = ["bq_mcp_server"]
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == '__main__':",
+]
