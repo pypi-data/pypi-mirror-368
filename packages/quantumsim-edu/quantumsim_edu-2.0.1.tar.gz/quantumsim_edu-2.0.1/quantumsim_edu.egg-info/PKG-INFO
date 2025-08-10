@@ -1,0 +1,235 @@
+Metadata-Version: 2.4
+Name: quantumsim-edu
+Version: 2.0.1
+Summary: Educational quantum computing simulator with statevector simulation, quantum algorithms, and noise modeling
+Home-page: https://github.com/Vaiditya2207/quantum-projects
+Author: Vaiditya Tanwar
+Author-email: vaidityatanwar2207@gmail.com
+Project-URL: Bug Reports, https://github.com/Vaiditya2207/quantum-projects/issues
+Project-URL: Source, https://github.com/Vaiditya2207/quantum-projects
+Project-URL: Documentation, https://github.com/Vaiditya2207/quantum-projects/blob/main/README.md
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Education
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Topic :: Scientific/Engineering :: Physics
+Classifier: Topic :: Education
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Requires-Dist: numpy>=1.21.0
+Requires-Dist: matplotlib>=3.5.0
+Provides-Extra: dev
+Requires-Dist: pytest>=6.0; extra == "dev"
+Requires-Dist: black; extra == "dev"
+Requires-Dist: isort; extra == "dev"
+Requires-Dist: mypy; extra == "dev"
+Provides-Extra: jupyter
+Requires-Dist: jupyterlab>=3.0; extra == "jupyter"
+Requires-Dist: ipywidgets>=7.0; extra == "jupyter"
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: project-url
+Dynamic: provides-extra
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+# quantumsim-edu: Educational Quantum Computing Simulator
+
+A lightweight, educational quantum circuit simulator designed for learning quantum computing concepts. Built with clarity and modularity in mind, quantumsim provides an intuitive interface for building and simulating quantum circuits.
+
+## How quantumsim Works
+
+quantumsim uses a **statevector simulation** approach to model quantum systems:
+
+### 1. Quantum State Representation
+- Quantum states are represented as complex-valued vectors in a 2^n dimensional Hilbert space
+- For n qubits, the statevector contains 2^n complex amplitudes
+- Each amplitude represents the probability amplitude for a specific computational basis state
+
+### 2. Gate Operations
+- Quantum gates are implemented as unitary matrices
+- Gate application involves matrix-vector multiplication with the statevector
+- Multi-qubit gates use tensor product operations to construct full-dimensional matrices
+- All standard gates (Pauli, Hadamard, CNOT, rotations) are pre-implemented
+
+### 3. Circuit Execution
+- Circuits are built using a fluent API that chains gate operations
+- The executor applies gates sequentially to evolve the quantum state
+- Intermediate states can be inspected for educational purposes
+
+### 4. Measurement Simulation
+- Measurements collapse the quantum state according to Born's rule
+- Probability distributions are computed from statevector amplitudes
+- Classical outcomes are sampled using weighted random selection
+
+## Features
+
+**Core Simulation Engine:**
+- Statevector simulator supporting up to 20 qubits on typical hardware
+- Complete quantum gate library: Pauli gates (X, Y, Z), Hadamard (H), Phase gates (S, T), Rotation gates (RX, RY, RZ), Controlled gates (CX, CZ), SWAP gate
+- Fluent circuit building API with method chaining
+- ASCII circuit visualization for educational clarity
+
+**Educational Tools:**
+- Interactive examples demonstrating key quantum algorithms
+- Bell state preparation and measurement
+- Grover's search algorithm implementation
+- Quantum teleportation protocol
+- Noise modeling for realistic quantum simulation
+
+**Quantum Noise Models:**
+- Depolarizing channel for general decoherence
+- Amplitude damping for energy relaxation (T1 processes)
+- Phase damping for pure dephasing (T2 processes)
+- Stochastic noise application for realistic simulations
+
+## Installation
+
+```bash
+pip install quantumsim-edu
+```
+
+## Quick Start
+
+```python
+from core.circuit import Circuit
+from core.executor import Executor
+from viz.ascii import print_circuit
+
+# Create a Bell state circuit
+circuit = Circuit(2)
+circuit.h(0)        # Apply Hadamard to qubit 0
+circuit.cx(0, 1)    # Apply CNOT with control=0, target=1
+
+# Visualize the circuit
+print_circuit(circuit)
+
+# Execute the circuit
+executor = Executor()
+final_state = executor.run(circuit)
+
+# Measure the result
+measurement_counts = final_state.measure_all(shots=1000)
+print("Measurement results:", measurement_counts)
+# Expected: {'00': ~500, '11': ~500} (Bell state superposition)
+```
+
+## Example: Quantum Algorithm Implementation
+
+```python
+# Grover's algorithm for 2-qubit search
+def grovers_search():
+    circuit = Circuit(2)
+    
+    # Initialize superposition
+    circuit.h(0).h(1)
+    
+    # Oracle: mark state |11⟩
+    circuit.cz(0, 1)
+    
+    # Diffusion operator
+    circuit.h(0).h(1)
+    circuit.x(0).x(1)
+    circuit.cz(0, 1)
+    circuit.x(0).x(1)
+    circuit.h(0).h(1)
+    
+    return circuit
+
+# Execute and measure
+circuit = grovers_search()
+result = Executor().run(circuit)
+counts = result.measure_all(1000)
+print(counts)  # Should favor |11⟩ state
+```
+
+## Noise Simulation
+
+```python
+from noise.channels import DepolarizingChannel
+
+# Create noise model
+noise = DepolarizingChannel(p=0.1)  # 10% depolarization probability
+
+# Apply noise to quantum state
+noisy_state = noise.apply_stochastic(final_state)
+
+# Compare clean vs noisy measurements
+clean_counts = final_state.measure_all(1000)
+noisy_counts = noisy_state.measure_all(1000)
+
+print("Clean measurement:", clean_counts)
+print("Noisy measurement:", noisy_counts)
+```
+
+## Educational Value
+
+quantumsim is specifically designed for learning:
+
+- **Transparent Implementation**: All quantum operations are implemented clearly without optimization obfuscation
+- **Step-by-Step Execution**: Intermediate quantum states can be inspected during circuit execution
+- **Visual Circuit Representation**: ASCII art shows quantum circuits in a readable format
+- **Comprehensive Examples**: Covers fundamental quantum algorithms and protocols
+- **Noise Modeling**: Demonstrates real-world quantum decoherence effects
+
+## Performance Characteristics
+
+- **Memory Usage**: 2^n complex numbers (16 bytes each) for n qubits
+- **Computational Complexity**: O(2^n) for n-qubit circuit simulation
+- **Practical Limits**: Comfortably handles up to 20 qubits on modern laptops
+- **Optimization Features**: Gate fusion and circuit optimization for improved performance
+
+## Architecture
+
+```
+quantumsim/
+├── core/           # Core simulation engine
+│   ├── circuit.py     # Quantum circuit representation
+│   ├── statevector.py # Quantum state management
+│   ├── executor.py    # Circuit execution engine
+│   └── gates.py       # Quantum gate definitions
+├── noise/          # Noise modeling
+│   └── channels.py    # Quantum noise channels
+├── viz/            # Visualization tools
+│   └── ascii.py       # Circuit ASCII representation
+├── algorithms/     # Quantum algorithms
+├── examples/       # Educational examples
+└── docs/           # Documentation
+```
+
+## Dependencies
+
+- **numpy**: Numerical computations and linear algebra
+- **matplotlib**: Optional plotting and visualization
+- **Python 3.8+**: Modern Python features and type hints
+
+## License
+
+MIT License - Free for educational and research use.
+
+## Contributing
+
+quantumsim welcomes contributions from the quantum computing education community. Areas for contribution include:
+
+- Additional quantum algorithms implementations
+- Enhanced visualization tools
+- Performance optimizations
+- Educational content and tutorials
+- Quantum error correction examples
+
+## Links
+
+- **GitHub Repository**: https://github.com/Vaiditya2207/quantum-projects
+- **Documentation**: https://github.com/Vaiditya2207/quantum-projects/blob/main/quantumsim/docs/README.md
+- **Bug Reports**: https://github.com/Vaiditya2207/quantum-projects/issues
