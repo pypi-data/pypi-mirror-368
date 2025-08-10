@@ -1,0 +1,70 @@
+#!python
+
+import sys
+
+print("contur-mapmerge does not currently work, since it required pickle files.")
+print("We hope to provide the ability to merge db result files in a future releaase.")
+sys.exit(0)
+
+import os
+from argparse import ArgumentParser
+import contur.scan
+import contur.config.config as cfg
+import contur.util.utils as cutil
+from contur.factories.depot import Depot
+import logging
+
+
+
+parser = ArgumentParser(description="Concatenate multiple heatmap files.")
+parser.add_argument('heatmap_files', nargs='*', metavar='heatmap_files',
+                    help='Specify heatmap result files to concatenate.')
+parser.add_argument('-o', '--output_path', metavar='out_path', type=str,
+                    default='merged_runs.db',
+                    help='Output path to write new db file to.')
+parser.add_argument("-d", "--debug", action="store_true", dest="DEBUG", default=False,
+                    help="Switch on Debug to all, written to log file")
+
+args = parser.parse_args()
+
+cfg.setup_logger(filename="contur_mapmerge.log")
+print("Writing log to {}".format(cfg.logfile_name))
+
+
+if args.DEBUG:
+    cfg.contur_log.setLevel(logging.DEBUG)
+
+
+if os.path.isfile(args.output_path):
+
+
+    if not cutil.permission_to_continue("Output file {} already exists. Do you want to overwrite it?".format(args.output_path)):
+        sys.exit()
+
+
+cfg.setup_logger(filename="contur_mapmerge.log")
+print("Writing log to {}".format(cfg.logfile_name))
+
+combined_object = []	
+target = None	
+for heatmap_file in args.heatmap_files:
+    with open(heatmap_file, 'rb') as f:
+        print("Loading ", heatmap_file)
+        if not target:
+            target = Depot()
+            target.add_points_from_db(heatmap_file)
+        else:
+            candidate = Depot()
+            candidate.add_points_from_db(heatmap_file)
+            print("Merging ", heatmap_file)
+            target.merge(candidate)
+
+print("HERE")
+
+if target:
+    print("Resorting")
+    target.resort_points()
+    
+    with open(args.output_path, 'wb') as f:
+        target.write(outDir, args)
+    

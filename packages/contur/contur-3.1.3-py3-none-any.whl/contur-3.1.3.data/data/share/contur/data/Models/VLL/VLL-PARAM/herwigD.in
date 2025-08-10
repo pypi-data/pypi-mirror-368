@@ -1,0 +1,26 @@
+# Read in the Feynrules model
+read FRModel.model
+
+# set the masses which we don’t want to change
+
+# templating for the masses we do want to change
+set /Herwig/FRModel/Particles/taup:NominalMass {MTAUP}*GeV
+set /Herwig/FRModel/Particles/taup~:NominalMass {MTAUP}*GeV
+
+# templating for the couplings we want to change
+set /Herwig/FRModel/FRModel:epstaupeR {epstaupeR}
+set /Herwig/FRModel/FRModel:epstaupmuR {epstaupmuR}
+set /Herwig/FRModel/FRModel:epstauptaR {epstauptaR}
+
+cd /Herwig/NewPhysics
+# set the outgoing particles for the inclusive process
+insert HPConstructor:Outgoing 0 /Herwig/FRModel/Particles/taup
+insert HPConstructor:Outgoing 0 /Herwig/FRModel/Particles/taup~
+insert HPConstructor:Outgoing 0 /Herwig/FRModel/Particles/nup
+insert HPConstructor:Outgoing 0 /Herwig/FRModel/Particles/nup~
+
+# set the intermediate particles for the resonant process
+insert ResConstructor:Intermediates 0 /Herwig/FRModel/Particles/taup
+insert ResConstructor:Intermediates 0 /Herwig/FRModel/Particles/taup~
+insert ResConstructor:Intermediates 0 /Herwig/FRModel/Particles/nup
+insert ResConstructor:Intermediates 0 /Herwig/FRModel/Particles/nup~

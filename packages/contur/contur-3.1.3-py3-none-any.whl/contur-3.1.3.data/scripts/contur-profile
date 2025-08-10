@@ -1,0 +1,26 @@
+#!python
+
+import sys
+
+from contur.run.run_analysis import main
+from contur.run.arg_utils import get_args
+import cProfile
+import os
+import contur.config.config as cfg
+import warnings
+
+if __name__ == "__main__":
+
+    path=os.getenv('CONTUR_USER_DIR')
+
+    cl_args = get_args(sys.argv[1:],'analysis')
+
+    pr=cProfile.Profile()
+    pr.enable()
+        
+    main(cl_args)
+
+    pr.disable()
+
+    pr.dump_stats(f'{path}/Profiling_Contur.prof')
+    cfg.contur_log.info(f'Successfully create Profiling_Contur.prof files in {path}')

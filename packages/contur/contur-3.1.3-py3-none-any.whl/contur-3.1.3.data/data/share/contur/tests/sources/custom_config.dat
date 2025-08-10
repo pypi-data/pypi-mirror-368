@@ -1,0 +1,48 @@
+[theory_predictions]
+
+# default prediction to use
+[[*]] 
+id = A
+
+# overrides
+# [[ANALYSIS_PATTERN]]
+# id = 
+
+#################################################################################
+[models]
+
+# set default model
+[[*]] 
+name = 'default.multivariate_normal'
+
+# special override for single_bin objects
+[[single_bin]] 
+name = 'default.normal'
+
+# overrides
+# [[ANALYSIS_PATTERN]]
+# name = 
+
+#################################################################################
+[calculations]
+
+[[CLs]]
+function = exclusion_confidence_level
+confidence_level = 0.95
+calculator = 'chi_square'
+allow_negative_signal = False
+
+[[mu_hat]]
+function = maximize_likelihood
+allow_negative_signal = False
+
+[[mu_lower_limit]]
+function = chi2_test
+limit_type = 'left'
+
+[[mu_upper_limit]]
+function = chi2_test
+limit_type = 'right'
+
+[[optimizer_arguments]]
+# add optional arguments for the scipy optimisation

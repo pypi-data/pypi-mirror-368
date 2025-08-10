@@ -1,0 +1,63 @@
+sm_test:
+  command: contur-smtest
+
+grid_spey:
+  command: contur
+  switches: [s, q, -nopyscripts,-nomultip, -spey]
+  options: {csv: spey_calc.csv, grid: sources/myscan00, beams: all, resultsfile: spey_results.db, config: sources/custom_config.dat}
+
+grid_default:
+  command: contur
+  switches: [s, q, -whw, -wbv, -awz, -nopyscripts, -nomultip]
+  options: {csv: contur.csv, grid: sources/myscan00, beams: all, resultsfile: contur_run.db}
+
+grid_xsbf:
+  command: contur-extract-xs-bf
+  switches: [-br]
+  args: [sources/myscan00/13TeV/0003]
+
+single_default:
+  command: contur
+  args: [sources/myscan00/13TeV/0003/runpoint_0003.yoda.gz]
+  switches: [s, u, -databg]
+  options: {resultsfile: single_results.db}
+
+# This isn't really needed since the grid run doesn't uses them and the single run does, so
+# we cover the code.
+#single_default_databg:
+#  command: contur
+#  args: [sources/ATLAS_2017_I1625109.yoda.gz]
+#  # use analyses without SM prediction
+#  switches: [-databg]
+#  options: {ana-match: ATLAS_2017_I1625109, resultsfile: contur_databg.db } 
+
+single_default_noExp:
+  command: contur
+  args: [sources/myscan00/13TeV/0003/runpoint_0003.yoda.gz]
+  switches: [-no-exp]
+  options: {resultsfile: single_results_noExp.db}
+
+contur_plot:
+  command: contur-plot
+  args: [contur_run.db, mZp, cotH]
+
+rivetplots:
+  command: contur-rivetplots
+  options: {ana-match: ATLAS_2024_I2765017, resultsfile: single_results.db}
+
+rivetplots_databg:
+  command: contur-rivetplots
+  # use analysis without SM prediction
+  switches: [-databg]
+  #  options: {ana-match: ATLAS_2017_I1625109, resultsfile: contur_databg.db}
+  options: {ana-match: ATLAS_2017_I1625109, resultsfile: single_results.db}
+
+rivetplots_noExp:
+  command: contur-rivetplots
+  switches: [-no-exp]
+  options: {ana-match: ATLAS_2024_I2765017, resultsfile: single_results_noExp.db}
+
+contur_oracle:
+  command: contur-oracle
+  #options: {wd: sources/oracle}
+  # will test the `start` arg

@@ -1,0 +1,112 @@
+(****** FeynRules model file for singlet vectorlike leptons model (this should be loaded along with SM.fr file that has the SM interactions) ******)
+
+(* ************************** *)
+(* *****  Information   ***** *)
+(* ************************** *)
+
+M$ModelName = "Singlet VLL";
+
+M$Information = {
+        Authors      -> {"Prudhvi N. Bhattiprolu", "Stephen P. Martin"}, 
+        Version      -> "2.0",
+        Date         -> "10. 17. 2021",
+        Institutions -> {"University of Michigan", "Northern Illinois University"},
+        Emails       -> {"prudhvib@umich.edu", "spmartin@niu.edu"}
+};
+
+(* ************************** *)
+(* **** Particle classes **** *)
+(* ************************** *)
+
+M$ClassesDescription = {
+
+(* Vectorlike lepton tau prime, T_3 = 0, Q = -1 *)
+
+  F[17] == {
+        ClassName -> tauprime,
+        ClassMembers -> {taup},
+        SelfConjugate -> False,
+        Indices -> {},
+        Mass -> {{MTAUP,300}},
+        Width -> {{WTAUP,Internal}},
+        QuantumNumbers -> {Q -> -1,LeptonNumber -> 1},
+        PropagatorLabel -> {"taup"},
+        PropagatorType -> Straight,
+        ParticleName -> {"taup"},
+        AntiParticleName -> {"taup~"},
+        PropagatorArrow -> Forward,
+        PDG -> {17},
+        FullName -> {"tau prime"}}
+};
+
+
+(* ************************** *)
+(* *****   Parameters   ***** *)
+(* ************************** *)
+
+M$Parameters = {
+
+(** External parameters, VLL **)
+
+  epstaupeL == {
+        ParameterType -> External,
+        BlockName -> Couplings,
+        Value -> 0,
+	    InteractionOrder -> {VLL, 1},
+        Description -> "taup-eL mixing"},
+  
+  epstaupmuL == {
+        ParameterType -> External,
+        BlockName -> Couplings,
+        Value -> 0,
+	    InteractionOrder -> {VLL, 1},
+        Description -> "taup-muL mixing"},
+  
+  epstauptaL == {
+        ParameterType -> External,
+        BlockName -> Couplings,
+        Value -> 0.1,
+	    InteractionOrder -> {VLL, 1},
+        Description -> "taup-tauL mixing"},
+  
+
+(************** Internal Parameters, VLL **************)
+  
+  Tl == {
+        ParameterType -> Internal,
+        Value -> 0,
+        Description -> "Weak Isospin of tau prime"},
+  
+  WTAUP == { 
+        ParameterType    -> Internal, 
+        Value            -> (epstaupeL^2 + epstaupmuL^2 + epstauptaL^2)*(MTAUP/(64 Pi))*((1 - (MH/MTAUP)^2)^2 + (1 + 2*(MZ/MTAUP)^2)*(1 - (MZ/MTAUP)^2)^2 + 2*(1 + 2*(MW/MTAUP)^2)*(1 - (MW/MTAUP)^2)^2), 
+        Description      -> "width of tau prime"},
+  
+  gtaupb == { 
+        ParameterType    -> Internal, 
+        Value            -> g1*(-1-Tl), 
+        InteractionOrder -> {VLL, 1},
+        Description      -> "B coupling for tau prime"}
+
+};
+
+
+(* ************************** *)
+(* Lagrangian for Singlet VLL *)
+(* ************************** *)
+    
+LTAUPKINETIC := I taupbar.Ga[mu].del[taup, mu];
+
+LTAUPMASS := -MTAUP taupbar.taup;
+
+LVLLPRODUCTION := gtaupb*(taupbar.Ga[mu].taup).B[mu];
+
+LTAUPDECAYW :=epstaupeL*(MW/MTAUP)*(taupbar.Wbar[mu].Ga[mu].ProjM.ve)+epstaupeL*(MW/MTAUP)*(vebar.W[mu].Ga[mu].ProjM.taup)+epstaupmuL*(MW/MTAUP)*(taupbar.Wbar[mu].Ga[mu].ProjM.vm)+epstaupmuL*(MW/MTAUP)*(vmbar.W[mu].Ga[mu].ProjM.taup)+epstauptaL*(MW/MTAUP)*(taupbar.Wbar[mu].Ga[mu].ProjM.vt)+epstauptaL*(MW/MTAUP)*(vtbar.W[mu].Ga[mu].ProjM.taup);
+
+LTAUPDECAYZ := epstaupeL*(MZ/(Sqrt[2]*MTAUP))*(taupbar.Z[mu].Ga[mu].ProjM.e)+epstaupeL*(MZ/(Sqrt[2]*MTAUP))*(ebar.Z[mu].Ga[mu].ProjM.taup)+epstaupmuL*(MZ/(Sqrt[2]*MTAUP))*(taupbar.Z[mu].Ga[mu].ProjM.mu)+epstaupmuL*(MZ/(Sqrt[2]*MTAUP))*(mubar.Z[mu].Ga[mu].ProjM.taup)+epstauptaL*(MZ/(Sqrt[2]*MTAUP))*(taupbar.Z[mu].Ga[mu].ProjM.ta)+epstauptaL*(MZ/(Sqrt[2]*MTAUP))*(tabar.Z[mu].Ga[mu].ProjM.taup);
+
+LTAUPDECAYH:=-(epstaupeL/Sqrt[2])*(taupbar.H.ProjM.e)-(epstaupeL/Sqrt[2])*(ebar.H.ProjP.taup)-(epstaupmuL/Sqrt[2])*(taupbar.H.ProjM.mu)-(epstaupmuL/Sqrt[2])*(mubar.H.ProjP.taup)-(epstauptaL/Sqrt[2])*(taupbar.H.ProjM.ta)-(epstauptaL/Sqrt[2])*(tabar.H.ProjP.taup);
+
+LVLL :=  LTAUPKINETIC + LTAUPMASS + LVLLPRODUCTION + LTAUPDECAYW + LTAUPDECAYZ + LTAUPDECAYH; 
+
+L := LSM + LVLL ;
