@@ -1,0 +1,70 @@
+from setuptools import setup, find_packages
+
+setup(
+    name="discord_self",
+    version="2.0.1.post2",
+    description="A Python wrapper for the Discord user API",
+    long_description="discord_self is a fork of discord.py-self that lives under the `discord_self` namespace in order to allow both selfbots and bots to run together.\n\n\ndiscord.py-self\n================\n\n.. image:: https://img.shields.io/endpoint?url=https%3A%2F%2Frunkit.io%2Fdamiankrawczyk%2Ftelegram-badge%2Fbranches%2Fmaster%3Furl%3Dhttps%3A%2F%2Ft.me%2Fdpy_self\n   :target: https://t.me/dpy_self\n   :alt: Telegram chat\n.. image:: https://img.shields.io/pypi/v/discord.py-self.svg\n   :target: https://pypi.python.org/pypi/discord.py-self\n   :alt: PyPI version info\n.. image:: https://img.shields.io/pypi/pyversions/discord.py.svg\n   :target: https://pypi.python.org/pypi/discord.py-self\n   :alt: PyPI supported Python versions\n.. image:: https://img.shields.io/pypi/dm/discord.py-self.svg\n   :target: https://pypi.python.org/pypi/discord.py-self\n   :alt: PyPI downloads per month\n\nA modern, easy to use, feature-rich, and async ready API wrapper for Discord's user API written in Python.\n\n| **Note:**\n| Automating user accounts is against the Discord ToS. This library is a proof of concept and I cannot recommend using it. Do so at your own risk.\n\nFork Changes\n------------\n\nThese changes have become too numerous to mention, so check out our `docs <https://discordpy-self.readthedocs.io/en/latest/index.html>`_.\n\n**Credits:**\n\n- `Rapptz <https://github.com/Rapptz>`_ for the original library this fork is based on. Without it, the project would not exist.\n- `arandomnewaccount <https://www.reddit.com/user/obviouslymymain123/>`_ for help when the project was first started.\n\nKey Features\n-------------\n\n- Modern Pythonic API using ``async`` and ``await``.\n- Proper rate limit handling.\n- Optimised in both speed and memory.\n- Mostly compatible with the upstream ``discord.py``.\n- Prevents user account automation detection.\n- Implements vast amounts of the user account-specific API. For a non-exhaustive list:\n\n  * Sessions\n  * Connections\n  * Relationships\n  * Protobuf user settings\n  * Application/team management\n  * Store/SKUs/entitlements\n  * Billing (e.g. subscriptions, payments, boosts, promotions, etc.)\n  * Interactions (slash commands, buttons, etc.)\n\nInstalling\n----------\n\n**Python 3.8 or higher is required.**\n\nTo install the library without full voice support, you can just run the following command:\n\n.. code:: sh\n\n    # Linux/macOS\n    python3 -m pip install -U discord.py-self\n\n    # Windows\n    py -3 -m pip install -U discord.py-self\n\nOtherwise to get voice support you should run the following command:\n\n.. code:: sh\n\n    # Linux/macOS\n    python3 -m pip install -U \"discord.py-self[voice]\"\n\n    # Windows\n    py -3 -m pip install -U discord.py-self[voice]\n\n\nTo install the development version, do the following:\n\n.. code:: sh\n\n    $ git clone https://github.com/dolfies/discord.py-self\n    $ cd discord.py-self\n    $ python3 -m pip install -U .[voice]\n\n\nOptional Packages\n~~~~~~~~~~~~~~~~~~\n\n* `PyNaCl <https://pypi.org/project/PyNaCl/>`__ (for voice support)\n\nPlease note that on Linux installing voice you must install the following packages via your favourite package manager (e.g. ``apt``, ``dnf``, etc) before running the above commands:\n\n* libffi-dev (or ``libffi-devel`` on some systems)\n* python-dev (e.g. ``python3.6-dev`` for Python 3.6)\n\nUsing with Upstream\n~~~~~~~~~~~~~~~~~~~~\n\nIf you would like to use the library alongside upstream ``discord.py``, you can install ``selfcord.py`` instead of ``discord.py-self``. Check out the `renamed branch <https://github.com/dolfies/discord.py-self/tree/renamed>`_ for more information.\n\nQuick Example\n--------------\n\n.. code:: py\n\n    import discord\n\n    class MyClient(discord.Client):\n        async def on_ready(self):\n            print('Logged on as', self.user)\n\n        async def on_message(self, message):\n            # only respond to ourselves\n            if message.author != self.user:\n                return\n\n            if message.content == 'ping':\n                await message.channel.send('pong')\n\n    client = MyClient()\n    client.run('token')\n\nBot Example\n~~~~~~~~~~~~~\n\n.. code:: py\n\n    import discord\n    from discord.ext import commands\n\n    bot = commands.Bot(command_prefix='>', self_bot=True)\n\n    @bot.command()\n    async def ping(ctx):\n        await ctx.send('pong')\n\n    bot.run('token')\n\nYou can find more examples in the examples directory.\n\nLinks\n------\n\n- `Documentation <https://discordpy-self.readthedocs.io/en/latest/index.html>`_\n- `Project updates <https://t.me/dpy_self>`_\n- `Discussion & support <https://t.me/dpy_self_discussions>`_\n\n\n<!-- vendorization-metadata: {commit_hash: 17a342418c3ad7c32ad6ce81ece48472f615f9de, upstream_version: 2.0.1, vendorized_version: 2.0.1.post2} -->",
+    long_description_content_type="text/x-rst",
+    author="Steven Van Ingelgem",
+    author_email="steven@vaningelgem.be",
+    url="https://github.com/svaningelgem/discord_self",
+    license="MIT",
+    python_requires=">=3.8.0",
+    license_files=[
+        "LICENSE",
+    ],
+    classifiers=[
+        "Development Status :: 5 - Production/Stable",
+        "Intended Audience :: Developers",
+        "Natural Language :: English",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Topic :: Internet",
+        "Topic :: Software Development :: Libraries",
+        "Topic :: Software Development :: Libraries :: Python Modules",
+        "Topic :: Utilities",
+        "Typing :: Typed",
+    ],
+    install_requires=[
+        "aiohttp<4,>=3.7.4",
+        "discord-protos<1.0.0",
+    ],
+    extras_require={
+        "docs": [
+            "sphinx==4.4.0",
+            "sphinxcontrib-trio==1.1.2",
+            "sphinxcontrib-websupport",
+            "typing-extensions<5,>=4.3",
+        ],
+        "speed": [
+            "orjson>=3.5.4",
+            "aiodns>=1.1",
+            "Brotli",
+            "cchardet==2.1.7; python_version < \"3.10\"",
+        ],
+        "test": [
+            "coverage[toml]",
+            "pytest",
+            "pytest-asyncio",
+            "pytest-cov",
+            "pytest-mock",
+            "typing-extensions<5,>=4.3",
+        ],
+        "voice": [
+            "PyNaCl<1.6,>=1.3.0",
+        ],
+    },
+    project_urls={
+        "Documentation": "https://discordpy-self.readthedocs.io/en/latest/",
+        "Issue tracker": "https://github.com/dolfies/discord.py-self/issues",
+        "Project updates": "https://t.me/dpy_self",
+        "Discussion & support": "https://t.me/dpy_self_discussions",
+    },
+    packages=find_packages(),
+)

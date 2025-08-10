@@ -1,0 +1,72 @@
+from discord_self._vendor.discord.types.channel import (
+    ChannelTypeWithoutThread,
+    ThreadMetadata,
+)
+from discord_self._vendor.discord.types.interactions import (
+    ApplicationCommandInteraction,
+    ApplicationCommandInteractionData,
+    ApplicationCommandInteractionDataOption,
+    ButtonMessageComponentInteractionData,
+    ChatInputApplicationCommandInteractionData,
+    Interaction,
+    InteractionData,
+    InteractionType,
+    MessageApplicationCommandInteractionData,
+    MessageComponentInteraction,
+    MessageComponentInteractionData,
+    MessageInteraction,
+    ModalSubmitActionRowInteractionData,
+    ModalSubmitComponentInteractionData,
+    ModalSubmitComponentItemInteractionData,
+    ModalSubmitInteraction,
+    ModalSubmitInteractionData,
+    ModalSubmitTextInputInteractionData,
+    PartialChannel,
+    PartialThread,
+    PingInteraction,
+    ResolvedData,
+    SelectMessageComponentInteractionData,
+    UserApplicationCommandInteractionData,
+)
+from discord_self._vendor.discord.types.member import Member
+from discord_self._vendor.discord.types.message import Attachment, Message
+from discord_self._vendor.discord.types.role import Role
+from discord_self._vendor.discord.types.snowflake import Snowflake
+from discord_self._vendor.discord.types.threads import ThreadType
+from discord_self._vendor.discord.types.user import User
+
+__all__ = [
+    "ApplicationCommandInteraction",
+    "ApplicationCommandInteractionData",
+    "ApplicationCommandInteractionDataOption",
+    "Attachment",
+    "ButtonMessageComponentInteractionData",
+    "ChannelTypeWithoutThread",
+    "ChatInputApplicationCommandInteractionData",
+    "Interaction",
+    "InteractionData",
+    "InteractionType",
+    "Member",
+    "Message",
+    "MessageApplicationCommandInteractionData",
+    "MessageComponentInteraction",
+    "MessageComponentInteractionData",
+    "MessageInteraction",
+    "ModalSubmitActionRowInteractionData",
+    "ModalSubmitComponentInteractionData",
+    "ModalSubmitComponentItemInteractionData",
+    "ModalSubmitInteraction",
+    "ModalSubmitInteractionData",
+    "ModalSubmitTextInputInteractionData",
+    "PartialChannel",
+    "PartialThread",
+    "PingInteraction",
+    "ResolvedData",
+    "Role",
+    "SelectMessageComponentInteractionData",
+    "Snowflake",
+    "ThreadMetadata",
+    "ThreadType",
+    "User",
+    "UserApplicationCommandInteractionData",
+]
