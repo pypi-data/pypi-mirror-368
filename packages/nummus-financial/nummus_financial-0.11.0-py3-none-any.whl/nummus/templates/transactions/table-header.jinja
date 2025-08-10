@@ -1,0 +1,37 @@
+<div
+  id="txn-header"
+  class="mx-auto mb-2 flex max-w-2xl items-start gap-2"
+  hx-swap-oob="{{ oob }}"
+>
+  <label class="input-outlined grow">
+    <input
+      id="txn-search"
+      name="search"
+      value="{{ (ctx.search or "") | e }}"
+      placeholder=""
+      autocomplete="off"
+      spellcheck="true"
+      enterkeyhint="search"
+      hx-get="{{ url_for(endpoint,  **url_args) }}"
+      hx-trigger="keyup[keyCode==13],search"
+      hx-indicator="#txn-table,#txn-indicator"
+      hx-target="#txn-table"
+      hx-include="#txn-filters"
+    />
+    <div>
+      <div>Search</div>
+    </div>
+    <icon>search</icon>
+    <icon
+      onclick="htmx.find(this.parentNode, 'input').value='';htmx.trigger(htmx.find('#txn-search'), 'search')"
+      >clear</icon
+    >
+  </label>
+  <button
+    id="txn-filter-btn"
+    class="{{ 'btn-filled' if ctx.any_filters else 'btn-tonal' }} mt-1.5"
+    onclick="htmx.toggleClass(htmx.find('#txn-filters'), 'open')"
+  >
+    <icon>tune</icon>
+  </button>
+</div>

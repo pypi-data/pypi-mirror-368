@@ -1,0 +1,76 @@
+{% if include_oob %}
+  <div id="budget-status" hx-swap-oob="innerHTML">
+    {% include "budgeting/status.jinja" %}
+  </div>
+  <div id="budget-sidebar" hx-swap-oob="innerHTML">
+    {% include "budgeting/sidebar.jinja" %}
+  </div>
+{% endif %}
+<label class="{{ "error" if group.has_error }}">
+  <input
+    name="open"
+    type="checkbox"
+    {% if group.is_open %}checked{% endif %}
+    autocomplete="off"
+    hx-put="{{ url_for("budgeting.group", uri=group.uri or "ungrouped") }}"
+    hx-trigger="send-state"
+    hx-target="#no-target"
+    hx-include="this"
+    onclick="budgeting.openGroup(this, '{{ group.uri or "ungrouped" }}')"
+  />
+  {% if group.name %}
+    <input name="group-uri" type="hidden" value="{{ group.uri or "" }}" />
+    <icon class="budget-drag">drag_indicator</icon>
+  {% endif %}
+  <icon class="not-open:hidden edit:hidden">keyboard_arrow_up</icon>
+  <icon class="edit:hidden open:hidden">keyboard_arrow_down</icon>
+  <div>
+    {% if group.name %}
+      <input
+        class="not-edit:hidden"
+        name="name"
+        value="{{ group.name }}"
+        autocomplete="off"
+        spellcheck="true"
+        hx-put="{{ url_for("budgeting.group", uri=group.uri) }}"
+        hx-target="#budget-error"
+        hx-include="this"
+      />
+      <h1 class="edit:hidden">{{ group.name }}</h1>
+    {% else %}
+      <h1>Ungrouped</h1>
+    {% endif %}
+  </div>
+  <div class="edit:hidden max-md:open:hidden">
+    <div class="not-error:text-on-surface-variant text-sm">Assigned</div>
+    <div>{{ group.assigned | money }}</div>
+  </div>
+  <div class="edit:hidden max-md:hidden">
+    <div class="not-error:text-on-surface-variant text-sm">Activity</div>
+    <div>{{ group.activity | money }}</div>
+  </div>
+  <div class="edit:hidden max-md:open:hidden md:pr-2">
+    <div class="not-error:text-on-surface-variant text-sm">Available</div>
+    <div>{{ group.available | money }}</div>
+  </div>
+  <div
+    class="edit:hidden not-open:hidden not-error:text-on-surface-variant text-sm md:hidden"
+  >
+    <div>Available</div>
+    <div>to spend</div>
+  </div>
+  {% if group.uri %}
+    <button
+      class="not-edit:hidden btn-text-error btn-sq"
+      onclick="budgeting.deleteGroup(this)"
+    >
+      <icon>delete</icon>
+    </button>
+  {% endif %}
+</label>
+<div class="budget-group-items">
+  {% for category in group.categories %}
+    {% include "budgeting/category.jinja" %}
+    {% if not loop.last and not category.hidden %}<hr class="mx-4" />{% endif %}
+  {% endfor %}
+</div>
