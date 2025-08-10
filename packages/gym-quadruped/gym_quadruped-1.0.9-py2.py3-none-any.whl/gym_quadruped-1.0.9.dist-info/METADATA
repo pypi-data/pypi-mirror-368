@@ -1,0 +1,66 @@
+Metadata-Version: 2.4
+Name: gym-quadruped
+Version: 1.0.9
+Summary: A gym environment for quadruped robots using MuJoCo physics engine.
+Author-email: Daniel Ordoñez-Apraez <daniels.ordonez@gmail.com>, Giulio Turrisi <giulio.turrisi@iit.it>
+Maintainer-email: Daniel Felipe Ordoñez Apraez <daniels.ordonez@gmail.com>
+Keywords: deep,environment,gym,gymnasium,learning,locomotion,mujoco,quadruped,reinforcement,robotics
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Topic :: Software Development :: Build Tools
+Requires-Dist: gym-quadruped>=1.0.2
+Requires-Dist: gymnasium
+Requires-Dist: h5py
+Requires-Dist: mujoco>=3.3.1
+Requires-Dist: noise
+Requires-Dist: numpy
+Requires-Dist: opencv-python
+Requires-Dist: pytest
+Requires-Dist: robot-descriptions
+Requires-Dist: scipy>=1.15.1
+Description-Content-Type: text/markdown
+
+# Mujoco Gym Environment for quadupedal legged locomotion
+
+[![PyPI version](https://img.shields.io/pypi/v/gym-quadruped.svg)](https://pypi.org/project/gym-quadruped/) [![Python Version](https://img.shields.io/badge/python-3.10%20--%203.12-blue)](https://github.com/Danfoa/MorphoSymm/actions/workflows/tests.yaml)
+
+# Install Instructions
+
+```bash
+  pip install gym-quadruped
+  # or install locally
+  cd <gym-quadruped root dir> 
+  pip install -e . 
+```
+
+# Usage Instructions
+
+```python
+from gym_quadruped.quadruped_env import QuadrupedEnv
+
+robot_name = "mini_cheetah"   # "aliengo", "mini_cheetah", "go2", "hyqreal", ...
+scene_name = "flat"  # perlin | random_boxes
+state_observables_names = tuple(QuadrupedEnv.ALL_OBS)  # return all available state observables
+
+env = QuadrupedEnv(robot='mini_cheetah',
+                   scene=scene_name,
+                   base_vel_command_type="human",  # "forward", "random", "forward+rotate", "human"
+                   state_obs_names=state_observables_names,  # Desired quantities in the 'state'
+                   )
+obs = env.reset()
+
+env.render()
+for _ in range(10000):
+    action = env.action_space.sample() * 50  # Sample random action
+    state, reward, is_terminated, is_truncated, info = env.step(action=action)
+
+    if is_terminated:
+        pass
+        # Do some stuff
+    env.render()
+env.close()
+```
+
+See also `examples` directory.
