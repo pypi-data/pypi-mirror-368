@@ -1,0 +1,60 @@
+# We use a dynamic versioning system to update ther version do:
+# git tag -a v0.2.1 -m "Release 0.2.1"
+# git push origin v0.2.1
+[build-system]
+requires = ["setuptools>=61.0", "wheel", "setuptools-scm>=8"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "eqnlint"
+dynamic = ["version"]
+description = "Audits LaTeX papers for units, dimensions, symbols, citations, context, opacity, and prose."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.9"
+authors = [
+  { name = "John Ryan", email = "tambotitree@gmail.com" }
+]
+keywords = ["latex", "audit", "linter", "units", "dimensions", "citations", "prose"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Operating System :: OS Independent",
+  "Topic :: Text Processing :: Markup :: LaTeX",
+  "Intended Audience :: Science/Research",
+  "Development Status :: 4 - Beta"
+]
+
+dependencies = [
+  "openai",
+  "sympy",
+  "tqdm",
+  "rich",
+  "python-dotenv",
+]
+
+[project.urls]
+Homepage = "https://github.com/tambotitree/eqnlint-project"
+Issues   = "https://github.com/tambotitree/eqnlint-project/issues"
+
+[project.scripts]
+eqnlint            = "eqnlint.bin.eqnlint:main"
+audit-units        = "eqnlint.bin.units_audit:main"
+audit-symbolic     = "eqnlint.bin.symbolic_audit:main"
+audit-context      = "eqnlint.bin.context_audit:main"
+audit-prose        = "eqnlint.bin.prose_audit:main"
+audit-citation     = "eqnlint.bin.citation_audit:main"
+audit-opacity      = "eqnlint.bin.opacity_audit:main"
+audit-dimensional  = "eqnlint.bin.dimensional_audit:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["eqnlint*"]
+
+[tool.setuptools_scm]
+# Optional tweaks:
+fallback_version = "0.0.0"
+version_scheme = "guess-next-dev"
+local_scheme = "node-and-date"
+# If you prefer PEP 440 pre-releases like 0.3.0rc1, just tag 'v0.3.0rc1'
