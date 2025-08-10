@@ -1,0 +1,99 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "e-data"
+version = "2.0.0b1"
+authors = [
+    {name = "VMG", email = "vmayorg@outlook.es"},
+]
+description = "Python library for managing spanish energy data from various web providers"
+readme = "README.md"
+license = {text = "GPL-3.0-or-later"}
+requires-python = ">=3.8"
+classifiers = [
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Utilities",
+]
+keywords = ["energy", "data", "spain", "electricity", "consumption"]
+dependencies = [
+    "dateparser>=1.1.2",
+    "holidays>=0.14.2",
+    "python-dateutil>=2.8.2",
+    "requests>=2.28.1",
+    "voluptuous>=0.13.1",
+    "Jinja2>=3.1.2",
+    "pydantic>=2.0.0",
+    "sqlmodel>=0.0.24",
+    "aiosqlite>=0.20.0",
+    "sqlalchemy[asyncio]>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.1.2",
+    "freezegun>=1.2.1",
+    "twine>=4.0.0",
+    "build>=0.10.0",
+    "black>=22.0.0",
+    "flake8>=5.0.0",
+    "mypy>=1.0.0",
+]
+test = [
+    "pytest>=7.1.2",
+    "freezegun>=1.2.1",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.20.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/uvejota/python-edata"
+Repository = "https://github.com/uvejota/python-edata"
+Issues = "https://github.com/uvejota/python-edata/issues"
+
+[tool.setuptools]
+packages = ["edata"]
+
+[tool.setuptools.package-data]
+edata = ["py.typed"]
+
+# Configuración para herramientas de desarrollo
+[tool.black]
+line-length = 88
+target-version = ['py38']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.pytest.ini_options]
+testpaths = ["edata/tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
