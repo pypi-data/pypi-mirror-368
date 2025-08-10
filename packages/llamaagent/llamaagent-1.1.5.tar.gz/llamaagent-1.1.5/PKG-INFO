@@ -1,0 +1,562 @@
+Metadata-Version: 2.4
+Name: llamaagent
+Version: 1.1.5
+Summary: Advanced AI Agent Framework with Enterprise Features
+Project-URL: Homepage, https://github.com/nikjois/llamaagent
+Project-URL: Documentation, https://nikjois.github.io/llamaagent
+Project-URL: Repository, https://github.com/nikjois/llamaagent
+Project-URL: Bug Tracker, https://github.com/nikjois/llamaagent/issues
+Project-URL: Changelog, https://github.com/nikjois/llamaagent/releases
+Author-email: Nik Jois <nikjois@llamasearch.ai>
+Maintainer-email: Nik Jois <nikjois@llamasearch.ai>
+License: MIT License
+        
+        Copyright (c) 2024 Nik Jois
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE. 
+License-File: LICENSE
+Keywords: agent,ai,automation,distributed,enterprise,llm,multimodal,orchestration,reasoning,tools
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Typing :: Typed
+Requires-Python: >=3.11
+Requires-Dist: aiofiles<24.0.0,>=23.0.0
+Requires-Dist: bcrypt<5.0.0,>=4.0.0
+Requires-Dist: click<9.0.0,>=8.1.0
+Requires-Dist: cryptography<43.0.0,>=41.0.0
+Requires-Dist: datasette>=0.64
+Requires-Dist: fastapi<1.0.0,>=0.100.0
+Requires-Dist: httpx<1.0.0,>=0.25.0
+Requires-Dist: numpy<2.0.0,>=1.24.0
+Requires-Dist: openai<2.0.0,>=1.0.0
+Requires-Dist: prometheus-client<1.0.0,>=0.17.0
+Requires-Dist: psutil<6.0.0,>=5.9.0
+Requires-Dist: pydantic<3.0.0,>=2.0.0
+Requires-Dist: python-dotenv<2.0.0,>=1.0.0
+Requires-Dist: pyyaml<7.0.0,>=6.0.0
+Requires-Dist: rich<14.0.0,>=13.0.0
+Requires-Dist: sqlalchemy<3.0.0,>=2.0.0
+Requires-Dist: sqlite-utils>=3.36
+Requires-Dist: starlette<1.0.0,>=0.27.0
+Requires-Dist: structlog<24.0.0,>=23.0.0
+Requires-Dist: typer<1.0.0,>=0.9.0
+Requires-Dist: uvicorn[standard]<1.0.0,>=0.23.0
+Provides-Extra: ai-extended
+Requires-Dist: anthropic<1.0.0,>=0.3.0; extra == 'ai-extended'
+Requires-Dist: sentence-transformers<3.0.0,>=2.2.0; extra == 'ai-extended'
+Requires-Dist: tiktoken<1.0.0,>=0.5.0; extra == 'ai-extended'
+Provides-Extra: all
+Requires-Dist: aioredis<3.0.0,>=2.0.0; extra == 'all'
+Requires-Dist: anthropic<1.0.0,>=0.3.0; extra == 'all'
+Requires-Dist: asyncio-throttle<2.0.0,>=1.0.0; extra == 'all'
+Requires-Dist: asyncpg<1.0.0,>=0.28.0; extra == 'all'
+Requires-Dist: celery<6.0.0,>=5.3.0; extra == 'all'
+Requires-Dist: chromadb<1.0.0,>=0.4.0; extra == 'all'
+Requires-Dist: docker<7.0.0,>=6.0.0; extra == 'all'
+Requires-Dist: pandas<3.0.0,>=2.0.0; extra == 'all'
+Requires-Dist: prometheus-client<1.0.0,>=0.17.0; extra == 'all'
+Requires-Dist: psutil<6.0.0,>=5.9.0; extra == 'all'
+Requires-Dist: psycopg2-binary<3.0.0,>=2.9.0; extra == 'all'
+Requires-Dist: python-jose[cryptography]<4.0.0,>=3.3.0; extra == 'all'
+Requires-Dist: redis<5.0.0,>=4.6.0; extra == 'all'
+Requires-Dist: sentence-transformers<3.0.0,>=2.2.0; extra == 'all'
+Requires-Dist: tiktoken<1.0.0,>=0.5.0; extra == 'all'
+Provides-Extra: auth
+Requires-Dist: python-jose[cryptography]<4.0.0,>=3.3.0; extra == 'auth'
+Provides-Extra: data
+Requires-Dist: asyncio-throttle<2.0.0,>=1.0.0; extra == 'data'
+Requires-Dist: pandas<3.0.0,>=2.0.0; extra == 'data'
+Provides-Extra: dev
+Requires-Dist: basedpyright<2.0.0,>=1.10.0; extra == 'dev'
+Requires-Dist: black<24.0.0,>=23.7.0; extra == 'dev'
+Requires-Dist: coverage[toml]<8.0.0,>=7.0.0; extra == 'dev'
+Requires-Dist: isort<6.0.0,>=5.12.0; extra == 'dev'
+Requires-Dist: mypy<2.0.0,>=1.8.0; extra == 'dev'
+Requires-Dist: pre-commit<4.0.0,>=3.5.0; extra == 'dev'
+Requires-Dist: pytest-asyncio<1.0.0,>=0.21.0; extra == 'dev'
+Requires-Dist: pytest-cov<5.0.0,>=4.1.0; extra == 'dev'
+Requires-Dist: pytest-mock<4.0.0,>=3.11.0; extra == 'dev'
+Requires-Dist: pytest-xdist<4.0.0,>=3.3.0; extra == 'dev'
+Requires-Dist: pytest<8.0.0,>=7.4.0; extra == 'dev'
+Requires-Dist: ruff<1.0.0,>=0.1.0; extra == 'dev'
+Provides-Extra: distributed
+Requires-Dist: celery<6.0.0,>=5.3.0; extra == 'distributed'
+Requires-Dist: redis<5.0.0,>=4.6.0; extra == 'distributed'
+Provides-Extra: docs
+Requires-Dist: myst-parser<3.0.0,>=2.0.0; extra == 'docs'
+Requires-Dist: sphinx-autodoc-typehints<2.0.0,>=1.24.0; extra == 'docs'
+Requires-Dist: sphinx-rtd-theme<3.0.0,>=2.0.0; extra == 'docs'
+Requires-Dist: sphinx<8.0.0,>=7.0.0; extra == 'docs'
+Provides-Extra: enterprise
+Requires-Dist: docker<7.0.0,>=6.0.0; extra == 'enterprise'
+Provides-Extra: monitoring
+Requires-Dist: prometheus-client<1.0.0,>=0.17.0; extra == 'monitoring'
+Requires-Dist: psutil<6.0.0,>=5.9.0; extra == 'monitoring'
+Provides-Extra: postgres
+Requires-Dist: asyncpg<1.0.0,>=0.28.0; extra == 'postgres'
+Requires-Dist: psycopg2-binary<3.0.0,>=2.9.0; extra == 'postgres'
+Provides-Extra: redis
+Requires-Dist: aioredis<3.0.0,>=2.0.0; extra == 'redis'
+Requires-Dist: redis<5.0.0,>=4.6.0; extra == 'redis'
+Provides-Extra: vector
+Requires-Dist: chromadb<1.0.0,>=0.4.0; extra == 'vector'
+Description-Content-Type: text/markdown
+
+<div align="center">
+
+![LlamaAgent Logo](llamaagent_logo_inverted.png)
+
+# LlamaAgent
+
+**Advanced AI Agent Framework for Production-Ready Applications**
+
+[![CI/CD](https://github.com/nikjois/llamaagent/actions/workflows/ci.yml/badge.svg)](https://github.com/nikjois/llamaagent/actions)
+[![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)](https://github.com/llamasearchai/llamaagent)
+
+*Empowering developers to build intelligent, scalable AI agents with enterprise-grade reliability*
+
+</div>
+
+---
+
+## Overview
+
+LlamaAgent is a comprehensive AI agent framework designed for production environments. It provides a robust foundation for building intelligent agents that can reason, use tools, maintain memory, and integrate seamlessly with modern AI providers.
+
+### Key Features
+
+- **Multi-Provider LLM Support**: OpenAI, Anthropic, Cohere, Together AI, and more
+- **Advanced Reasoning**: ReAct pattern implementation with chain-of-thought capabilities
+- **Tool Integration**: Extensible tool system with calculator, Python REPL, and custom tools
+- **Memory Management**: Persistent memory with vector storage capabilities
+- **Production Ready**: Comprehensive error handling, logging, and monitoring
+- **FastAPI Integration**: RESTful API endpoints for web applications
+- **Docker Support**: Containerized deployment with Kubernetes manifests
+- **Comprehensive Testing**: 38+ tests with 100% pass rate
+
+## Quick Start
+
+### Installation
+
+```bash
+# Install from PyPI
+pip install llamaagent
+
+# Or install from source
+git clone https://github.com/llamasearchai/llamaagent.git
+cd llamaagent
+pip install -e ".[dev]"
+```
+
+### Basic Usage
+
+```python
+from llamaagent.agents.react import ReactAgent
+from llamaagent.agents.base import AgentConfig
+from llamaagent.llm.providers.openai_provider import OpenAIProvider
+from llamaagent.types import TaskInput
+
+# Configure the agent
+config = AgentConfig(
+    name="MyAgent",
+    description="A helpful AI assistant",
+    tools_enabled=True
+)
+
+# Initialize LLM provider
+provider = OpenAIProvider(api_key="your-api-key", model="gpt-4")
+
+# Create the agent
+agent = ReactAgent(config=config, llm_provider=provider)
+
+# Execute a task
+task = TaskInput(
+    id="task-1",
+    task="Calculate the square root of 144 and explain the process"
+)
+
+result = await agent.execute(task.task)
+print(result.content)
+```
+
+## Architecture
+
+LlamaAgent follows a modular architecture designed for scalability and maintainability:
+
+```
+├── agents/          # Agent implementations (ReAct, reasoning chains)
+├── llm/            # LLM provider integrations
+├── tools/          # Tool system and implementations
+├── memory/         # Memory management and storage
+├── api/            # FastAPI web interfaces
+├── monitoring/     # Observability and metrics
+├── security/       # Authentication and validation
+└── types/          # Core type definitions
+```
+
+## Advanced Features
+
+### Tool System
+
+```python
+from llamaagent.tools.calculator import CalculatorTool
+from llamaagent.tools.python_repl import PythonREPLTool
+
+# Register custom tools
+agent.register_tool(CalculatorTool())
+agent.register_tool(PythonREPLTool())
+```
+
+### Memory Management
+
+```python
+from llamaagent.memory.vector_memory import VectorMemory
+
+# Configure persistent memory
+memory = VectorMemory(
+    embedding_model="text-embedding-3-large",
+    storage_path="./agent_memory"
+)
+agent.set_memory(memory)
+```
+
+### FastAPI Integration
+
+```python
+from llamaagent.api.main import create_app
+
+# Create web API
+app = create_app()
+
+# Run with: uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+## Configuration
+
+### Environment Variables
+
+```bash
+# LLM Provider Keys
+OPENAI_API_KEY=your_openai_key
+ANTHROPIC_API_KEY=your_anthropic_key
+COHERE_API_KEY=your_cohere_key
+
+# Database Configuration
+DATABASE_URL=postgresql://user:pass@localhost/db
+REDIS_URL=redis://localhost:6379
+
+# Monitoring
+ENABLE_METRICS=true
+LOG_LEVEL=INFO
+```
+
+### Configuration File
+
+```yaml
+# config/default.yaml
+agent:
+  name: "ProductionAgent"
+  max_iterations: 10
+  timeout: 300
+
+llm:
+  provider: "openai"
+  model: "gpt-4"
+  temperature: 0.7
+  max_tokens: 2000
+
+tools:
+  enabled: true
+  timeout: 30
+
+memory:
+  enabled: true
+  type: "vector"
+  max_entries: 10000
+```
+
+## Deployment
+
+### Docker
+
+```bash
+# Build the image
+docker build -t llamaagent:latest .
+
+# Run the container
+docker run -p 8000:8000 -e OPENAI_API_KEY=your_key llamaagent:latest
+```
+
+### Kubernetes
+
+```bash
+# Deploy to Kubernetes
+kubectl apply -f k8s/
+```
+
+### Docker Compose
+
+```bash
+# Full stack deployment
+docker-compose up -d
+```
+
+## API Reference
+
+### Core Endpoints
+
+- `POST /agents/execute` - Execute agent task
+- `GET /agents/{agent_id}/status` - Get agent status
+- `POST /tools/execute` - Execute tool directly
+- `GET /health` - Health check endpoint
+
+### OpenAI Compatible API
+
+```bash
+# Chat completions
+curl -X POST "http://localhost:8000/v1/chat/completions" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4",
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }'
+```
+
+## Testing
+
+```bash
+# Run all tests
+pytest tests/ -v
+
+# Run with coverage
+pytest tests/ --cov=src --cov-report=html
+
+# Run specific test categories
+pytest tests/unit/ -v          # Unit tests
+pytest tests/integration/ -v   # Integration tests
+pytest tests/e2e/ -v          # End-to-end tests
+```
+
+## Monitoring and Observability
+
+### Metrics
+
+LlamaAgent provides comprehensive metrics for production monitoring:
+
+- Request/response times
+- Success/failure rates
+- Token usage and costs
+- Agent performance metrics
+- Tool execution statistics
+
+### Logging
+
+```python
+import logging
+from llamaagent.monitoring.logging import setup_logging
+
+# Configure structured logging
+setup_logging(level=logging.INFO, format="json")
+```
+
+### Health Checks
+
+```bash
+# Check system health
+curl http://localhost:8000/health
+
+# Detailed diagnostics
+curl http://localhost:8000/diagnostics
+```
+
+## Security
+
+### Authentication
+
+```python
+from llamaagent.security.authentication import APIKeyAuth
+
+# Configure API key authentication
+auth = APIKeyAuth(api_keys=["your-secret-key"])
+app.add_middleware(auth)
+```
+
+### Input Validation
+
+```python
+from llamaagent.security.validator import InputValidator
+
+# Validate and sanitize inputs
+validator = InputValidator()
+safe_input = validator.sanitize(user_input)
+```
+
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### Development Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/llamasearchai/llamaagent.git
+cd llamaagent
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install development dependencies
+pip install -e ".[dev]"
+
+# Run pre-commit hooks
+pre-commit install
+```
+
+### Code Quality
+
+```bash
+# Format code
+black src/ tests/
+isort src/ tests/
+
+# Lint code
+ruff check src/ tests/
+
+# Type checking
+mypy src/
+
+# Security scan
+bandit -r src/
+```
+
+## Examples
+
+### Basic Agent
+
+```python
+# examples/basic_agent.py
+import asyncio
+from llamaagent.agents.react import ReactAgent
+from llamaagent.agents.base import AgentConfig
+from llamaagent.llm.providers.mock_provider import MockProvider
+from llamaagent.types import TaskInput
+
+async def main():
+    config = AgentConfig(name="BasicAgent")
+    provider = MockProvider(model_name="test-model")
+    agent = ReactAgent(config=config, llm_provider=provider)
+
+    task = TaskInput(
+        id="example-1",
+        task="Explain quantum computing in simple terms"
+    )
+
+    result = await agent.arun(task)
+    print(f"Agent Response: {result.content}")
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+### Multi-Agent System
+
+```python
+# examples/multi_agent.py
+import asyncio
+from llamaagent.spawning.agent_spawner import AgentSpawner
+from llamaagent.orchestration.adaptive_orchestra import AdaptiveOrchestra
+
+async def main():
+    spawner = AgentSpawner()
+    orchestra = AdaptiveOrchestra()
+
+    # Spawn multiple specialized agents
+    research_agent = await spawner.spawn_agent("researcher")
+    analysis_agent = await spawner.spawn_agent("analyst")
+    writer_agent = await spawner.spawn_agent("writer")
+
+    # Orchestrate collaborative task
+    result = await orchestra.execute_collaborative_task(
+        task="Write a comprehensive report on AI safety",
+        agents=[research_agent, analysis_agent, writer_agent]
+    )
+
+    print(f"Collaborative Result: {result}")
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+## Benchmarks
+
+LlamaAgent includes comprehensive benchmarking against industry standards:
+
+- **GAIA Benchmark**: General AI Assistant evaluation
+- **SPRE Evaluation**: Structured Problem Reasoning
+- **Custom Benchmarks**: Domain-specific performance testing
+
+```bash
+# Run benchmarks
+python -m llamaagent.benchmarks.run_all --provider openai --model gpt-4
+```
+
+## Roadmap
+
+- [ ] Multi-modal agent support (vision, audio)
+- [ ] Advanced reasoning patterns (Tree of Thoughts, Graph of Thoughts)
+- [ ] Federated learning capabilities
+- [ ] Enhanced security features
+- [ ] Performance optimizations
+- [ ] Extended tool ecosystem
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+- **Documentation**: [https://llamaagent.readthedocs.io](https://llamaagent.readthedocs.io)
+- **Issues**: [GitHub Issues](https://github.com/llamasearchai/llamaagent/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/llamasearchai/llamaagent/discussions)
+- **Email**: [nikjois@llamasearch.ai](mailto:nikjois@llamasearch.ai)
+
+## Acknowledgments
+
+Built with love by [Nik Jois](https://github.com/nikjois) and the LlamaSearch AI team.
+
+Special thanks to the open-source community and all contributors who make this project possible.
+
+---
+
+<div align="center">
+  <strong>LlamaAgent - Empowering the Future of AI Agents</strong>
+</div>
