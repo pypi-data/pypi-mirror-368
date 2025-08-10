@@ -1,0 +1,121 @@
+Metadata-Version: 2.1
+Name: signedheat3d
+Version: 0.1.0
+Summary: Python bindings for the signed-heat-3d library, which implements the Signed Heat Method for generalized signed distance.
+Author-Email: Nicole Feng <nicolefeng7@gmail.com>
+Maintainer-Email: Nicole Feng <nfeng@andrew.cmu.edu>
+License: MIT License
+         
+         Copyright (c) 2025 Nicole Feng
+         
+         Permission is hereby granted, free of charge, to any person obtaining a copy
+         of this software and associated documentation files (the "Software"), to deal
+         in the Software without restriction, including without limitation the rights
+         to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+         copies of the Software, and to permit persons to whom the Software is
+         furnished to do so, subject to the following conditions:
+         
+         The above copyright notice and this permission notice shall be included in all
+         copies or substantial portions of the Software.
+         
+         THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+         IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+         FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+         AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+         LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+         OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+         SOFTWARE.
+         
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Project-URL: Documentation, https://github.com/nzfeng/signed-heat-python
+Project-URL: Homepage, https://github.com/nzfeng/signed-heat-python
+Project-URL: Issues, https://github.com/nzfeng/signed-heat-python/issues
+Project-URL: Repository, https://github.com/nzfeng/signed-heat-python
+Requires-Python: >=3.7
+Requires-Dist: numpy
+Description-Content-Type: text/markdown
+
+# signedheat3d (Python package)
+
+## Documentation lives at [https://nzfeng.github.io/signed-heat-3d/py](https://nzfeng.github.io/signed-heat-3d/py)
+
+![teaser image](https://github.com/nzfeng/signed-heat-3d/blob/main/media/teaser.png)
+
+A Python library implementing the [Signed Heat Method](https://nzfeng.github.io/research/SignedHeatMethod/index.html) for computing robust signed distance fields (SDFs) to polygon meshes and point clouds in 3D.
+
+* The original C++ code lives at [signed-heat-3d](https://github.com/nzfeng/signed-heat-3d).
+* If you're interested in using the Signed Heat Method *on* 2D surface domains, rather than in 3D Euclidean space, check out the signed heat method implementation in [`potpourri3d`](https://github.com/nmwsharp/potpourri3d). (The overall organization of this repository was inspired by that of `potpourri3d`!)
+
+## Installation
+
+The recommended way to install `signedheat3d` is via PyPI:
+
+```
+pip install signedheat3d
+```
+You can also clone the repository and install it from source:
+```
+git clone --recurse-submodules https://github.com/nzfeng/signed-heat-python.git
+cd signed-heat-python
+pip install .
+```
+If you do not clone recursively, some submodules or sub-submodules will not clone. Initialize/update these submodules by running `git submodule update --init --recursive` or `git submodule update --recursive`.
+
+<!-- If you are a developer, then it is usually much more efficient to install the build dependencies in your environment once and use the following command that avoids creating a new virtual environment at every compilation:
+
+```
+pip install --no-build-isolation -ve .
+``` -->
+
+### Dependencies
+
+This project has the following submodules, which should have been installed in the previous step.
+* [nanobind](https://nanobind.readthedocs.io/en/latest/)
+* [signed-heat-3d](https://github.com/nzfeng/signed-heat-3d)
+
+You may need to install Boost since `signed-heat-3d` depends on [`amgcl`](https://github.com/ddemidov/amgcl), which depends on Boost. Pip-installing `signed-heat-3d` should download Boost if it is not found on your system, but Boost can also be installed on macOS using `brew install boost`, and the necessary modules on Ubuntu using
+```
+sudo apt-get -y update
+sudo apt-get -y install libboost-dev libboost-test-dev libboost-program-options-dev libboost-serialization-dev
+```
+Windows users would follow the instructions on the [Boost website](https://www.boost.org/releases/latest/).
+
+## Demo program
+
+This repository also contains a demo Python program at `test/demo.py`, using [Polyscope](https://github.com/nmwsharp/polyscope-py) for visualization. The demo program at `test/demo.py` uses the following Python libraries, which can each be installed via `pip install`:
+* [NumPy](https://numpy.org/)
+* [polyscope](https://polyscope.run/py/)
+<!-- * [mypy](https://www.mypy-lang.org/) (assuming Python 3.8+) -->
+To run the demo program, pip-install the package using the instructions described [above](#installation). Then `cd` into the top level of the directory, and run
+```
+
+python3 test/demo.py path/to/mesh/or/pointcloud
+```
+
+### Input / Output
+
+Input / output meshes can be any one of the following [types](https://geometry-central.net/surface/utilities/io/) ("Supported file types"), including OBJ, PLY, STL, and OFF.
+
+Point clouds are currently assumed to have file extension `.pc` and consist of newline-separated 3D point positions (denoted by leading char `v`) and point normal vectors (denoted by leading char `vn`).
+
+### Command line arguments
+
+In addition to the mesh file, you can pass several flags.
+
+|flag | default | purpose|
+| ------------- |-------------|-------------|
+|`--g`, `--grid`| `False` | Solve on a background grid. By default, the domain will be discretized as a tet mesh. |
+|`--b`| `np.array([1.0, 1.0, 1.0, -1.0, -1.0, -1.0], dtype=np.float64))` | Set the 3D positions of the minimum & maximum corners of the rectangular domain. If the corner positions are not valid, a bounding box will automatically be computed. |
+|`--v`, `--verbose`| Off | Verbose output. Off by default.|
+|`--s`| `np.array([32, 32, 32], dtype=np.int64))` | Sets the resolution of the domain, by defining the number of nodes in each dimension. If solving on a tet mesh, only the first value is relevant. |
+|`--l`, `--headless`| Off | Don't use the GUI, and automatically solve for & export the generalized SDF.|
+
+<!-- ## TODOs
+
+* Contouring slower than in [signed-heat-3d](https://github.com/nzfeng/signed-heat-3d), because data is being passed by value with each call to the Python-bound functions
+* More precise level set constraints for grid solves
+* Isoline rendering for volume meshes is [not yet bound in Polyscope](https://github.com/nmwsharp/polyscope-py/issues/36); for now, SDFs can be rendered with isobands via the GUI only.
+* Handle more input file formats, via extra Python bindings to [geometry-central](https://geometry-central.net/)'s IO functions.
+ -->
