@@ -1,0 +1,57 @@
+# Ultra-minimal distroless build
+# Stage 1: Build with uv
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS builder
+
+WORKDIR /app
+
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PYTHON_DOWNLOADS=never
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    python3-dev \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy and install dependencies
+COPY pyproject.toml uv.lock ./
+RUN uv venv /app/.venv && \
+    . /app/.venv/bin/activate && \
+    uv pip sync uv.lock
+
+# Copy and install package
+COPY src/ ./src/
+COPY README.md ./
+RUN . /app/.venv/bin/activate && \
+    uv pip install --no-deps .
+
+# Stage 2: Runtime with distroless
+FROM gcr.io/distroless/python3-debian12
+
+# Copy PostgreSQL libraries from builder
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libpq.so.5 /usr/lib/x86_64-linux-gnu/
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libssl.so.3 /usr/lib/x86_64-linux-gnu/
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libcrypto.so.3 /usr/lib/x86_64-linux-gnu/
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libgssapi_krb5.so.2 /usr/lib/x86_64-linux-gnu/
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libldap-2.5.so.0 /usr/lib/x86_64-linux-gnu/
+COPY --from=builder /usr/lib/x86_64-linux-gnu/liblber-2.5.so.0 /usr/lib/x86_64-linux-gnu/
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libsasl2.so.2 /usr/lib/x86_64-linux-gnu/
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libkrb5.so.3 /usr/lib/x86_64-linux-gnu/
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libk5crypto.so.3 /usr/lib/x86_64-linux-gnu/
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libkrb5support.so.0 /usr/lib/x86_64-linux-gnu/
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libcom_err.so.2 /usr/lib/x86_64-linux-gnu/
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libkeyutils.so.1 /usr/lib/x86_64-linux-gnu/
+
+# Copy Python environment
+COPY --from=builder /app/.venv/lib /app/.venv/lib
+
+# Set Python path
+ENV PYTHONPATH=/app/.venv/lib/python3.12/site-packages \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# Entry point - distroless doesn't have shell, so use Python directly
+ENTRYPOINT ["python", "-m", "src.server"]

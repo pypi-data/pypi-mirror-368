@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  aact-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mcp-server-aact:latest
+    container_name: aact-mcp-server
+    
+    # Environment variables for database connection
+    environment:
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      # Optional: Override transport type (stdio, sse, streamable-http)
+      - MCP_TRANSPORT=${MCP_TRANSPORT:-stdio}
+    
+    # For stdio transport (default)
+    stdin_open: true
+    tty: true
+    
+    # For SSE/HTTP transports, expose ports
+    ports:
+      - "${MCP_PORT:-8000}:8000"
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "python", "-c", "import psycopg2; print('healthy')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Networks
+    networks:
+      - mcp-network
+    
+    # Optional: mount local code for development
+    # volumes:
+    #   - ./src:/app/src:ro
+    
+    # Command override examples (uncomment as needed):
+    # For SSE transport:
+    # command: ["--transport", "sse", "--port", "8000"]
+    # For streamable HTTP:
+    # command: ["--transport", "streamable-http", "--port", "8000"]
+
+networks:
+  mcp-network:
+    driver: bridge
