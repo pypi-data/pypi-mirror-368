@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$defs": {
+    "script": {
+      "type": "object",
+      "description": "Information about a user script",
+      "properties": {
+        "name": { "type": "string" },
+        "args": { "type": "array", "items": { "type": "string" } },
+        "running": { "type": "boolean" },
+        "thread_id": { "type": "integer" }
+      },
+      "required": ["name", "args", "running", "thread_id"],
+      "additionalProperties": false
+    },
+    "outlet_field": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Original name of the outlet"
+        },
+        "normalised_name": {
+          "type": "string",
+          "description": "Normalised outlet name"
+        },
+        "id": {
+          "type": "integer",
+          "description": "Numerical outlet identifier"
+        },
+        "state": {
+          "type": "boolean",
+          "description": "Outlet state (true=ON)"
+        }
+      },
+      "required": ["name", "normalised_name", "id", "state"],
+      "additionalProperties": true,
+      "description": "Properties of each outlet"
+    }
+  },
+  "type": "object",
+  "properties": {
+    "nps_type": { "type": "string", "description": "Type of NPS switch" },
+    "outlet_names": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of outlet names"
+    },
+    "outlets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/outlet_field"
+      }
+    },
+    "outlet_info": {
+      "$ref": "#/$defs/outlet_field",
+      "description": "Information about a specific outlet"
+    },
+    "script": { "$ref": "#/$defs/script" },
+    "scripts": { "type": "array", "items": { "$ref": "#/definitions/script" } }
+  },
+  "additionalProperties": false
+}
