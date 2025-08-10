@@ -1,0 +1,115 @@
+[project]
+name = "kpf"
+version = "0.1.8"
+description = "A terminal utility to run kubectl port-forward and automatically restart it when endpoint changes are detected"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Jesse Goodier"},
+]
+keywords = ["kubernetes", "kubectl", "port-forward", "k8s", "devops", "cli"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: System :: Systems Administration",
+    "Topic :: Utilities",
+]
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "rich>=14",
+    "requests>=2.28",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff",
+    "isort",
+    "bump-my-version",
+    "pytest",
+    "pytest-cov",
+    "pytest-timeout",
+    "coverage",
+]
+
+[project.urls]
+Homepage = "https://github.com/jessegoodier/kpf"
+Repository = "https://github.com/jessegoodier/kpf"
+Issues = "https://github.com/jessegoodier/kpf/issues"
+
+[project.scripts]
+kpf = "kpf.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.7.21"]
+build-backend = "uv_build"
+
+[tool.uv_build.build.targets.wheel]
+packages = ["src/kpf"]
+
+[tool.ruff]
+line-length = 100
+indent-width = 4
+format.indent-style = "space"
+target-version = "py313"
+src = ["src", "tests"]
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 100
+known_first_party = ["kpf"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--verbose",
+    "--tb=short",
+    "--cov=src/kpf",
+    "--cov-report=term-missing",
+    "--cov-report=html:htmlcov",
+    "--cov-report=xml:coverage.xml",
+    "--cov-fail-under=70",
+    "--timeout=10"
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning"
+]
+
+[tool.bumpversion]
+current_version = "0.1.8"
+commit = false
+tag = false
+tag_name = "{new_version}"
+moveable_tags = [
+    "v{new_major}",
+    "v{new_major}.{new_minor}",
+]
+allow_dirty = true
+parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)(\\.(?P<dev>post)\\d+\\.dev\\d+)?"
+serialize = [
+    "{major}.{minor}.{patch}.{dev}{$PR_NUMBER}.dev{distance_to_latest_tag}",
+    "{major}.{minor}.{patch}"
+]
+message = "Version updated from {current_version} to {new_version}"
+pre_commit_hooks = ["uv sync --upgrade", "git add uv.lock"]
+
+[tool.bumpversion.parts.dev]
+values = ["release", "post"]
+
+[[tool.bumpversion.files]]
+filename = "src/kpf/__init__.py"
+
+[[tool.bumpversion.files]]
+filename = "tests/test_integration.py"
+
