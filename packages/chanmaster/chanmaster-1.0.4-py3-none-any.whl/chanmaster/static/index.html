@@ -1,0 +1,146 @@
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>ChanMaster - 缠后生</title>
+
+    <link href="./materialize.min-1.0.0.css" rel="stylesheet">
+    
+    <script>
+        function updateUrl()
+        {
+            url=document.getElementById('url')
+            symbol=document.getElementById('symbol')
+            token=document.getElementById('token')
+
+            radios = document.getElementsByName('group1');
+	        for (i = 0; i < radios.length; i++) 
+            {
+		        if (radios[i].checked) 
+                {
+                    period=radios[i]
+     			    break;
+		        }
+	        }
+
+            isIndex = document.getElementById('isIndex');
+            isAdjust = document.getElementById('isAdjust');
+
+            symbolValue=symbol.value
+            if (isIndex.checked==false)
+            {
+                s=symbolValue[0]
+                if (['0','3'].includes(s))
+                    symbolValue='sz'+symbolValue
+                else if (['6'].includes(s))
+                    symbolValue='sh'+symbolValue
+                else if (['8'].includes(s))
+                    symbolValue='bj'+symbolValue
+            }
+
+            link='/chart?symbol='+symbolValue
+            link+='&freq='+period.value
+            link+='&isIndex='+isIndex.checked
+            link+='&isEnding='+isEnding.checked
+            link+='&isAdjust='+isAdjust.checked
+            link+='&token='+token.value
+            url.href=link
+            url.text=link
+
+            url_adjust=document.getElementById('url_adjust')
+            link='/adjust?symbol='+symbolValue
+            url_adjust.href=link
+        }
+
+        window.onload = function()
+        {
+            updateUrl();
+        }
+    </script>
+</head>
+
+<body>
+
+
+  <div class="row valign-wrapper"  style="height:90%;width:100%">
+    <div class="col s12 m10 l6 xl4 offset-m1 offset-l3 offset-xl4">
+
+          <input placeholder="" id="symbol" type="text" class="validate" oninput="updateUrl()"  style="font-size: 35px;" value="sh000001">
+          <label for="first_name" class="blue-text text-darken-2" style="font-size: 25px;">Symbol</label>
+
+    <br><br>
+
+    <table>
+    <tr>
+    <td>
+    <p>
+      <label>
+        <input name="group1" type="radio" onchange="updateUrl()" value="1" />
+        <span style="font-size: 25px;">1min</span>
+      </label>
+    </p>
+    <p>
+      <label>
+        <input name="group1" type="radio" onchange="updateUrl()" value="5" checked/>
+        <span style="font-size: 25px;">5min</span>
+      </label>
+    </p>
+    <p>
+      <label>
+        <input name="group1" type="radio" onchange="updateUrl()" value="30" />
+        <span style="font-size: 25px;">30min</span>
+      </label>
+    </p>
+    <p>
+      <label>
+        <input name="group1" type="radio" onchange="updateUrl()" value="d" />
+        <span style="font-size: 25px;">day</span>
+      </label>
+    </p>
+    </td>
+    <td>
+    <p>
+      <label>
+        <input id="isIndex" type="checkbox" onchange="updateUrl()" class="filled-in" />
+        <span>指数</span>
+      </label>
+    </p>
+    <br>
+    <p>
+      <label>
+        <input id="isEnding" type="checkbox" onchange="updateUrl()" class="filled-in" checked="checked" />
+        <span>终结</span>
+      </label>
+    </p>
+    <br>
+    <p>
+      <label>
+        <input id="isAdjust" type="checkbox" onchange="updateUrl()" class="filled-in" />
+        <span>复权</span>
+      </label>
+    </p>
+    <p>
+     <a id='url_adjust' href="" target="_blank" style="font-size: 20px;display: none;">复权历史</a>
+    </p>
+    </td>
+    </tr>
+    </table>
+
+    <br>
+    <input placeholder="token" id="token" type="text" class="validate" oninput="updateUrl()"  style="font-size: 25px;" value="">
+
+    <a href="https://chan.thingswell.cn/token" target="_blank" style="font-size: 20px;">获取token</a>
+    <br><br>
+    
+    <a id='url' href="" target="_blank" style="font-size: 25px;">/</a>
+
+    </div>
+  </div>
+
+</body>
+</html>
+
+
