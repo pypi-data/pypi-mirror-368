@@ -1,0 +1,244 @@
+
+############################################################
+#                      POETRY                              #
+############################################################
+
+[tool.poetry]
+name = "mpflash"
+version = "1.26.0"
+description = "Flash and download tool for MicroPython firmwares"
+authors = ["Jos Verlinde <jos_verlinde@hotmail.com>"]
+license = "MIT"
+readme = "README.md"
+keywords = ["MicroPython", "firmware", "flash", "download", "UF2", "esptool"]
+homepage = "https://github.com/Josverl/mpflash/blob/main/README.md"
+repository = "https://github.com/Josverl/mpflash"
+classifiers = [
+    "Programming Language :: Python :: Implementation :: MicroPython",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Software Development :: Build Tools",
+]
+
+[tool.poetry.scripts]
+mpflash = "mpflash.cli_main:mpflash"
+
+[tool.poetry.dependencies]
+python = ">=3.9.2,<3.11.0 || >3.11.0,<4.0"
+beautifulsoup4 = "^4.12.3"
+bincopy = "^20.0.0"
+blkinfo = "^0.2.0"
+cachetools = "^5.3.0"
+esptool = "^4.7.0"
+inquirer = "^3.2.4"
+jsonlines = "^4.0.0"
+jsons = "^1.6.3"
+libusb = { version = "^1.0.27", platform = "win32" }
+pywin32 = { version = "^310", platform = "win32" }
+loguru = "^0.7.2"
+mpremote = "^1.22.0"
+packaging = "^24.2"
+platformdirs = "^4.2.0"
+psutil = ">=7.0.0,<8.0.0"
+pygithub = "^2.1.1"
+pyusb = "^1.2.1"
+requests = "^2.31.0"
+rich-click = "^1.8.1"
+tenacity = "9.0.0"
+cache-to-disk = "^2.0.0"
+sqlalchemy = "^2.0.41"
+tomli-w = "^1.2.0"
+
+
+[tool.poetry.group.dev]
+optional = true
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.29.5"
+tornado = "^6.5"      # fix 
+pandas = "^2.2.3"
+
+[tool.poetry.group.test]
+optional = true
+[tool.poetry.group.test.dependencies]
+pandas = "^2.2.3"
+pytest = ">=7.1.2,<9.0.0"
+pytest-cov = "^6.0.0"
+pytest-github-actions-annotate-failures = ">=0.1.7,<0.4.0"
+pytest-json-report = "^1.5.0"
+pytest-metadata = ">=2.0.2,<4.0.0"
+pytest-mock = "^3.10.0"
+#
+coverage = ">=6.4.3,<8.0.0"
+distro = "^1.8.0"
+fasteners = "^0.19"
+mock = ">=4.0.3,<6.0.0"
+
+
+[tool.poetry.group.perf]
+optional = true
+[tool.poetry.group.perf.dependencies]
+scalene = "^1.5.51"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+############################################################
+#                  PYTEST                                  #
+############################################################
+
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+python_functions = ["test_", "*_test"]
+python_files = ["test_*.py", "*_test.py"]
+testpaths = ["tests"]
+norecursedirs = [".*", ".*/*"]
+junit_family = "xunit1"
+
+addopts = "--capture=no --cov-branch --cov-report=xml -m 'not slow'"
+# --capture=no
+
+markers = [
+    "mpflash: marks tests of the mpflash tool",
+    "basicgit: rather slow tests for basicgit",
+    "snippets: test snippets to check the stubs",
+
+    "legacy: reeally old tests that need to be updated or removed",
+
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: Integration tests (slower)",
+    "mocked: to replace/compensate for most of the slow and git tests",
+    #
+    "cli: test command line interface",
+    # os platforms
+    "win32: run test only on Windows",
+    "linux: run test only on linux",
+    "darwin: run test only on Mac",
+    # micropython version dependencies 
+
+
+]
+
+############################################################
+#                     Coverage (pytest-cov)                #
+############################################################
+
+
+# coverage reports
+
+[tool.coverage.run]
+parallel = false
+branch = true
+source = ["mpflash"]
+omit = [
+    # micropython code
+    "mpflash/mpremoteboard/mpy_fw_info.py",
+    # vendored 
+    "mpflash/vendor/*",
+    # pytest code
+    "*/test_*.py",
+    "*/*_test.py",
+
+]
+
+
+[tool.coverage.html]
+directory = "coverage"
+
+[tool.coverage.xml]
+output = "results/coverage.xml"
+
+[tool.coverage.json]
+output = "results/coverage.json"
+
+[tool.coverage.lcov]
+output = "results/coverage.lcov"
+
+[tool.coverage.report]
+show_missing = true
+# Regexes for lines to exclude from consideration
+exclude_lines = [
+    # Have to re-enable the standard pragma
+    "pragma: no cover",
+    "pragma: nocover",
+
+    # Don't complain about missing debug-only code:
+    "def __repr__",
+    "self._log.debug",
+
+    # Don't complain if tests don't hit defensive assertion code:
+    "raise AssertionError",
+    "raise NotImplementedError",
+
+    "except subprocess.CalledProcessError as e:",
+    "except OSError:",
+    "except OSError as e:",
+    "except OSError as e2:",
+    "except (OSError, KeyError):",
+    "except (OSError, AttributeError):",
+    "except (OSError, KeyError, NameError):",
+    "except KeyError:",
+    "except AttributeError as e:",
+    "except requests.RequestException as e:",
+
+    # Don't complain if non-runnable code isn't run:
+    "if __name__ == .__main__.:",
+
+    # mind the quotes 
+    'if __name__ == "__main__" or isMicroPython():',
+    "main()",
+
+    # utility functions
+    "show_help()",
+    "isMicroPython()",
+    "read_path()",
+
+    #unreachable
+    # mind the quotes 
+    'info["release"] = "2.0.0" ',
+    "if arch",
+
+    # Micropython detection
+    "except (NotImplementedError, SyntaxError):",
+    # catch error
+    "except (OSError, KeyError):",
+    "except (OSError, AttributeError):",
+
+    # Backward compat <= 3.7 
+    "if sys.version_info.major == 3 and sys.version_info.minor <= 7:",
+
+]
+
+
+############################################################
+#                         RUFF linter                      #
+############################################################
+
+
+[tool.ruff]
+# Exclude a variety of commonly ignored directories.
+
+# Same as Black.
+line-length = 140
+indent-width = 4
+
+#Stubs should be usable Python 3.9
+target-version = "py39"
+
+[tool.ruff.format]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+exclude = [".*", "__*", "dist", "repos"]
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
+
+[tool.ruff.lint]
+exclude = [".*", "__*", "dist", "repos", "mpflash\\vendor"]
+ignore = ["F821"]
