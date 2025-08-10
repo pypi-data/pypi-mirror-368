@@ -1,0 +1,108 @@
+Metadata-Version: 2.4
+Name: llms-txt-mcp
+Version: 0.1.1
+Summary: Lean MCP server for minimal-context docs via llms.txt
+Project-URL: Homepage, https://github.com/tenequm/llms-mcp-txt
+Project-URL: Repository, https://github.com/tenequm/llms-mcp-txt
+Project-URL: Issues, https://github.com/tenequm/llms-mcp-txt/issues
+Author-email: Misha Kolesnik <misha@kolesnik.io>
+License: MIT
+License-File: LICENSE
+Keywords: claude code,documentation,llms.txt,mcp,model context protocol,semantic search
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Software Development :: Build Tools
+Classifier: Topic :: Software Development :: Libraries :: Application Frameworks
+Requires-Python: >=3.12
+Requires-Dist: chromadb>=0.5.0
+Requires-Dist: httpx>=0.27.0
+Requires-Dist: mcp[cli]>=1.12.0
+Requires-Dist: pydantic>=2.0.0
+Requires-Dist: pyyaml>=6.0.0
+Requires-Dist: sentence-transformers>=3.0.0
+Provides-Extra: dev
+Requires-Dist: mypy>=1.11.0; extra == 'dev'
+Requires-Dist: pytest-asyncio>=0.23.0; extra == 'dev'
+Requires-Dist: pytest>=8.0.0; extra == 'dev'
+Requires-Dist: ruff>=0.6.0; extra == 'dev'
+Description-Content-Type: text/markdown
+
+## llms-txt-mcp
+
+[![PyPI](https://img.shields.io/pypi/v/llms-txt-mcp.svg)](https://pypi.org/project/llms-txt-mcp/) [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/) [![MCP SDK 1.12+](https://img.shields.io/badge/MCP%20SDK-1.12+-purple.svg)](https://github.com/modelcontextprotocol/python-sdk) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+Fast, surgical access to big docs in Claude Code via llms.txt. Search first, fetch only what matters.
+
+### Why this exists
+- Hitting token limits and timeouts on huge `llms.txt` files hurts flow and drowns context.
+- This MCP keeps responses tiny and relevant. No dumps, no noise — just the parts you asked for.
+
+### Quick start (Claude Desktop)
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json` or `.mcp.json` in your project:
+```json
+{
+  "mcpServers": {
+    "llms-txt-mcp": {
+      "command": "uvx",
+      "args": [
+        "llms-txt-mcp",
+        "https://ai-sdk.dev/llms.txt",
+        "https://nextjs.org/docs/llms.txt",
+        "https://orm.drizzle.team/llms.txt"
+      ]
+    }
+  }
+}
+```
+Now Claude Code|Desktop can instantly search and retrieve exactly what it needs from those docs.
+
+### How it works
+URL → Parse YAML/Markdown → Embed → Search → Get Section
+- Parses multiple llms.txt formats (YAML frontmatter + Markdown)
+- Embeds sections and searches semantically
+- Retrieves only the top matches with a byte cap (default: 75KB)
+
+### Features
+- Instant startup with lazy loading and background indexing
+- Search-first; no full-document dumps
+- Byte-capped responses to protect context windows
+- Human-readable IDs (e.g. `https://ai-sdk.dev/llms.txt#rag-agent`)
+
+### Source resolution and crawling behavior
+- Always checks for `llms-full.txt` first, even when `llms.txt` is configured. If present, it uses `llms-full.txt` for richer structure.
+- For a plain `llms.txt` that only lists links, it indexes those links in the collection but does not crawl or scrape the pages behind them. Link-following/scraping may be added later.
+
+### Talk to it in Claude Code|Desktop
+- "Search Next.js docs for middleware routing. Give only the most relevant sections and keep it under 60 KB."
+- "From Drizzle ORM docs, show how to define relations. Retrieve the exact section content."
+- "List which sources are indexed right now."
+- "Refresh the Drizzle docs so I get the latest version, then search for migrations."
+- "Get the section for app router dynamic routes from Next.js using its canonical ID."
+
+### Configuration (optional)
+- **--store-path PATH** (default: none) Absolute path to persist embeddings. If set, disk persistence is enabled automatically. Prefer absolute paths (e.g., `/Users/you/.llms-cache`).
+- **--ttl DURATION** (default: `24h`) Refresh cadence for sources. Supports `30m`, `24h`, `7d`.
+- **--timeout SECONDS** (default: `30`) HTTP timeout.
+- **--embed-model MODEL** (default: `BAAI/bge-small-en-v1.5`) SentenceTransformers model id.
+- **--max-get-bytes N** (default: `75000`) Byte cap for retrieved content.
+- **--auto-retrieve-threshold FLOAT** (default: `0.1`) Score threshold (0–1) to auto-retrieve matches.
+- **--auto-retrieve-limit N** (default: `5`) Max docs to auto-retrieve per query.
+- **--no-preindex** (default: off) Disable automatic pre-indexing on launch.
+- **--no-background-preindex** (default: off) If preindexing is on, wait for it to finish before serving.
+- **--no-snippets** (default: off) Disable content snippets in search results.
+- **--sources ... / positional sources** One or more `llms.txt` or `llms-full.txt` URLs.
+
+- **--store {memory|disk}** (default: auto) Not usually needed. Auto-selected based on `--store-path`. Use only to explicitly override behavior.
+
+### Development
+```bash
+make install  # install deps
+make test     # run tests
+make check    # format check, lint, type-check, tests
+make fix      # auto-format and fix lint
+```
+
+Built on [FastMCP](https://github.com/modelcontextprotocol/python-sdk) and the [Model Context Protocol](https://modelcontextprotocol.io). MIT license — see `LICENSE`.
