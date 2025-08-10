@@ -1,0 +1,179 @@
+# Tap2Talk
+
+Voice transcription desktop app for macOS - Double-tap Ctrl to start/stop recording, get instant transcription.
+
+Created by [unclecode](https://github.com/unclecode) - Author of [Crawl4AI](https://github.com/unclecode/crawl4ai) (50K+ stars)
+
+## Features
+
+- **Simple Controls**: Double-tap Ctrl to start/stop recording
+- **Instant Transcription**: Powered by Groq's Whisper API for fast, accurate transcription
+- **Smart Text Insertion**: Automatically inserts transcribed text at your cursor position
+- **Beautiful Overlay**: Native macOS overlay window shows recording status
+- **Abort Recording**: Double-tap Esc to cancel recording
+- **Retry on Failure**: Built-in retry mechanism for failed transcriptions
+- **Menu Bar App**: Runs quietly in your menu bar without cluttering your Dock
+
+## Installation
+
+### Quick Install
+
+```bash
+pip install tap2talk
+```
+
+### Install from Source
+
+```bash
+git clone https://github.com/unclecode/tap2talk.git
+cd tap2talk
+pip install -e .
+```
+
+## Setup
+
+1. **Get your Groq API Key**:
+   - Visit [Groq Console](https://console.groq.com/keys)
+   - Create a free account and generate an API key
+   - Keys start with `gsk_`
+
+2. **Run Tap2Talk**:
+   ```bash
+   tap2talk
+   ```
+
+3. **First Run Setup**:
+   - You'll be prompted to enter your Groq API key
+   - The key is saved securely in `~/.tap2talk/config.yaml`
+
+## Usage
+
+### Quick Start
+```bash
+# Install
+pip install tap2talk
+
+# Run (will ask how you want to run it)
+tap2talk
+
+# Or start directly as background service
+tap2talk start
+```
+
+### Service Commands
+```bash
+tap2talk              # Interactive mode (asks service or terminal)
+tap2talk start        # Start as background service
+tap2talk stop         # Stop background service  
+tap2talk status       # Check if running
+tap2talk restart      # Restart service
+tap2talk logs         # View recent logs
+```
+
+### Using Tap2Talk
+
+1. **Grant Permissions**: macOS will ask for:
+   - Accessibility permission (for keyboard monitoring)
+   - Microphone permission (for recording)
+
+2. **Use Hotkeys**:
+   - **Double-tap Ctrl**: Start/stop recording
+   - **Double-tap Esc**: Abort recording
+
+3. **Watch the Overlay**: A beautiful overlay shows:
+   - Recording (red mic icon)
+   - Processing (gear icon)
+   - Done (checkmark)
+   - Aborted (X mark)
+   - Error (warning icon)
+
+## macOS Permissions
+
+Tap2Talk requires these permissions to function:
+
+1. **Accessibility**: System Preferences > Security & Privacy > Privacy > Accessibility
+2. **Microphone**: System Preferences > Security & Privacy > Privacy > Microphone
+
+Add your Terminal app (Terminal, iTerm2, etc.) to both permission lists.
+
+## Configuration
+
+Configuration is stored in `~/.tap2talk/config.yaml`:
+
+```yaml
+groq_api_key: "your_api_key_here"
+log_level: "info"
+auto_paste: true
+recording_timeout: 30
+model: "whisper-large-v3-turbo"
+double_press_threshold_ms: 400
+overlay_position: "top-right"
+overlay_hide_delay_ms: 2000
+```
+
+## Troubleshooting
+
+### Permissions Issues
+Make sure your terminal has both Accessibility and Microphone permissions in System Preferences.
+
+### API Key Issues
+- Groq API keys start with `gsk_`
+- Get a free key at [console.groq.com/keys](https://console.groq.com/keys)
+- Check your key is saved in `~/.tap2talk/config.yaml`
+
+### Recording Not Starting
+- Check the menu bar for the Tap2Talk icon
+- Ensure you're double-tapping Ctrl quickly (within 400ms)
+- Try adjusting `double_press_threshold_ms` in config
+
+## Development
+
+```bash
+# Clone the repository
+git clone https://github.com/unclecode/tap2talk.git
+cd tap2talk
+
+# Create virtual environment
+python -m venv .venv
+source .venv/bin/activate
+
+# Install in development mode
+pip install -e .
+
+# Run tests
+python -m pytest
+```
+
+## Building
+
+```bash
+# Install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Build package
+uv build
+
+# Install locally
+uv pip install dist/tap2talk-*.whl
+```
+
+## License
+
+MIT License - see LICENSE file for details.
+
+## Author
+
+Created by **unclecode**
+- GitHub: [@unclecode](https://github.com/unclecode)
+- X/Twitter: [@unclecode](https://x.com/unclecode)
+- Check out [Crawl4AI](https://github.com/unclecode/crawl4ai) - #1 open source library for web crawling with 50K+ stars
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## Acknowledgments
+
+- Powered by [Groq](https://groq.com) for lightning-fast transcription
+- Built with [rumps](https://github.com/jaredks/rumps) for macOS menu bar integration
+- Uses [PyObjC](https://github.com/ronaldoussoren/pyobjc) for native macOS features
