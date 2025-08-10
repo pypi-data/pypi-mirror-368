@@ -1,0 +1,143 @@
+[project]
+name = "novae"
+version = "1.0.0"
+description = "Graph-based foundation model for spatial transcriptomics data"
+authors = [{ name = "Quentin Blampey", email = "quentin.blampey@gmail.com" }]
+requires-python = ">=3.10,<3.13"
+readme = "README.md"
+license = "BSD-3-Clause"
+classifiers = [
+  "License :: OSI Approved :: BSD License",
+  "Operating System :: MacOS :: MacOS X",
+  "Operating System :: POSIX :: Linux",
+  "Operating System :: Microsoft :: Windows",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering",
+]
+dependencies = [
+  "scanpy>=1.9.8",
+  "lightning>=2.2.1",
+  "torch>=2.2.1",
+  "torch-geometric>=2.5.2",
+  "huggingface-hub>=0.24.0",
+  "safetensors>=0.4.3",
+  "pandas>=2.0.0",
+  "igraph>=0.11.8",
+]
+
+[project.optional-dependencies]
+multimodal = ["sopa>=2.1.0", "timm>=1.0.15"]
+conch = ["einops-exts>=0.0.4", "transformers>=4.52.4"]
+
+[dependency-groups]
+dev = [
+  "ruff>=0.11.4",
+  "mypy>=1.15.0",
+  "pre-commit>=3.8.0",
+  "pytest>=7.1.3",
+  "pytest-cov>=5.0.0",
+  "wandb>=0.17.2",
+  "pyyaml>=6.0.1",
+  "pydantic>=2.8.2",
+  "ipykernel>=6.22.0",
+  "ipywidgets>=8.1.2",
+  "mkdocs-material>=8.5.6",
+  "mkdocs-jupyter>=0.21.0",
+  "mkdocstrings>=0.19.0",
+  "mkdocstrings-python>=0.7.1",
+]
+
+[project.urls]
+Homepage = "https://mics-lab.github.io/novae/"
+Repository = "https://github.com/MICS-Lab/novae"
+Documentation = "https://mics-lab.github.io/novae/"
+
+[tool.hatch.build.targets.sdist]
+include = ["novae"]
+
+[tool.hatch.build.targets.wheel]
+include = ["novae"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.mypy]
+files = ["novae"]
+no_implicit_optional = true
+check_untyped_defs = true
+warn_return_any = true
+warn_unused_ignores = true
+show_error_codes = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+
+[tool.ruff]
+target-version = "py39"
+line-length = 120
+fix = true
+
+[tool.ruff.lint]
+select = [
+  # flake8-2020
+  "YTT",
+  # flake8-bandit
+  "S",
+  # flake8-bugbear
+  "B",
+  # flake8-builtins
+  "A",
+  # flake8-comprehensions
+  "C4",
+  # flake8-debugger
+  "T10",
+  # flake8-simplify
+  "SIM",
+  # isort
+  "I",
+  # mccabe
+  "C90",
+  # pycodestyle
+  "E",
+  "W",
+  # pyflakes
+  "F",
+  # pygrep-hooks
+  "PGH",
+  # pyupgrade
+  "UP",
+  # ruff
+  "RUF",
+  # tryceratops
+  "TRY",
+]
+ignore = [
+  # LineTooLong
+  "E501",
+  # DoNotAssignLambda
+  "E731",
+  # DoNotUseAssert
+  "S101",
+  "TRY003",
+  "RUF012",
+  "B904",
+  "E722",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]
+"__init__.py" = ["F401", "I001"]
+"*.ipynb" = ["F401"]
+
+[tool.ruff.format]
+preview = true
+
+[tool.coverage.report]
+skip_empty = true
+
+[tool.coverage.run]
+source = ["novae"]
+omit = ["**/test_*.py", "novae/monitor/log.py", "novae/monitor/callback.py"]
