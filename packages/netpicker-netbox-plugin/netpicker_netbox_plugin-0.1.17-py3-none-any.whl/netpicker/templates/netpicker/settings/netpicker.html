@@ -1,0 +1,36 @@
+{% extends 'generic/object_edit.html' %}
+{% load form_helpers %}
+{% load i18n %}
+{% load static %}
+
+{% block form %}
+    {% render_errors form %}
+
+    <div class="field-group my-5">
+      <div class="row">
+        <h2 class="col-9 offset-3"><img src="{% static 'netpicker/netpicker.svg' %}" style="width:48px;" />
+            {% trans "Netpicker settings" %}</h2>
+      </div>
+        {% render_field form.server_url %}
+        {% render_field form.tenant %}
+        {% render_field form.api_key %}
+    </div>
+
+    <script>
+    window.addEventListener('load', function() {
+        const server_url = document.getElementById('id_server_url')
+        const tenant = document.getElementById('id_tenant')
+        const anchor = document.getElementById('np-admin')
+
+        function set_admin_url(ev) {
+            const base_url = server_url.value;
+            const tenant_name = tenant.value;
+            const href = base_url && tenant_name ? base_url + '/tenant/' + tenant_name + '/admin?nav=api-token' : "";
+            anchor.setAttribute("href", href);
+        }
+        server_url.addEventListener('change', set_admin_url)
+        tenant.addEventListener('change', set_admin_url)
+        set_admin_url()
+    });
+    </script>
+{% endblock %}
