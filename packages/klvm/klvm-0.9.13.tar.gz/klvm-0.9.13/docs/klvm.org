@@ -1,0 +1,45 @@
+#+TITLE: klvm
+#+OPTIONS: ^:nil
+* Introduction
+
+Cryptocurrency depends upon digital signatures corresponding to public keys. But what exactly do the digital signatures sign?
+
+In bitcoin, coins are grouped into a "utxo", which are protected by a "puzzle program" (known in bitcoin as "pubkey script"). This puzzle program generally lists one or more public keys, and to spend the coins in the utxo, these keys must sign a hash of a message derived from the spending transaction. Exactly how the message is derived can be chosen from several options depending on which parts of the spending transaction are relevant to the signer, and it's very complicated and frankly kind of a mess, but the message essentially says "this signature blesses the spending of these coins as long as the spending transactions includes this set of inputs and that set of outputs".
+
+Chik makes these messages explicit. Although klvm ("contract language virtual machine") is a general purpose language, typically a signature signs a program written in klvm which is then executed to produce a list of "conditions" which explicitly list out what restrictions the transaction or block which spends the coins must meet. These conditions include things like "the input being signed must be X", "this output Y must be included", "the signature is only valid in a block created after time Z". So the restrictions place upon inputs, outputs and spending time can be much more complicated than in bitcoin.
+
+* klvm
+
+The acronym *klvm* stands for Contract Language Virtual Machine, or Chik Lisp Virtual Machine depending upon whether we are referring to the trademarked version or generic version. Both puzzles and solutions are written in this language.
+
+** Compilers
+
+The klvm is intended to be like an assembly-language level of programming, and is intentionally missing such operators such as ~list~ which are in most LISP-like languages. This makes writing programs more difficult, so compilation tools that transform programs from a higher-level LISP to the klvm will be made available.
+
+** Opcodes
+
+The language is small, and similar to lisp, except most operators are one letter. To keep the implementation small, the operator set is minimal.
+
+*** list operators
+    - c :: *cons* ~(c A B)~ takes exactly two operands and returns the cons box with the two objects in it (in the obvious order)
+    - f :: *first* ~(f X)~ takes exactly one operand which must be a cons box, and returns the left half
+    - r :: *rest* ~(r X)~ takes exactly one operand which must be a cons box, and returns the right half
+    - l :: *listp* ~(l X)~ takes exactly one operand and returns ~()~ if it's an atom or ~1~ if it's a list
+*** control flow
+    - i :: *if* ~(i A B C)~ takes exactly three operands ~A~, ~B~, ~C~. If ~A~ is ~()~ (which means "false), return ~C~. Otherwise, return ~B~
+    - x :: *raise* ~(x X Y...)~ takes an arbitrary number of arguments (even zero). Immediately fail, with the argument list passed up into the (python) exception
+    - = :: *equal* ~(= A B)~ returns 1 if ~A~ and ~B~ are both atoms and both equal. Otherwise ~()~
+    - > :: *greater than* ~(> A B)~ returns 1 if ~A~ and ~B~ are both atoms and A is greater than B, interpreting both as signed ints. Otherwise ~()~
+    - >s :: *greater than bytes* ~(>s A B)~ returns 1 if ~A~ and ~B~ are both atoms and A is greater than B, interpreting both as bytes. Otherwise ~()~
+*** constants
+    - q :: *quote* ~(q X)~ takes exactly one operand which is *not* evaluated and returns it
+*** integer operators
+    - ~+~ :: ~(+ a0 a1...)~ takes an arbitrary number of integer operands and sums them
+    - ~-~ :: ~(- a0 a1...)~ takes an arbitrary number of integer operands and adds a0 to the negative of the rest
+    - ~*~ :: ~(* a0 a1...)~ takes an arbitrary number of integer operands and returns the product
+    - ~divmod~ :: ~(divmod A B)~ takes two integers and returns a list of the floored quotient and the mod
+*** streaming operators
+    - sha256 :: ~(sha256 A)~ returns the sha256 hash (as a 32-byte blob) of the bytes A
+*** ecdsa operators
+    - point_add :: ~(point_add a0 a1 ...)~ takes an arbitrary number of bls12_381 points and adds them
+    - pubkey_for_exp :: ~(pubkey_for_exp A)~ turns the integer A into a bls12_381 point

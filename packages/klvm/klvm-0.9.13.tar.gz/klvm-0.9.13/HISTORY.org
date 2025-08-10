@@ -1,0 +1,90 @@
+#+TITLE: Release Notes for klvm
+
+* v0.2
+
+** Add support for "cons-based" eval.
+
+Before v0.2, when evaluating a list ~(op arg1 arg2 ...)~, the ~op~
+operator had to be an atom. As of v0.2, it can now be a list. Note
+that in this case, the arguments ~arg1 arg2 ...~ are *ignored*.
+
+Briefly, ~((c SEXP ARGS))~ is equivalent to ~(e SEXP ARGS)~. The
+~e~ operator is deprecated, and you should stop using it, and
+start using the new form instead. In v0.3, the ~e~ operator will
+be removed.
+
+To make this easier, if the environment variable ~KLVM_DISALLOW_E_OP~
+is set, whenever a use of the ~e~ operator is encountered, an exception will
+be raised
+
+If ~KLVM_DISALLOW_E_OP~ is set to the special value ~breakpoint~,
+the python debugger will be launched via [[https://docs.python.org/3.7/library/functions.html#breakpoint][breakpoint()]], newly
+introduced in Python 3.7.
+
+*** Example
+
+#+BEGIN_SRC bash
+$ brun '(e (q (+ (q 500))) (q ()))'
+500
+
+$ KLVM_DISALLOW_E_OP=1 brun '(e (q (+ (q 500))) (q ()))'
+FAIL: e operator no longer supported (e (q (+ (q 500))) (q ()))
+
+$ KLVM_DISALLOW_E_OP=breakpoint brun '(e (q (+ (q 500))) (q ()))'
+(e (q (+ (q 500))) (q ()))
+> /Users/kiss/projects/chik/klvm/make_eval.py(46)eval_core()
+-> raise EvalError("e operator no longer supported", form)
+
+$ KLVM_DISALLOW_E_OP=breakpoint brun '((c (q (+ (q 500))) (q ())))'
+500
+#+END_SRC
+
+
+For more information on environment variables, take a look at
+[[https://www.networkworld.com/article/3215965/all-you-need-to-know-about-unix-environment-variables.html][this article]] (or hit the internet).
+
+
+** Remove custom "null" type.
+
+In v0.1, the ~()~ null value was represented by a unique atom that was
+different from every other atom. In v0.2 and beyond, the ~()~ value
+is represented by an empty binary string, and so has the same representation
+as ~0~. This also affects ~i~, which now views ~0~ as false.
+
+*** Example
+
+**** v0.1
+
+#+BEGIN_SRC bash
+$ brun '(q 0)'
+0
+$ brun '(q ())'
+()
+$ brun '(i (q ()) (q 500) (q 600))'
+600
+$ brun '(i (q 0) (q 500) (q 600))'
+500
+$ brun '(i (q 1) (q 500) (q 600))'
+500
+#+END_SRC
+
+
+**** v0.2
+
+#+BEGIN_SRC bash
+$ brun '(q 0)'
+()
+$ brun '(q ())'
+()
+$ brun '(i (q ()) (q 500) (q 600))'
+600
+$ brun '(i (q 0) (q 500) (q 600))'
+600
+$ brun '(i (q 1) (q 500) (q 600))'
+500
+#+END_SRC
+
+
+* v0.1
+
+Initial release.
