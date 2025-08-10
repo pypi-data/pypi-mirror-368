@@ -1,0 +1,165 @@
+Metadata-Version: 2.4
+Name: quotescape
+Version: 1.0.2
+Summary: Create wallpapers from quotes - Kindle highlights (2FA-aware, multi-browser), custom lists, or random ones - and set them as your desktop background.
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: pillow>=11.3.0
+Requires-Dist: pyyaml>=6.0.2
+Requires-Dist: requests>=2.32.4
+Requires-Dist: selenium>=4.34.2
+Dynamic: license-file
+
+# quotescape
+
+Quotescape is a Python tool for generating beautiful wallpapers from your favorite quotes. It supports Kindle highlights, custom quotes, and random quotes, allowing you to create personalized backgrounds with stylish fonts and book covers.
+
+## Supported Operating Systems
+Quotescape works on macOS, Linux, and Windows.
+
+On Linux, automatic wallpaper setting is supported for GNOME (gsettings), KDE Plasma (qdbus), and feh-compatible window managers. If your desktop environment is not supported, you may need to set the wallpaper manually.
+
+## Features
+- Import quotes from Kindle, custom JSON, or random sources
+- Render quotes as wallpapers with customizable fonts and backgrounds
+- Dark and light mode book cover assets
+- Easy configuration via YAML
+
+### Important Notice on Kindle Scraping
+
+Kindle highlights scraping via automated browsing is not an officially supported flow by Amazon. Use at your own risk. The author maintains no liability for any account actions or issues arising from the use of this software.
+
+
+## Prerequisites
+
+- Python 3.11+
+- A supported browser (Chrome, Firefox, Edge, or Safari on macOS)
+	- For Safari, enable: Safari → Develop → Allow Remote Automation
+- Internet access for Kindle sync or random quotes
+
+## Installation
+
+You can install quotescape using the following methods:
+
+**Using uv (recommended):**
+```bash
+uv pip install .
+uv sync
+```
+
+**Using pip:**
+```bash
+pip install .
+```
+
+Or use your preferred Python environment manager.
+
+## Usage
+
+To generate a wallpaper after installation, use the installed console command:
+
+```bash
+quotescape
+```
+
+Or run with uv without installing as an editable package:
+
+```bash
+uv run quotescape
+```
+
+Developers can also run the entry point directly:
+
+```bash
+python src/quotescape/cli.py
+```
+
+To get more logs during Kindle login and scraping, pass --verbose:
+
+```bash
+quotescape --verbose
+```
+
+### Browser selection
+By default, quotescape will try to launch your system’s default browser (on macOS) to log into Amazon and fetch Kindle highlights. If that cannot be determined, it falls back to: Chrome → Firefox → Edge → Safari (macOS only).
+
+You can force a browser via an environment variable:
+
+```bash
+QUOTESCAPE_BROWSER=chrome uv run quotescape
+```
+
+Notes:
+- Safari requires enabling “Allow Remote Automation” in Safari → Develop menu.
+- Ensure a supported browser is installed. Selenium’s built-in manager will attempt to locate/download drivers.
+
+You can also pass CLI flags:
+
+```bash
+quotescape --browser chrome --login-timeout 600
+```
+
+On Linux, if automatic wallpaper setting fails, you will need to set the generated PNG manually using your desktop environment's settings.
+
+You can configure sources and appearance in `settings/config.yaml`.
+
+
+## Secrets File
+
+To use Kindle quotes, you must create a `secrets.json` file in the `settings/` directory. This file should contain your Kindle login credentials in the following format:
+
+```json
+{
+	"username": "your_kindle_email",
+	"password": "your_kindle_password"
+}
+```
+
+Your folder structure should look like this:
+
+```
+quotescape/
+├── settings/
+│   ├── config.yaml
+│   ├── custom_quotebook.json
+│   └── secrets.json
+├── src/
+│   └── quotescape/
+│       └── ...
+├── wallpaper/
+│   └── ...
+├── README.md
+└── ...
+```
+
+**Note:** Do not share your credentials or commit this file to version control. The `.gitignore` is already configured to exclude it.
+
+## Troubleshooting
+
+- Browser/driver errors: Ensure a supported browser is installed. If using Safari, enable Remote Automation.
+- Stuck on Amazon login: If 2FA is enabled, complete verification in the opened browser. The app waits up to the configured timeout (default 300s). Increase via `--login-timeout 600` or `QUOTESCAPE_LOGIN_TIMEOUT=600`.
+- Wallpaper not changing (Linux): Install one of `gsettings` (GNOME), `qdbus` (KDE), or `feh`, or set the PNG manually.
+- Invalid colors or dimensions: Check `settings/config.yaml` for valid hex colors and dimensions within allowed ranges.
+
+## Project Structure
+
+- `src/`: Core modules
+	- `parsers/`: Config and quote parsers
+	- `quotescape/`: CLI, assets, rendering, and quote sources
+- `settings/`: Configuration and custom quotes
+- `wallpaper/`: Output wallpapers
+
+## Configuration
+Edit `settings/config.yaml` to customize sources, fonts, and output settings.
+
+## Fonts and Licensing
+
+This project uses the B612 font for rendering text. B612 is distributed under the SIL Open Font License (OFL) 1.1.
+
+- License: https://fonts.google.com/specimen/B612/license (SIL OFL 1.1)
+- We include the font files only and do not sell or distribute the fonts by themselves.
+- The fonts are bundled with this software in accordance with the OFL terms. If you distribute modified versions of the fonts, you must comply with the OFL (including Reserved Font Name restrictions).
+
+## License
+MIT
