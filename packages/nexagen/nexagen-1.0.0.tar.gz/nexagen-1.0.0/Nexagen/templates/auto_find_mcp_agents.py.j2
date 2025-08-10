@@ -1,0 +1,87 @@
+import asyncio
+import json
+import sys
+from typing import Optional, Dict, Any
+from contextlib import AsyncExitStack
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+from mcp.shared.exceptions import McpError
+import os
+
+class MCPClient:
+    def __init__(self):
+        self.exit_stack = AsyncExitStack()
+
+    async def connect_to_server(self, command: str, args: list) -> Optional[Dict[str, Any]]:
+        """Connect to an MCP server using command and args."""
+        server_params = StdioServerParameters(
+            command=command,
+            args=args,
+            env=None
+        )
+
+        try:
+            stdio_transport = await self.exit_stack.enter_async_context(stdio_client(server_params))
+            stdio, write = stdio_transport
+            session = await self.exit_stack.enter_async_context(ClientSession(stdio, write))
+
+            await session.initialize()
+
+            # List available tools
+            response = await session.list_tools()
+            tools = response.tools
+
+            return {
+                "tools": [
+                    {
+                        "name": tool.name,
+                        "description": tool.description,
+                        "input_schema": tool.inputSchema
+                    } for tool in tools
+                ]
+            }
+        except McpError as e:
+            # 移除错误打印，改为静默处理
+            return None
+
+    async def close(self):
+        await self.exit_stack.aclose()
+
+def get_agents_info(json_path: str) -> str:
+    """Return JSON string with agent information."""
+    with open(json_path, 'r', encoding='utf-8') as file:
+        servers = json.load(file)['mcpServers']
+
+    results = {}
+    client = MCPClient()
+
+    async def gather_tools_info():
+        for agent_name, agent_info in servers.items():
+            tools_info = await client.connect_to_server(agent_info['command'], agent_info['args'])
+            if tools_info:
+                results[agent_name] = tools_info
+        # 确保客户端资源关闭
+        await client.close()
+
+    # 修复：使用自定义事件循环确保资源清理
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(gather_tools_info())
+    finally:
+        # 关键修复：给事件循环时间完成清理
+        loop.run_until_complete(asyncio.sleep(0.1))
+        loop.close()
+
+    return json.dumps(results, ensure_ascii=False, indent=2)
+
+def main(json_path):
+    try:
+        os.remove("./mcp_agents/mcp_cards.json")
+    except Exception as err:
+        #print(err)
+        pass
+    result_json = get_agents_info(json_path)
+    return result_json
+tmp=main("./mcp.json")
+open("./mcp_agents/mcp_cards.json","w",encoding="utf-8").write(tmp)

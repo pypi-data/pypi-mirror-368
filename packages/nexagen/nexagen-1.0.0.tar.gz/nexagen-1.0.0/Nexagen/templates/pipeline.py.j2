@@ -1,0 +1,22 @@
+from orchestrator_agent import *
+oa=OrchestratorAgent()
+from agent_executor import MCPAgent
+mcp_agent = MCPAgent()
+def agent_pipeline(task):
+    split_tasks=oa.split_task(task)
+    results=[]
+    for task in split_tasks:
+        print(f">>>start task: {task}")
+        this_agent_rst = oa.decide_agent(task)
+        #print(this_agent_rst)
+        this_agent=this_agent_rst
+        print(this_agent)
+        this_agent_parameters = oa.decide_agent_parameters(task, this_agent["agent"])
+        print(this_agent_parameters)
+
+        json_this_agent_parameters = this_agent_parameters
+
+        result = mcp_agent.invoke(json_this_agent_parameters)
+        #print(result)
+        results.append(result)
+    return results
