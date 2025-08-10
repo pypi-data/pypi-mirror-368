@@ -1,0 +1,78 @@
+---
+# version 1.4.0
+description: rule
+# Applies to all files in the project
+globs:
+  - "**/*"
+# Always apply this rule
+alwaysApply: true
+---
+
+# Instructions
+1. Rules prefixed with ! are the most important.
+
+# General Rules
+
+1. You must respond in Simplified Chinese.
+2. Code comments must use English, unless another language is explicitly requested.
+3. Every time you modify code, you must check the current code in the file and make changes based on the existing code, as I may have already modified and optimized it.
+4. Do not write meaningless comments such as "what was changed this time, where it was modified".
+5. The code written must be easy to test, for example, by using principles like "dependency injection", "separation of concerns", and "pure functions".
+6. When I say create an example, it should be the simplest possible example by default, unless I specify what kind of example to create.
+7. !You should only modify the minimum number of lines of code necessary to complete the specified task,
+   and preserve the rest of the file (including formatting, style, structure, and logic) as much as possible.
+
+# Docker Rules
+1. Use the `docker compose` command and `compose.yml`. The `compose.yml` should use the latest syntax; do not write the `version` field.
+2. Do not change the docker image versions in the files.
+3. The `restart` field should be `unless-stopped`.
+4. Do not use the `container_name` or `networks` fields.
+5. When using environment variables, do not provide default values, e.g., `${PORT:-80}`.
+6. When writing a `Dockerfile` or `compose.yml`, you must check the existing images on the current host and use their versions.
+
+# Python Rules
+1. Type hints are mandatory in the code. Type hints must be very detailed and pass `mypy` checks.
+   Variables whose types are difficult to infer must also have their types specified, for example, when the returning function does not specify its return type.
+2. When creating complex and explicit data structures, prefer using a Pydantic `Model`.
+3. Sensitive configurations must be separated and placed in a `.env` file, loaded using the `python-dotenv` library,
+   and read using the `os` library. Where an environment variable must be set, use `os.environ[]` to read it to prevent the user from forgetting to configure it.
+4. Do not write useless exception handling, such as only printing a message in the exception block,
+   unless you genuinely recommend it. Otherwise, only write exception handling when it can actually resolve the exception.
+5. The project uses the `uv` package manager for dependency management. Use `uv add` to install packages.
+6. The project uses `pytest` for testing, located in the `tests` folder in the project root directory.
+7. Do not use `print`; use `loguru` instead.
+8. Use `pathlib` instead of `os.path`.
+9. When asked to fix lint issues, call `ruff format && ruff check --fix`, then review the issues and fix them. When fixing,
+  do not "fix for the sake of fixing." Only apply fixes that absolutely do not affect existing functionality. If a fix might cause problems, you can choose not to apply it.
+
+# Python Docstring Rules
+1. Write Google-style docstrings at the beginning of files, classes, and in every function.
+2. A standard example:
+    """Raise a ValueError if the provided value is negative.
+
+    It demonstrates how to document exceptions in a docstring.
+
+    Args:
+        value: An integer value.
+
+    Returns:
+        A string representation of the value.
+
+    Yields:
+        Integers from 0 to n-1.
+
+    Raises:
+        ValueError: If the value is negative.
+
+    """
+3. Common docstring lint errors:
+  - (D200) One-line docstring should fit on one line
+  - (D401) First line of docstring should be in imperative mood
+  - (D404) First word of the docstring should not be "This"
+  - (D413) Missing blank line after last section ("Returns")
+
+# Python Package Versions
+1. The Python version is 3.12 or higher. Use new syntax (e.g., the `|` symbol for type unions).
+2. The Pydantic version is 2.10 or higher.
+3. The FastAPI version is 0.115 or higher.
+4. For other library version requirements, please refer to the project's `pyproject.toml` or `requirements.txt` file.
