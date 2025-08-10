@@ -1,0 +1,110 @@
+# 🤖 commity
+
+An intelligent Git commit message generation tool using Large Language Models (LLMs), with support for Conventional
+Commits format and emoji insertion.
+
+## 🔧 Installation
+
+```bash
+pip install commity
+```
+
+## ⚙️ Configuration
+
+`commity` supports three configuration methods, with the following priority: **Command-line Arguments > Environment
+Variables > Configuration File**.
+
+Supported model providers are: `Gemini` (default), `Ollama`.
+
+### ✨ Method 1: Specify Model Parameters via Command-line
+
+#### Ollama
+
+```Bash
+commity --provider ollama --model llama2 --base_url http://localhost:11434
+```
+
+#### Gemini
+
+```Bash
+commity --provider gemini --model gemini-2.5-flash --base_url https://generativelanguage.googleapis.com --api_key <your-api-key> --timeout 30
+```
+
+or
+
+```Bash
+commity \
+--provider gemini \
+--model gemini-2.5-flash \
+--base_url https://generativelanguage.googleapis.com \
+--api_key <your-api-key> \
+--timeout 30 \
+```
+
+### 🌱 Method 2: Set Environment Variables as Defaults
+
+You can add the following to your `.bashrc`, `.zshrc`, or `.env` file:
+
+#### Ollama
+
+```Bash
+export COMMITY_PROVIDER=ollama
+export COMMITY_MODEL=llama2
+export COMMITY_BASE_URL=http://localhost:11434
+```
+
+#### Gemini
+
+```Bash
+export COMMITY_PROVIDER=gemini
+export COMMITY_MODEL=gemini-2.5-flash
+export COMMITY_BASE_URL=https://generativelanguage.googleapis.com
+export COMMITY_API_KEY=your-api-key
+export COMMITY_TEMPERATURE=0.5
+```
+
+### 📝 Method 3: Use a Configuration File (Recommended)
+
+For easier configuration management, you can create a `~/.commity/config.json` file in your user's home directory.
+
+1. Create the directory:
+   ```bash
+   mkdir -p ~/.commity
+   ```
+2. Create and edit the `config.json` file:
+   ```bash
+   touch ~/.commity/config.json
+   ```
+3. Add your configuration to `config.json`, for example:
+
+   ```json
+   {
+     "PROVIDER": "ollama",
+     "MODEL": "llama3",
+     "BASE_URL": "http://localhost:11434"
+   }
+   ```
+   Or using Gemini:
+   ```json
+   {
+     "PROVIDER": "gemini",
+     "MODEL": "gemini-2.5-flash",
+     "BASE_URL": "https://generativelanguage.googleapis.com",
+     "API_KEY": "your-gemini-api-key"
+   }
+   ```
+
+## 🚀 Usage
+
+```Bash
+# Run
+commity
+
+# View help
+commity --help
+
+# Use Chinese
+commity --lang zh
+
+# Include emojis
+commity --emoji
