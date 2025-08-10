@@ -1,0 +1,1 @@
+"""Core do módulo LLM."""
