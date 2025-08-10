@@ -1,0 +1,227 @@
+"""
+Test Data Generator for Practice Software Testing API Demo
+
+This module extends TestAPIX's base generator with realistic test data
+specifically designed for the Practice Software Testing API (toolshop).
+
+The generator creates contextually appropriate data for:
+- Tool brands (manufacturers like DeWalt, Makita, Bosch)
+- Tool products (drills, saws, etc.) with realistic pricing
+- Tool categories (Power Tools, Hand Tools, etc.)
+- User data for customer scenarios
+- Search terms relevant to the tool industry
+"""
+
+from typing import Dict, Any, List, Optional
+from datetime import datetime, timedelta
+import random
+
+from testapix.generators import BaseGenerator
+
+
+class {{ python_package_name.title().replace('_', '') }}Generator(BaseGenerator):
+    """
+    Custom data generator for Practice Software Testing API demonstration.
+
+    Generates realistic test data for the toolshop API including:
+    - Brands (tool manufacturers)
+    - Products (tools and equipment)
+    - Categories (tool categories)
+    - User data (customers)
+    """
+
+    def generate_brand_data(self, **overrides) -> Dict[str, Any]:
+        """
+        Generate realistic brand data for tool manufacturers.
+
+        Returns:
+            Dictionary containing brand data for API testing
+        """
+        tool_brands = [
+            "DeWalt", "Makita", "Milwaukee", "Bosch", "Ryobi",
+            "Black & Decker", "Craftsman", "Stanley", "Klein Tools",
+            "Fluke", "Ridgid", "Porter-Cable", "Festool", "Hilti"
+        ]
+
+        brand_name = random.choice(tool_brands) if not overrides.get("name") else overrides["name"]
+
+        data = {
+            "name": brand_name,
+            "slug": brand_name.lower().replace(" ", "-").replace("&", "and"),
+            "created_at": self._recent_datetime().isoformat(),
+            "updated_at": self._recent_datetime().isoformat(),
+        }
+
+        data.update(overrides)
+        return data
+
+    def generate_product_data(self, **overrides) -> Dict[str, Any]:
+        """
+        Generate realistic product data for tools and equipment.
+
+        Returns:
+            Dictionary containing product data for API testing
+        """
+        tool_names = [
+            "Cordless Drill", "Circular Saw", "Impact Driver", "Angle Grinder",
+            "Jigsaw", "Router", "Orbital Sander", "Reciprocating Saw",
+            "Hammer Drill", "Multi-Tool", "Belt Sander", "Tile Saw",
+            "Miter Saw", "Table Saw", "Band Saw", "Planer"
+        ]
+
+        tool_types = ["Power Tool", "Hand Tool", "Measuring Tool", "Safety Equipment"]
+
+        product_name = random.choice(tool_names) if not overrides.get("name") else overrides["name"]
+
+        data = {
+            "name": product_name,
+            "slug": product_name.lower().replace(" ", "-"),
+            "description": f"Professional grade {product_name.lower()} suitable for both DIY and professional use.",
+            "price": round(random.uniform(29.99, 499.99), 2),
+            "product_image": f"/images/{product_name.lower().replace(' ', '_')}.jpg",
+            "category_id": random.randint(1, 10),  # Assuming category IDs 1-10
+            "brand_id": random.randint(1, 20),     # Assuming brand IDs 1-20
+            "is_location_offer": random.choice([True, False]),
+            "is_rental": random.choice([True, False]),
+            "in_stock": random.choice([True, False]),
+            "stock": random.randint(0, 100),
+            "created_at": self._recent_datetime().isoformat(),
+            "updated_at": self._recent_datetime().isoformat(),
+        }
+
+        data.update(overrides)
+        return data
+
+    def generate_category_data(self, **overrides) -> Dict[str, Any]:
+        """
+        Generate realistic category data for tool categories.
+
+        Returns:
+            Dictionary containing category data for API testing
+        """
+        categories = [
+            "Power Tools", "Hand Tools", "Measuring & Layout Tools",
+            "Safety Equipment", "Storage & Organization", "Fasteners & Hardware",
+            "Electrical Tools", "Plumbing Tools", "Automotive Tools",
+            "Garden Tools", "Welding Equipment", "Air Tools"
+        ]
+
+        category_name = random.choice(categories) if not overrides.get("name") else overrides["name"]
+
+        data = {
+            "name": category_name,
+            "slug": category_name.lower().replace(" ", "-").replace("&", "and"),
+            "parent_id": None,  # Top-level category by default
+            "created_at": self._recent_datetime().isoformat(),
+            "updated_at": self._recent_datetime().isoformat(),
+        }
+
+        data.update(overrides)
+        return data
+
+    def generate_user_data(self, **overrides) -> Dict[str, Any]:
+        """
+        Generate realistic user data for customers.
+
+        Returns:
+            Dictionary containing user data for API testing
+        """
+        data = {
+            "first_name": self.fake.first_name(),
+            "last_name": self.fake.last_name(),
+            "email": self.fake.email(),
+            "password": "Test123!",
+            "date_of_birth": self.fake.date_of_birth(minimum_age=18, maximum_age=80).isoformat(),
+            "address": self.fake.street_address(),
+            "city": self.fake.city(),
+            "state": self.fake.state(),
+            "country": self.fake.country(),
+            "postcode": self.fake.postcode(),
+            "phone": self.fake.phone_number(),
+            "created_at": self._recent_datetime().isoformat(),
+            "updated_at": self._recent_datetime().isoformat(),
+        }
+
+        data.update(overrides)
+        return data
+
+    def generate_search_terms(self) -> List[str]:
+        """
+        Generate realistic search terms for testing search functionality.
+
+        Returns:
+            List of search terms relevant to tools and hardware
+        """
+        return [
+            "drill", "saw", "hammer", "screwdriver", "wrench",
+            "cordless", "electric", "manual", "professional", "DIY",
+            "DeWalt", "Makita", "Bosch", "power tool", "hand tool",
+            "measuring", "safety", "impact", "circular", "reciprocating"
+        ]
+
+    def generate_invalid_data(self, data_type: str) -> Dict[str, Any]:
+        """
+        Generate intentionally invalid data for negative testing.
+
+        This helps test error handling and validation logic.
+        """
+        if data_type == "brand":
+            return {
+                "name": "",  # Empty required field
+                "slug": "invalid slug with spaces",
+            }
+        elif data_type == "product":
+            return {
+                "name": "",  # Empty required field
+                "price": "not_a_number",  # Invalid price
+                "category_id": "invalid_id",  # Invalid category reference
+            }
+        elif data_type == "user":
+            return {
+                "email": "not-an-email",
+                "first_name": "",  # Empty required field
+                "password": "123",  # Too short
+            }
+
+        # Fallback to base generator
+        return super().generate_invalid_data(data_type)
+
+    def generate_edge_case_data(self, case_type: str) -> Dict[str, Any]:
+        """
+        Generate edge case data for boundary testing.
+
+        Edge cases often reveal bugs that normal data doesn't catch.
+        """
+        edge_cases = {
+            "max_length": {
+                "name": "x" * 255,  # Maximum allowed length
+                "description": "y" * 1000,
+            },
+            "special_characters": {
+                "name": "Test Tool™ with émojis 🔨 and 中文",
+                "description": "Multi-line\ntext with\ttabs and special chars: <>\"'&",
+            },
+            "boundary_numbers": {
+                "price": 999999.99,  # High price
+                "stock": 0,          # Zero stock
+                "category_id": 1,    # Minimum ID
+            },
+            "empty_values": {
+                "optional_field": None,
+                "empty_string": "",
+                "empty_array": [],
+                "empty_object": {},
+            }
+        }
+
+        return edge_cases.get(case_type, {})
+
+    def _recent_datetime(self, days_back: int = 30) -> datetime:
+        """Generate a datetime within the recent past."""
+        start_date = datetime.now() - timedelta(days=days_back)
+        random_seconds = random.randint(0, days_back * 24 * 60 * 60)
+        return start_date + timedelta(seconds=random_seconds)
+
+
+# Create a singleton instance for easy importing
+generator = {{ python_package_name.title().replace('_', '') }}Generator()
