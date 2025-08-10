@@ -1,0 +1,990 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.0, pytest-8.4.1, pluggy-1.6.0
+rootdir: C:\Users\User\product\cmdrdata-gemini
+configfile: pyproject.toml
+testpaths: tests
+plugins: anyio-4.9.0, asyncio-1.0.0
+asyncio: mode=Mode.AUTO, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 298 items
+
+tests\test_async_client.py .......F.F.FF                                 [  4%]
+tests\test_basic_functionality.py .....F.....                            [  8%]
+tests\test_client.py ...........F.F.F..F                                 [ 14%]
+tests\test_context.py .....                                              [ 16%]
+tests\test_exceptions.py ..........................                      [ 24%]
+tests\test_logging_config.py .......FFFFF.......FF.                      [ 32%]
+tests\test_performance.py .............................                  [ 41%]
+tests\test_proxy.py ...........F..F..F..                                 [ 48%]
+tests\test_retry.py ............................                         [ 58%]
+tests\test_security.py ........................................          [ 71%]
+tests\test_tracker.py ......F...................                         [ 80%]
+tests\test_validation.py ............................................... [ 95%]
+.....                                                                    [ 97%]
+tests\test_version_compat.py .F.F...                                     [100%]
+
+================================== FAILURES ===================================
+_ TestAsyncTrackedGeminiGenerateContent.test_async_generate_content_with_tracking_success _
+
+self = <test_async_client.TestAsyncTrackedGeminiGenerateContent object at 0x00000223321FE0D0>
+mock_gemini_response = <Mock id='2350214268640'>
+
+    @pytest.mark.asyncio
+    async def test_async_generate_content_with_tracking_success(self, mock_gemini_response):
+        """Test successful async generate_content call with tracking"""
+        with patch("google.genai.Client") as mock_genai:
+            mock_client = Mock()
+            mock_models = Mock()
+            mock_models.generate_content = Mock(return_value=mock_gemini_response)
+            mock_client.models = mock_models
+            mock_genai.return_value = mock_client
+    
+            client = AsyncTrackedGemini(
+                api_key="AIzaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                cmdrdata_api_key="tk-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+            )
+    
+            with patch.object(client._tracker, 'track_usage_async', new_callable=AsyncMock) as mock_track:
+>               result = await client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents="Hello, Gemini!"
+                )
+
+tests\test_async_client.py:111: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <cmdrdata_gemini.async_client.AsyncTrackedModels object at 0x00000223338CFE00>
+customer_id = None, track_usage = True
+kwargs = {'contents': 'Hello, Gemini!', 'model': 'gemini-2.5-flash'}
+loop = <ProactorEventLoop running=False closed=False debug=False>
+result = <Mock id='2350214268640'>
+
+    async def generate_content(self, customer_id: Optional[str] = None, track_usage: bool = True, **kwargs):
+        """Generate content with optional usage tracking"""
+        # Call the original generate_content method in a thread pool since it's sync
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(
+            None,
+            lambda: self._original_models.generate_content(**kwargs)
+        )
+    
+        # Track usage if enabled
+        if track_usage and self._track_generate_func:
+>           await self._track_generate_func(
+                result=result,
+                customer_id=customer_id,
+                model=kwargs.get("model"),
+                **kwargs,
+            )
+E           TypeError: cmdrdata_gemini.async_client.AsyncTrackedGemini._track_generate_content() got multiple values for keyword argument 'model'
+
+cmdrdata_gemini\async_client.py:279: TypeError
+---------------------------- Captured stdout call -----------------------------
+{"timestamp": "2025-07-17T15:31:26.945261Z", "level": "WARNING", "logger": "cmdrdata_openai.cmdrdata_gemini.security", "message": "Using legacy cmdrdata API key format", "module": "security", "function": "validate_api_key", "line": 127}
+{"timestamp": "2025-07-17T15:31:26.945639Z", "level": "WARNING", "logger": "cmdrdata_openai.cmdrdata_gemini.security", "message": "Using legacy cmdrdata API key format", "module": "security", "function": "validate_api_key", "line": 127}
+{"timestamp": "2025-07-17T15:31:26.945869Z", "level": "INFO", "logger": "cmdrdata_openai.cmdrdata_gemini.async_client", "message": "Usage tracking enabled", "module": "async_client", "function": "__init__", "line": 95}
+---------------------------- Captured stderr call -----------------------------
+WARNING:cmdrdata_openai.cmdrdata_gemini.security:Using legacy cmdrdata API key format
+WARNING:cmdrdata_openai.cmdrdata_gemini.security:Using legacy cmdrdata API key format
+INFO:cmdrdata_openai.cmdrdata_gemini.async_client:Usage tracking enabled
+------------------------------ Captured log call ------------------------------
+WARNING  cmdrdata_openai.cmdrdata_gemini.security:security.py:127 Using legacy cmdrdata API key format
+WARNING  cmdrdata_openai.cmdrdata_gemini.security:security.py:127 Using legacy cmdrdata API key format
+INFO     cmdrdata_openai.cmdrdata_gemini.async_client:async_client.py:95 Usage tracking enabled
+_ TestAsyncTrackedGeminiGenerateContent.test_async_generate_content_with_customer_context _
+
+self = <test_async_client.TestAsyncTrackedGeminiGenerateContent object at 0x0000022332205220>
+mock_gemini_response = <Mock id='2350211983280'>
+
+    @pytest.mark.asyncio
+    async def test_async_generate_content_with_customer_context(self, mock_gemini_response):
+        """Test async generate_content with customer context"""
+        with patch("google.genai.Client") as mock_genai:
+            mock_client = Mock()
+            mock_models = Mock()
+            mock_models.generate_content = Mock(return_value=mock_gemini_response)
+            mock_client.models = mock_models
+            mock_genai.return_value = mock_client
+    
+            client = AsyncTrackedGemini(
+                api_key="AIzaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                cmdrdata_api_key="tk-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+            )
+    
+            with patch.object(client._tracker, 'track_usage_async', new_callable=AsyncMock) as mock_track:
+>               result = await client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents="Hello, Gemini!",
+                    customer_id="customer-123"
+                )
+
+tests\test_async_client.py:167: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <cmdrdata_gemini.async_client.AsyncTrackedModels object at 0x00000223317211D0>
+customer_id = 'customer-123', track_usage = True
+kwargs = {'contents': 'Hello, Gemini!', 'model': 'gemini-2.5-flash'}
+loop = <ProactorEventLoop running=False closed=False debug=False>
+result = <Mock id='2350211983280'>
+
+    async def generate_content(self, customer_id: Optional[str] = None, track_usage: bool = True, **kwargs):
+        """Generate content with optional usage tracking"""
+        # Call the original generate_content method in a thread pool since it's sync
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(
+            None,
+            lambda: self._original_models.generate_content(**kwargs)
+        )
+    
+        # Track usage if enabled
+        if track_usage and self._track_generate_func:
+>           await self._track_generate_func(
+                result=result,
+                customer_id=customer_id,
+                model=kwargs.get("model"),
+                **kwargs,
+            )
+E           TypeError: cmdrdata_gemini.async_client.AsyncTrackedGemini._track_generate_content() got multiple values for keyword argument 'model'
+
+cmdrdata_gemini\async_client.py:279: TypeError
+---------------------------- Captured stdout call -----------------------------
+{"timestamp": "2025-07-17T15:31:27.139093Z", "level": "WARNING", "logger": "cmdrdata_openai.cmdrdata_gemini.security", "message": "Using legacy cmdrdata API key format", "module": "security", "function": "validate_api_key", "line": 127}
+{"timestamp": "2025-07-17T15:31:27.139443Z", "level": "WARNING", "logger": "cmdrdata_openai.cmdrdata_gemini.security", "message": "Using legacy cmdrdata API key format", "module": "security", "function": "validate_api_key", "line": 127}
+{"timestamp": "2025-07-17T15:31:27.139699Z", "level": "INFO", "logger": "cmdrdata_openai.cmdrdata_gemini.async_client", "message": "Usage tracking enabled", "module": "async_client", "function": "__init__", "line": 95}
+---------------------------- Captured stderr call -----------------------------
+WARNING:cmdrdata_openai.cmdrdata_gemini.security:Using legacy cmdrdata API key format
+WARNING:cmdrdata_openai.cmdrdata_gemini.security:Using legacy cmdrdata API key format
+INFO:cmdrdata_openai.cmdrdata_gemini.async_client:Usage tracking enabled
+------------------------------ Captured log call ------------------------------
+WARNING  cmdrdata_openai.cmdrdata_gemini.security:security.py:127 Using legacy cmdrdata API key format
+WARNING  cmdrdata_openai.cmdrdata_gemini.security:security.py:127 Using legacy cmdrdata API key format
+INFO     cmdrdata_openai.cmdrdata_gemini.async_client:async_client.py:95 Usage tracking enabled
+_ TestAsyncTrackedGeminiGenerateContent.test_async_generate_content_tracking_failure _
+
+self = <test_async_client.TestAsyncTrackedGeminiGenerateContent object at 0x0000022333868DD0>
+mock_gemini_response = <Mock id='2350214273008'>
+
+    @pytest.mark.asyncio
+    async def test_async_generate_content_tracking_failure(self, mock_gemini_response):
+        """Test that async API call succeeds even if tracking fails"""
+        with patch("google.genai.Client") as mock_genai:
+            mock_client = Mock()
+            mock_models = Mock()
+            mock_models.generate_content = Mock(return_value=mock_gemini_response)
+            mock_client.models = mock_models
+            mock_genai.return_value = mock_client
+    
+            client = AsyncTrackedGemini(
+                api_key="AIzaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                cmdrdata_api_key="tk-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+            )
+    
+            with patch.object(client._tracker, 'track_usage_async', new_callable=AsyncMock, side_effect=Exception("Tracking failed")):
+                # Should not raise exception
+>               result = await client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents="Hello, Gemini!"
+                )
+
+tests\test_async_client.py:220: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <cmdrdata_gemini.async_client.AsyncTrackedModels object at 0x0000022333AC15B0>
+customer_id = None, track_usage = True
+kwargs = {'contents': 'Hello, Gemini!', 'model': 'gemini-2.5-flash'}
+loop = <ProactorEventLoop running=False closed=False debug=False>
+result = <Mock id='2350214273008'>
+
+    async def generate_content(self, customer_id: Optional[str] = None, track_usage: bool = True, **kwargs):
+        """Generate content with optional usage tracking"""
+        # Call the original generate_content method in a thread pool since it's sync
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(
+            None,
+            lambda: self._original_models.generate_content(**kwargs)
+        )
+    
+        # Track usage if enabled
+        if track_usage and self._track_generate_func:
+>           await self._track_generate_func(
+                result=result,
+                customer_id=customer_id,
+                model=kwargs.get("model"),
+                **kwargs,
+            )
+E           TypeError: cmdrdata_gemini.async_client.AsyncTrackedGemini._track_generate_content() got multiple values for keyword argument 'model'
+
+cmdrdata_gemini\async_client.py:279: TypeError
+---------------------------- Captured stdout call -----------------------------
+{"timestamp": "2025-07-17T15:31:27.164527Z", "level": "WARNING", "logger": "cmdrdata_openai.cmdrdata_gemini.security", "message": "Using legacy cmdrdata API key format", "module": "security", "function": "validate_api_key", "line": 127}
+{"timestamp": "2025-07-17T15:31:27.164917Z", "level": "WARNING", "logger": "cmdrdata_openai.cmdrdata_gemini.security", "message": "Using legacy cmdrdata API key format", "module": "security", "function": "validate_api_key", "line": 127}
+{"timestamp": "2025-07-17T15:31:27.165131Z", "level": "INFO", "logger": "cmdrdata_openai.cmdrdata_gemini.async_client", "message": "Usage tracking enabled", "module": "async_client", "function": "__init__", "line": 95}
+---------------------------- Captured stderr call -----------------------------
+WARNING:cmdrdata_openai.cmdrdata_gemini.security:Using legacy cmdrdata API key format
+WARNING:cmdrdata_openai.cmdrdata_gemini.security:Using legacy cmdrdata API key format
+INFO:cmdrdata_openai.cmdrdata_gemini.async_client:Usage tracking enabled
+------------------------------ Captured log call ------------------------------
+WARNING  cmdrdata_openai.cmdrdata_gemini.security:security.py:127 Using legacy cmdrdata API key format
+WARNING  cmdrdata_openai.cmdrdata_gemini.security:security.py:127 Using legacy cmdrdata API key format
+INFO     cmdrdata_openai.cmdrdata_gemini.async_client:async_client.py:95 Usage tracking enabled
+_ TestAsyncTrackedGeminiGenerateContent.test_async_count_tokens_with_tracking_success _
+
+self = <test_async_client.TestAsyncTrackedGeminiGenerateContent object at 0x00000223321C6E00>
+mock_count_tokens_response = <Mock id='2350211984960'>
+
+    @pytest.mark.asyncio
+    async def test_async_count_tokens_with_tracking_success(self, mock_count_tokens_response):
+        """Test successful async count_tokens call with tracking"""
+        with patch("google.genai.Client") as mock_genai:
+            mock_client = Mock()
+            mock_models = Mock()
+            mock_models.count_tokens = Mock(return_value=mock_count_tokens_response)
+            mock_client.models = mock_models
+            mock_genai.return_value = mock_client
+    
+            client = AsyncTrackedGemini(
+                api_key="AIzaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                cmdrdata_api_key="tk-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+            )
+    
+            with patch.object(client._tracker, 'track_usage_async', new_callable=AsyncMock) as mock_track:
+>               result = await client.models.count_tokens(
+                    model="gemini-2.5-flash",
+                    contents="Hello, Gemini!"
+                )
+
+tests\test_async_client.py:243: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <cmdrdata_gemini.async_client.AsyncTrackedModels object at 0x0000022333B65370>
+customer_id = None, track_usage = True
+kwargs = {'contents': 'Hello, Gemini!', 'model': 'gemini-2.5-flash'}
+loop = <ProactorEventLoop running=False closed=False debug=False>
+result = <Mock id='2350211984960'>
+
+    async def count_tokens(self, customer_id: Optional[str] = None, track_usage: bool = True, **kwargs):
+        """Count tokens with optional usage tracking"""
+        # Call the original count_tokens method in a thread pool since it's sync
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(
+            None,
+            lambda: self._original_models.count_tokens(**kwargs)
+        )
+    
+        # Track usage if enabled
+        if track_usage and self._track_count_func:
+>           await self._track_count_func(
+                result=result,
+                customer_id=customer_id,
+                model=kwargs.get("model"),
+                **kwargs,
+            )
+E           TypeError: cmdrdata_gemini.async_client.AsyncTrackedGemini._track_count_tokens() got multiple values for keyword argument 'model'
+
+cmdrdata_gemini\async_client.py:299: TypeError
+---------------------------- Captured stdout call -----------------------------
+{"timestamp": "2025-07-17T15:31:27.188482Z", "level": "WARNING", "logger": "cmdrdata_openai.cmdrdata_gemini.security", "message": "Using legacy cmdrdata API key format", "module": "security", "function": "validate_api_key", "line": 127}
+{"timestamp": "2025-07-17T15:31:27.188809Z", "level": "WARNING", "logger": "cmdrdata_openai.cmdrdata_gemini.security", "message": "Using legacy cmdrdata API key format", "module": "security", "function": "validate_api_key", "line": 127}
+{"timestamp": "2025-07-17T15:31:27.189038Z", "level": "INFO", "logger": "cmdrdata_openai.cmdrdata_gemini.async_client", "message": "Usage tracking enabled", "module": "async_client", "function": "__init__", "line": 95}
+---------------------------- Captured stderr call -----------------------------
+WARNING:cmdrdata_openai.cmdrdata_gemini.security:Using legacy cmdrdata API key format
+WARNING:cmdrdata_openai.cmdrdata_gemini.security:Using legacy cmdrdata API key format
+INFO:cmdrdata_openai.cmdrdata_gemini.async_client:Usage tracking enabled
+------------------------------ Captured log call ------------------------------
+WARNING  cmdrdata_openai.cmdrdata_gemini.security:security.py:127 Using legacy cmdrdata API key format
+WARNING  cmdrdata_openai.cmdrdata_gemini.security:security.py:127 Using legacy cmdrdata API key format
+INFO     cmdrdata_openai.cmdrdata_gemini.async_client:async_client.py:95 Usage tracking enabled
+__________ TestBasicFunctionality.test_customer_context_integration ___________
+
+self = <test_basic_functionality.TestBasicFunctionality object at 0x00000223321C7790>
+mock_gemini_response = <Mock name='Client().models.generate_content()' id='2350214272672'>
+
+    def test_customer_context_integration(self, mock_gemini_response):
+        """Test integration with customer context"""
+        with patch("google.genai.Client") as mock_genai:
+            mock_client = Mock()
+            mock_models = Mock()
+            mock_models.generate_content.return_value = mock_gemini_response
+            mock_client.models = mock_models
+            mock_genai.return_value = mock_client
+    
+            client = TrackedGemini(
+                api_key="AIzaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                cmdrdata_api_key="tk-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+            )
+    
+            with patch.object(client._tracker, 'track_usage_background') as mock_track:
+                with customer_context("customer-123"):
+                    result = client.models.generate_content(
+                        model="gemini-2.5-flash",
+                        contents="Hello, Gemini!"
+                    )
+    
+                # Verify tracking was called with context customer ID
+>               mock_track.assert_called_once()
+
+tests\test_basic_functionality.py:73: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <MagicMock name='track_usage_background' id='2350214272000'>
+
+    def assert_called_once(self):
+        """assert that the mock was called only once.
+        """
+        if not self.call_count == 1:
+            msg = ("Expected '%s' to have been called once. Called %s times.%s"
+                   % (self._mock_name or 'mock',
+                      self.call_count,
+                      self._calls_repr()))
+>           raise AssertionError(msg)
+E           AssertionError: Expected 'track_usage_background' to have been called once. Called 0 times.
+
+..\..\appdata\local\programs\python\python313\Lib\unittest\mock.py:956: AssertionError
+---------------------------- Captured stdout call -----------------------------
+{"timestamp": "2025-07-17T15:31:27.230327Z", "level": "WARNING", "logger": "cmdrdata_openai.cmdrdata_gemini.security", "message": "Using legacy cmdrdata API key format", "module": "security", "function": "validate_api_key", "line": 127}
+{"timestamp": "2025-07-17T15:31:27.230635Z", "level": "WARNING", "logger": "cmdrdata_openai.cmdrdata_gemini.security", "message": "Using legacy cmdrdata API key format", "module": "security", "function": "validate_api_key", "line": 127}
+{"timestamp": "2025-07-17T15:31:27.230837Z", "level": "INFO", "logger": "cmdrdata_openai.cmdrdata_gemini.client", "message": "Usage tracking enabled", "module": "client", "function": "__init__", "line": 92}
+---------------------------- Captured stderr call -----------------------------
+WARNING:cmdrdata_openai.cmdrdata_gemini.security:Using legacy cmdrdata API key format
+WARNING:cmdrdata_openai.cmdrdata_gemini.security:Using legacy cmdrdata API key format
+INFO:cmdrdata_openai.cmdrdata_gemini.client:Usage tracking enabled
+------------------------------ Captured log call ------------------------------
+WARNING  cmdrdata_openai.cmdrdata_gemini.security:security.py:127 Using legacy cmdrdata API key format
+WARNING  cmdrdata_openai.cmdrdata_gemini.security:security.py:127 Using legacy cmdrdata API key format
+INFO     cmdrdata_openai.cmdrdata_gemini.client:client.py:92 Usage tracking enabled
+________________ TestTrackedGemini.test_get_performance_stats _________________
+
+self = <test_client.TestTrackedGemini object at 0x00000223338AC2F0>
+
+    def test_get_performance_stats(self):
+        """Test getting performance statistics"""
+        with patch("google.genai.Client") as mock_genai:
+            mock_genai.return_value = Mock()
+    
+            client = TrackedGemini(api_key="AIzaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+    
+>           stats = client.get_performance_stats()
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_client.py:146: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = TrackedGemini(tracking=disabled)
+
+    def get_performance_stats(self) -> Dict[str, Any]:
+        """Get performance monitoring statistics"""
+>       return self._performance.get_all_stats()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'PerformanceContext' object has no attribute 'get_all_stats'
+
+cmdrdata_gemini\client.py:165: AttributeError
+_ TestTrackedGeminiGenerateContent.test_generate_content_with_tracking_success _
+
+self = <test_client.TestTrackedGeminiGenerateContent object at 0x00000223321FE990>
+mock_gemini_response = <Mock name='Client().models.generate_content()' id='2350214280736'>
+
+    def test_generate_content_with_tracking_success(self, mock_gemini_response):
+        """Test successful generate_content call with tracking"""
+        with patch("google.genai.Client") as mock_genai:
+            mock_client = Mock()
+            mock_models = Mock()
+            mock_models.generate_content.return_value = mock_gemini_response
+            mock_client.models = mock_models
+            mock_genai.return_value = mock_client
+    
+            client = TrackedGemini(
+                api_key="AIzaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                cmdrdata_api_key="tk-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+            )
+    
+            with patch.object(client._tracker, 'track_usage_background') as mock_track:
+                result = client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents="Hello, Gemini!"
+                )
+    
+                # Verify original API was called
+                mock_models.generate_content.assert_called_once()
+    
+                # Verify tracking was called
+>               mock_track.assert_called_once_with(
+                    customer_id=None,  # No context set
+                    model="gemini-2.5-flash",
+                    input_tokens=15,
+                    output_tokens=25,
+                    provider="google",
+                    metadata={
+                        "response_id": "resp_123",
+                        "model_version": "001",
+                        "safety_ratings": None,
+                        "finish_reason": "STOP",
+                        "total_token_count": 40,
+                    }
+                )
+
+tests\test_client.py:189: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <MagicMock name='track_usage_background' id='2350214278048'>, args = ()
+kwargs = {'customer_id': None, 'input_tokens': 15, 'metadata': {'finish_reason': 'STOP', 'model_version': '001', 'response_id': 'resp_123', 'safety_ratings': None, ...}, 'model': 'gemini-2.5-flash', ...}
+msg = "Expected 'track_usage_background' to be called once. Called 0 times."
+
+    def assert_called_once_with(self, /, *args, **kwargs):
+        """assert that the mock was called exactly once and that that call was
+        with the specified arguments."""
+        if not self.call_count == 1:
+            msg = ("Expected '%s' to be called once. Called %s times.%s"
+                   % (self._mock_name or 'mock',
+                      self.call_count,
+                      self._calls_repr()))
+>           raise AssertionError(msg)
+E           AssertionError: Expected 'track_usage_background' to be called once. Called 0 times.
+
+..\..\appdata\local\programs\python\python313\Lib\unittest\mock.py:988: AssertionError
+---------------------------- Captured stdout call -----------------------------
+{"timestamp": "2025-07-17T15:31:27.424903Z", "level": "WARNING", "logger": "cmdrdata_openai.cmdrdata_gemini.security", "message": "Using legacy cmdrdata API key format", "module": "security", "function": "validate_api_key", "line": 127}
+{"timestamp": "2025-07-17T15:31:27.425264Z", "level": "WARNING", "logger": "cmdrdata_openai.cmdrdata_gemini.security", "message": "Using legacy cmdrdata API key format", "module": "security", "function": "validate_api_key", "line": 127}
+{"timestamp": "2025-07-17T15:31:27.425489Z", "level": "INFO", "logger": "cmdrdata_openai.cmdrdata_gemini.client", "message": "Usage tracking enabled", "module": "client", "function": "__init__", "line": 92}
+---------------------------- Captured stderr call -----------------------------
+WARNING:cmdrdata_openai.cmdrdata_gemini.security:Using legacy cmdrdata API key format
+WARNING:cmdrdata_openai.cmdrdata_gemini.security:Using legacy cmdrdata API key format
+INFO:cmdrdata_openai.cmdrdata_gemini.client:Usage tracking enabled
+------------------------------ Captured log call ------------------------------
+WARNING  cmdrdata_openai.cmdrdata_gemini.security:security.py:127 Using legacy cmdrdata API key format
+WARNING  cmdrdata_openai.cmdrdata_gemini.security:security.py:127 Using legacy cmdrdata API key format
+INFO     cmdrdata_openai.cmdrdata_gemini.client:client.py:92 Usage tracking enabled
+_ TestTrackedGeminiGenerateContent.test_generate_content_with_customer_context _
+
+self = <test_client.TestTrackedGeminiGenerateContent object at 0x0000022332205940>
+mock_gemini_response = <Mock name='Client().models.generate_content()' id='2350214269312'>
+
+    def test_generate_content_with_customer_context(self, mock_gemini_response):
+        """Test generate_content with customer context"""
+        with patch("google.genai.Client") as mock_genai:
+            mock_client = Mock()
+            mock_models = Mock()
+            mock_models.generate_content.return_value = mock_gemini_response
+            mock_client.models = mock_models
+            mock_genai.return_value = mock_client
+    
+            client = TrackedGemini(
+                api_key="AIzaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                cmdrdata_api_key="tk-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+            )
+    
+            with patch.object(client._tracker, 'track_usage_background') as mock_track:
+                result = client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents="Hello, Gemini!",
+                    customer_id="customer-123"
+                )
+    
+                # Verify tracking was called with customer ID
+>               mock_track.assert_called_once()
+
+tests\test_client.py:249: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <MagicMock name='track_usage_background' id='2350211988992'>
+
+    def assert_called_once(self):
+        """assert that the mock was called only once.
+        """
+        if not self.call_count == 1:
+            msg = ("Expected '%s' to have been called once. Called %s times.%s"
+                   % (self._mock_name or 'mock',
+                      self.call_count,
+                      self._calls_repr()))
+>           raise AssertionError(msg)
+E           AssertionError: Expected 'track_usage_background' to have been called once. Called 0 times.
+
+..\..\appdata\local\programs\python\python313\Lib\unittest\mock.py:956: AssertionError
+---------------------------- Captured stdout call -----------------------------
+{"timestamp": "2025-07-17T15:31:27.493936Z", "level": "WARNING", "logger": "cmdrdata_openai.cmdrdata_gemini.security", "message": "Using legacy cmdrdata API key format", "module": "security", "function": "validate_api_key", "line": 127}
+{"timestamp": "2025-07-17T15:31:27.494286Z", "level": "WARNING", "logger": "cmdrdata_openai.cmdrdata_gemini.security", "message": "Using legacy cmdrdata API key format", "module": "security", "function": "validate_api_key", "line": 127}
+{"timestamp": "2025-07-17T15:31:27.494512Z", "level": "INFO", "logger": "cmdrdata_openai.cmdrdata_gemini.client", "message": "Usage tracking enabled", "module": "client", "function": "__init__", "line": 92}
+---------------------------- Captured stderr call -----------------------------
+WARNING:cmdrdata_openai.cmdrdata_gemini.security:Using legacy cmdrdata API key format
+WARNING:cmdrdata_openai.cmdrdata_gemini.security:Using legacy cmdrdata API key format
+INFO:cmdrdata_openai.cmdrdata_gemini.client:Usage tracking enabled
+------------------------------ Captured log call ------------------------------
+WARNING  cmdrdata_openai.cmdrdata_gemini.security:security.py:127 Using legacy cmdrdata API key format
+WARNING  cmdrdata_openai.cmdrdata_gemini.security:security.py:127 Using legacy cmdrdata API key format
+INFO     cmdrdata_openai.cmdrdata_gemini.client:client.py:92 Usage tracking enabled
+__ TestTrackedGeminiGenerateContent.test_count_tokens_with_tracking_success ___
+
+self = <test_client.TestTrackedGeminiGenerateContent object at 0x00000223321C7DF0>
+mock_count_tokens_response = <Mock name='Client().models.count_tokens()' id='2350218431856'>
+
+    def test_count_tokens_with_tracking_success(self, mock_count_tokens_response):
+        """Test successful count_tokens call with tracking"""
+        with patch("google.genai.Client") as mock_genai:
+            mock_client = Mock()
+            mock_models = Mock()
+            mock_models.count_tokens.return_value = mock_count_tokens_response
+            mock_client.models = mock_models
+            mock_genai.return_value = mock_client
+    
+            client = TrackedGemini(
+                api_key="AIzaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                cmdrdata_api_key="tk-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+            )
+    
+            with patch.object(client._tracker, 'track_usage_background') as mock_track:
+                result = client.models.count_tokens(
+                    model="gemini-2.5-flash",
+                    contents="Hello, Gemini!"
+                )
+    
+                # Verify original API was called
+                mock_models.count_tokens.assert_called_once()
+    
+                # Verify tracking was called
+>               mock_track.assert_called_once_with(
+                    customer_id=None,  # No context set
+                    model="gemini-2.5-flash",
+                    input_tokens=15,
+                    output_tokens=0,  # No generation for count_tokens
+                    provider="google",
+                    metadata={
+                        "operation": "count_tokens",
+                        "total_tokens": 15,
+                    }
+                )
+
+tests\test_client.py:324: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <MagicMock name='track_usage_background' id='2350218433536'>, args = ()
+kwargs = {'customer_id': None, 'input_tokens': 15, 'metadata': {'operation': 'count_tokens', 'total_tokens': 15}, 'model': 'gemini-2.5-flash', ...}
+msg = "Expected 'track_usage_background' to be called once. Called 0 times."
+
+    def assert_called_once_with(self, /, *args, **kwargs):
+        """assert that the mock was called exactly once and that that call was
+        with the specified arguments."""
+        if not self.call_count == 1:
+            msg = ("Expected '%s' to be called once. Called %s times.%s"
+                   % (self._mock_name or 'mock',
+                      self.call_count,
+                      self._calls_repr()))
+>           raise AssertionError(msg)
+E           AssertionError: Expected 'track_usage_background' to be called once. Called 0 times.
+
+..\..\appdata\local\programs\python\python313\Lib\unittest\mock.py:988: AssertionError
+---------------------------- Captured stdout call -----------------------------
+{"timestamp": "2025-07-17T15:31:27.577417Z", "level": "WARNING", "logger": "cmdrdata_openai.cmdrdata_gemini.security", "message": "Using legacy cmdrdata API key format", "module": "security", "function": "validate_api_key", "line": 127}
+{"timestamp": "2025-07-17T15:31:27.577699Z", "level": "WARNING", "logger": "cmdrdata_openai.cmdrdata_gemini.security", "message": "Using legacy cmdrdata API key format", "module": "security", "function": "validate_api_key", "line": 127}
+{"timestamp": "2025-07-17T15:31:27.577894Z", "level": "INFO", "logger": "cmdrdata_openai.cmdrdata_gemini.client", "message": "Usage tracking enabled", "module": "client", "function": "__init__", "line": 92}
+---------------------------- Captured stderr call -----------------------------
+WARNING:cmdrdata_openai.cmdrdata_gemini.security:Using legacy cmdrdata API key format
+WARNING:cmdrdata_openai.cmdrdata_gemini.security:Using legacy cmdrdata API key format
+INFO:cmdrdata_openai.cmdrdata_gemini.client:Usage tracking enabled
+------------------------------ Captured log call ------------------------------
+WARNING  cmdrdata_openai.cmdrdata_gemini.security:security.py:127 Using legacy cmdrdata API key format
+WARNING  cmdrdata_openai.cmdrdata_gemini.security:security.py:127 Using legacy cmdrdata API key format
+INFO     cmdrdata_openai.cmdrdata_gemini.client:client.py:92 Usage tracking enabled
+________________ TestLoggingConfig.test_default_configuration _________________
+
+self = <test_logging_config.TestLoggingConfig object at 0x00000223321FFB10>
+
+    def test_default_configuration(self):
+        """Test default logging configuration"""
+        config = LoggingConfig()
+    
+        logger = logging.getLogger('cmdrdata_gemini')
+    
+        # Should have at least one handler (console)
+>       assert len(logger.handlers) >= 1
+E       assert 0 >= 1
+E        +  where 0 = len([])
+E        +    where [] = <Logger cmdrdata_gemini (WARNING)>.handlers
+
+tests\test_logging_config.py:248: AssertionError
+___________________ TestLoggingConfig.test_custom_log_level ___________________
+
+self = <test_logging_config.TestLoggingConfig object at 0x00000223321FFC50>
+
+    def test_custom_log_level(self):
+        """Test custom log level configuration"""
+        config = LoggingConfig({'log_level': 'DEBUG'})
+    
+        logger = logging.getLogger('cmdrdata_gemini')
+>       assert logger.level == logging.DEBUG
+E       assert 0 == 10
+E        +  where 0 = <Logger cmdrdata_gemini (WARNING)>.level
+E        +  and   10 = logging.DEBUG
+
+tests\test_logging_config.py:258: AssertionError
+__________________ TestLoggingConfig.test_structured_format ___________________
+
+self = <test_logging_config.TestLoggingConfig object at 0x0000022332206FD0>
+
+    def test_structured_format(self):
+        """Test structured logging format"""
+        config = LoggingConfig({'log_format': 'structured'})
+    
+        logger = logging.getLogger('cmdrdata_gemini')
+    
+        # Find the console handler
+        console_handler = None
+        for handler in logger.handlers:
+            if isinstance(handler, logging.StreamHandler):
+                console_handler = handler
+                break
+    
+>       assert console_handler is not None
+E       assert None is not None
+
+tests\test_logging_config.py:273: AssertionError
+___________________ TestLoggingConfig.test_standard_format ____________________
+
+self = <test_logging_config.TestLoggingConfig object at 0x0000022332206EA0>
+
+    def test_standard_format(self):
+        """Test standard logging format"""
+        config = LoggingConfig({'log_format': 'standard'})
+    
+        logger = logging.getLogger('cmdrdata_gemini')
+    
+        # Find the console handler
+        console_handler = None
+        for handler in logger.handlers:
+            if isinstance(handler, logging.StreamHandler):
+                console_handler = handler
+                break
+    
+>       assert console_handler is not None
+E       assert None is not None
+
+tests\test_logging_config.py:289: AssertionError
+_____________________ TestLoggingConfig.test_file_logging _____________________
+
+self = <test_logging_config.TestLoggingConfig object at 0x00000223338AB770>
+
+    def test_file_logging(self):
+        """Test file logging configuration"""
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            temp_path = temp_file.name
+    
+        try:
+            config = LoggingConfig({
+                'log_file': temp_path,
+                'console_logging': False
+            })
+    
+            logger = logging.getLogger('cmdrdata_gemini')
+    
+            # Should have file handler
+            file_handlers = [h for h in logger.handlers if hasattr(h, 'baseFilename')]
+>           assert len(file_handlers) >= 1
+E           assert 0 >= 1
+E            +  where 0 = len([])
+
+tests\test_logging_config.py:307: AssertionError
+____________________ TestUtilityFunctions.test_get_logger _____________________
+
+self = <test_logging_config.TestUtilityFunctions object at 0x00000223338842D0>
+
+    def test_get_logger(self):
+        """Test get_logger function"""
+        logger = get_logger("test_module")
+    
+>       assert logger.name == "cmdrdata_gemini.test_module"
+E       AssertionError: assert 'cmdrdata_openai.test_module' == 'cmdrdata_gemini.test_module'
+E         
+E         - cmdrdata_gemini.test_module
+E         ?          ^ --
+E         + cmdrdata_openai.test_module
+E         ?          ^^  +
+
+tests\test_logging_config.py:487: AssertionError
+_________________ TestUtilityFunctions.test_configure_logging _________________
+
+self = <test_logging_config.TestUtilityFunctions object at 0x0000022333884410>
+
+    def test_configure_logging(self):
+        """Test configure_logging function"""
+        custom_config = {
+            'log_level': 'WARNING',
+            'log_format': 'structured'
+        }
+    
+        configure_logging(custom_config)
+    
+        logger = logging.getLogger('cmdrdata_gemini')
+>       assert logger.level == logging.WARNING
+E       assert 0 == 30
+E        +  where 0 = <Logger cmdrdata_gemini (WARNING)>.level
+E        +  and   30 = logging.WARNING
+
+tests\test_logging_config.py:500: AssertionError
+________ TestGeminiTrackingMethods.test_track_generate_content_success ________
+
+self = <test_proxy.TestGeminiTrackingMethods object at 0x0000022333885BD0>
+mock_gemini_response = <Mock id='2350214272672'>
+
+    def test_track_generate_content_success(self, mock_gemini_response):
+        """Test successful tracking of generate_content"""
+        mock_tracker = Mock()
+    
+        track_generate_content(
+            result=mock_gemini_response,
+            customer_id="customer-123",
+            tracker=mock_tracker,
+            method_name="models.generate_content",
+            args=(),
+            kwargs={"model": "gemini-2.5-flash"}
+        )
+    
+        # Verify tracking was called
+>       mock_tracker.track_usage_background.assert_called_once_with(
+            customer_id="customer-123",
+            model="gemini-2.5-flash",
+            input_tokens=15,
+            output_tokens=25,
+            provider="google",
+            metadata={
+                "response_id": "resp_123",
+                "model_version": "001",
+                "safety_ratings": None,
+                "finish_reason": "STOP",
+                "total_token_count": 40,
+            }
+        )
+
+tests\test_proxy.py:212: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\appdata\local\programs\python\python313\Lib\unittest\mock.py:989: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Mock name='mock.track_usage_background' id='2350214267296'>, args = ()
+kwargs = {'customer_id': 'customer-123', 'input_tokens': 15, 'metadata': {'finish_reason': 'STOP', 'model_version': '001', 'response_id': 'resp_123', 'safety_ratings': None, ...}, 'model': 'gemini-2.5-flash', ...}
+expected = call(customer_id='customer-123', model='gemini-2.5-flash', input_tokens=15, output_tokens=25, provider='google', metad...nse_id': 'resp_123', 'model_version': '001', 'safety_ratings': None, 'finish_reason': 'STOP', 'total_token_count': 40})
+actual = call(customer_id='customer-123', model='gemini-2.5-flash', input_tokens=15, output_tokens=25, provider='google', metad...one, request_end_time=None, error_occurred=None, error_type=None, error_code=None, error_message=None, request_id=None)
+_error_message = <function NonCallableMock.assert_called_with.<locals>._error_message at 0x0000022333E851C0>
+cause = None
+
+    def assert_called_with(self, /, *args, **kwargs):
+        """assert that the last call was made with the specified arguments.
+    
+        Raises an AssertionError if the args and keyword args passed in are
+        different to the last call to the mock."""
+        if self.call_args is None:
+            expected = self._format_mock_call_signature(args, kwargs)
+            actual = 'not called.'
+            error_message = ('expected call not found.\nExpected: %s\n  Actual: %s'
+                    % (expected, actual))
+            raise AssertionError(error_message)
+    
+        def _error_message():
+            msg = self._format_mock_failure_message(args, kwargs)
+            return msg
+        expected = self._call_matcher(_Call((args, kwargs), two=True))
+        actual = self._call_matcher(self.call_args)
+        if actual != expected:
+            cause = expected if isinstance(expected, Exception) else None
+>           raise AssertionError(_error_message()) from cause
+E           AssertionError: expected call not found.
+E           Expected: track_usage_background(customer_id='customer-123', model='gemini-2.5-flash', input_tokens=15, output_tokens=25, provider='google', metadata={'response_id': 'resp_123', 'model_version': '001', 'safety_ratings': None, 'finish_reason': 'STOP', 'total_token_count': 40})
+E             Actual: track_usage_background(customer_id='customer-123', model='gemini-2.5-flash', input_tokens=15, output_tokens=25, provider='google', metadata={'response_id': 'resp_123', 'safety_ratings': None, 'finish_reason': 'STOP'}, request_start_time=None, request_end_time=None, error_occurred=None, error_type=None, error_code=None, error_message=None, request_id=None)
+
+..\..\appdata\local\programs\python\python313\Lib\unittest\mock.py:977: AssertionError
+_____ TestGeminiTrackingMethods.test_track_generate_content_no_usage_info _____
+
+self = <test_proxy.TestGeminiTrackingMethods object at 0x0000022333B0C510>
+
+    def test_track_generate_content_no_usage_info(self):
+        """Test tracking with response that has no usage info"""
+        mock_response = Mock()
+        del mock_response.usage_metadata  # No usage_metadata attribute
+        mock_tracker = Mock()
+    
+        track_generate_content(
+            result=mock_response,
+            customer_id="customer-123",
+            tracker=mock_tracker,
+            method_name="models.generate_content",
+            args=(),
+            kwargs={}
+        )
+    
+        # Verify tracking was not called
+>       mock_tracker.track_usage_background.assert_not_called()
+
+tests\test_proxy.py:278: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Mock name='mock.track_usage_background' id='2350214267632'>
+
+    def assert_not_called(self):
+        """assert that the mock was never called.
+        """
+        if self.call_count != 0:
+            msg = ("Expected '%s' to not have been called. Called %s times.%s"
+                   % (self._mock_name or 'mock',
+                      self.call_count,
+                      self._calls_repr()))
+>           raise AssertionError(msg)
+E           AssertionError: Expected 'track_usage_background' to not have been called. Called 1 times.
+E           Calls: [call(customer_id='customer-123', model='unknown', input_tokens=0, output_tokens=0, provider='google', metadata={}, request_start_time=None, request_end_time=None, error_occurred=None, error_type=None, error_code=None, error_message=None, request_id=None)].
+
+..\..\appdata\local\programs\python\python313\Lib\unittest\mock.py:938: AssertionError
+__________ TestGeminiTrackingMethods.test_track_count_tokens_success __________
+
+self = <test_proxy.TestGeminiTrackingMethods object at 0x00000223338DD040>
+mock_count_tokens_response = <Mock id='2350214268304'>
+
+    def test_track_count_tokens_success(self, mock_count_tokens_response):
+        """Test successful tracking of count_tokens"""
+        mock_tracker = Mock()
+    
+        track_count_tokens(
+            result=mock_count_tokens_response,
+            customer_id="customer-123",
+            tracker=mock_tracker,
+            method_name="models.count_tokens",
+            args=(),
+            kwargs={"model": "gemini-2.5-flash"}
+        )
+    
+        # Verify tracking was called
+>       mock_tracker.track_usage_background.assert_called_once_with(
+            customer_id="customer-123",
+            model="gemini-2.5-flash",
+            input_tokens=15,
+            output_tokens=0,  # No generation for count_tokens
+            provider="google",
+            metadata={
+                "operation": "count_tokens",
+                "total_tokens": 15,
+            }
+        )
+
+tests\test_proxy.py:353: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\appdata\local\programs\python\python313\Lib\unittest\mock.py:989: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Mock name='mock.track_usage_background' id='2350214270992'>, args = ()
+kwargs = {'customer_id': 'customer-123', 'input_tokens': 15, 'metadata': {'operation': 'count_tokens', 'total_tokens': 15}, 'model': 'gemini-2.5-flash', ...}
+expected = call(customer_id='customer-123', model='gemini-2.5-flash', input_tokens=15, output_tokens=0, provider='google', metadata={'operation': 'count_tokens', 'total_tokens': 15})
+actual = call(customer_id='customer-123', model='gemini-2.5-flash', input_tokens=15, output_tokens=0, provider='google', metada...one, request_end_time=None, error_occurred=None, error_type=None, error_code=None, error_message=None, request_id=None)
+_error_message = <function NonCallableMock.assert_called_with.<locals>._error_message at 0x0000022333E4E2A0>
+cause = None
+
+    def assert_called_with(self, /, *args, **kwargs):
+        """assert that the last call was made with the specified arguments.
+    
+        Raises an AssertionError if the args and keyword args passed in are
+        different to the last call to the mock."""
+        if self.call_args is None:
+            expected = self._format_mock_call_signature(args, kwargs)
+            actual = 'not called.'
+            error_message = ('expected call not found.\nExpected: %s\n  Actual: %s'
+                    % (expected, actual))
+            raise AssertionError(error_message)
+    
+        def _error_message():
+            msg = self._format_mock_failure_message(args, kwargs)
+            return msg
+        expected = self._call_matcher(_Call((args, kwargs), two=True))
+        actual = self._call_matcher(self.call_args)
+        if actual != expected:
+            cause = expected if isinstance(expected, Exception) else None
+>           raise AssertionError(_error_message()) from cause
+E           AssertionError: expected call not found.
+E           Expected: track_usage_background(customer_id='customer-123', model='gemini-2.5-flash', input_tokens=15, output_tokens=0, provider='google', metadata={'operation': 'count_tokens', 'total_tokens': 15})
+E             Actual: track_usage_background(customer_id='customer-123', model='gemini-2.5-flash', input_tokens=15, output_tokens=0, provider='google', metadata={'operation': 'count_tokens', 'total_tokens': 15}, request_start_time=None, request_end_time=None, error_occurred=None, error_type=None, error_code=None, error_message=None, request_id=None)
+
+..\..\appdata\local\programs\python\python313\Lib\unittest\mock.py:977: AssertionError
+_____________ TestUsageTracker.test_initialization_default_values _____________
+
+self = <test_tracker.TestUsageTracker object at 0x00000223338DE030>
+
+    def test_initialization_default_values(self):
+        """Test initialization with default values"""
+        tracker = UsageTracker(api_key=self.valid_api_key)
+    
+>       assert tracker.endpoint == "https://www.cmdrdata.ai/api/events"
+E       AssertionError: assert 'https://api..../async/events' == 'https://www....ai/api/events'
+E         
+E         - https://www.cmdrdata.ai/api/events
+E         ?         ^^^
+E         + https://api.cmdrdata.ai/api/async/events
+E         ?         ^^^                 ++++++
+
+tests\test_tracker.py:75: AssertionError
+---------------------------- Captured stdout call -----------------------------
+{"timestamp": "2025-07-17T15:31:31.391631Z", "level": "WARNING", "logger": "cmdrdata_openai.cmdrdata_gemini.security", "message": "Using legacy cmdrdata API key format", "module": "security", "function": "validate_api_key", "line": 127}
+---------------------------- Captured stderr call -----------------------------
+WARNING:cmdrdata_openai.cmdrdata_gemini.security:Using legacy cmdrdata API key format
+------------------------------ Captured log call ------------------------------
+WARNING  cmdrdata_openai.cmdrdata_gemini.security:security.py:127 Using legacy cmdrdata API key format
+____________ TestVersionCompatibility.test_supported_genai_version ____________
+
+self = <test_version_compat.TestVersionCompatibility object at 0x0000022333BB8410>
+
+    def test_supported_genai_version(self):
+        """Test that supported versions are marked as compatible"""
+        with patch("cmdrdata_gemini.version_compat.version") as mock_version:
+            # Mock a supported version
+            mock_parse = Mock()
+            mock_parse.return_value = Mock()
+            mock_parse.return_value.__lt__ = Mock(return_value=False)
+            mock_parse.return_value.__ge__ = Mock(return_value=False)
+            mock_parse.return_value.__str__ = Mock(return_value="0.5.0")
+            mock_version.parse = mock_parse
+    
+            with patch("google.genai.__version__", "0.5.0"):
+                compat = VersionCompatibility()
+>               assert compat.is_genai_supported()
+E               assert False
+E                +  where False = is_genai_supported()
+E                +    where is_genai_supported = <cmdrdata_gemini.version_compat.VersionCompatibility object at 0x0000022331722490>.is_genai_supported
+
+tests\test_version_compat.py:39: AssertionError
+_________________ TestVersionCompatibility.test_missing_genai _________________
+
+self = <test_version_compat.TestVersionCompatibility object at 0x0000022333B0F6F0>
+
+    def test_missing_genai(self):
+        """Test handling when Google Gen AI SDK is not installed"""
+        with patch("builtins.__import__", side_effect=ImportError):
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter("always")
+                compat = VersionCompatibility()
+                assert not compat.is_genai_supported()
+>               assert len(w) > 0
+E               assert 0 > 0
+E                +  where 0 = len([])
+
+tests\test_version_compat.py:67: AssertionError
+---------------------------- Captured stderr call -----------------------------
+C:\Users\User\product\cmdrdata-gemini\tests\test_version_compat.py:65: UserWarning: Google Gen AI SDK not found. Please install it: pip install google-genai>=0.1.0
+=========================== short test summary info ===========================
+FAILED tests/test_async_client.py::TestAsyncTrackedGeminiGenerateContent::test_async_generate_content_with_tracking_success
+FAILED tests/test_async_client.py::TestAsyncTrackedGeminiGenerateContent::test_async_generate_content_with_customer_context
+FAILED tests/test_async_client.py::TestAsyncTrackedGeminiGenerateContent::test_async_generate_content_tracking_failure
+FAILED tests/test_async_client.py::TestAsyncTrackedGeminiGenerateContent::test_async_count_tokens_with_tracking_success
+FAILED tests/test_basic_functionality.py::TestBasicFunctionality::test_customer_context_integration
+FAILED tests/test_client.py::TestTrackedGemini::test_get_performance_stats - ...
+FAILED tests/test_client.py::TestTrackedGeminiGenerateContent::test_generate_content_with_tracking_success
+FAILED tests/test_client.py::TestTrackedGeminiGenerateContent::test_generate_content_with_customer_context
+FAILED tests/test_client.py::TestTrackedGeminiGenerateContent::test_count_tokens_with_tracking_success
+FAILED tests/test_logging_config.py::TestLoggingConfig::test_default_configuration
+FAILED tests/test_logging_config.py::TestLoggingConfig::test_custom_log_level
+FAILED tests/test_logging_config.py::TestLoggingConfig::test_structured_format
+FAILED tests/test_logging_config.py::TestLoggingConfig::test_standard_format
+FAILED tests/test_logging_config.py::TestLoggingConfig::test_file_logging - a...
+FAILED tests/test_logging_config.py::TestUtilityFunctions::test_get_logger - ...
+FAILED tests/test_logging_config.py::TestUtilityFunctions::test_configure_logging
+FAILED tests/test_proxy.py::TestGeminiTrackingMethods::test_track_generate_content_success
+FAILED tests/test_proxy.py::TestGeminiTrackingMethods::test_track_generate_content_no_usage_info
+FAILED tests/test_proxy.py::TestGeminiTrackingMethods::test_track_count_tokens_success
+FAILED tests/test_tracker.py::TestUsageTracker::test_initialization_default_values
+FAILED tests/test_version_compat.py::TestVersionCompatibility::test_supported_genai_version
+FAILED tests/test_version_compat.py::TestVersionCompatibility::test_missing_genai
+================ 22 failed, 276 passed, 337 warnings in 7.92s =================
