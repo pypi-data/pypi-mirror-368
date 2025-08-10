@@ -1,0 +1,362 @@
+Metadata-Version: 2.4
+Name: x-pages-mcp
+Version: 0.1.0
+Summary: MCP server for X-Pages HTML deployment service
+Project-URL: Homepage, https://github.com/xingshulin/x-pages-mcp
+Project-URL: Documentation, https://github.com/xingshulin/x-pages-mcp/blob/main/README.md
+Project-URL: Repository, https://github.com/xingshulin/x-pages-mcp
+Project-URL: Bug Tracker, https://github.com/xingshulin/x-pages-mcp/issues
+Author: X-Pages Team
+License: MIT License
+        
+        Copyright (c) 2024 X-Pages Team
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE.
+License-File: LICENSE
+Keywords: ai,claude,deployment,html,mcp,model-context-protocol
+Classifier: Development Status :: 4 - Beta
+Classifier: Framework :: AsyncIO
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Internet :: WWW/HTTP :: HTTP Servers
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Requires-Python: >=3.10
+Requires-Dist: httpx>=0.27.0
+Requires-Dist: mcp>=1.0.0
+Requires-Dist: pydantic>=2.0.0
+Requires-Dist: python-dotenv>=1.0.0
+Provides-Extra: dev
+Requires-Dist: mypy; extra == 'dev'
+Requires-Dist: pytest; extra == 'dev'
+Requires-Dist: pytest-asyncio; extra == 'dev'
+Requires-Dist: ruff; extra == 'dev'
+Description-Content-Type: text/markdown
+
+# X-Pages MCP Server
+
+基于Model Context Protocol (MCP) 的X-Pages HTML部署服务器，让大模型可以直接部署HTML内容并获取网站地址。
+
+## 🚀 功能特性
+
+- 🤖 **AI友好** - 通过MCP协议让大模型直接部署HTML内容
+- 🔧 **简单易用** - 几个命令即可完成部署和管理
+- 🛡️ **安全认证** - 支持x-token认证，保护API访问
+- 🌐 **即时访问** - 部署后立即获得可访问的网站URL
+- 📝 **模板生成** - 内置HTML模板生成工具
+- 🔄 **完整管理** - 支持部署、删除、URL获取等完整操作
+
+## 📦 安装
+
+### 前置要求
+
+- Python 3.9+
+- uv (推荐) 或 pip
+- 已部署的X-Pages服务
+
+### 安装步骤
+
+```bash
+# 克隆项目
+git clone <repository-url>
+cd X-Pages/mcp
+
+# 使用uv安装 (推荐)
+uv sync
+
+# 或使用pip安装
+pip install -e .
+```
+
+## ⚙️ 配置
+
+### 环境变量
+
+创建 `.env` 文件或设置环境变量：
+
+```bash
+# 必需配置
+export X_PAGES_BASE_URL=https://your-domain.com
+export X_PAGES_API_TOKEN=your-secret-token
+
+# 可选配置
+export X_PAGES_TIMEOUT=30.0
+```
+
+### Claude Desktop 配置
+
+在Claude Desktop的配置文件中添加MCP服务器：
+
+**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+**Windows**: `%APPDATA%\\Claude\\claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "x-pages-html-deployment": {
+      "command": "uv",
+      "args": [
+        "--directory", "/path/to/X-Pages/mcp",
+        "run", "x-pages-mcp"
+      ],
+      "env": {
+        "X_PAGES_BASE_URL": "https://your-domain.com",
+        "X_PAGES_API_TOKEN": "your-secret-token"
+      }
+    }
+  }
+}
+```
+
+## 🚀 传输模式
+
+X-Pages MCP服务器支持三种传输模式：
+
+### STDIO 模式 (默认)
+标准输入输出模式，适合Claude Desktop等本地客户端：
+```bash
+# 使用Python启动器
+python3 start_server.py --transport stdio
+
+# 使用脚本
+./scripts/start_stdio.sh
+
+# 直接使用uv
+uv run x-pages-mcp --transport stdio
+```
+
+### SSE 模式 (Server-Sent Events)
+基于HTTP的实时通信模式，适合Web应用：
+```bash
+# 使用Python启动器
+python3 start_server.py --transport sse --port 3001
+
+# 使用脚本
+./scripts/start_sse.sh localhost 3001
+
+# 直接使用uv
+uv run x-pages-mcp --transport sse --port 3001
+```
+
+访问地址: `http://localhost:3001/sse`
+
+### Streamable HTTP 模式
+可流式HTTP模式，支持长连接和流式响应：
+```bash
+# 使用Python启动器
+python3 start_server.py --transport streamable-http --port 3002
+
+# 使用脚本
+./scripts/start_streamable.sh localhost 3002
+
+# 直接使用uv
+uv run x-pages-mcp --transport streamable-http --port 3002
+```
+
+访问地址: `http://localhost:3002/mcp`
+
+## 🛠 可用工具
+
+### 1. deploy_html
+部署HTML内容到X-Pages服务
+
+**参数：**
+- `site_name` (string): 站点名称，用于生成访问URL
+- `html_content` (string): 完整的HTML内容
+- `title` (string, 可选): 站点标题
+- `description` (string, 可选): 站点描述
+
+**返回：**
+```json
+{
+  "success": true,
+  "site_name": "my-site",
+  "deploy_url": "https://your-domain.com/my-site",
+  "deployed_at": "2024-01-01T00:00:00Z",
+  "content_length": 1024,
+  "message": "HTML site 'my-site' deployed successfully"
+}
+```
+
+### 2. delete_html
+从X-Pages服务删除HTML站点
+
+**参数：**
+- `site_name` (string): 要删除的站点名称
+
+**返回：**
+```json
+{
+  "success": true,
+  "site_name": "my-site",
+  "deleted_at": "2024-01-01T00:00:00Z",
+  "message": "HTML site 'my-site' deleted successfully"
+}
+```
+
+### 3. get_site_url
+获取站点的访问URL
+
+**参数：**
+- `site_name` (string): 站点名称
+
+**返回：** `"https://your-domain.com/my-site"`
+
+### 4. create_sample_html
+创建示例HTML页面内容
+
+**参数：**
+- `site_name` (string): 站点名称
+- `title` (string, 可选): HTML页面标题，默认"示例页面"
+- `heading` (string, 可选): 页面主标题，默认"Hello World!"
+- `content` (string, 可选): 页面内容
+
+**返回：** 完整的HTML内容字符串
+
+## 💡 使用示例
+
+### 与Claude Desktop一起使用
+
+配置完成后，你可以在Claude Desktop中直接使用自然语言进行HTML部署：
+
+```
+用户: 帮我创建一个名为"hello-world"的简单网站，标题是"我的第一个网站"
+
+Claude: 我来为你创建并部署一个简单的网站。
+
+1. 首先创建HTML内容：
+```
+
+Claude会自动调用MCP工具来：
+1. 生成HTML内容
+2. 部署到X-Pages服务
+3. 返回可访问的网站URL
+
+### 命令行使用
+
+```bash
+# 启动MCP服务器 (用于测试)
+uv run x-pages-mcp
+
+# 或直接运行
+python -m x_pages_mcp.server
+```
+
+### 编程方式使用
+
+```python
+import asyncio
+from x_pages_mcp.server import deploy_html, create_sample_html
+
+async def main():
+    # 创建示例HTML
+    html = await create_sample_html(
+        site_name="test-site",
+        title="测试网站",
+        heading="欢迎访问",
+        content="这是通过MCP部署的测试网站"
+    )
+    
+    # 部署HTML
+    result = await deploy_html("test-site", html, "测试网站", "MCP部署示例")
+    print(f"网站部署成功！访问地址: {result.deploy_url}")
+
+asyncio.run(main())
+```
+
+## 🧪 测试
+
+```bash
+# 运行测试
+uv run pytest
+
+# 运行测试并显示覆盖率
+uv run pytest --cov=x_pages_mcp
+```
+
+## 🛡️ 安全注意事项
+
+1. **保护API Token** - 不要在代码中硬编码token，使用环境变量
+2. **网络安全** - 确保X-Pages服务使用HTTPS
+3. **输入验证** - 对HTML内容进行适当的安全检查
+4. **访问控制** - 限制MCP服务器的访问权限
+
+## 🔧 开发
+
+### 项目结构
+
+```
+mcp/
+├── src/x_pages_mcp/
+│   ├── __init__.py
+│   └── server.py          # MCP服务器主要实现
+├── tests/
+│   ├── __init__.py
+│   └── test_server.py     # 测试文件
+├── pyproject.toml         # 项目配置
+├── .env.example          # 环境变量示例
+├── claude_desktop_config.json  # Claude Desktop配置示例
+└── README.md             # 使用文档
+```
+
+### 贡献指南
+
+1. Fork 项目
+2. 创建功能分支 (`git checkout -b feature/amazing-feature`)
+3. 提交更改 (`git commit -m 'Add amazing feature'`)
+4. 推送到分支 (`git push origin feature/amazing-feature`)
+5. 创建Pull Request
+
+## 📄 许可证
+
+MIT License
+
+## 🆘 故障排除
+
+### 常见问题
+
+**Q: 配置错误 "X_PAGES_BASE_URL environment variable is required"**
+A: 确保设置了正确的环境变量，参考配置部分
+
+**Q: 部署失败 "Invalid x-token"**
+A: 检查X_PAGES_API_TOKEN是否与X-Pages服务中配置的token一致
+
+**Q: 网络请求失败**
+A: 检查X_PAGES_BASE_URL是否正确，网络连接是否正常
+
+**Q: Claude Desktop中看不到MCP工具**
+A: 检查配置文件路径和格式，重启Claude Desktop
+
+### 调试模式
+
+```bash
+# 启用调试日志
+export MCP_LOG_LEVEL=DEBUG
+uv run x-pages-mcp
+```
+
+## 🔗 相关链接
+
+- [X-Pages 项目](../README.md)
+- [Model Context Protocol](https://modelcontextprotocol.io/)
+- [Claude Desktop MCP 配置](https://claude.ai/docs)
+- [腾讯云 EdgeOne](https://cloud.tencent.com/product/edgeone)
