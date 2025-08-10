@@ -1,0 +1,204 @@
+from mcp_client import MCPClient
+import json
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+import requests
+
+load_dotenv(dotenv_path=".env")
+
+class OrchestratorAgent:
+    def __init__(self):
+        self.agent_cards = self.load_agent_cards()
+        self.mcp_client = MCPClient()
+
+    def load_agent_cards(self):
+        cards = []
+        agent_cards_dir = Path(__file__).parent / "agent_cards"
+        for card_file in agent_cards_dir.glob("*.json"):
+            with open(card_file,"r",encoding="utf-8") as f:
+                cards.append(json.load(f))
+        return cards
+
+    def split_task(self, main_task_description: str) -> list:
+        """
+        将大型任务拆分成多个子任务
+
+        参数:
+            main_task_description: 主任务描述
+
+        返回:
+            子任务列表，格式: [{"task_number": "", "task_name": "", "task_details": ""}]
+        """
+        # 获取现有agent信息
+        agent_cards = self.load_agent_cards()
+
+        # 构建提示词
+        prompt = f"""
+    你是一个高级任务规划AI，需要将复杂任务拆分成可执行的子任务用于agent调度。请遵守以下规则：
+    1. 基于现有Agent能力进行拆分（每个子任务唯一对应一次调用Agent完成，如果调用1次agent就能完成就不要调用多次agent）
+    2. 拆分数量合理
+    3. 每个子任务应是独立可执行的最小单元
+    4. 明确标注依赖关系（如果有）
+
+    ### 可用Agent列表：
+    {json.dumps(agent_cards, indent=2, ensure_ascii=False)}
+
+    ### 主任务描述：
+    {main_task_description}
+
+    ### 输出要求：
+    1. 使用严格JSON格式输出
+    2. 结构为字典列表：[{{"task_number": "1", "task_name": "子任务名称", "task_details": "详细描述"}}]
+    3. 任务编号从1开始连续编号
+    4. 在task_details中注明需要的Agent类型（从可用Agent中选择）
+    """
+        # 调用大模型API
+        api_key = os.getenv("API_KEY")
+        base_url = os.getenv("BASE_URL")
+
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "model": os.getenv("model_name"),
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.2,  # 降低随机性确保结构化输出
+            "response_format": {"type": "json_object"},  # 强制JSON输出
+            "max_tokens": 4000
+        }
+
+        try:
+            response = requests.post(
+                f"{base_url}/chat/completions",
+                headers=headers,
+                json=payload,
+                timeout=120
+            )
+            response.raise_for_status()
+
+            # 解析模型输出
+            result = response.json()
+            json_str = result['choices'][0]['message']['content']
+
+            # 安全解析JSON
+            try:
+                subtasks = json.loads(json_str)
+            except json.JSONDecodeError:
+                # 尝试提取有效JSON部分
+                start_idx = json_str.find('[')
+                end_idx = json_str.rfind(']') + 1
+                subtasks = json.loads(json_str[start_idx:end_idx])
+
+            # 验证结果格式
+            if not isinstance(subtasks, list):
+                raise ValueError("返回结果不是列表格式")
+
+            for i, task in enumerate(subtasks, 1):
+                if "task_number" not in task:
+                    task["task_number"] = str(i)
+                if "task_name" not in task:
+                    task["task_name"] = f"子任务{i}"
+                if "task_details" not in task:
+                    task["task_details"] = "未提供详细信息"
+
+            return subtasks
+
+        except Exception as e:
+            # 错误处理：返回基础拆分方案
+            print(f"任务拆分失败: {str(e)}，使用基础拆分")
+            return [
+                {
+                    "task_number": "1",
+                    "task_name": "基础拆分任务",
+                    "task_details": f"执行整个任务: {main_task_description}"
+                }
+            ]
+    def decide_agent(self, task_description: str) -> dict:
+        """使用LLM决定使用哪个agent"""
+        api_key = os.getenv("API_KEY")
+        base_url = os.getenv("BASE_URL")
+        cards=self.load_agent_cards()
+        prompt = f"""
+        You are an AI orchestrator. Based on the task description,
+        select the most appropriate agent from the available options.
+
+        Available agents:
+        {cards}
+
+        Task: {task_description}
+
+        Respond in JSON format: {{"agent": "agent_name, e.g. chart"}}
+        """
+        #Respond in JSON format: {{"agent": "agent_name, e.g. chart", "tool_name": "skill_name, e.g. draw_chart", "tool_args": "{\"data\": [1, 2, 3, 4, 5], \"title\": \"销售数据\"}"}}
+
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "model": os.getenv("model_name"),
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.3,
+            "max_tokens": 8000
+        }
+
+        response = requests.post(
+            f"{base_url}/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=300
+        )
+        # print(response.text)
+        result = response.json()
+        # print(result['choices'][0]['message']['content'])
+        return result['choices'][0]['message']['content']
+    def decide_agent_parameters(self, task_description: str, agent_name: str) -> dict:
+        #find mcp agent
+        mcp_agent_cards_path = Path(__file__).parent / "mcp_agents/mcp_cards.json"
+        with open(mcp_agent_cards_path, "r", encoding="utf-8") as f:
+            agent_details=json.load(f)[agent_name]
+        #build parameters
+        print(agent_details)
+        api_key = os.getenv("API_KEY")
+        base_url = os.getenv("BASE_URL")
+        prompt = f"""
+                You are an AI Agent tools and parameters orchestrator. Based on the task description,
+                select the most appropriate tools from the available options and build parameters.
+
+                Agents name: {agent_name}
+
+                Agent details:
+                {agent_details}
+
+                Task: {task_description}
+
+                Respond in JSON format: {{"agent": "agent_name, e.g. chart", "tool_name": "skill_name, e.g. draw_chart", "tool_args": "{{"data": [1, 2, 3, 4, 5], "title": "销售数据"}}"}}
+                """
+        print("prompt")
+        print(prompt)
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "model": os.getenv("model_name"),
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.3,
+            "max_tokens": 8000
+        }
+
+        response = requests.post(
+            f"{base_url}/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=300
+        )
+        # print(response.text)
+        result = response.json()
+        print(result['choices'][0]['message']['content'])
+        return result['choices'][0]['message']['content']
