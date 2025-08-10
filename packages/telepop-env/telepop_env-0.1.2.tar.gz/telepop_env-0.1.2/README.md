@@ -1,0 +1,66 @@
+## telepop_env [tinyenv]
+
+**Tinyenv zero-dependency environment variable loader** for Python.  
+Reads `.env` + `os.environ`, supports type casting, validation, and `.env.example` generation.
+
+---
+
+## Features:
+
+Zero dependencies
+
+Automatic type casting (bool, int, float, str)
+
+Required variable check
+
+.env.example generation from used variables
+
+
+
+#### Install
+```bash
+pip install telepop_env
+```
+
+
+
+---
+
+#### usage
+
+```python
+from telepop_env import env
+
+DEBUG = env.bool("DEBUG", default=False)
+DB_PORT = env.int("DB_PORT", required=True)
+DB_URL = env.str("DB_URL", default="sqlite:///:memory:")
+
+print(DEBUG, DB_PORT, DB_URL)
+```
+
+#### generate .env with 
+
+```python
+from telepop_env import env
+# call function
+env.generate_example()
+
+```
+#### result will be like
+
+```bash
+DEBUG=true
+DB_PORT=5432
+
+```
+
+---
+
+#### Pypi page: 
+
+https://pypi.org/project/telepop-env/
+
+
+
+
+
