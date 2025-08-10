@@ -1,0 +1,63 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "autonity"
+description = "Python SDK for Autonity"
+readme = "README.md"
+license = "MIT"
+keywords = ["autonity", "web3", "rpc", "client", "library"]
+dynamic = ["version"]
+requires-python = ">=3.9"
+dependencies = ["web3==7.12.0", "plum-dispatch==2.5.4", "semver==3.0.2"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+[project.urls]
+Homepage = "https://github.com/autonity/autonity.py"
+Source = "https://github.com/autonity/autonity.py"
+Issues = "https://github.com/autonity/autonity.py/issues"
+Changes = "https://github.com/autonity/autonity.py/blob/master/CHANGELOG.md"
+
+[tool.hatch.build]
+include = ["autonity/**"]
+
+[tool.hatch.version]
+path = "autonity/__version__.py"
+
+[tool.hatch.envs.generate]
+detached = true
+dependencies = ["pyabigen@git+https://github.com/clearmatics/pyabigen@v0.2.15"]
+
+[tool.hatch.envs.test]
+dependencies = ["pytest"]
+
+[[tool.hatch.envs.test.matrix]]
+python = ["3.9", "3.10", "3.11", "3.12", "3.13"]
+
+[tool.hatch.envs.test.scripts]
+all = "pytest -v {args:tests}"
+
+[tool.hatch.envs.lint]
+dependencies = ["black", "ruff", "mypy", "pyright"]
+
+[tool.hatch.envs.lint.scripts]
+check = [
+    "ruff check {args:.}",
+    "black --check {args:.}",
+    "mypy {args:autonity}",
+    "pyright {args:autonity}",
+]
+format = ["black {args:.}", "ruff check --fix --select I {args:.}"]
+
+[tool.pyright]
+strict = ["autonity"]
