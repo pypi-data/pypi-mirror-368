@@ -1,0 +1,42 @@
+name: Build and Test
+
+on: [push, pull_request]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.11", "3.12", "3.13"]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Install llvmpipe and lavapipe for offscreen canvas
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update -y -qq
+        sudo apt install -y libegl1-mesa-dev libgl1-mesa-dri libxcb-xfixes0-dev mesa-vulkan-drivers
+    - name: Install Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - uses: actions/checkout@v2
+    - name: Install
+      run: |
+        pip install .[test]
+        playwright install
+        sudo $(which playwright) install-deps
+    - name: Run all tests
+      working-directory: tests
+      run: python -m pytest
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: Outputs from tests on Python ${{ matrix.python-version }}
+        path: tests/output/
