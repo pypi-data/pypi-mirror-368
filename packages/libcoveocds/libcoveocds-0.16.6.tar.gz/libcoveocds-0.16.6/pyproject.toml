@@ -1,0 +1,74 @@
+[build-system]
+requires = ["setuptools>=61.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "libcoveocds"
+version = "0.16.6"
+authors = [{name = "Open Contracting Partnership and Open Data Services Co-operative Limited", email = "data@open-contracting.org"}]
+description = "A data review library for the Open Contracting Data Standard (OCDS)"
+readme = "README.rst"
+license = {text = "AGPL-3.0-or-later"}
+urls = {Homepage = "https://github.com/open-contracting/lib-cove-ocds"}
+classifiers = [
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: Implementation :: CPython",
+]
+dependencies = [
+    "click",
+    "jsonref>=1",
+    "jsonschema>=4.18",
+    "libcove>=0.32",
+    "ocdsextensionregistry>=0.3.4",
+    "referencing",
+    "requests",
+]
+
+[project.optional-dependencies]
+perf = ["orjson"]
+test = [
+    "coverage",
+    "pytest",
+]
+web = [
+    "bleach>=6",
+    "django",
+    "markdown-it-py",
+]
+
+[project.scripts]
+libcoveocds = "libcoveocds.__main__:main"
+
+[tool.setuptools.packages.find]
+exclude = [
+    "tests",
+    "tests.*",
+]
+
+[tool.ruff]
+line-length = 119
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "ANN", "C901", "COM812", "D203", "D212", "D415", "EM", "ISC001", "PERF203", "PLR091", "Q000",
+    "D1",
+    "PTH",
+    "S308",  # mark_safe
+    "TRY003",  # errors
+]
+
+[tool.ruff.lint.flake8-unused-arguments]
+ignore-variadic-names = true
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = [
+    "ARG001", "D", "FBT003", "INP001", "PLR2004", "S", "TRY003",
+]
