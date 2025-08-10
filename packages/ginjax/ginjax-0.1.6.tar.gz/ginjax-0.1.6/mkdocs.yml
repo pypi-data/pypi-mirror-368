@@ -1,0 +1,82 @@
+site_name: ginjax
+site_description: Equivariant geometric convolutions for vector or tensor images
+site_author: Wilson Gregory
+repo_url: https://github.com/WilsonGregory/ginjax
+repo_name: WilsonGregory/ginjax
+
+theme:
+    name: material
+    features:
+        - navigation  # Sections are included in the navigation on the left.
+        - toc  # Table of contents is integrated on the left; does not appear separately on the right.
+        - header.autohide  # header disappears as you scroll
+    palette:
+        # Light mode / dark mode
+        # We deliberately don't automatically use `media` to check a user's preferences. We default to light mode as
+        # (a) it looks more professional, and (b) is more obvious about the fact that it offers a (dark mode) toggle.
+        - scheme: default
+          primary: amber
+          accent: brown
+          toggle:
+             icon: material/brightness-5
+             name: Dark mode
+        - scheme: slate
+          primary: custom
+          accent: purple
+          toggle:
+             icon: material/brightness-2
+             name: Light mode
+
+    twitter_name: "@physicskaze"
+    twitter_url: "https://twitter.com/physicskaze"
+
+markdown_extensions:
+    - pymdownx.arithmatex:  # Render LaTeX via MathJax
+        generic: true
+    - pymdownx.superfences  # Seems to enable syntax highlighting when used with the Material theme.
+    - pymdownx.details  
+    - pymdownx.snippets:  # Include one Markdown file into another
+        base_path: docs
+    - admonition
+    - toc:
+        permalink: "¤"  # Adds a clickable permalink to each section heading
+        toc_depth: 5
+
+plugins:
+    - search  # default search plugin; needs manually re-enabling when using any other plugins
+    - autorefs  # Cross-links to headings
+    - mkdocs-jupyter: # Jupyter notebook support
+        # show_input: False
+    - gen-files:
+        scripts:
+        - docs/gen_ref_pages.py
+    - literate-nav:
+        nav_file: SUMMARY.md
+    - mkdocstrings:
+        handlers:
+            python:
+                options:
+                    inherited_members: true  # Allow looking up inherited methods
+                    show_root_heading: true  # actually display anything at all...
+                    show_root_full_path: true  # display "diffrax.asdf" not just "asdf"
+                    show_if_no_docstring: false # don't want to display attributes
+                    show_signature_annotations: true
+                    show_source: true 
+                    members_order: source  # order methods according to their order of definition in the source code, not alphabetical order
+                    heading_level: 3
+                    show_symbol_type_heading: true
+                    show_symbol_type_toc: true
+
+nav:
+  - Home: index.md
+  - Quickstart: quickstart.md
+  - Group and Invariant Filters: group_operators.ipynb
+  - Math Background: math.md
+  - Examples: examples/
+  - Contribution: contribution.md
+  - API: api/*
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
+
