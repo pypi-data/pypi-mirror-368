@@ -1,0 +1,126 @@
+Metadata-Version: 2.4
+Name: ragbits-core
+Version: 1.2.2
+Summary: Building blocks for rapid development of GenAI applications
+Project-URL: Homepage, https://github.com/deepsense-ai/ragbits
+Project-URL: Bug Reports, https://github.com/deepsense-ai/ragbits/issues
+Project-URL: Documentation, https://ragbits.deepsense.ai/
+Project-URL: Source, https://github.com/deepsense-ai/ragbits
+Author-email: "deepsense.ai" <ragbits@deepsense.ai>
+License-Expression: MIT
+Keywords: GenAI,Generative AI,LLMs,Large Language Models,Prompt Management,RAG,Retrieval Augmented Generation
+Classifier: Development Status :: 4 - Beta
+Classifier: Environment :: Console
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Natural Language :: English
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Requires-Python: >=3.10
+Requires-Dist: aiohttp<4.0.0,>=3.10.8
+Requires-Dist: filetype<2.0.0,>=1.2.0
+Requires-Dist: griffe<2.0.0,>=1.7.3
+Requires-Dist: jinja2<4.0.0,>=3.1.4
+Requires-Dist: litellm<2.0.0,>=1.55.0
+Requires-Dist: pydantic<3.0.0,>=2.9.1
+Requires-Dist: tomli<3.0.0,>=2.0.2
+Requires-Dist: typer<1.0.0,>=0.12.5
+Provides-Extra: azure
+Requires-Dist: azure-core<2.0.0,>=1.32.0; extra == 'azure'
+Requires-Dist: azure-identity<2.0.0,>=1.19.0; extra == 'azure'
+Requires-Dist: azure-storage-blob<13.0.0,>=12.24.1; extra == 'azure'
+Provides-Extra: chroma
+Requires-Dist: chromadb<2.0.0,>=1.0.0; extra == 'chroma'
+Provides-Extra: fastembed
+Requires-Dist: fastembed<1.0.0,>=0.4.2; extra == 'fastembed'
+Provides-Extra: fastembed-gpu
+Requires-Dist: fastembed-gpu<1.0.0,>=0.4.2; extra == 'fastembed-gpu'
+Provides-Extra: gcs
+Requires-Dist: gcloud-aio-storage<10.0.0,>=9.3.0; extra == 'gcs'
+Provides-Extra: google-drive
+Requires-Dist: google-api-core<3.0.0,>=2.25.1; extra == 'google-drive'
+Requires-Dist: google-api-python-client<3.0.0,>=2.174.0; extra == 'google-drive'
+Requires-Dist: google-auth-httplib2<1.0.0,>=0.2.0; extra == 'google-drive'
+Requires-Dist: google-auth-oauthlib<2.0.0,>=1.2.2; extra == 'google-drive'
+Requires-Dist: google-auth<3.0.0,>=2.40.3; extra == 'google-drive'
+Requires-Dist: google-oauth2-tool<1.0.0,>=0.0.3; extra == 'google-drive'
+Requires-Dist: googleapis-common-protos<2.0.0,>=1.70.0; extra == 'google-drive'
+Provides-Extra: hf
+Requires-Dist: datasets<4.0.0,>=3.0.1; extra == 'hf'
+Provides-Extra: local
+Requires-Dist: accelerate>=1.7.0; extra == 'local'
+Requires-Dist: numpy<2.0.0,>=1.26.0; extra == 'local'
+Requires-Dist: sentence-transformers<5.0.0,>=4.0.2; extra == 'local'
+Requires-Dist: torch<3.0.0,>=2.2.1; extra == 'local'
+Requires-Dist: transformers<5.0.0,>=4.44.2; extra == 'local'
+Provides-Extra: logfire
+Requires-Dist: logfire<4.0.0,>=3.19.0; extra == 'logfire'
+Requires-Dist: logfire[system-metrics]<4.0.0,>=3.19.0; extra == 'logfire'
+Requires-Dist: opentelemetry-api<2.0.0,>=1.27.0; extra == 'logfire'
+Provides-Extra: otel
+Requires-Dist: opentelemetry-api<2.0.0,>=1.27.0; extra == 'otel'
+Provides-Extra: pgvector
+Requires-Dist: asyncpg<1.0.0,>=0.30.0; extra == 'pgvector'
+Provides-Extra: promptfoo
+Requires-Dist: pyyaml<7.0.0,>=6.0.2; extra == 'promptfoo'
+Provides-Extra: qdrant
+Requires-Dist: qdrant-client<2.0.0,>=1.12.1; extra == 'qdrant'
+Provides-Extra: s3
+Requires-Dist: boto3<2.0.0,>=1.35.42; extra == 's3'
+Provides-Extra: weaviate
+Requires-Dist: weaviate-client<5.0.0,>=4.15.4; extra == 'weaviate'
+Description-Content-Type: text/markdown
+
+# Ragbits Core
+
+Ragbits Core is a collection of utilities and tools that are used across all Ragbits packages. It includes fundamentals, such as utilities for logging, configuration, prompt creation, classes for comunicating with LLMs, embedders, vector stores, and more.
+
+## Installation
+
+```sh
+pip install ragbits-core
+```
+
+## Quick Start
+
+```python
+from pydantic import BaseModel
+from ragbits.core.prompt import Prompt
+from ragbits.core.llms.litellm import LiteLLM
+
+
+class Dog(BaseModel):
+    breed: str
+    age: int
+    temperament: str
+
+class DogNamePrompt(Prompt[Dog, str]):
+    system_prompt = """
+    You are a dog name generator. You come up with funny names for dogs given the dog details.
+    """
+
+    user_prompt = """
+    The dog is a {breed} breed, {age} years old, and has a {temperament} temperament.
+    """
+
+async def main() -> None:
+    llm = LiteLLM("gpt-4o")
+    dog = Dog(breed="Golden Retriever", age=3, temperament="friendly")
+    prompt = DogNamePrompt(dog)
+    response = await llm.generate(prompt)
+    print(response)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+## Documentation
+* [Quickstart 1: Working with Prompts and LLMs](https://ragbits.deepsense.ai/quickstart/quickstart1_prompts/)
+* [How-To Guides - Core](https://ragbits.deepsense.ai/how-to/prompts/use_prompting/)
+* [API Reference - Core](https://ragbits.deepsense.ai/api_reference/core/prompt/)
