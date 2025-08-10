@@ -1,0 +1,242 @@
+# {{ project_name }} - Practice Software Testing API Demo
+
+A comprehensive demonstration of [TestAPIX](https://github.com/testapix/testapix) capabilities using the [Practice Software Testing API](https://api.practicesoftwaretesting.com).
+
+## 🎯 Demo Overview
+
+This project showcases real-world API testing patterns and serves as a reference implementation for TestAPIX. It demonstrates comprehensive testing of a toolshop API including brands, products, categories, search functionality, and user management.
+
+### API Under Test
+- **Base URL**: {{ base_url }}
+- **Documentation**: https://api.practicesoftwaretesting.com/api/documentation
+- **Type**: REST API for a fictional tool shop
+- **Authentication**: API Key based (where required)
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Python 3.8+
+- TestAPIX framework
+
+### Installation
+
+1. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. **Run the demo test suite:**
+   ```bash
+   # Run all tests
+   pytest tests/ -v
+
+   # Run specific test categories
+   pytest tests/functional/ -v
+
+   # Run with coverage reporting
+   pytest tests/ --cov=tests --cov-report=html
+   ```
+
+## 📋 Test Coverage
+
+### Functional Tests (`tests/functional/`)
+
+#### Brands API (`TestBrandsAPI`)
+- ✅ **List all brands** - Verify brand listing with proper pagination
+- ✅ **Get specific brand** - Retrieve individual brand details
+- ✅ **Search brands** - Test brand search functionality
+- ✅ **Error handling** - 404 responses for non-existent brands
+- ✅ **Response validation** - Consistent data structure validation
+
+#### Products API (`TestProductsAPI`)
+- ✅ **List products with pagination** - Product listing with page controls
+- ✅ **Get product details** - Comprehensive product information retrieval
+- ✅ **Product search** - Search functionality with various terms
+- ✅ **Related products** - Product recommendation testing
+- ✅ **Category filtering** - Filter products by category
+
+#### Categories API (`TestCategoriesAPI`)
+- ✅ **Category tree** - Hierarchical category structure retrieval
+
+#### Error Handling (`TestAPIErrorHandling`)
+- ✅ **Invalid endpoints** - 404 handling for non-existent routes
+- ✅ **Invalid resource IDs** - Proper error responses
+- ✅ **Malformed requests** - Bad request handling
+- ✅ **Timeout scenarios** - Request timeout configuration
+
+#### Integration Tests (`TestIntegration`)
+- ✅ **Product discovery workflow** - Complete browsing simulation
+- ✅ **Brand-product relationships** - Data consistency across endpoints
+- ✅ **API consistency** - Structure validation across different endpoints
+
+## 🛠 Configuration
+
+### Environment Configuration
+
+The demo supports multiple environments through configuration files:
+
+- `configs/base.yaml` - Base configuration for all environments
+- `configs/local.yaml` - Local development settings
+- `configs/test.yaml` - Test environment settings
+
+### Environment Variables
+
+Override any configuration using environment variables with the `TESTAPIX_` prefix:
+
+```bash
+# API Configuration
+export TESTAPIX_HTTP__BASE_URL="{{ base_url }}"
+export TESTAPIX_HTTP__TIMEOUT=30
+
+# Test Configuration
+export TESTAPIX_PARALLEL_WORKERS=4
+export TESTAPIX_LOG_LEVEL=DEBUG
+```
+
+### Running Against Different Environments
+
+```bash
+# Test against staging
+TESTAPIX_ENVIRONMENT=staging pytest tests/ -v
+
+# Test with custom base URL
+TESTAPIX_HTTP__BASE_URL=http://localhost:8091 pytest tests/ -v
+```
+
+## 📊 Reporting
+
+### Test Reports
+
+The suite generates multiple report formats:
+
+```bash
+# HTML coverage report
+pytest tests/ --cov=tests --cov-report=html
+open htmlcov/index.html
+
+# JUnit XML for CI/CD
+pytest tests/ --junitxml=reports/junit.xml
+```
+
+## 🎯 TestAPIX Features Demonstrated
+
+### 1. Fluent Assertions
+```python
+assert_that(response) \
+    .has_status(200) \
+    .has_json_path("data") \
+    .response_time_less_than(2.0)
+```
+
+### 2. Smart Test Data Generation
+```python
+brand_data = self.generator.generate_brand_data(name="Custom Brand")
+product_data = self.generator.generate_product_data(category_id=5)
+```
+
+### 3. Configuration Management
+- Multi-environment support
+- Environment variable overrides
+- Layered configuration precedence
+
+### 4. Error Handling & Debugging
+- Detailed error messages with context
+- Request/response logging
+- Automatic cleanup and resource management
+
+### 5. Integration Testing Patterns
+- Cross-endpoint data consistency validation
+- Workflow-based testing scenarios
+- Realistic user journey simulation
+
+## 🧪 Test Data Strategy
+
+### Realistic Data Generation
+
+The custom data generator creates contextually appropriate test data:
+
+- **Brands**: Real tool manufacturer names (DeWalt, Makita, Bosch, etc.)
+- **Products**: Realistic tool names with appropriate pricing
+- **Categories**: Logical tool category hierarchy
+- **Search Terms**: Relevant tool-related search queries
+
+## 📈 Best Practices Demonstrated
+
+### API Testing Patterns
+
+1. **Test Independence** - Each test can run in isolation
+2. **Realistic Scenarios** - Tests simulate actual user workflows
+3. **Comprehensive Coverage** - Happy path, error cases, edge cases
+4. **Maintainable Structure** - Clear organization and documentation
+
+### TestAPIX Usage Patterns
+
+1. **Configuration-driven testing** - Environment-specific test execution
+2. **Data-driven approaches** - Parameterized tests for multiple scenarios
+3. **Fluent assertions** - Readable, self-documenting test assertions
+4. **Smart generators** - Context-aware test data creation
+5. **Error handling** - Graceful handling of API failures
+
+## 🔧 Customization Guide
+
+### Adding New Test Cases
+
+1. **Create test class:**
+   ```python
+   class TestNewFeatureAPI:
+       @pytest.fixture(autouse=True)
+       def setup(self, api_client: APIClient, data_generator: BaseGenerator):
+           self.client = api_client
+           self.generator = data_generator
+   ```
+
+2. **Add test methods:**
+   ```python
+   async def test_new_feature_success(self):
+       response = await self.client.get("/new-endpoint")
+       assert_that(response).has_status(200)
+   ```
+
+### Extending Data Generators
+
+1. **Add generator methods:**
+   ```python
+   def generate_custom_data(self, **overrides) -> Dict[str, Any]:
+       data = {
+           "field1": self.fake.text(),
+           "field2": random.choice(["option1", "option2"])
+       }
+       data.update(overrides)
+       return data
+   ```
+
+## 🤝 Learning from This Demo
+
+This demo project demonstrates:
+
+1. **Real-world API testing** against a live, functional API
+2. **TestAPIX best practices** for maintainable test suites
+3. **Comprehensive test coverage** including edge cases and error handling
+4. **Professional project structure** suitable for production use
+5. **Documentation patterns** that make tests self-documenting
+
+## 📚 Resources
+
+- [TestAPIX Documentation](https://testapix.readthedocs.io)
+- [Practice Software Testing Repo](https://github.com/testsmith-io/practice-software-testing)
+- [API Documentation](https://api.practicesoftwaretesting.com/api/documentation)
+- [TestAPIX GitHub](https://github.com/testapix/testapix)
+
+## 📄 About This Demo
+
+This demo project was generated using TestAPIX's `demo` template:
+
+```bash
+testapix init {{ project_name }} --template demo
+```
+
+It serves as both a functional test suite and a comprehensive showcase of TestAPIX capabilities for professional API testing.
+
+---
+
+**Generated on {{ created_date }} with TestAPIX v{{ testapix_version }}**
