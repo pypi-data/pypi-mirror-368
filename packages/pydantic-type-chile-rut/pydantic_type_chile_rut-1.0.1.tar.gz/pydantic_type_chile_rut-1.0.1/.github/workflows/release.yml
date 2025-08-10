@@ -1,0 +1,90 @@
+name: Release
+
+on:
+  push:
+    branches: [main, master]
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      - name: Run tests
+        run: pytest tests/
+
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+      - name: Build package
+        run: uv build
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://pypi.org/simple/
+
+  auto-release:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+      - name: Install semantic release and build tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install python-semantic-release build hatchling
+      - name: Semantic Release
+        id: semantic_release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          semantic-release version
+          # Check if a new tag was created
+          if git describe --tags --exact-match HEAD 2>/dev/null; then
+            echo "new_release=true" >> $GITHUB_OUTPUT
+            echo "version=$(git describe --tags --exact-match HEAD)" >> $GITHUB_OUTPUT
+          else
+            echo "new_release=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Build package after version update
+        if: steps.semantic_release.outputs.new_release == 'true'
+        run: |
+          uv build
+      - name: Upload to PyPI
+        if: steps.semantic_release.outputs.new_release == 'true'
+        uses: pypa/gh-action-pypi-publish@release/v1
