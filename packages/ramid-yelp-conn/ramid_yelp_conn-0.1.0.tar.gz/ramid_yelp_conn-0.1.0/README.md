@@ -1,0 +1,1 @@
+# pii_generator\n\nA Python package to generate fake personally identifiable information (PII) for testing and development.\n\n## Installation\n```bash\npip install pii_generator\n```\n\n## Usage\n```python\nfrom pii_generator import main\nmain()\n```

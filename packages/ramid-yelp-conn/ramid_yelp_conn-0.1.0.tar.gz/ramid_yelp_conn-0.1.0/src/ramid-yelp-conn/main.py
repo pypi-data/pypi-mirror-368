@@ -1,0 +1,1 @@
+from faker import Faker\n\ndef main():\n    fake = Faker()\n    print("Name:", fake.name())\n    print("Email:", fake.email())\n    print("Address:", fake.address())\n\nif __name__ == "__main__":\n    main()
