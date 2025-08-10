@@ -1,0 +1,149 @@
+<img src="https://banes-lab.com/assets/images/banes_lab/700px_Main_Animated.gif" width="70" />
+
+# PHICODE Runtime Engine
+
+Run **φ code** directly in Python — a runtime and import system enabling you to write and execute **PHICODE**, a symbolic variant of Python using concise, expressive Unicode glyphs.
+
+---
+
+## Overview
+
+**PHICODE Runtime Engine** (`phicode`) is a Python runtime and import hook that executes source files written in **PHICODE** — a symbolic shorthand for Python where keywords and built-in functions are replaced by compact Unicode glyphs. This allows writing code in a fresh, expressive style while seamlessly running it as Python.
+
+PHICODE is not a separate language but a symbolic encoding **mapped one-to-one** with Python syntax and semantics. `.φ` source files are dynamically decoded into valid Python code on import or execution.
+
+---
+
+## Features
+
+* Transparent import of PHICODE `.φ` modules and packages via Python's `sys.meta_path`.
+* Command-line runner for executing PHICODE files or modules.
+* Bidirectional mapping between PHICODE symbols and Python keywords/builtins.
+* Thread-safe LRU cache with on-disk persistence for source and translated code to optimize large projects and startup times.
+* PYC cache integration with hash-based validation to speed up repeated executions.
+* Compatible with Python 3.8+.
+* Clear package structure under `src/phicode_engine/` with modular components for finder, loader, cache, and importer.
+
+---
+
+## Installation
+
+Install from PyPI:
+
+```bash
+pip install phicode
+```
+
+Or clone and install in editable mode for development:
+
+```bash
+git clone https://github.com/Varietyz/pip-phicode.git
+cd pip-phicode
+pip install -e .
+```
+
+---
+
+## Usage
+
+### Running PHICODE scripts or modules
+
+Run a `.φ` script file directly:
+
+```bash
+phicode path/to/script.φ
+```
+
+Run a PHICODE module by name (resolved in `PYTHONPATH` or current directory):
+
+```bash
+phicode module_name
+```
+
+If no argument is provided, defaults to running module named `main`.
+
+---
+
+### Importing PHICODE modules in Python
+
+Install the PHICODE importer in your Python runtime:
+
+```python
+from phicode_engine.core.phicode_importer import install_phicode_importer
+
+install_phicode_importer("/path/to/phicode_sources")
+
+import your_phicode_module  # Resolves your_phicode_module.φ transparently
+```
+
+---
+
+## PHICODE Symbol Mapping
+
+PHICODE replaces many Python keywords and built-in functions with Unicode glyphs for brevity and clarity:
+
+| Python Keyword | PHICODE Symbol | Python Keyword | PHICODE Symbol |
+| -------------- | -------------- | -------------- | -------------- |
+| False          | ⊥              | from           | ←              |
+| None           | Ø              | global         | ⟁              |
+| True           | ✓              | if             | ¿              |
+| and            | ∧              | import         | ⇒              |
+| as             | ↦              | in             | ∈              |
+| assert         | ‼              | is             | ≡              |
+| async          | ⟳              | lambda         | λ              |
+| await          | ⌛              | nonlocal       | ∇              |
+| break          | ⇲              | not            | ¬              |
+| class          | ℂ              | or             | ∨              |
+| continue       | ⇉              | pass           | ⋯              |
+| def            | ƒ              | raise          | ↑              |
+| del            | ∂              | return         | ⟲              |
+| elif           | ⤷              | try            | ∴              |
+| else           | ⋄              | while          | ↻              |
+| except         | ⛒              | with           | ∥              |
+| finally        | ⇗              | yield          | ⟰              |
+| for            | ∀              | print          | π              |
+
+---
+
+## Architecture Details
+
+* **PhicodeCache**:
+  A thread-safe LRU cache with on-disk persistence stores PHICODE source and translated Python code, keyed by file path and source hash. This enables efficient caching with disk-backed JSON files, limiting memory usage (default max 512 entries).
+
+* **PhicodeFinder**:
+  Implements `importlib.abc.MetaPathFinder` to locate `.φ` files or packages (`__init__.φ`), caching import specs with file modification checks to reduce filesystem hits.
+
+* **PhicodeLoader**:
+  Loads `.φ` files by fetching PHICODE source from cache, translating PHICODE glyphs to Python code on demand, and compiling. Supports PYC caching with hash-based validation to reuse bytecode.
+
+* **PhicodeImporter**:
+  Helper to install the finder into `sys.meta_path` at runtime for seamless PHICODE imports.
+
+* **Symbolic Mapping**:
+  Maintains two-way dictionaries for mapping Python ↔ PHICODE keywords and built-ins.
+
+---
+
+## Benefits for AI Models (LLMs, DRL, DQN)
+
+PHICODE’s symbolic form compresses Python code into fewer tokens, reducing prompt length and training data size for LLMs. This improves generation efficiency and lowers inference cost. For DRL and DQN agents, the consistent one-to-one Python mapping simplifies program synthesis and state–action reasoning, enabling faster code evaluation and easier debugging. The runtime’s caching ensures repeat execution speed, supporting high-frequency simulation loops and iterative AI experimentation.
+
+---
+
+## Development
+
+* Source code is under `src/phicode_engine/`.
+* Core modules include `core/phicode_cache.py`, `core/phicode_finder.py`, `core/phicode_loader.py`, `core/phicode_importer.py`, and `map/mapping.py`.
+* Contributions welcome via GitHub issues and pull requests.
+
+---
+
+## License
+
+Licensed under the terms in the [LICENSE](LICENSE) file.
+
+---
+
+## Contact
+
+Jay Baleine — [jay@banes-lab.com](mailto:jay@banes-lab.com)
