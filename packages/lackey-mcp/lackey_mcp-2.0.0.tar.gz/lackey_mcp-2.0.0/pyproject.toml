@@ -1,0 +1,190 @@
+[build-system]
+requires = ["setuptools>=78.1.1", "wheel>=0.40.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lackey-mcp"
+version = "2.0.0"
+description = "Task chain management engine for AI agents with MCP integration"
+readme = "README.md"
+authors = [
+    {name = "Lackey Contributors", email = "contact@lackey.dev"}
+]
+license = {text = "Proprietary"}
+requires-python = ">=3.11"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: Other/Proprietary License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Office/Business :: Scheduling",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+keywords = ["task-management", "mcp", "ai-agents", "dag", "workflow"]
+
+dependencies = [
+    "pyyaml>=6.0,<7.0",
+    "networkx>=3.0,<4.0",
+    "click>=8.0,<9.0",
+    "mcp>=0.1.0",
+    "cryptography>=44.0.1,<46.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    # Security constraints - ensure safe versions
+    "setuptools>=78.1.1",  # CVE-2025-47273, CVE-2024-6345, CVE-2022-40897
+    "wheel>=0.40.0",
+    # Testing
+    "pytest>=7.0,<8.0",
+    "pytest-asyncio>=0.21.0,<1.0",
+    "pytest-cov>=4.0,<5.0",
+    "pytest-mock>=3.10,<4.0",
+    "pytest-xdist>=3.0,<4.0",  # Parallel test execution
+    "pytest-timeout>=2.0,<3.0",
+    "pytest-benchmark>=4.0,<5.0",
+    "hypothesis>=6.0,<7.0",  # Property-based testing
+    # Code quality
+    "black>=24.3.0,<25.0",
+    "flake8>=6.0,<7.0",
+    "mypy>=1.0,<2.0",
+    "isort>=5.0,<6.0",
+    "pre-commit>=3.0,<4.0",
+    # Development tools
+    "ipython>=8.0,<9.0",
+    "ipdb>=0.13,<1.0",
+    # Type stubs
+    "types-PyYAML>=6.0,<7.0",
+    "types-click>=7.1,<8.0",
+    "types-cryptography>=3.0,<4.0",
+    # Performance profiling
+    "memory-profiler>=0.60,<1.0",
+    "line-profiler>=4.0,<5.0",
+    # Build tools
+    "build>=0.10,<1.0",
+    "twine>=4.0,<5.0",
+]
+docs = [
+    "sphinx>=6.0,<7.0",
+    "sphinx-rtd-theme>=1.0,<2.0",
+]
+security = [
+    "bandit>=1.7,<2.0",
+    "safety>=2.0,<3.0",
+    "pip-audit>=2.0,<3.0",
+]
+
+[project.urls]
+"Homepage" = "https://lackey.dev"
+"Documentation" = "https://docs.lackey.dev"
+"Repository" = "https://github.com/lackey-ai/lackey"
+"Bug Tracker" = "https://github.com/lackey-ai/lackey/issues"
+
+[project.scripts]
+lackey = "lackey.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+lackey = ["py.typed"]
+
+[tool.black]
+line-length = 88
+target-version = ['py311', 'py312']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | build
+  | dist
+  | docs
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 88
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+
+[tool.mypy]
+python_version = "2.0.0"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = ["networkx.*", "mcp.*", "pytest.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "lackey.mcp.server"
+disable_error_code = ["misc"]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disable_error_code = ["misc"]
+
+[tool.pytest.ini_options]
+minversion = "2.0.0"
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--cov=lackey",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+]
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["src/lackey"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if __name__ == .__main__.:",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]
+ignore_errors = true
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv", "build", "dist"]
+skips = ["B101"]  # Skip assert_used test
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = ["E203", "W503"]
+exclude = [
+    ".git",
+    "__pycache__",
+    "docs",
+    "build",
+    "dist",
+    ".venv",
+]
