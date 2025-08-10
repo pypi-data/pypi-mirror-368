@@ -1,0 +1,147 @@
+name: Release Client
+
+on:
+  push:
+    tags:
+      - "client-v*.*.*"
+      - "client-v*.*.*-*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release (e.g., client-v1.2.3 or client-v1.2.3-rc1). If empty, uses current ref name when it's a tag."
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+env:
+  NODE_VERSION: "20"
+  WORKING_DIR: ./client
+
+jobs:
+  build-electron:
+    name: Build Electron Clients
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            platform: mac
+          - os: ubuntu-22.04
+            platform: linux
+          - os: windows-latest
+            platform: win
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            schema/package-lock.json
+            ${{ env.WORKING_DIR }}/package-lock.json
+
+      - name: Install schema dependencies
+        working-directory: ./schema
+        run: npm ci
+
+      - name: Install client dependencies
+        working-directory: ${{ env.WORKING_DIR }}
+        run: npm ci
+
+      - name: Build app
+        working-directory: ${{ env.WORKING_DIR }}
+        shell: bash
+        run: |
+          case "${{ matrix.platform }}" in
+            mac)
+              npm run build:pack:mac
+              ;;
+            linux)
+              npm run build:pack:linux
+              ;;
+            win)
+              npm run build:pack:win
+              ;;
+          esac
+
+      - name: Upload built client as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}-electron
+          path: |
+            ${{ env.WORKING_DIR }}/packed-client/**
+          if-no-files-found: error
+
+  release:
+    name: Create/Update GitHub Release
+    needs: [build-electron]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve release tag
+        id: resolve
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            RAW_TAG="${{ github.ref_name }}"
+          else
+            RAW_TAG="${{ inputs.tag }}"
+          fi
+          if [ -z "${RAW_TAG}" ]; then
+            echo "No tag provided" >&2
+            exit 1
+          fi
+          echo "Using tag '${RAW_TAG}' for GitHub Release"
+          echo "tag=${RAW_TAG}" >> $GITHUB_OUTPUT
+
+      - name: Detect prerelease
+        id: pre
+        run: |
+          TAG='${{ steps.resolve.outputs.tag }}'
+          if echo "$TAG" | grep -Ei -- '-(rc|alpha|beta|pre|preview|dev)' >/dev/null; then
+            echo "prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "prerelease=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts/
+
+      - name: Prepare zips
+        run: |
+          mkdir -p release
+          if compgen -G "artifacts/mac-electron/mac-universal/*.app" > /dev/null; then
+            echo "Found Mac app, creating zip..."
+            zip -r release/mac-client.zip artifacts/mac-electron/mac-universal/*.app
+          else
+            echo "No Mac app found at expected path"
+          fi
+          if compgen -G "artifacts/linux-electron/*.AppImage" > /dev/null; then
+            echo "Found Linux AppImage, creating zip..."
+            zip -j release/linux-client.zip artifacts/linux-electron/*.AppImage
+          else
+            echo "No Linux AppImage found at expected path"
+          fi
+          if compgen -G "artifacts/win-electron/*.exe" > /dev/null; then
+            echo "Found Windows exe, creating zip..."
+            zip -j release/win-client.zip artifacts/win-electron/*.exe
+          else
+            echo "No Windows exe found at expected path"
+          fi
+
+      - name: Upload assets to GitHub Release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: release/*.zip
+          file_glob: true
+          tag: ${{ steps.resolve.outputs.tag }}
+          release_name: "Client Release ${{ steps.resolve.outputs.tag }}"
+          overwrite: true
+          make_latest: true
+          prerelease: ${{ steps.pre.outputs.prerelease }}
