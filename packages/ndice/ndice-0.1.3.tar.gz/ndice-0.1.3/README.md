@@ -1,0 +1,103 @@
+# ndice
+
+A dice rolling library for games.
+
+`ndice` is a package for rolling dice expressions like **d6+2** or **3d6-3x10**
+with a compact API.
+
+    from ndice import d6, d8, d20, d100, plus, minus, times, roll, rng
+    
+    if roll(rng, d100) <= 25:
+        copper = roll(rng, d6, times(1000))
+
+    str_mod = minus(1)
+    magic_sword_mod = plus(2)
+    monster_armor_class = 13
+    if roll(rng, d20, str_mod, magic_sword_mod) >= monster_armor_class:
+        damage = roll(rng, d8)
+
+
+## Random Number Generator (RNG)
+
+Rolling dice requires a "random" number generator.  The `rng` generator produces
+actual random numbers.  `PRNG()` creates a deterministic pseudo-random number
+sequence given a seed value.
+
+Fake generators `high`, `low` and `mid` always roll the highest, lowest or middle
+values respectively.  `AscendingRNG()` and `FixedRNG()` create other fake
+generators.   
+
+
+## Operations (Op)
+
+The `Op` enum defines three operations used in dice expressions: `Op.PLUS` (+),
+`Op.MINUS` (-) and `Op.TIMES` (x).
+
+
+## Dice
+
+A `Dice` object represents a single term in a dice expression like **2d6** or
+**-2**.  The `Dice` object contains three attributes: `count`, `sides` and `op`. 
+The values for `count` and `sides` must be zero or greater.  If not specified,
+`op` defaults to `Op.PLUS`.
+
+Rolling zero dice with any number of sides always returns 0.  Rolling any number
+of zero-sided dice also always returns 0.
+
+Constant modifiers ("mods") like **-2** or **x10** are defined as `Dice`
+instances where `count` is the mod value and `sides` is 1.
+
+`ndice` contains predefined common dice like `d6`, `d20` and `three_d6`.  A single
+die type can be defined with the `d()` function, an alias for `Dice.die()`.
+
+    from ndice import d
+
+    d5 = d(5)
+
+A number of dice can be defined with the `nd()` function, an alias for
+`Dice.n_dice()`.
+
+    from ndice import nd
+
+    three_d8 = nd(3, 8)
+
+Instances of `Dice` are immutable and cached, so `d(6)` will return the same `Dice`
+instance that `d6` refers to.
+
+    from ndice import d, d6
+
+    assert d(6) is d6  # always true
+
+
+## Rolls
+
+The `roll()` function takes a random number generator and zero or more `Dice`
+instances.  It returns the total of the given dice expression, or zero if no
+dice are given.
+
+    from ndice import roll, d6, minus, times, rng, high
+
+    total = roll(rng)
+    # total is zero
+
+    total = roll(high, d6, minus(1), times(10))
+    # total is 6 - 1 x 10 = 50
+
+Note that dice expressions are always evaluated from left to right; `times()`
+or `Op.TIMES` does not have higher precedence than plus or minus.
+
+The `min_roll()` and `max_roll()` functions are equivalent to `roll(low, ...)` and
+`roll(high, ...)` respectively.
+
+
+### Individual Die Rolls
+
+Sometimes you need the individual die rolls rather than the total.  The
+`Dice.die_rolls()` method returns the individual die rolls of a `Dice` instance
+as a list.
+
+    from ndice import four_d6, PRNG
+
+    prng = PRNG(1122334455)
+    rolls = four_d6.die_rolls(prng)
+    # rolls is [4, 4, 2, 6]
