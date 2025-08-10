@@ -1,0 +1,156 @@
+[project]
+name = "simple-toml-settings"
+version = "0.9.1"
+description = "A Python library to save your settings in a TOML file."
+authors = [{ name = "Grant Ramsay", email = "grant@gnramsay.com" }]
+readme = "README.md"
+license = "MIT"
+
+requires-python = ">=3.9"
+
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+dependencies = ["rtoml>=0.12.0"]
+
+[project.urls]
+"Homepage" = "http://toml-settings.grantramsay.dev/"
+"Pull Requests" = "https://github.com/seapagan/simple-toml-settings/pulls"
+"Bug Tracker" = "https://github.com/seapagan/simple-toml-settings/issues"
+"Changelog" = "https://github.com/seapagan/simple-toml-settings/blob/main/CHANGELOG.md"
+"Repository" = "https://github.com/seapagan/simple-toml-settings"
+
+[tool.uv]
+dev-dependencies = [
+  "mypy>=1.11.1",
+  "pre-commit>=3.8.0",
+  "pymarkdownlnt>=0.9.22",
+  "ruff>=0.6.1",
+  "poethepoet>=0.27.0",
+  "pytest>=8.3.2",
+  "pytest-cov>=5.0.0",
+  "pytest-xdist>=3.6.1",
+  "pytest-sugar>=1.0.0",
+  "pytest-randomly>=3.15.0",
+  "pytest-reverse>=1.7.0",
+  "pytest-mock>=3.14.0",
+  "mock>=5.1.0",
+  "faker>=27.0.0",
+  "pyfakefs>=5.6.0",
+  "github-changelog-md>=0.9.5",
+  "mkdocs>=1.6.0",
+  "mkdocs-autorefs>=1.0.1",
+  "mkdocs-material>=9.5.32",
+  "mkdocs-minify-plugin>=0.8.0",
+  "pymdown-extensions>=10.9",
+  "pygments>=2.18.0",
+  "pytest-watcher>=0.4.2",
+]
+
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.poe.tasks]
+pre.cmd = "pre-commit run --all-files"
+pre.help = "Run pre-commit checks"
+mypy.cmd = "mypy simple_toml_settings/**/*.py tests/**/*.py --strict"
+mypy.help = "Run mypy checks"
+format.help = "Format code with Ruff"
+format.cmd = "ruff format ."
+ruff.help = "Run Ruff checks"
+ruff.cmd = "ruff check ."
+test.help = "Run tests using Pytest"
+test.cmd = "pytest"
+"test:watch".cmd = "ptw . --now --clear"
+"test:watch".help = "Run tests using Pytest in watch mode"
+markdown.cmd = "pymarkdown scan  -r simple_toml_settings/**/*.md docs/**/*.md"
+markdown.help = "Run markdown checks"
+
+# run all linting checks in sequence. we want to run them all, even if one fails
+lint.ignore_fail = "return_non_zero"
+lint.sequence = ["format", "ruff", "mypy", "markdown"]
+lint.help = "Run all linting checks"
+
+"docs:publish".cmd = "mkdocs gh-deploy"
+"docs:publish".help = "Publish documentation to GitHub Pages"
+"docs:build".cmd = "mkdocs build"
+"docs:build".help = "Build documentation locally to './site' folder"
+"docs:serve".cmd = "mkdocs serve -w TODO.md -w CHANGELOG.md -w CONTRIBUTING.md"
+"docs:serve".help = "Serve documentation locally"
+"docs:serve:all".cmd = "mkdocs serve -w TODO.md -w CHANGELOG.md -w CONTRIBUTING.md -a 0.0.0.0:9000"
+"docs:serve:all".help = "Serve documentation locally on all interfaces"
+
+changelog.cmd = "github-changelog-md"
+changelog.help = "Generate the CHANGELOG.md file"
+
+# configure assorted tools and linters
+[tool.pymarkdown]
+plugins.md014.enabled = false
+plugins.md046.enabled = false
+
+[tool.pytest.ini_options]
+addopts = ["--cov", "--cov-report", "term-missing", "--cov-report", "html"]
+filterwarnings = []
+mock_use_standalone_module = true
+
+[tool.coverage.run]
+source = ["simple_toml_settings"]
+omit = ["*/tests/*"]
+
+[tool.ruff]
+line-length = 80
+lint.select = ["ALL"] # we are being very strict!
+lint.ignore = [
+  "PGH003",
+  "FBT002",
+  "FBT003",
+  "B006",
+] # These rules are too strict even for us 😝
+lint.extend-ignore = [
+  "COM812",
+  "ISC001",
+] # these are ignored for ruff formatting
+
+src = ["simple_toml_settings"]
+target-version = "py39"        # minimum python version supported
+
+[tool.ruff.format]
+indent-style = "space"
+quote-style = "double"
+
+[tool.ruff.lint.pep8-naming]
+classmethod-decorators = ["pydantic.validator", "pydantic.root_validator"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.extend-per-file-ignores]
+"tests/**/*.py" = [
+  "S101",   # we can (and MUST!) use 'assert' in test files.
+  "ANN001", # annotations for fixtures are sometimes a pain for test files
+  "ARG00",  # test fixtures often are not directly used
+]
+
+
+[tool.ruff.lint.isort]
+known-first-party = ["simple_toml_settings"]
+
+[tool.ruff.lint.pyupgrade]
+keep-runtime-typing = true
+
+[[tool.mypy.overrides]]
+disable_error_code = ["method-assign", "no-untyped-def", "attr-defined"]
+module = "tests.*"
