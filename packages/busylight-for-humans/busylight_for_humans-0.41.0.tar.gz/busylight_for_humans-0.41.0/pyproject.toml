@@ -1,0 +1,110 @@
+[project]
+name = "busylight-for-humans"
+version = "0.41.0"
+description = "Control USB connected LED lights, like a human."
+readme = "README.md"
+license = "Apache-2.0"
+authors = [
+    { name = "JnyJny", email = "erik.oshaughnessy@gmail.com" }
+]
+repository = "https://github.com/JnyJny/busylight.git"
+requires-python = ">=3.11,<4.0"
+dependencies = [
+    "busylight-core>=0.8.0",
+    "hidapi>=0.14.0.post4",
+    "loguru>=0.7.3",
+    "pyserial>=3.5",
+    "typer>=0.16.0",
+    "webcolors>=24.11.1",
+]
+classifiers = [
+  "License :: OSI Approved :: Apache Software License",
+  "Development Status :: 4 - Beta",
+  "Operating System :: OS Independent",
+  "Intended Audience :: Developers",
+  "Intended Audience :: End Users/Desktop",
+  "Environment :: Console",
+  "Topic :: System :: Hardware",
+  "Topic :: Utilities",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",  
+]
+
+[project.scripts]
+busylight = "busylight.__main__:cli"
+busyserve = "busylight.busyserve:busyserve_cli"
+
+[project.optional-dependencies]
+webapi = [
+    "fastapi>=0.115.14",
+    "uvicorn>=0.34.2",
+]
+web = [
+    "fastapi>=0.115.14",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/busylight"]
+
+[dependency-groups]
+dev = [
+    "anyio>=4.9.0",
+    "coverage>=7.8.0",
+    "httpx>=0.28.1",
+    "poethepoet>=0.34.0",
+    "pytest>=8.3.5",
+    "pytest-cov>=6.1.1",
+    "pytest-mock>=3.14.0",
+    "ruff>=0.12.4",
+    "ty>=0.0.1a15",
+]
+
+[tool.poe.tasks]
+
+# testing
+_generate_coverage = "pytest --cov=./src/busylight --cov-report=html"
+_open_report = "open htmlcov/index.html"
+coverage = [ "_generate_coverage", "_open_report"]
+
+# code quality
+
+check.cmd = "ruff check src tests"
+format.cmd = "ruff format src tests"
+
+ruff.sequence = [ "check", "format"]
+
+# update version in pyproject
+
+_patch_bump = "uv version --bump patch"
+_minor_bump = "uv version --bump minor"
+_major_bump = "uv version --bump major"
+
+# add, commit, tag and commit pyproject updated by bump
+
+_add = "git add pyproject.toml uv.lock"
+_commit = {shell = "git commit -m v`uv version --short`"}
+_tag = { shell = "git tag v`uv version --short`" }
+_push = "git push --all"
+_push_tags = "git push --tags"
+
+_update_pyproject = ["_add", "_commit", "_tag", "_push_tags", "_push"]
+
+publish_patch= ["_patch_bump", "_update_pyproject"]
+publish_minor= ["_minor_bump", "_update_pyproject"]
+publish_major= ["_major_bump", "_update_pyproject"]
+
+publish = {ref = "publish_patch"}
+
+# clean
+[[tool.poe.tasks.clean]]
+cmd = "rm -rf htmlcov dist busylight.egg-info *.log"
+
