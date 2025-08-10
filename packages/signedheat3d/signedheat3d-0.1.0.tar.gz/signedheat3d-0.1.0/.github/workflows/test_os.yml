@@ -1,0 +1,55 @@
+name: Build and test
+
+on:
+  pull_request:
+  push:
+    tags:
+    - '*'
+    branches:
+    - main
+
+# disable concurrent runs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-13, macos-14, windows-latest]
+
+    if: "! contains(toJSON(github.event.commits.*.message), '[ci skip]')"
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install Boost
+      if: runner.os == 'macOS'
+      shell: bash
+      run: |
+        brew upgrade
+        brew install boost
+    - name: Install Boost
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get -y update
+        sudo apt-get -y install libboost-dev libboost-test-dev libboost-program-options-dev libboost-serialization-dev
+
+    - uses: actions/setup-python@v5
+      name: Install Python
+      with:
+        python-version: '3.9'
+
+    - name: Install required Python packages
+      run: python3 -m pip install numpy potpourri3d mypy pytest
+
+    - name: Install
+      run: |
+        pip install --verbose .
+
+    - name: run test
+      run: python3 -m pytest test/test.py -vv

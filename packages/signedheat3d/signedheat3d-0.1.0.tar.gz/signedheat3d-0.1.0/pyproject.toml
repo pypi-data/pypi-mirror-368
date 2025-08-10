@@ -1,0 +1,70 @@
+[build-system]
+build-backend = "scikit_build_core.build"
+requires = ["scikit-build-core", "nanobind"]
+
+[cmake.define]
+logging.level = "INFO"
+sdist.exclude = [".github", "*.png", "test", ".mypy_cache", ".pre-commit-config.yaml", "*_cache", "CONTRIBUTING.md", ".gitignore", ".gitmodules"]
+
+[project]
+authors = [
+  {name = "Nicole Feng", email = "nicolefeng7@gmail.com"}
+]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3"
+]
+dependencies = [
+  "numpy"
+]
+description = "Python bindings for the signed-heat-3d library, which implements the Signed Heat Method for generalized signed distance."
+maintainers = [
+  {name = "Nicole Feng", email = "nfeng@andrew.cmu.edu"}
+]
+name = "signedheat3d"
+readme = "README.md"
+requires-python = ">=3.7"
+version = "0.1.0"
+license.file = "LICENSE"
+
+[project.urls]
+Documentation = "https://github.com/nzfeng/signed-heat-python"
+Homepage = "https://github.com/nzfeng/signed-heat-python"
+Issues = "https://github.com/nzfeng/signed-heat-python/issues"
+Repository = "https://github.com/nzfeng/signed-heat-python"
+
+[tool.cibuildwheel]
+# Run pytest to ensure that the package was correctly built
+test-command = "pytest {project}/test"
+test-requires = "pytest"
+
+[tool.cibuildwheel.macos]
+archs = ["native"]
+
+[tool.mypy]
+exclude = ["^.test/"]
+plugins = ["numpy.typing.mypy_plugin"]
+# disable_error_code = ['assignment', 'index', 'misc']
+strict = false
+
+[tool.ruff]
+exclude = [".deps", ".build", ".test"]
+indent-width = 4
+line-length = 120
+
+[tool.ruff.format]
+docstring-code-format = false
+indent-style = "tab"
+quote-style = "single"
+
+[tool.ruff.lint]
+ignore = ["F403", "F405", "E402", "F841"]
+
+[tool.scikit-build]
+# Setuptools-style build caching in a local directory
+build-dir = "build/{wheel_tag}"
+minimum-version = "0.10"
+build.verbose = true
+cmake.build-type = "Release"
+cmake.version = "CMakeLists.txt"
