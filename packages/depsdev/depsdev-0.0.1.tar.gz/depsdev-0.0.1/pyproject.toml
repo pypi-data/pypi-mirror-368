@@ -1,0 +1,184 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "depsdev"
+dynamic = ["version"]
+description = "Python wrapper for https://deps.dev/ API"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+keywords = []
+authors = [
+  { name = "Flavio Amurrio", email = "25621374+FlavioAmurrioCS@users.noreply.github.com" },
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+dependencies = [
+]
+
+[project.optional-dependencies]
+tests = [
+  "pytest",
+  "tomli ; python_version < '3.11'",
+]
+types = [
+  "depsdev[tests]",
+  "typing-extensions",
+  "mypy",
+  "pyrefly",
+  "pyright[nodejs]",
+  "ty",
+]
+
+[project.urls]
+Documentation = "https://github.com/FlavioAmurrioCS/depsdev#readme"
+Issues = "https://github.com/FlavioAmurrioCS/depsdev/issues"
+Source = "https://github.com/FlavioAmurrioCS/depsdev"
+
+[project.scripts]
+depsdev = "depsdev.__main__:main"
+
+###############################################################################
+# region: hatch
+###############################################################################
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/depsdev/_version.py"
+
+[tool.hatch.envs.hatch-test]
+extra-dependencies = [
+  "depsdev[tests]",
+]
+
+[tool.hatch.envs.types]
+extra-dependencies = [
+  "mypy>=1.0.0",
+  "depsdev[types]",
+]
+
+[tool.hatch.envs.types.scripts]
+check = "mypy --install-types --non-interactive {args:src/depsdev tests}"
+
+[[tool.hatch.envs.hatch-test.matrix]]
+python = [
+  "3.9",
+  "3.10",
+  "3.11",
+  "3.12",
+  "3.13",
+  "3.14",
+]
+###############################################################################
+# endregion: hatch
+###############################################################################
+
+###############################################################################
+# region: uv
+###############################################################################
+[tool.uv.pip]
+index-url = "https://pypi.org/simple"
+###############################################################################
+# endregion: uv
+###############################################################################
+
+###############################################################################
+# region: coverage
+###############################################################################
+[tool.coverage.run]
+source_pkgs = ["depsdev", "tests"]
+branch = true
+parallel = true
+omit = [
+]
+
+[tool.coverage.paths]
+depsdev = ["src/depsdev"]
+tests = ["tests"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
+###############################################################################
+# endregion: coverage
+###############################################################################
+
+###############################################################################
+# region: pyright
+###############################################################################
+[tool.pyright]
+pythonVersion = "3.9"
+###############################################################################
+# endregion: pyright
+###############################################################################
+
+###############################################################################
+# region: mypy
+###############################################################################
+[tool.mypy]
+python_version = "3.9"
+check_untyped_defs = true
+disallow_any_generics = true
+disallow_incomplete_defs = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+###############################################################################
+# endregion: mypy
+###############################################################################
+
+###############################################################################
+# region: ruff
+###############################################################################
+[tool.hatch.envs.hatch-static-analysis]
+config-path = "none"
+
+[tool.ruff.lint.isort]
+force-single-line = true
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+  "ALL",
+]
+ignore = [
+  "COM812",  # missing-trailing-comma
+  "D",       # pydocstyle
+  "ERA001",  # commented-out-code
+  "EXE003",  # shebang-missing-python
+  "ISC001",  # single-line-implicit-string-concatenation
+  "PTH",     # flake8-use-pathlib
+  "T20",     # flake8-print
+  "PLC0415", # import-outside-top-level
+]
+
+[tool.ruff.format]
+docstring-code-format = true
+docstring-code-line-length = 100
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+  "S101",
+]
+###############################################################################
+# endregion: ruff
+###############################################################################
