@@ -1,0 +1,104 @@
+{% if category.uri %}
+  {% with headline="Edit category", save_url=url_for("transaction_categories.category", uri=category.uri) %}
+    {% include "shared/dialog-headline.jinja" %}
+  {% endwith %}
+{% else %}
+  {% with headline="New category", save_url=url_for("transaction_categories.new"), save_method="post" %}
+    {% include "shared/dialog-headline.jinja" %}
+  {% endwith %}
+{% endif %}
+<form class="w-88 grid gap-2" onsubmit="return false">
+  <label class="input-outlined input-bg-surface-container-high">
+    <input
+      name="name"
+      required
+      value="{{ category.name or "" }}"
+      placeholder=""
+      autocomplete="off"
+      spellcheck="true"
+      enterkeyhint="next"
+      hx-get="{{ url_for('transaction_categories.validation', uri=category.uri) }}"
+      hx-trigger="input delay:200ms"
+      hx-target="next error"
+      hx-include="this"
+    />
+    <div>
+      <div>Name</div>
+    </div>
+    <div>
+      <error></error>
+      {% if category.locked %}<span>May only add/remove emojis</span>{% endif %}
+    </div>
+  </label>
+  <label class="input-outlined input-bg-surface-container-high col-start-2">
+    <select
+      name="group"
+      required
+      autocomplete="off"
+      {% if category.locked %}disabled{% endif %}
+      onchange="txnCat.updateEssential()"
+    >
+      <option
+        value=""
+        {% if not category.group %}selected{% endif %}
+        disabled
+        hidden
+      ></option>
+      {% for group in category.group_type %}
+        <option
+          value="{{ group.name }}"
+          {% if group == category.group %}selected{% endif %}
+          {% if group =="OTHER" %}disabled hidden{% endif %}
+        >
+          {{ group.pretty }}
+        </option>
+      {% endfor %}
+    </select>
+    <div>
+      <div>Group</div>
+    </div>
+  </label>
+  <label class="toggle col-span-2">
+    <input
+      name="is-pnl"
+      type="checkbox"
+      {% if category.is_profit_loss %}checked{% endif %}
+      autocomplete="off"
+      {% if category.locked %}disabled{% endif %}
+    />
+    <div>
+      <span>Include in profit &amp; loss</span>
+      <span>Such as dividends &amp; fees</span>
+    </div>
+    <switch></switch>
+  </label>
+  <label class="toggle col-span-2">
+    <input
+      name="essential-spending"
+      type="checkbox"
+      {% if category.essential_spending %}checked{% endif %}
+      autocomplete="off"
+      {% if category.group == "INCOME" or category.locked %}disabled{% endif %}
+    />
+    <div>
+      <span>Essential spending</span>
+      <span>For emergency fund estimation</span>
+    </div>
+    <switch></switch>
+  </label>
+</form>
+{% if category.uri and not category.locked %}
+  <button
+    class="btn-text-error mx-auto"
+    hx-delete="{{ url_for('transaction_categories.category', uri=category.uri) }}"
+    hx-trigger="delete"
+    hx-target="#dialog-error"
+    onclick="txnCat.confirmDelete(event)"
+  >
+    Delete
+  </button>
+{% endif %}
+<div id="dialog-error" class="status-error"></div>
+<script>
+  dialog.onLoad();
+</script>

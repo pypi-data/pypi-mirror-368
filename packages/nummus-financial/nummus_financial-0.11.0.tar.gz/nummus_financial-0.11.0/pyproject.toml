@@ -1,0 +1,261 @@
+[build-system]
+requires = [
+  "setuptools>=77",
+  "setuptools-scm>=8",
+  "flask",
+  "flask-assets",
+  "pytailwindcss",
+  "jsmin",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nummus-financial"
+dynamic = ["version"]
+dependencies = [
+  "sqlalchemy>=2",
+  "gevent",
+  "colorama",
+  "rapidfuzz",
+  "flask>=3",
+  "flask-assets",
+  "flask-login",
+  "pdfplumber",
+  "yfinance>=0.2.54",
+  "pyspellchecker>=0.8.3",
+  "tqdm",
+  "argcomplete",
+  "scipy",
+  "emoji",
+  "prometheus-flask-exporter",
+  "packaging",
+]
+description = "A personal financial information aggregator and planning tool"
+license = "MIT"
+readme = "README.md"
+authors = [{ name = "Bradley Davis", email = "me@bradleydavis.tech" }]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Operating System :: OS Independent",
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Financial and Insurance Industry",
+  "Intended Audience :: End Users/Desktop",
+  "Topic :: Office/Business :: Financial",
+  "Topic :: Office/Business :: Financial :: Accounting",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
+requires-python = ">=3.12"
+
+[project.scripts]
+nummus = "nummus.main:main"
+
+[project.urls]
+Homepage = "https://github.com/WattsUp/nummus"
+Repository = "https://github.com/WattsUp/nummus.git"
+Issues = "https://github.com/WattsUp/nummus/issues"
+
+[project.optional-dependencies]
+encrypt = ["sqlcipher3-binary", "Cipher", "pycryptodomex"]
+deploy = ["gunicorn"]
+test = [
+  "pytest",
+  "coverage",
+  "numpy",
+  "time-machine",
+  "tomli",
+  "numpy-financial",
+  "pytailwindcss",
+  "jsmin",
+]
+dev = [
+  "nummus-financial[deploy,test]",
+  "ruff>=0.12.0",
+  "codespell>=2.4.1",
+  "black>=25",
+  "isort",
+  "pre-commit",
+  "djlint>=1.36.4",
+  "pyright>=1.1.402",
+  "taplo",
+]
+build = ["build"]
+build-docker = ["nummus-financial[build,encrypt]", "setuptools-scm>=8"]
+
+[tool.black]
+target-version = ["py312", "py313"]
+preview = true
+
+[tool.codespell]
+skip = "3rd-party,dist,*.pem,*.json"
+ignore-words-list = ["initialY"]
+
+[tool.coverage.run]
+command_line = "-m pytest"
+branch = true
+source = ["nummus"]
+
+[tool.coverage.report]
+ignore_errors = true
+precision = 2
+show_missing = true
+fail_under = 100
+exclude_lines = [
+  "pragma: no cover", # Have to re-enable the standard pragma
+
+  # Don't complain about missing debug-only code:
+  "def __repr__",
+  "if self.debug",
+
+  # Don't complain if tests don't hit defensive assertion code:
+  "raise AssertionError",
+  "raise NotImplementedError",
+
+  # Don't complain if non-runnable code isn't run:
+  "if 0:",
+  "if False:",
+  "if __name__ == .__main__.:",
+
+  # Don't complain about the one win32 line
+  "if sys.platform == .win32.:",
+
+  # Don't complain about ImportErrors, unit tests mocks them
+  "except ImportError",
+
+  # Don't complain about missing typing hints
+  "if TYPE_CHECKING:",
+
+  # Don't need to test guard code
+  "raise exc.UnboundExecutionError",
+]
+
+[tool.djlint]
+extension = "jinja"
+profile = "jinja"
+ignore = "H020"
+
+[tool.isort]
+profile = "black"
+skip_gitignore = true
+float_to_top = true
+force_alphabetical_sort_within_sections = true
+
+[tool.pyright]
+include = ["nummus", "tests", "tools"]
+exclude = [
+  "**/__pycache__",
+  # Not updated yet
+  "nummus/controllers/cash_flow.py",
+  "nummus/controllers/net_worth.py",
+  "nummus/controllers/performance.py",
+  "tests/controllers/test_cash_flow.py",
+  "tests/controllers/test_net_worth.py",
+  "tests/controllers/test_performance.py",
+]
+venvPath = "."
+venv = ".venv"
+
+[tool.pytest.ini_options]
+markers = ["encryption: tests that require encryption"]
+addopts = [
+  "--durations=10",
+  "--import-mode=importlib",
+  # TODO (WattsUp): #369 Migrate tests
+  "--ignore=tests/controllers/test_cash_flow.py",
+  "--ignore=tests/controllers/test_net_worth.py",
+  "--ignore=tests/controllers/test_performance.py",
+]
+
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["ALL"]
+preview = true
+
+ignore = [
+  "FIX002",  # Permit TODOs
+  "I001",    # mismatch between ruff and isort
+  "PLR0904", # Too many public methods
+  "PLR0911", # Too many return statements
+  "PLR0912", # Too many branches
+  "PLR0913", # Too many arguments
+  "PLR0914", # Too many local variables
+  "PLR0915", # Too many statements
+  "PLR0917", # Too many positional arguments
+  "CPY001",  # No copyright
+]
+
+exclude = [
+  # Ugly code only for testing
+  "tools/make_test_portfolio.py",
+  # Not updated yet
+  "nummus/controllers/cash_flow.py",
+  "nummus/controllers/net_worth.py",
+  "nummus/controllers/performance.py",
+  "tests/controllers/test_cash_flow.py",
+  "tests/controllers/test_net_worth.py",
+  "tests/controllers/test_performance.py",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/controllers/*.py" = [
+  "PT009", # controller tests not updated yet
+  "PT027", # controller tests not updated yet
+]
+"nummus/commands/*.py" = [
+  "T201", # Allow printing for commands
+]
+"tests/*.py" = [
+  "D100",    # Disable missing docstrings in tests
+  "D101",
+  "D102",
+  "D103",
+  "D104",
+  "D105",
+  "D106",
+  "D107",
+  "S608",    # Disable possible SQL injection
+  "PLC2701", # Private import
+  "S404",    # subprocess import
+  "S101",    # Uses asserts in pytest
+  "S311",    # Uses random in pytest
+  "PLR2004", # Uses magic numbers in pytest
+  "FBT001",  # Boolean positional arguments
+]
+
+[tool.ruff.lint.flake8-annotations]
+suppress-dummy-args = true
+
+[tool.ruff.lint.flake8-type-checking]
+runtime-evaluated-base-classes = [
+  "sqlalchemy.orm.DeclarativeBase",
+  "nummus.models.base.Base",
+]
+
+[tool.ruff.lint.isort]
+required-imports = ["from __future__ import annotations"]
+
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.packages.find]
+include = ["nummus*"]
+namespaces = false
+
+[tool.setuptools.cmdclass]
+build_py = "nummus.web_assets.BuildAssets"
+
+[tool.setuptools.package-data]
+nummus = [
+  "static/dist/**/*",
+  "static/fonts/**/*",
+  "static/img/**/*",
+  "templates/**/*",
+]
+
+[tool.setuptools_scm]
+version_file = "nummus/version.py"

@@ -1,0 +1,146 @@
+{% if acct.uri %}
+  {% with headline="Edit account", save_url=url_for("accounts.account", uri=acct.uri) %}
+    {% include "shared/dialog-headline.jinja" %}
+  {% endwith %}
+{% else %}
+  {% with headline="New account", save_url=url_for("accounts.new"), save_method="post" %}
+    {% include "shared/dialog-headline.jinja" %}
+  {% endwith %}
+{% endif %}
+<form class="w-88 grid gap-2" onsubmit="return false">
+  <label class="input-outlined input-bg-surface-container-high col-span-2">
+    <input
+      name="name"
+      required
+      value="{{ acct.name or "" }}"
+      placeholder=""
+      autocomplete="off"
+      spellcheck="true"
+      enterkeyhint="next"
+      hx-get="{{ url_for('accounts.validation', uri=acct.uri) }}"
+      hx-trigger="input delay:200ms"
+      hx-target="next error"
+      hx-include="this"
+    />
+    <div>
+      <div>Name</div>
+    </div>
+    <div>
+      <error></error>
+    </div>
+  </label>
+  <label class="input-outlined input-bg-surface-container-high">
+    <input
+      name="institution"
+      required
+      value="{{ acct.institution or "" }}"
+      placeholder=""
+      autocomplete="off"
+      spellcheck="true"
+      enterkeyhint="next"
+      hx-get="{{ url_for('accounts.validation', uri=acct.uri) }}"
+      hx-trigger="input delay:200ms"
+      hx-target="next error"
+      hx-include="this"
+    />
+    <div>
+      <div>Institution</div>
+    </div>
+    <div>
+      <error></error>
+    </div>
+  </label>
+  <label class="input-outlined input-bg-surface-container-high col-start-2">
+    <select name="category" required autocomplete="off">
+      <option
+        value=""
+        {% if not acct.group %}selected{% endif %}
+        disabled
+        hidden
+      ></option>
+      {% for cat in acct.category_type %}
+        <option
+          value="{{ cat.name }}"
+          {% if cat == acct.category %}selected{% endif %}
+          {% if cat =="OTHER" %}disabled hidden{% endif %}
+        >
+          {{ cat.pretty }}
+        </option>
+      {% endfor %}
+    </select>
+    <div>
+      <div>Category</div>
+    </div>
+  </label>
+  <label class="input-outlined input-bg-surface-container-high col-span-2">
+    <input
+      name="number"
+      value="{{ acct.number or "" }}"
+      placeholder=""
+      autocomplete="off"
+      enterkeyhint="next"
+      hx-get="{{ url_for('accounts.validation', uri=acct.uri) }}"
+      hx-trigger="input delay:200ms"
+      hx-target="next error"
+      hx-include="this"
+    />
+    <div>
+      <div>Number (Optional)</div>
+    </div>
+    <div>
+      <error></error>
+      <span>Used during transaction import</span>
+    </div>
+  </label>
+  <label class="toggle col-span-2">
+    <input
+      name="budgeted"
+      type="checkbox"
+      {% if acct.budgeted %}checked{% endif %}
+      autocomplete="off"
+    />
+    <div>
+      <span>Budgeted</span>
+      <span>Account will be included in budget</span>
+    </div>
+    <switch></switch>
+  </label>
+  {% if acct.uri and acct.updated_days_ago is not none %}
+    <label class="toggle col-span-2">
+      <input
+        name="closed"
+        type="checkbox"
+        {% if acct.closed %}checked{% endif %}
+        autocomplete="off"
+        {% if acct.value != 0 %}disabled{% endif %}
+      />
+      <div>
+        <span>Closed</span>
+        <span>
+          {% if acct.value != 0 %}
+            Cannot close account with non-zero value
+          {% else %}
+            Account will be hidden
+          {% endif %}
+        </span>
+      </div>
+      <switch></switch>
+    </label>
+  {% endif %}
+</form>
+{% if acct.uri and acct.updated_days_ago is none %}
+  <div class="flex flex-wrap justify-around" hx-target="#dialog-error">
+    <button
+      class="btn-text-error"
+      hx-delete="{{ url_for('accounts.account', uri=acct.uri) }}"
+      hx-trigger="delete"
+      onclick="accounts.confirmDelete(event)"
+    >
+      Delete
+    </button>
+  </div>
+{% endif %}
+<div id="dialog-error" class="status-error"></div>
+<script>
+  dialog.onLoad();
+</script>
