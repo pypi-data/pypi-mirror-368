@@ -1,0 +1,288 @@
+# Obsidian Sticky Notes
+
+This package allows to render your Obsidian notes written in Markdown as elegant, floating sticky windows on your Linux desktop. 
+
+This utility is designed for the seamless integration with your note-taking workflow, offering the persistent, themeable, and highly configurable desktop notes. 
+
+- [Obsidian Sticky Notes](#obsidian-sticky-notes)
+  - [Features and support](#features-and-support)
+  - [Requirements](#requirements)
+  - [Installation](#installation)
+  - [Configuration](#configuration)
+    - [Global Configuration (`config.yml`)](#global-configuration-configyml)
+    - [Front matter configuration per note](#front-matter-configuration-per-note)
+    - [The custom CSS file](#the-custom-css-file)
+  - [Advanced desktop integration](#advanced-desktop-integration)
+    - [Keeping the Notes in the background with `devilspie2`](#keeping-the-notes-in-the-background-with-devilspie2)
+    - [Autostarting on Login](#autostarting-on-login)
+      - [GNOME (X11 \& Wayland)](#gnome-x11--wayland)
+        - [Method 1: Using the command line](#method-1-using-the-command-line)
+        - [Method 2: Using GNOME Tweaks](#method-2-using-gnome-tweaks)
+      - [KDE Plasma (X11 \& Wayland)](#kde-plasma-x11--wayland)
+        - [Method 1: Using the command line](#method-1-using-the-command-line-1)
+        - [Method 2: Using System Settings](#method-2-using-system-settings)
+  - [Usage](#usage)
+    - [The context menu](#the-context-menu)
+  - [License](#license)
+
+
+## Features and support
+
+- **Native flavoured Markdown**: It renders the Obsidian notes with excellent fidelity, including the support for Obsidian callouts, strikethrough, tables, task lists, and more.
+- **Customisation per note**: Defining the theme, opacity, size, and «click-through» mode directly within each note’s YAML front matter.
+- **Persistent geometry**: It intelligently remembers the size and position of each sticky note, restoring them to their exact last-known location after a restart.
+- **Robust session saving**: The window state is reliably saved even when the application is terminated abruptly (for example, via `pkill` or a system shutdown), ensuring no loss of placement.
+- **Extensible theming engine**: It is built with a sophisticated CSS variable-based theming system. It includes several beautiful built-in themes and allows for the effortless customisation.
+- **Dynamic theme detection**: It intelligently parses your custom CSS file and automatically adds any new themes, that you create, to the context menu, enabling a truly dynamic and personalised experience.
+- **Seamless desktop integration**: The notes are presented in the borderless, transparent windows, allowing the appearance to blend perfectly with your desktop environment.
+- **Full context menu**: A convenient right-click menu provides the quick access to change the themes, toggle the click-through mode, to save geometry to the note’s front matter, and to debug.
+- **Modern Linux support**: It is built with GTK and WebKitGTK, ensuring the first-class, native support for both **Wayland** and **X11** display servers without any required configuration.
+
+## Requirements
+
+- Python >= 3.10
+- `markdown-it-py` >= 3.0.0
+- `mdit-py-plugins` >= 0.3.0
+- `pygobject` >= 3.46.0
+- `python-frontmatter` >= 1.0.1
+- `PyYAML` >= 6.0
+- `watchdog` >= 4.0.0
+- `webkit2gtk`
+
+## Installation
+
+It is available on the Python Package Index (PyPI) and can be installed with `pip`:
+
+```bash
+pip install obsidian-sticky-notes
+```
+
+## Configuration
+
+Its behaviour can be controlled globally via a configuration file and specified for the individual notes via the YAML front matter.
+
+### Global Configuration (`config.yml`)
+
+The central configuration file should be located at `~/.config/obsidian-sticky/config.yml`.
+
+Here is an example of a complete configuration file:
+
+```yml
+# Specifying the absolute path to your Obsidian vault folder
+vault: ~/Documents/Obsidian Vault
+
+# A notes list to be displayed as sticky notes
+# The paths are relative to your vault’s root
+notes:
+  - "Idiomas/Italiano/Vocabulário.md"
+  - "Pessoal/Compras necessárias.md"
+
+# Specifying an optional path to a custom CSS file for theming
+css: ~/.config/obsidian-sticky/my-sticky.css
+
+# Defining the default values for all sticky notes
+defaults:
+  click_through: false
+  opacity: 0.95
+  theme: parchment
+```
+
+### Front matter configuration per note
+
+For more granular control, you can specify the theme and other properties for each note individually by adding the YAML front matter to the top of your Markdown file. **The properties defined in the front matter of a note will always override the default settings from your `config.yml` file**.
+
+Here is an example of a note with front matter:
+
+```md
+---
+click_through: true
+h: 360
+opacity: 0.9
+theme: graphite
+w: 520
+---
+
+# This note will use the graphite theme
+
+The content of the note begins here...
+```
+
+### The custom CSS file
+
+You can provide a custom CSS file to override the base styles or to define the new themes. It uses a robust and modern CSS variable system.
+
+Here is an example of a `my-sticky.css` file:
+
+```css
+/*
+ * An example of a custom stylesheet.
+ * This file may contain the overrides for the CSS variables defined in the base stylesheet.
+ */
+
+/* Overriding the font for all themes */
+html {
+  --sticky-body-font-family: "Georgia", serif;
+}
+
+/* Overriding the colours for a specific theme */
+html.theme-canary {
+  --sticky-body-background: #fff8d6;
+  --sticky-body-foreground: #222;
+  --blockquote-border: #ccc;
+}
+
+html.theme-parchment {
+  --sticky-body-background: #f5f0e6;
+  --sticky-body-foreground: #3a332a;
+  --blockquote-border: #dcd0b9;
+}
+
+html.theme-graphite {
+  --sticky-body-background: #3c3c3c;
+  --sticky-body-foreground: #f0f0f0;
+  --blockquote-border: #666;
+}
+
+/* Defining a new, custom theme */
+html.theme-piltover {
+  --sticky-body-background: #645a2f;
+  --sticky-body-foreground: #ffffff;
+  --sticky-body-font-family: "Beaufort for LOL", serif;
+  --sticky-headings-foreground: #cfbb60;
+  --blockquote-border: #666;
+}
+
+/* Adding other custom styles */
+body
+{
+  background-color: var(--sticky-body-bg);
+  color: var(--sticky-body-foreground);
+}
+
+#content h1, #content h2 {
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+h1, h2, h3, h4
+{
+  color: var(--sticky-headings-foreground)
+}
+```
+
+It will automatically detect any new `html.theme-THEME_NAME` definitions in this file and add them as options to the "Theme" submenu in the context menu.
+
+## Advanced desktop integration
+
+### Keeping the Notes in the background with `devilspie2`
+
+For a true "desktop widget" experience where the sticky notes remain permanently in the background, you can use a window-matching tool like `devilspie2`. This tool can set some rules to the application or widget windows as they are created, forcing them to behave in specific ways.
+
+1. **Installing `devilspie2`**: It depends on your distribution. Pick up your distirbution carefully and install it:
+
+   ```sh
+   # Arch Linux, EndevaourOS and Manjaro
+   yay -Sy devilspie2
+   
+   # Debian, Uubuntu and other Debian-derived distributions
+   sudo apt-get install devilspie2
+   ```
+
+2. **Creating the Configuration File**: Create a new Lua script at `~/.config/devilspie2/obsidian-sticky.lua` with the following content:
+
+   ```lua
+   -- ~/.config/devilspie2/obsidian-sticky.lua
+   local cls   = (get_window_class() or "")         -- for example, "Obsidian-sticky"
+   local inst  = (get_class_instance_name() or "")  -- for example, "obsidian-sticky"
+   local title = (get_window_name() or "")
+
+   if inst == "obsidian-sticky" or cls == "Obsidian-sticky" or title:match("^Sticky:") then
+     set_skip_tasklist(true)
+     set_skip_pager(true)
+     set_window_below(true)
+     pin_window()            -- visible on all workspaces (no args)
+   end
+   ```
+
+3. Running `devilspie2`: You can run `devilspie2` in the background from your terminal to test it. For it to run automatically on startup, add it to your desktop environment autostart.
+
+### Autostarting on Login
+
+To make your sticky notes appear automatically when you log in, you need to add it to your desktop environment’s startup or autostart list.
+
+The exact method for this varies depending on your desktop environment or display server. You shall add a new startup entry with the following command:
+
+```sh
+obsidian-sticky-notes --config
+```
+
+#### GNOME (X11 & Wayland)
+
+These methods for adding a startup application in GNOME are the same for both **X11** and **Wayland** sessions. You can use either the graphical user interface or the command line.
+
+##### Method 1: Using the command line
+
+This method creates a `.desktop` file in the correct autostart directory which is specifically for the user-defined autostart entries
+
+1.  Open a terminal.
+2.  Create a Linux desktop file (`.desktop`) in the `~/.config/autostart/` directory and edit the new file with the following command:
+
+    ```sh
+    nano ~/.config/autostart/obsidian-sticky-notes.desktop
+    ```
+
+3.  Paste the following content into the file:
+
+    ```ini,toml
+    [Desktop Entry]
+    Comment = Launch Obsidian sticky notes on login
+    Exec = obsidian-sticky --config
+    Name = Obsidian Sticky Notes
+    Terminal = false
+    Type = Application
+    X-GNOME-Autostart-enabled = true
+    ```
+
+4.  Save the file by pressing `Ctrl+O`, then `Enter`, and exit with `Ctrl+X`.
+
+##### Method 2: Using GNOME Tweaks
+
+It is easy to use and to define. ;-)
+
+#### KDE Plasma (X11 & Wayland)
+
+##### Method 1: Using the command line
+
+Follow the same metohod aforementioned in the instructions for the users of GNOME X11 and Wayland. 
+
+##### Method 2: Using System Settings
+
+
+## Usage
+
+To run it, simply execute the command with the `--config` flag:
+
+```bash
+obsidian-sticky-notes --config
+```
+
+You can also specify your vault folder and notes directly from the command line, which will override the settings in your `config.yml` file:
+
+```bash
+obsidian-sticky-notes --vault ~/path/to/vault "Note 1.md" "Folder/Note 2.md"
+```
+
+### The context menu
+
+Right-clicking on any sticky note will open a context menu with the following options:
+- **Theme**: It allows you to select from the built-in themes and any custom themes that have been dynamically detected in your CSS file.
+- **Click-through (content)**: It makes the note’s content area ignore mouse events, allowing you to click on the windows behind it.
+- **Save theme to front matter**: It writes the currently active theme to the note’s YAML front matter.
+- **Save current size to front matter**: It writes the note’s current dimensions (`w` and `h`) to its front matter.
+- **Debug → Show applied state...**: It displays a dialogue with detailed information about the note’s current state, which is useful for troubleshooting.
+- **Inspect Element**: It opens the WebKit Web Inspector, providing a powerful set of developer tools for debugging the note's HTML and CSS.
+
+## License
+
+This project is licensed under the terms of the MIT License.
+
