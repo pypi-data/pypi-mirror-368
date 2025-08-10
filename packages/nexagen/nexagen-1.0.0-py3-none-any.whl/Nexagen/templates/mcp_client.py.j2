@@ -1,0 +1,109 @@
+import asyncio
+import sys
+import json
+from typing import Optional, Dict, Any
+from contextlib import AsyncExitStack
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+import logging
+
+# 设置日志记录
+logging.basicConfig(level=logging.DEBUG)
+
+
+class MCPClient:
+    def __init__(self):
+        self.session: Optional[ClientSession] = None
+        self.exit_stack = AsyncExitStack()
+
+    async def connect_to_server(self, agent_name: str, command: str, args: list):
+        logging.debug(f"Connecting to agent server: {agent_name}")
+
+        server_params = StdioServerParameters(
+            command=command,
+            args=args,
+            env=None
+        )
+
+        try:
+            stdio_transport = await self.exit_stack.enter_async_context(stdio_client(server_params))
+            self.stdio, self.write = stdio_transport
+            self.session = await self.exit_stack.enter_async_context(ClientSession(self.stdio, self.write))
+            await self.session.initialize()
+            logging.debug("Connected and initialized session successfully.")
+        except Exception as e:
+            logging.error(f"Error connecting to server: {str(e)}")
+            raise
+
+    async def call_tool(self, tool_name: str, tool_args: Dict[str, Any]) -> str:
+        """Call a specific tool with arguments."""
+        if not self.session:
+            raise RuntimeError("Not connected to server")
+
+        try:
+            result = await self.session.call_tool(tool_name, tool_args)
+            return result.content
+        except Exception as e:
+            return f"Error calling tool {tool_name}: {str(e)}"
+
+    # 移除清理方法，避免触发Windows的异步清理问题
+
+
+async def async_main(agent_name: str, tool_name: str, tool_args: Dict[str, Any]) -> str:
+    """异步主函数，接收参数并执行"""
+    # 从配置文件加载服务器配置
+    with open("./mcp.json", "r") as fh:
+        agent_info = json.load(fh)
+
+    command = agent_info["mcpServers"][agent_name]["command"]
+    args = agent_info["mcpServers"][agent_name]["args"]
+
+    client = MCPClient()
+    try:
+        # 连接服务器
+        await client.connect_to_server(agent_name, command, args)
+        # 添加延迟确保连接稳定
+        await asyncio.sleep(0.5)
+        # 调用工具
+        result = await client.call_tool(tool_name, tool_args)
+        return result
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+
+def run(agent_name: str, tool_name: str, tool_args: Dict[str, Any]) -> str:
+    """同步入口函数，接收参数并执行异步任务"""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    try:
+        result = loop.run_until_complete(async_main(agent_name, tool_name, tool_args))
+        return result
+    except Exception as e:
+        return f"Error in event loop: {str(e)}"
+    finally:
+        # 不关闭事件循环，让Python自行清理
+        pass
+
+
+def main(agent_name,tool_name,tool_args):
+    """命令行入口点，解析参数并调用同步函数"""
+    try:
+        # 解析JSON格式的参数
+        tool_args = json.loads(tool_args)
+    except json.JSONDecodeError:
+        print("Error: Invalid JSON format for tool_args")
+        sys.exit(1)
+
+    result = run(agent_name, tool_name, tool_args)
+    return result
+
+'''
+if __name__ == "__main__":
+    agent_name="chart"
+    tool_name="draw_chart"
+    tool_args="{\"data\": [1, 2, 3, 4, 5], \"title\": \"销售数据\"}"
+
+    r=main(agent_name,tool_name,tool_args)
+    print(r)
+'''
