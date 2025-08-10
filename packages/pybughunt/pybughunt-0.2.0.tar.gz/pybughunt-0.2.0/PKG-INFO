@@ -1,0 +1,222 @@
+Metadata-Version: 2.4
+Name: pybughunt
+Version: 0.2.0
+Summary: A Python library for detecting logical and syntactical errors in Python code
+Home-page: https://github.com/Preksha-7/pybughunt
+Author: Preksha Upadhyay
+Author-email: Preksha Upadhyay <prekshaupadhyay03@gmail.com>
+License: MIT
+Keywords: code,python,error,detection,static analysis
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: numpy>=1.20.0
+Requires-Dist: scikit-learn>=1.0.0
+Requires-Dist: torch>=1.9.0
+Requires-Dist: transformers>=4.12.0
+Requires-Dist: astroid>=2.8.0
+Requires-Dist: pylint>=2.11.0
+Dynamic: author
+Dynamic: home-page
+Dynamic: license-file
+Dynamic: requires-python
+
+# PyBugHunt
+
+## Advanced Python Code Error Detection and Analysis
+
+PyBugHunt is a sophisticated Python library designed to detect, analyze, and suggest fixes for both syntactical and logical errors in Python code. Leveraging a combination of static code analysis techniques and advanced transformer-based machine learning models, PyBugHunt offers developers a powerful tool to improve code quality and reduce debugging time.
+
+![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Version](https://img.shields.io/badge/version-0.2.0-blue)
+
+---
+
+## Table of Contents
+
+- [Features](#features)
+- [Technology Stack](#technology-stack)
+- [Project Structure](#project-structure)
+- [Installation](#installation)
+- [Usage](#usage)
+  - [Command Line Interface](#command-line-interface)
+  - [Python API](#python-api)
+- [Error Detection Capabilities](#error-detection-capabilities)
+- [Machine Learning Approach](#machine-learning-approach)
+- [Development](#development)
+- [License](#license)
+- [Contributing](#contributing)
+
+---
+
+## Features
+
+PyBugHunt offers comprehensive error detection capabilities:
+
+- **Robust Syntax Error Detection and Analysis**
+- **Intelligent Logical Error Detection** using both static analysis and machine learning.
+- **Transformer-Based Models**:
+  - **CodeBERT**: For classifying code as correct or containing a logical error.
+  - **T5 (Text-to-Text Transfer Transformer)**: For generating natural language descriptions of the detected errors.
+- **Fix Suggestion System**
+- **Flexible Integration Options** (CLI and Python API)
+- **Customization and Training** of models.
+
+---
+
+## Technology Stack
+
+PyBugHunt utilizes a wide range of technologies and libraries:
+
+### Core Technologies
+
+- **Python 3.8+**
+- **Abstract Syntax Tree (AST)**
+- **Python Standard Library**
+
+### Machine Learning
+
+- **PyTorch**
+- **Hugging Face Transformers** (for CodeBERT and T5)
+- **scikit-learn**
+- **NumPy**
+
+### Static Analysis
+
+- **Astroid**
+- **PyLint**
+
+---
+
+## Project Structure
+
+```
+pybughunt/
+├── src/
+│   └── pybughunt/
+│       ├── __init__.py
+│       ├── cli.py
+│       ├── detector.py
+│       ├── logic_analyzer.py
+│       ├── syntax_analyzer.py
+│       └── models/
+│           ├── __init__.py
+│           ├── model_loader.py
+│           ├── model_trainer.py
+│           └── models.py  # New file for transformer model definitions
+├── tests/
+├── .gitignore
+├── README.md
+├── pyproject.toml
+└── setup.py
+```
+
+---
+
+## Installation
+
+### From Source
+
+```bash
+# Clone the repository
+git clone https://github.com/Preksha-7/pybughunt.git
+cd pybughunt
+
+# Install in development mode
+pip install -e .
+```
+
+### Dependencies
+
+All dependencies will be automatically installed. The main dependencies are listed in `pyproject.toml` and `setup.py`.
+
+---
+
+## Usage
+
+### Command Line Interface
+
+Analyze a file with the default static analysis:
+
+```bash
+python -m pybughunt.cli analyze src/pybughunt/sample_buggy.py --model_type static
+```
+
+Analyze a file using a specific machine learning model:
+
+```bash
+python -m pybughunt.cli analyze src/pybughunt/sample_buggy.py --model_type codebert --model_path path/to/saved_codebert_model
+```
+
+Train a new model:
+
+```bash
+python -m pybughunt.cli train --dataset /path/to/python/files --output my_model --model_type codebert
+```
+
+### Python API
+
+```python
+from pybughunt import CodeErrorDetector
+
+# Initialize the detector with a specific model
+detector = CodeErrorDetector(model_type='codebert', model_path='path/to/saved_codebert_model')
+
+code = '''
+def incorrect_factorial(n):
+    if n == 0:
+        return 1
+    else:
+        return incorrect_factorial(n-1) # Missing multiplication with n
+'''
+
+results = detector.analyze(code)
+print(results)
+```
+
+---
+
+## Error Detection Capabilities
+
+**Syntax Errors:** Missing delimiters, indentation issues, invalid syntax, etc.
+
+**Logical Errors:**
+
+- **Static Analysis:** Infinite loops, unused variables, off-by-one errors, division by zero, unreachable code.
+- **Machine Learning:** More subtle logical errors detected by the trained transformer models.
+
+---
+
+## Machine Learning Approach
+
+PyBugHunt now includes transformer-based models for more advanced logical error detection:
+
+**CodeBERT (microsoft/codebert-base):** A model pre-trained on a large corpus of code, used for classifying code snippets as either correct or containing a logical error.
+
+**T5 (t5-small):** A sequence-to-sequence model that can be trained to generate a natural language description of the error in a piece of code.
+
+These models can be trained on your own dataset using the `train` command in the CLI.
+
+---
+
+## Development
+
+The project is structured to be modular and extensible. You can add new error detection patterns to the `logic_analyzer.py` or experiment with different models in the `models/` directory.
+
+---
+
+## License
+
+This project is licensed under the MIT License. See the LICENSE file for details.
+
+---
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a pull request.
