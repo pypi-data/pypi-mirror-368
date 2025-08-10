@@ -1,0 +1,161 @@
+Metadata-Version: 2.4
+Name: md-server
+Version: 0.1.0
+Summary: HTTP API server for converting documents, web pages, and media to markdown
+Author-email: Peter Etelej <peter@etelej.com>
+Maintainer-email: Peter Etelej <peter@etelej.com>
+License-Expression: MIT
+Project-URL: Homepage, https://github.com/peteretelej/md-server
+Project-URL: Repository, https://github.com/peteretelej/md-server.git
+Project-URL: Issues, https://github.com/peteretelej/md-server/issues
+Project-URL: Documentation, https://github.com/peteretelej/md-server#readme
+Keywords: markdown,document-conversion,api,server,fastapi,pdf,docx
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Internet :: WWW/HTTP :: HTTP Servers
+Classifier: Topic :: Text Processing :: Markup
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: litestar[standard]>=2.0.0
+Requires-Dist: markitdown[all]>=0.0.1
+Requires-Dist: pydantic>=2.11.7
+Requires-Dist: pydantic-settings>=2.10.1
+Requires-Dist: crawl4ai>=0.7.0
+Requires-Dist: click!=8.2.2
+Dynamic: license-file
+
+# md-server
+
+[![CI](https://github.com/peteretelej/md-server/actions/workflows/ci.yml/badge.svg)](https://github.com/peteretelej/md-server/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/peteretelej/md-server/branch/main/graph/badge.svg)](https://codecov.io/gh/peteretelej/md-server)
+[![PyPI version](https://img.shields.io/pypi/v/md-server.svg)](https://pypi.org/project/md-server/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
+
+HTTP API server for converting documents (PDF, Office document types), audio, web pages, Youtube videos and more to markdown.
+
+## Installation
+
+```bash
+uvx md-server
+```
+
+## Usage
+
+```bash
+# Start server (default: localhost:8080)
+uvx md-server
+
+# Listen on all interfaces (for Docker/remote access)
+uvx md-server --host 0.0.0.0
+
+# Start on custom port
+uvx md-server --port 9000
+
+# Convert file
+curl -X POST http://localhost:8080/convert -F "file=@document.pdf"
+
+# Convert URL
+curl -X POST http://localhost:8080/convert/url \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com/article"}'
+
+# Health check
+curl http://localhost:8080/healthz
+```
+
+### Using Docker
+
+```bash
+# Run Docker image
+docker run -d -p 127.0.0.1:8080:8080 --name md-server \
+  --restart unless-stopped \
+  etelej/md-server
+
+# Convert file
+curl -X POST http://localhost:8080/convert -F "file=@document.pdf"
+```
+
+## Example Output
+
+Convert a file to markdown:
+
+```bash
+$ curl -X POST http://localhost:8080/convert -F "file=@document.pdf"
+{
+  "markdown": "# Document Title\n\nThis is the converted content from the PDF...\n\n## Section 1\n\nMore content here."
+}
+```
+
+Health check response:
+
+```bash
+$ curl http://localhost:8080/healthz
+{
+  "status": "healthy"
+}
+```
+
+## Endpoints
+
+- `GET /healthz` - Health check
+- `POST /convert` - Convert uploaded file to markdown
+- `POST /convert/url` - Convert content from URL to markdown
+
+## Development
+
+```bash
+# Clone repository
+git clone https://github.com/peteretelej/md-server.git
+cd md-server
+
+# Create virtual environment and install dependencies
+uv sync
+
+# Run development server (localhost:8080)
+uv run python -m md_server
+# or
+uv run md-server
+
+# Run on custom port
+uv run md-server --port 9000
+
+# Run tests
+uv run pytest
+
+# Add new dependencies
+uv add package-name
+
+# Add dev dependencies
+uv add --dev pytest ruff mypy
+```
+
+### Building Docker Image
+
+```bash
+# Build manually
+docker build -t md-server .
+
+# You can add env variables to a .env and use it
+
+# Launch it locally
+docker run -p 127.0.0.1:8080:8080 \
+  --restart unless-stopped \
+  --name md-server \
+  --env-file .env \
+  md-server
+```
+
+## Powered By
+
+This project makes use of these excellent tools:
+
+[![Powered by Crawl4AI](https://raw.githubusercontent.com/unclecode/crawl4ai/main/docs/assets/powered-by-light.svg)](https://github.com/unclecode/crawl4ai) [![microsoft/markitdown](https://img.shields.io/badge/microsoft-MarkItDown-0078D4?style=for-the-badge&logo=microsoft)](https://github.com/microsoft/markitdown)
