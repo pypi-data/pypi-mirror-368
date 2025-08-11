@@ -1,0 +1,263 @@
+[build-system]
+requires = [
+    "setuptools >= 61",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pydepinject"
+dynamic = ["version"]
+description = "A package to dynamically inject requirements into a virtual environment."
+readme = "README.md"
+authors = [
+    { name="pydepinject" }
+]
+license = "MIT"
+keywords = ["virtualenv", "requirements", "dependency management"]
+requires-python = ">=3.10"
+dependencies = [
+    "packaging>=23.0",
+    "typing-extensions>=4.4.0",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Topic :: Software Development :: Libraries",
+  "Typing :: Typed",
+]
+
+[project.urls]
+homepage = "https://github.com/pydepinject/pydepinject"
+documentation = "https://github.com/pydepinject/pydepinject"
+repository = "https://github.com/pydepinject/pydepinject"
+
+[project.optional-dependencies]
+lint = [
+    "isort",
+    "pylint",
+]
+test = [
+    "pytest",
+    "pytest-cov",
+    "pytest-xdist",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = ["pydepinject"]
+
+[tool.setuptools.dynamic]
+version = {attr = "pydepinject.VERSION"}
+
+[tool.pytest]
+log_cli = true
+log_level = "DEBUG"
+
+[tool.pytest.ini_options]
+pythonpath = "src"
+testpaths = ["tests"]
+addopts = "--durations=10 -n auto"
+# Estimated test times: 74s with auto (2), 76s with 6 workers, 113se with no workers.
+
+[tool.ruff]
+preview = true
+extend-exclude = [
+     "/..*",
+     "tasks_.py",
+]
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "ANN",
+    "BLE001",
+    "COM",
+    "CPY001",
+    "D1",
+    "D2",
+    "D4",
+    "DOC",  # pydoclint
+    "E501",
+    "EM101",
+    "EM102",
+    "FBT001",
+    "FIX",
+    "FLY002",
+    "FURB142",
+    "I0",
+    "ISC001",
+    "PERF401",
+    "PLC0415",
+    "PLR0904",
+    "PLR0913",
+    "PLW2901",
+    "RET503",
+    "RUF005",
+    "S404",
+    "S603",
+    "SLF001",
+    "TC006",  # Doesn't seem useful at this time.
+    "TD",
+    "TRY003",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/test_pydepinject.py" = ["F401", "F811"]
+"tasks/**" = [
+    "C901",
+    "G004",
+    "PLR0912",
+    "PLR0915",
+    "PT0",
+    "PLW1510",
+    "S202",
+    "S310",
+    "SIM102",
+    "SIM117",
+    "T201",
+    "TRY301",
+    "TRY400",
+]
+"tasks/corelib/http.py" = ["A005"]
+"tests/**" = ["S1", "T201", "INP001"]
+
+[tool.pyright]
+include = ["src"]
+strict = ["src"]
+
+deprecateTypingAliases = true
+reportCallInDefaultInitializer = true
+reportImplicitOverride = true
+reportImplicitStringConcatenation = true
+reportImportCycles = true
+reportMissingSuperCall = false
+reportPropertyTypeMismatch = true
+reportShadowedImports = true
+reportUninitializedInstanceVariable = true
+reportUnnecessaryTypeIgnoreComment = false  # reportMissingImports for tomllib is valid python<3.11.
+reportUnusedCallResult = false
+
+[tool.pylint.'MESSAGES CONTROL']
+disable = """
+    duplicate-code,
+    import-outside-toplevel,
+    inconsistent-return-statements,
+    invalid-name,
+    line-too-long,
+    logging-fstring-interpolation,
+    missing-function-docstring,
+    missing-module-docstring,
+    protected-access,
+    too-many-arguments,
+    too-many-instance-attributes,
+    too-many-public-methods,
+    wrong-import-position,
+
+"""
+[tool.pylint.main]
+load-plugins = "pylint.extensions.bad_builtin"
+
+[tool.pylint.deprecated_builtins]
+bad-functions = ["map", "filter", "reduce"]
+
+[tool.isort]
+profile = "black"
+add_imports = ["from __future__ import annotations"]
+known_first_party = ["pydepinject"]
+skip_gitignore = true
+src_paths = [
+    "src",
+    "tasks",
+]
+extend_skip = [
+    ".tools", ".venv", ".temp_venvs"
+]
+
+[tool.coverage.run]
+branch = true
+cover_pylib = false
+data_file = ".coverage"
+parallel = true
+relative_files = true
+
+[tool.coverage.report]
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+]
+format = "text"
+show_missing = true
+
+[tool.coverage.html]
+directory = "htmlcov"
+show_contexts = true
+title = "Coverage report for pydepinject"
+
+[tool.check-manifest]
+ignore = [
+    "_changes.d/**",
+    ".devcontainer/**",
+    ".envrc",
+    ".vscode/**",
+    "CHANGES.md",
+    "MAINTENANCE.md",
+    "Dockerfile",
+    "noxfile.py",
+    "requirements-*.txt",
+    "tasks_.py",
+    "tasks/**",
+]
+
+[tool.towncrier]
+    package = ""
+    name = "pydepinject"
+    filename = "CHANGES.md"
+    directory = "_changes.d"
+    start_string = "<!-- towncrier release notes start -->\n"
+
+    [[tool.towncrier.section]]
+        path = ""
+
+    [[tool.towncrier.type]]
+        directory = "change"
+        name = "Changes"
+        showcontent = true
+
+    [[tool.towncrier.type]]
+        directory = "breaking"
+        name = "Backwards-incompatible Changes"
+        showcontent = true
+
+    [[tool.towncrier.type]]
+        directory = "bugfix"
+        name = "Bugfixes"
+        showcontent = true
+
+    [[tool.towncrier.type]]
+        directory = "doc"
+        name = "Improved Documentation"
+        showcontent = true
+
+    [[tool.towncrier.type]]
+        directory = "removal"
+        name = "Deprecations and Removals"
+        showcontent = true
+
+    [[tool.towncrier.type]]
+        directory = "chore"
+        name = "Maintenance"
+        showcontent = false
+
+    [[tool.towncrier.type]]
+        directory = "misc"
+        name = "Misc"
+        showcontent = true
+
+[tool.gha-update]
+tag-only = []
+
