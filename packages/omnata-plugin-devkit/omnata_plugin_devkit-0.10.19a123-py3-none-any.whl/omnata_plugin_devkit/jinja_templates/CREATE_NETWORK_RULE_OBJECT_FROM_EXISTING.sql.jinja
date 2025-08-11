@@ -1,0 +1,51 @@
+create or replace procedure PLUGIN.CREATE_NETWORK_RULE_OBJECT_FROM_EXISTING(RULE_NAME VARCHAR,RULE_TO_CLONE VARCHAR)
+   returns object
+   language javascript
+   COMMENT = $$
+   Creates a network rule object, using the addresses from an existing network rule as a starting point.
+   $$
+   execute as owner
+as
+$$
+try{
+   // retrieve the existing secrets
+   var results = snowflake.createStatement( {
+         sqlText: `call RETRIEVE_NETWORK_RULE_OBJECT(?)`,
+         binds:[RULE_TO_CLONE]
+      } ).execute();
+   results.next();
+   var procResult = results.getColumnValue(1);
+   if (procResult.success===false){
+      throw procResult.error;
+   }
+   var valueList = procResult.data.value_list.split(',');
+   var type = procResult.data.type;
+
+   // create the network rule object by calling the regular proc
+   var results = snowflake.createStatement( {
+         sqlText: `call CREATE_NETWORK_RULE_OBJECT(?,PARSE_JSON(?),?)`,
+         binds:[RULE_NAME,JSON.stringify(valueList),type]
+      } ).execute();
+   results.next();
+   var procResult = results.getColumnValue(1);
+   if (procResult.success===false){
+      throw procResult.error;
+   }
+   return {
+        "success": true,
+        "data": null
+   }
+}
+catch(e){
+   return {
+      "success": false,
+      "error": `CREATE_NETWORK_RULE_OBJECT_FROM_EXISTING: ${String(e)}`
+   }
+}
+
+$$
+;
+
+grant usage on procedure PLUGIN.CREATE_NETWORK_RULE_OBJECT_FROM_EXISTING(VARCHAR,VARCHAR)
+to application role OMNATA_MANAGEMENT;
+

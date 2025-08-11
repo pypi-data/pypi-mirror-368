@@ -1,0 +1,40 @@
+create or replace procedure PLUGIN.TEST_CALLBACK(APP_DATABASE VARCHAR)
+   returns object
+   language javascript
+   COMMENT = $$
+   Used by the Sync Engine to test whether or not a plugin app can see it.
+   $$
+   execute as owner
+as
+$$
+// snowflake object automatically injected by Snowpark
+
+try{
+    var appsResults = snowflake.createStatement( {
+        sqlText: `select IDENTIFIER(?)()`,
+        binds:[`${APP_DATABASE}.API.TEST_ACCESS`]
+    } ).execute();
+    return {
+        "success": true,
+        "data": true
+    }
+}
+catch(e){
+   // yes this looks strange, but need to be consistent with stored proc responses
+   if (e.message.indexOf('Unknown user-defined function') > -1){
+      return {
+         "success": true,
+         "data": false
+      }
+   }
+   return {
+      "success": false,
+      "error": `TEST_CALLBACK: ${String(e)}`
+   }
+}
+
+$$
+;
+
+grant usage on procedure PLUGIN.TEST_CALLBACK(VARCHAR)
+to application role OMNATA_MANAGEMENT;

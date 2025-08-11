@@ -1,0 +1,257 @@
+-- For now, we can't store in the proc schema because of the callout objects issue
+create or replace procedure PLUGIN.CONFIGURE_APIS()
+   returns object
+   language javascript
+   COMMENT = $$
+   For all procs and functions that may access external endpoints, rebinds them to all of the configured connections as stored in the OMNATA_REGISTRATION table.
+   $$
+   execute as owner
+as
+$$
+// snowflake object automatically injected by Snowpark
+
+try{
+    let twoDollars=`\$\$`;
+    snowflake.log("info", "CONFIGURE_APIS called");
+    var currentDatabaseResults = snowflake.createStatement( {
+        sqlText: `select current_database()`,
+        binds:[]
+    } ).execute();
+    currentDatabaseResults.next();
+    var currentDatabase = currentDatabaseResults.getColumnValue(1);
+
+    var appsResults = snowflake.createStatement( {
+        sqlText: `select 
+                    APPLICATION_NAME,
+                    EXTERNAL_ACCESS_INTEGRATIONS
+                from DATA.OMNATA_REGISTRATION`,
+        binds:[]
+    } ).execute();
+    let applicationName;
+    let integrationNames;
+    let secrets;
+    let externalAccessIntegrations;
+    if (!appsResults.next())  {
+        externalAccessIntegrations = {}
+        snowflake.log("info", "No existing OMNATA_REGISTRATION record found, using empty arrays");
+    }else{
+        applicationName = appsResults.getColumnValue(1);
+        externalAccessIntegrations = appsResults.getColumnValue(2);
+        snowflake.log("info", `External Access Integrations from registration: ${JSON.stringify(externalAccessIntegrations)}`);
+        
+        // get a list of secrets which exist
+        var currentSecretsResult = snowflake.createStatement( {
+            sqlText: `show secrets in schema data`,
+            binds:[]
+        } ).execute();
+        var secretsWhichExist = []
+        while (currentSecretsResult.next()){
+            secretsWhichExist.push(currentSecretsResult.getColumnValue(2));
+        }
+        snowflake.log("info", `Secrets found in schema: ${secretsWhichExist.join(',')}`);
+        // filter out externalAccessIntegrations with missing secrets
+        externalAccessIntegrations = Object.fromEntries(Object.entries(externalAccessIntegrations).filter((o) => {
+            var eaiValue = o[1];
+            if (eaiValue.oauth_secret===undefined){
+                eaiValue.oauth_secret = null;
+            }
+            if (eaiValue.other_secret===undefined){
+                eaiValue.other_secret = null;
+            }
+            return (!(eaiValue.oauth_secret===null && eaiValue.other_secret===null)) &&
+                (eaiValue.oauth_secret===null || secretsWhichExist.includes(eaiValue.oauth_secret)) && 
+                (eaiValue.other_secret===null || secretsWhichExist.includes(eaiValue.other_secret));
+        }));
+        // create a function which calls the PLUGIN_CONNECTION function in the sync engine, via a hardcoded identifier
+        // this is allowed to fail, because the function can't be created until the plugin is granted the sync engine's application role
+        // this will be in place by the time the first connection is created
+        try{
+            snowflake.createStatement( {
+                sqlText: `create or replace function PLUGIN.PLUGIN_CONNECTION(connection_slug varchar)
+                    returns object
+                    immutable 
+                    as
+                ${twoDollars}
+                ${applicationName}.API.PLUGIN_CONNECTION(connection_slug)
+                ${twoDollars};`,
+                binds:[]
+            } ).execute();
+            snowflake.createStatement( {
+                sqlText: `grant usage on function PLUGIN.PLUGIN_CONNECTION(varchar) to application role CONSUMER_FUNCTION_CALLER`,
+                binds:[]
+            } ).execute();
+        }
+        catch(e){}
+        
+    }
+
+    // we need to remove integrations which don't exist or aren't visible.
+    // since we can't 'show' or 'desc' from inside the stored proc, we can only do this by trial (on the SYNC proc)
+    var attemptsRemaining = 50 // just a safeguard against endless looping
+    while(Object.keys(externalAccessIntegrations).length > 0 && attemptsRemaining > 0){
+        attemptsRemaining = attemptsRemaining - 1;
+        integrationNames = Object.keys(externalAccessIntegrations);
+        allSecrets = [...new Set(Object.values(externalAccessIntegrations).flatMap((s) => [s.oauth_secret,s.other_secret]).filter((s)=>s))]
+        secrets = allSecrets.map((s) => `'${s}' = ${currentDatabase}.DATA.${s}`);
+        try{
+            var sqlText = `alter procedure SYNC(OBJECT)
+                        set EXTERNAL_ACCESS_INTEGRATIONS = (${integrationNames.join(',')}),
+                            SECRETS = (${secrets.join(',')})`
+            snowflake.log("info", `Executing SQL: ${sqlText}`);
+            var appsResults = snowflake.createStatement( {
+                sqlText:sqlText,
+                binds:[]
+            } ).execute();
+            break;
+        }
+        catch(e){
+            let integration_error_regex = /integration '(.+)'/i;
+            let match = e.message.match(integration_error_regex);
+            if (match) {
+                let matchedIntegrationName = match[1];
+                snowflake.log("warn", `Could not find integration ${matchedIntegrationName}, excluding it and its secrets from stored procs`);
+                let existingCount = Object.keys(externalAccessIntegrations).length;
+                delete externalAccessIntegrations[matchedIntegrationName];
+                if (Object.keys(externalAccessIntegrations).length == existingCount){
+                    throw `Tried to exclude External Access integration ${matchedIntegrationName} but couldn't match it`
+                }
+            } else {
+                let secret_error_regex = /Secret '(.+)' is not initialized/i;
+                match = e.message.match(secret_error_regex);
+                if (match) {
+                    let matchedSecretName = match[1];
+                    snowflake.log("warn", `Secret ${matchedSecretName} is not properly initialized, excluding its integration from stored procs`);
+                    externalAccessIntegrations = Object.fromEntries(Object.entries(externalAccessIntegrations).filter((o) => {
+                        var eaiValue = o[1];
+                        return !(`${currentDatabase}.DATA.${eaiValue.oauth_secret}`==matchedSecretName)
+                    }));
+                } else {
+                    throw e;
+                }
+            }
+        }
+    }
+    integrationNames = Object.keys(externalAccessIntegrations);
+    // remove nulls, dedupe
+    allSecrets = [...new Set(Object.values(externalAccessIntegrations).flatMap((s) => [s.oauth_secret,s.other_secret]).filter((s)=>s))]
+    // map the secret name string to its full object name
+    secrets = allSecrets.map((s) => `'${s}' = ${currentDatabase}.DATA.${s}`);
+    snowflake.log("info", `Integrations visible to app: ${integrationNames.join(',')}`);
+
+    const procsToAlter = [
+        `API_LIMITS(VARCHAR,
+                    VARCHAR,
+                    OBJECT,
+                    VARCHAR,
+                    VARCHAR)`,
+        'SYNC(OBJECT)',
+        `CONFIGURATION_FORM(OBJECT)`,
+        `INBOUND_LIST_STREAMS(VARCHAR,
+                            VARCHAR,
+                            OBJECT,
+                            VARCHAR,
+                            VARCHAR,
+                            OBJECT,
+                            ARRAY)`,
+        `CONNECTION_TEST(VARCHAR,
+                        VARCHAR,
+                        OBJECT,
+                        VARCHAR,
+                        VARCHAR,
+                        VARCHAR)`,
+        `RETRIEVE_SECRETS(VARCHAR,
+                        VARCHAR)`,
+        `TUNNEL_TEST(VARCHAR,
+                        VARCHAR)`,
+        `UPDATE_GENERIC_SECRET_OBJECT(VARCHAR,
+                                    VARCHAR,
+                                    VARCHAR)`,
+        `NGROK_POST_TUNNEL_FIELDS(VARCHAR,
+                                OBJECT,
+                                VARCHAR,
+                                VARCHAR,
+                                VARCHAR)`
+            ];
+    procsToAlter.forEach(function(procToAlter) {
+        var sqlText = `alter procedure ${procToAlter}
+                    set EXTERNAL_ACCESS_INTEGRATIONS = (${integrationNames.join(',')}),
+                        SECRETS = (${secrets.join(',')})`
+        snowflake.log("info", `Executing SQL: ${sqlText}`);
+        var appsResults = snowflake.createStatement( {
+            sqlText:sqlText,
+            binds:[]
+        } ).execute();
+    });
+    // if there are any custom Java or Python UDFS that ship with the native app, we'll apply the settings to those too
+    var sqlText = `select FUNCTION_NAME||
+                            '('||array_to_string(REGEXP_EXTRACT_ALL(replace(ARGUMENT_SIGNATURE,', ',','),'\\\\s\\\\w+'),',')||')' as         
+                            FUNCTION_SIGNATURE,
+                            FUNCTION_SCHEMA
+                    from INFORMATION_SCHEMA.FUNCTIONS
+                    where FUNCTION_SCHEMA in ('UDFS','PLUGIN')
+                    and FUNCTION_LANGUAGE in ('JAVA','PYTHON')`;
+    snowflake.log("info", `Executing SQL: ${sqlText}`);
+    var udfResults = snowflake.createStatement( {
+        sqlText: sqlText,
+        binds:[]
+    } ).execute();
+    while (udfResults.next()) {
+        var udfSig = udfResults.getColumnValue(1);
+        var schema = udfResults.getColumnValue(2);
+        var sqlText = `alter function ${schema}.${udfSig}
+                    set EXTERNAL_ACCESS_INTEGRATIONS = (${integrationNames.join(',')}),
+                        SECRETS = (${secrets.join(',')})`
+        snowflake.log("info", `Executing SQL: ${sqlText}`);
+        snowflake.createStatement( {
+            sqlText:sqlText,
+            binds:[]
+        } ).execute();
+    }
+    // same thing for stored procs (treat them as UDFs really)
+    var sqlText = `select PROCEDURE_NAME||
+                            '('||array_to_string(REGEXP_EXTRACT_ALL(replace(ARGUMENT_SIGNATURE,', ',','),'\\\\s\\\\w+'),',')||')' as         
+                            PROC_SIGNATURE
+                    from INFORMATION_SCHEMA.PROCEDURES
+                    where PROCEDURE_SCHEMA='UDFS'
+                    and PROCEDURE_LANGUAGE in ('JAVA','PYTHON')`;
+    snowflake.log("info", `Executing SQL: ${sqlText}`);
+    var udfResults = snowflake.createStatement( {
+        sqlText: sqlText,
+        binds:[]
+    } ).execute();
+    while (udfResults.next()) {
+        var udfSig = udfResults.getColumnValue(1);
+        var sqlText = `alter procedure UDFS.${udfSig}
+                    set EXTERNAL_ACCESS_INTEGRATIONS = (${integrationNames.join(',')}),
+                        SECRETS = (${secrets.join(',')})`
+        snowflake.log("info", `Executing SQL: ${sqlText}`);
+        snowflake.createStatement( {
+            sqlText:sqlText,
+            binds:[]
+        } ).execute();
+    }
+    // write the latest list of applied external access integrations back to the registration table
+    var appliedIntegrationsResults = snowflake.createStatement( {
+        sqlText: `update DATA.OMNATA_REGISTRATION
+                    set EXTERNAL_ACCESS_INTEGRATIONS_APPLIED = PARSE_JSON(?)`,
+        binds:[JSON.stringify(externalAccessIntegrations)]
+    } ).execute();
+    return {
+        "success": true,
+        "data": {
+            "appliedExternalAccessIntegrations": externalAccessIntegrations
+        }
+    }
+}
+catch(e){
+   return {
+      "success": false,
+      "error": `CONFIGURE_APIS: ${String(e)}`
+   }
+}
+
+$$
+;
+
+grant usage on procedure PLUGIN.CONFIGURE_APIS()
+to application role OMNATA_MANAGEMENT;

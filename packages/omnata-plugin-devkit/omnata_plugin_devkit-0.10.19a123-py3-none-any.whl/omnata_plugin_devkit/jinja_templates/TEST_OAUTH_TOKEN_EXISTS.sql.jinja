@@ -1,0 +1,70 @@
+create or replace procedure PLUGIN.TEST_OAUTH_TOKEN_EXISTS(SECRET_NAME VARCHAR,EXTERNAL_ACCESS_INTEGRATION_NAME VARCHAR)
+   returns object
+   language javascript
+   COMMENT = $$
+   Used during connection configuration to see whether or not an OAuth secret has a token available (i.e. flow has occurred successfully)
+   $$
+   execute as owner
+as
+$$
+try{
+   // we get a very unhelpful internal error if we try to use binding, so interlopate and try to limit injection attack risk
+   if (!(SECRET_NAME.match(/^DATA\.[a-z0-9_]+$/i))){
+      throw `Invalid secret name: ${SECRET_NAME}`
+   }
+   if (!(EXTERNAL_ACCESS_INTEGRATION_NAME.match(/^[a-z0-9_]+$/i))){
+      throw `Invalid integration name: ${EXTERNAL_ACCESS_INTEGRATION_NAME}`
+   }
+   var currentDatabaseResults = snowflake.createStatement( {
+        sqlText: `select current_database()`,
+        binds:[]
+   } ).execute();
+   currentDatabaseResults.next();
+   var isSecretInitialized = false;
+   var currentDatabase = currentDatabaseResults.getColumnValue(1);
+   let twoDollars=`\$\$`;
+   try{
+      snowflake.createStatement( {
+      sqlText: `
+create or replace function DATA.TEST_OAUTH_SECRET()
+returns boolean
+language python
+runtime_version=3.8
+external_access_integrations=(${EXTERNAL_ACCESS_INTEGRATION_NAME})
+secrets=('test'=${SECRET_NAME})
+handler='run'
+as
+${twoDollars}
+def run():
+   return True
+${twoDollars}`,
+      binds:[]
+   } ).execute();
+      isSecretInitialized = true;
+   }
+   catch(e){
+      // yes this looks strange, but need to be consistent with stored proc responses
+      if (e.message.indexOf('is not initialized and cannot be used. Please alter token in Secret') == -1){
+         throw e;
+      }
+   }
+   snowflake.createStatement( {
+      sqlText: `drop function if exists DATA.TEST_OAUTH_SECRET()`,
+      binds:[]
+   } ).execute();
+    return {
+        "success": true,
+        "data": isSecretInitialized
+    }
+}
+catch(e){
+   return {
+      "success": false,
+      "error": `TEST_OAUTH_TOKEN_EXISTS: ${String(e)}`
+   }
+}
+$$
+;
+
+grant usage on procedure PLUGIN.TEST_OAUTH_TOKEN_EXISTS(VARCHAR,VARCHAR)
+to application role OMNATA_MANAGEMENT;

@@ -1,0 +1,102 @@
+create or replace procedure PLUGIN.INBOUND_LIST_STREAMS(
+                                                CONNECTIVITY_OPTION VARCHAR,
+                                                CONNECTION_METHOD VARCHAR,
+                                                CONNECTION_PARAMETERS OBJECT,
+                                                OAUTH_SECRET_NAME VARCHAR,
+                                                OTHER_SECRETS_NAME VARCHAR,
+                                                SYNC_PARAMETERS OBJECT,
+                                                SELECTED_STREAMS ARRAY)
+returns table(RESULT object)
+language python
+RUNTIME_VERSION = '3.10'
+PACKAGES = ({{packages}})
+IMPORTS = ('/app.zip')
+HANDLER = 'run'
+COMMENT = $$
+Retrieves a list of inbound streams for a connection.
+If SELECTED_STREAMS is defined, those streams must contain json schema, otherwise it's permitted for them to be null.
+$$
+execute as owner
+as
+$$
+from logging import getLogger
+from omnata_plugin_runtime.logging import log_exception
+from snowflake.snowpark.functions import lit
+import json
+logger = getLogger(__name__)
+def run(session,connectivity_option,connection_method,connection_parameters,oauth_secret_name,other_secrets_name,sync_parameters,selected_streams):
+   try:
+      logger.info('plugin entrypoint wrapper')
+      from omnata_plugin_runtime.plugin_entrypoints import PluginEntrypoint
+      logger.info('importing plugin {{plugin_class_name}} from module {{plugin_class_module}}')
+      entrypoint = PluginEntrypoint(session=session,
+         plugin_fqn='{{plugin_fqn}}',
+         module_name='{{plugin_class_module}}',
+         class_name='{{plugin_class_name}}'
+      )
+      result = entrypoint.inbound_list_streams(connectivity_option,connection_method,connection_parameters,oauth_secret_name,other_secrets_name,sync_parameters,selected_streams)
+      logger.debug(f'result from plugin: {result}')
+      proc_results = [{"RESULT":r} for r in result]
+      if len(proc_results)==0:
+         return session.create_dataframe([{"RESULT":{}}]).filter(lit(1)==lit(0)).to_df("RESULT")
+      return session.create_dataframe(proc_results).to_df("RESULT")
+   except Exception as exception:
+      log_exception(exception,logger)
+      proc_results =[
+         {
+            "RESULT":{
+               "success": False,
+               "error": f"INBOUND_LIST_STREAMS: {str(exception)}"
+            }
+         }]
+      return session.create_dataframe(proc_results).to_df("RESULT")
+$$
+;
+   
+grant usage on procedure PLUGIN.INBOUND_LIST_STREAMS(VARCHAR,
+                                                VARCHAR,
+                                                OBJECT,
+                                                VARCHAR,
+                                                VARCHAR,
+                                                OBJECT,
+                                                ARRAY)
+to application role OMNATA_MANAGEMENT;
+
+
+
+-- legacy method, can be removed once all plugins pass runtime version 0.7.0
+-- and sync engine no longer calls this
+create or replace procedure PLUGIN.INBOUND_LIST_STREAMS(
+                                    CONNECTION_METHOD VARCHAR,
+                                    CONNECTION_PARAMETERS OBJECT,
+                                    OAUTH_SECRET_NAME VARCHAR,
+                                    OTHER_SECRETS_NAME VARCHAR,
+                                    SYNC_PARAMETERS OBJECT,
+                                    SELECTED_STREAMS ARRAY)
+returns object
+language SQL 
+as
+$$
+DECLARE res OBJECT;
+  BEGIN
+    CALL PLUGIN.INBOUND_LIST_STREAMS(
+         'direct', 
+         :CONNECTION_METHOD,
+         :CONNECTION_PARAMETERS,
+         :OAUTH_SECRET_NAME,
+         :OTHER_SECRETS_NAME,
+         :SYNC_PARAMETERS,
+         :SELECTED_STREAMS
+         ) INTO :res;
+    return res;
+  END;
+$$;
+
+
+grant usage on procedure PLUGIN.INBOUND_LIST_STREAMS(VARCHAR,
+                                                OBJECT,
+                                                VARCHAR,
+                                                VARCHAR,
+                                                OBJECT,
+                                                ARRAY)
+to application role OMNATA_MANAGEMENT;
