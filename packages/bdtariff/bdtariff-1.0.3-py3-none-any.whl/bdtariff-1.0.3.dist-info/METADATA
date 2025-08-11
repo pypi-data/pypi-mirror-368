@@ -1,0 +1,295 @@
+Metadata-Version: 2.4
+Name: bdtariff
+Version: 1.0.3
+Summary: Tariff rate and duty calculation based on Bangladesh Import and Export related H.S. Code
+Project-URL: Homepage, https://github.com/nbrshamim/bdtariff
+Project-URL: Issues, https://github.com/nbrshamim/bdtariff
+Author-email: "Md.Shamim-Ul-Islam" <nbrshamim@gmail.com>
+License-File: LICENSE
+Classifier: License :: OSI Approved :: GNU General Public License v3 (GPLv3)
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Requires-Python: >=3.8
+Requires-Dist: requests
+Description-Content-Type: text/markdown
+
+# BD Tariff
+
+This project provides a Python interface to access tariff rates and calculate duties based on the Bangladesh Customs Tariff for the fiscal year 2025-2026. The tariff data is sourced from the official document: [Tariff 2025-2026 (02-06-2025).pdf](https://customs.gov.bd/files/Tariff-2025-2026(02-06-2025).pdf).
+
+## Installation
+
+(Add installation instructions here, e.g., `pip install bdtariff` if you plan to publish it to PyPI, or instructions for cloning the repository and setting it up locally.)
+
+## How to Get Total Duty
+
+To calculate the total duty for a given HSCode and assess value:
+
+```python
+from bdtariff import duty
+
+duty()
+When prompted, enter the HSCode and then the Assess Value in BDT. The function will return the total duty in BDT.
+
+How to Know Tariff Rate
+To retrieve the individual tariff rates for a specific HSCode:
+
+Python
+
+from bdtariff import rate
+
+rate()
+When prompted, enter the HSCode. The function will display the applicable tariff rates.
+
+How to Get Tariff Details One by One
+You can also access the individual tariff components and description for a given HSCode programmatically:
+
+Python
+
+from bdtariff import hscode
+
+# Replace "HSCODE" with the actual 8-digit HSCode
+result = hscode("HSCODE")
+
+if result:
+    print(result.cd)            # Get the 'cd' (Customs Duty) field
+    print(result.sd)            # Get the 'sd' (Supplementary Duty) field
+    print(result.rd)            # Get the 'rd' (Regulatory Duty) field
+    print(result.vat)           # Get the 'vat' (Value Added Tax) field
+    print(result.at)            # Get the 'at' (Advance Tax) field
+    print(result.ait)           # Get the 'ait' (Advance Income Tax) field
+    print(result.tti)           # Get the 'tti' (Total Taxable Imports) field - Note: This might be a calculated value, confirm its exact meaning in your context.
+    print(result.tarriff_description) # Get the 'Tariff Description' field
+    print(result.as_dict())     # Get all available fields as a dictionary
+else:
+    print("HSCode not found")
+Sample Program
+Here's a complete example demonstrating how to use the hscode function:
+
+Python
+
+from bdtariff import hscode
+
+result = hscode("01012100") # Example HSCode for live horses, purebred breeding
+
+if result:
+    print(f"Customs Duty (CD): {result.cd}")
+    print(f"Supplementary Duty (SD): {result.sd}")
+    print(f"All Tariff Details: {result.as_dict()}")
+else:
+    print("HSCode not found")
+
+
+
+
+
+
+decorate this for pypi redme: tariff rate take from https://customs.gov.bd/files/Tariff-2025-2026(02-06-2025).pdf
+
+------- How to get total duty -------------
+
+
+
+from bdtariff import duty
+
+duty()
+
+-----------------------------------------
+
+Enter HSCode and then Assess Value in BDT
+
+you get totat duty in BDT.
+
+
+
+------ How to know tariff rate ------------
+
+
+
+from bdtariff import rate
+
+rate()
+
+------------------------------------------
+
+Enter HScode
+
+You get Tariff rate
+
+
+
+------ How to get one by one --------------
+
+
+
+from bdtariff import hscode
+
+
+
+result = hscode(HSCODE)
+
+print(result.cd)  # Get the 'cd' field
+
+print(result.sd)  # Get the 'sd' field
+
+print(result.rd)  # Get the 'rd' field
+
+print(result.vat)  # Get the 'vat' field
+
+print(result.at)  # Get the 'at' field
+
+print(result.ait)  # Get the 'ait' field
+
+print(result.tti)  # Get the 'tti' field
+
+print(result.tarriff_description)  # Get the 'Tariff Description' field
+
+
+
+
+
+################# Sample Program #############
+
+
+
+from bdtariff import hscode
+
+
+
+result = hscode("01012100")
+
+if result:
+
+    print(result.cd)  # Get the 'cd' field
+
+    print(result.sd)  # Get the 'sd' field
+
+    print(result.as_dict())  # Get the full dictionary
+
+else:
+
+    print("HSCode not found")
+
+
+################# Sample Program for duty calculation #############
+
+
+
+from bdtariff import duty
+
+
+
+result = duty(hscode("01012100"),100)
+
+if result:
+
+    print(result.cd)  # Get the 'cd'
+
+    print(result.sd)  # Get the 'sd'
+
+    print(result.tti)  # Get the total duty
+
+else:
+
+    print("HSCode not found")
+
+
+
+Markdown
+
+# bdtariff: Bangladesh Tariff Data
+
+**bdtariff** is a Python library that provides easy access to the official tariff rates of Bangladesh for the fiscal year 2025-2026. The data is sourced directly from the official document: [Tariff 2025-2026 (02-06-2025).pdf](https://customs.gov.bd/files/Tariff-2025-2026(02-06-2025).pdf).
+
+---
+
+## Features
+
+- **Total Duty Calculation:** Quickly calculate the total duty payable for any product based on its HS Code and assess value.
+- **Tariff Rate Lookup:** Retrieve individual tariff rates (CD, SD, VAT, etc.) for a specific HS Code.
+- **Programmatic Access:** Get detailed tariff information for any HS Code as a Python object.
+
+---
+
+## Installation
+
+(Add installation instructions here, e.g., `pip install bdtariff` if it's available on PyPI, or instructions for cloning and setting up locally.)
+
+---
+
+## Usage
+
+### Calculating Total Duty
+
+You can use the `duty()` function to calculate the total duty interactively.
+
+```python
+from bdtariff import duty
+
+duty()
+This will prompt you to enter the HSCode and the Assess Value in BDT to get the total duty.
+
+Looking Up Tariff Rates
+To get a quick overview of all the tariff rates for a given HS Code, use the rate() function.
+
+Python
+
+from bdtariff import rate
+
+rate()
+This will prompt you to enter the HSCode and then display the individual tariff rates.
+
+Programmatic Access
+For more advanced use cases, you can access the tariff data directly using the hscode() and duty() functions.
+
+Getting Individual Tariff Components
+The hscode() function returns an object with all the tariff details as attributes.
+
+Python
+
+from bdtariff import hscode
+
+# Replace "HSCODE" with the 8-digit code you want to look up
+result = hscode("HSCODE")
+
+if result:
+    print(f"Customs Duty (CD): {result.cd}")
+    print(f"Supplementary Duty (SD): {result.sd}")
+    print(f"Regulatory Duty (RD): {result.rd}")
+    print(f"Value Added Tax (VAT): {result.vat}")
+    print(f"Advance Tax (AT): {result.at}")
+    print(f"Advance Income Tax (AIT): {result.ait}")
+    print(f"Total Taxable Imports (TTI): {result.tti}")
+    print(f"Tariff Description: {result.tarriff_description}")
+else:
+    print("HSCode not found")
+Sample Program for Tariff Details
+Python
+
+from bdtariff import hscode
+
+result = hscode("01012100")
+
+if result:
+    print(f"CD: {result.cd}")
+    print(f"SD: {result.sd}")
+    print("--- Full Details as a Dictionary ---")
+    print(result.as_dict())
+else:
+    print("HSCode not found")
+Sample Program for Duty Calculation
+The duty() function can also be used programmatically to calculate the duty. It returns an object with the calculated duty components.
+
+Python
+
+from bdtariff import duty
+
+# Replace "01012100" with the HSCode and 100 with the Assess Value in BDT
+result = duty("01012100", 100)
+
+if result:
+    print(f"Calculated CD: {result.cd}")
+    print(f"Calculated SD: {result.sd}")
+    print(f"Total Duty (TTI): {result.tti}")
+else:
+    print("Could not calculate duty. Please check the HSCode.")
