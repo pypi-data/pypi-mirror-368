@@ -1,0 +1,63 @@
+Metadata-Version: 2.4
+Name: fxtensor-salmon
+Version: 0.1.0
+Summary: Markov Category Module
+Author-email: あなたの名前 <sakesnare@gmail.com>
+License: Copyright 2025 Tadachika Oki
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+        
+Project-URL: Homepage, https://github.com/yourusername/fxtensor-salmon
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Topic :: Scientific/Engineering :: Mathematics
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: numpy>=1.20.0
+Dynamic: license-file
+
+# FXTensor
+
+マルコフ・テンソルを計算するモジュールです。
+
+## インストール
+
+```bash
+pip install fxtensor-salmon
+```
+
+## 使い方
+
+JSON定義から`FXTensor`オブジェクトを作成する方法は以下の通りです。
+
+```python
+import numpy as np
+from fxtensor import FXTensor
+
+json_data = {
+  "profile": [[2], [2]],
+  "strands": [
+    {"from": [0], "to": [0], "weight": 0.3},
+    {"from": [0], "to": [1], "weight": 0.7},
+    {"from": [1], "to": [0], "weight": 0.5},
+    {"from": [1], "to": [1], "weight": 0.5}
+  ]
+}
+
+# JSONデータからテンソルを作成
+stochastic_map = FXTensor.from_json(json_data)
+
+print(stochastic_map)
+# 出力予測: FXTensor(profile=[[2], [2]], shape=(2, 2))
+
+print(stochastic_map.data)
+# 出力予測:
+# [[0.3 0.7]
+#  [0.5 0.5]]
+```
