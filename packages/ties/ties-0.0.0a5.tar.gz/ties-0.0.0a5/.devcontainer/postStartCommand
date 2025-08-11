@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+if [ -z "$GITHUB_PERSONAL_ACCESS_TOKEN" ]; then
+  echo -e "\033[31mERROR: GITHUB_PERSONAL_ACCESS_TOKEN is not set!\033[0m"
+  echo -e "\033[31mUse the .devcontainer/.env file to set the devcontainer environment variables.\033[0m"
+  exit 1
+fi
+uv self update
+pre-commit autoupdate
+uv tool upgrade --all
+uv sync --upgrade
+pre-commit run --all-files
