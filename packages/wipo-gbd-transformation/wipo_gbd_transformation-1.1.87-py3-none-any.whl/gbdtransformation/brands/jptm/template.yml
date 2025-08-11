@@ -1,0 +1,113 @@
+{% from 'navigation.tmpl' import match %}
+
+{% set appnum = brand.applicationNumber | parse_appnum %}
+type: TRADEMARK
+kind:
+  - Individual
+markFeature: {{ brand.markFeature | translate_feature }}
+
+registrationOfficeCode: JP
+designatedCountries:
+  - JP
+
+reference:
+{% call (ref) match('reference.registration', brand) %}
+  office: WO
+  registration:
+    - number: {{ ref.number }}
+      date: {{ ref.date }}
+{% endcall %}
+
+# can be deduced from appnum given office cc and (optional) appdate
+st13: {{ appnum | st13('JP', appdate=brand.applicationDate) }}
+
+applicationNumber: {{ appnum }}
+applicationDate: {{ brand.applicationDate }}
+
+registrationNumber: {{ brand.registrationNumber }}
+registrationDate: {{ brand.registrationDate }}
+
+applicationLanguageCode: ja
+
+expiryDate: {{ brand.expiryDate }}
+
+officeStatus: {{ brand.officeStatus }}
+gbdStatus:  {{ brand.officeStatus  | translate_status }}
+statusDate: {{ brand.statusDate }}
+
+{% call(wmspec) match('wordMarkSpecification', brand) %}
+wordMarkSpecification:
+  {% set word = wmspec | get_verbal %}
+  {% if word %}
+  markVerbalElement:
+    - languageCode: ja
+      text: {{ word  | try_to_8bit }}
+  {% endif %}
+  {% set signif = wmspec | get_signif %}
+  {% if signif %}
+  markSignificantVerbalElement:
+    - languageCode: ja
+      text: {{ signif  | try_to_8bit }}
+  {% endif %}
+  markTransliteration: {{ wmspec | get_transliteration }}
+{% endcall %}
+
+{% call(img) match('markImageDetails', brand) %}
+markImageDetails:
+  - name: {{ brand.applicationNumber }}
+    classification:
+      kind: Vienna
+      version: {{ ASK_THE_OFFICE }}
+      code:
+      {% call(cls) match('class', img) %}
+        - {{ cls }}
+      {% endcall %}
+{% endcall %}
+
+{% call(nc_gs) match('goodsServicesClassification', brand) %}
+goodsServicesClassification:
+  kind: Nice
+  version: {{ ASK_THE_OFFICE }}
+  class:
+    {% call(nice) match('class', nc_gs) %}
+    - code: {{ nice.code | int }}
+      terms:
+        ja:
+          {% call(term) match('term', nice) %}
+          - {{ term }}
+          {% endcall %}
+    {% endcall %}
+{% endcall %}
+
+priorities:
+{% call(prio) match('priorities', brand) %}
+  - countryCode: {{ prio.countryCode }}
+    number: {{ prio.number }}
+    date: {{ prio.date | convertdate('%Y%m%d')}}
+{% endcall %}
+
+applicants:
+{% call(appl) match('applicants', brand) %}
+  - identifier: {{ appl.identifier | replace('nan', '')  }}
+    fullName:
+      - languageCode: ja
+        text: {{ appl.fullName | try_to_8bit }}
+    fullAddress:
+      - languageCode: ja
+        text: {{ appl.fullAddress  | try_to_8bit}}
+{% endcall %}
+
+representatives:
+{% call(repr) match('representatives', brand) %}
+  {% if repr.fullName | has_value %}
+  - identifier: {{ repr.identifier }}
+    fullName:
+      - languageCode: ja
+        text: {{ repr.fullName | try_to_8bit }}
+    {% if repr.fullAddress and repr.fullAddress != '（省略）' %}
+    fullAddress:
+      - languageCode: ja
+        text: {{ repr.fullAddress | try_to_8bit }}
+    {% endif %}
+  {% endif %}
+{% endcall %}

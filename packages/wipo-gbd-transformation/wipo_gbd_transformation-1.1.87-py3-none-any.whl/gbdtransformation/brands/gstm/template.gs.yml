@@ -1,0 +1,56 @@
+{% from 'navigation.tmpl' import match %}
+
+{% if not gbdStatus == 'Delete' %}
+office: {{ registrationOfficeCode }}
+status: {{ gbdStatus | validate_status }}
+{% call(verbal) match('wordMarkSpecification.markVerbalElement', brand) %}
+brandName: {{ verbal.text }}
+{% endcall %}
+{% call(image) match('markImageDetails', brand) %}
+imageName: {{ applicationNumber | guess_image_name }}
+{% endcall %}
+
+applicationNumber: {{ applicationNumber }}
+registrationNumber: {{ registrationNumber }}
+applicationRefNumber: {{ applicationRefNumber }}
+
+applicationDate: {{ applicationDate }}
+registrationDate: {{ registrationDate }}
+
+
+{% set applicants_info = applicants | transform_name_address(applicationLanguageCode) %}
+{% for k,v in applicants_info.names.items() %}
+applicant: {% for x in v %}
+  - {{ x }}
+{% endfor %}
+{% endfor %}
+applicantCountryCode:
+{% for cc in applicants_info.cc %}
+  - {{ cc }}
+{% endfor %}
+
+{% set gservices_info = goodsServicesClassification | transform_goods_services(applicationLanguageCode) %}
+
+{% for class,langs in gservices_info.items() %}
+{% set name = 'goodsServices_' + class %}
+
+{% for lang,terms in gservices_info[class].items() %}
+{% set name = name + '_' + lang %}
+{{ name | field_name }}:
+{% for term in terms %}
+  - {{ term | remove_trailing(',', '.') }}
+{% endfor %}
+{% endfor %}
+{% endfor %}
+
+{% set gservices_unclassified = goodsServicesUnclassified | transform_unclassified_goods_services(applicationLanguageCode) %}
+{% set name = 'goodsServices' %}
+{% for lang,terms in gservices_unclassified.items() %}
+{% set name = name + '_' + lang %}
+{{ name | field_name }}:
+{% for term in terms %}
+  - {{ term | remove_trailing(',', '.') }}
+{% endfor %}
+{% endfor %}
+{% else %}
+{% endif %}

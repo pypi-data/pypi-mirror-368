@@ -1,0 +1,98 @@
+{% from 'navigation.tmpl' import match %}
+
+{% set status = TradeMark.Status | translate_status  %}
+{% set appyear = TradeMark.ApplicationDate | get_appyear(TradeMark.ApplicationNumber) %}
+
+gbdStatus: {{ status }}
+st13: {{TradeMark.ApplicationNumber | st13('EE', appdate=appyear) }}
+registrationOfficeCode: EE
+type: TRADEMARK
+
+{% if not status == 'Delete' %}
+kind:
+  - Individual
+markFeature: {{TradeMark.MarkType | translate_feature}}
+designatedCountries:
+  - EE
+applicationNumber: {{TradeMark.ApplicationNumber}}
+applicationDate: {{TradeMark.ApplicationDate|convertdate('%d.%m.%Y')}}
+registrationNumber: {{TradeMark.RegistrationNumber}}
+registrationDate: {{TradeMark.RegistrationDate|convertdate('%d.%m.%Y')}}
+applicationLanguageCode: et
+expiryDate: {{TradeMark.ExpiryDate|convertdate('%d.%m.%Y')}}
+officeStatus: {{TradeMark.Status | translate_office_status}}
+publicationDate: {{ TradeMark.PublicationDate | convertdate('%d.%m.%Y') }}
+wordMarkSpecification:
+  markVerbalElement:
+    {% call(desc) match('MarkVerbalElementText', TradeMark) %}
+    - text: {{ desc }}
+      languageCode: {{ desc | guess_language('et', 'en') }}
+    {% endcall %}
+markImageDetails:
+  - name: {{ TradeMark.MarkImage }}
+    {% if TradeMark.EE_Colors %}
+    colourIndicator: true
+    colourClaimed:
+      - languageCode: et
+        text: {{ TradeMark.EE_Colors }}
+    {% endif %}
+    {% if TradeMark.CategoryCodeDetails %}
+    classification:
+      kind: Vienna
+      code:
+      {% call(code) match('CategoryCodeDetails.CategoryCodeDetail', TradeMark) %}
+        - {{ code.CategoryCode.CategoryCode | split_vienna }}
+      {% endcall %}
+    {% endif %}
+
+{% call(nc_gs) match('GoodsServicesDetails', TradeMark) %}
+goodsServicesClassification:
+  kind: Nice
+  version: {{ ASK_THE_OFFICE }}
+  class:
+  {% call(nice) match('GoodsServicesDetail', nc_gs) %}
+    - code: {{ nice.GoodsServices.ClassNumber | int }}
+      terms:
+      {% if nice.GoodsServices.GoodsServicesDescription | has_value %}
+        et:
+        {% for gsline in nice.GoodsServices.GoodsServicesDescription | remove_trailing('.') | split_terms %}
+          - {{ gsline | lower }}
+        {% endfor %}
+      {% endif %}
+    {% endcall %}
+{% endcall %}
+
+priorities:
+  {% call(priority) match('PriorityDetails.PriorityDetail', TradeMark) %}
+    - countryCode: {{ priority.Priority.EE_PriorityCountry }}
+      number: {{ priority.Priority.EE_PriorityNum }}
+      date: {{ priority.Priority.PriorityDate  | convertdate('%d.%m.%Y')}}
+  {% endcall %}
+
+applicants:
+  {% call(entity) match('ApplicantDetails.ApplicantDetail', TradeMark) %}
+  {% set (type, name) = entity.Applicant | get_full_name_type %}
+  - kind: {{ type }}
+    fullName:
+      - text: {{ name }}
+        languageCode: en
+    fullAddress:
+      - text: {{ entity.Applicant | get_full_address }}
+        languageCode: {{ entity.Applicant | get_full_address | guess_language('en') }}
+    countryCode: {{ entity.Applicant.AddressCountry }}
+  {% endcall %}
+
+representatives:
+  {% call(entity) match('RepresentativeDetails.RepresentativeDetail', TradeMark) %}
+  {% set (type, name) = entity.Representative | get_full_name_type %}
+  - kind: {{ type }}
+    fullName:
+      - text: {{ name }}
+        languageCode: en
+    fullAddress:
+      - text: {{ entity.Representative | get_full_address }}
+        languageCode: {{ entity.Representative | get_full_address | guess_language('en') }}
+    countryCode: {{ entity.Representative.AddressCountry }}
+  {% endcall %}
+
+{% endif %}

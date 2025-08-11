@@ -1,0 +1,154 @@
+{% from 'navigation.tmpl' import match %}
+{% set TradeMark = Transaction.TradeMarkTransactionBody.TransactionContentDetails.TransactionData.TradeMarkDetails.TradeMark %}
+
+{% set _space = " " %}
+{% set status = TradeMark | translate_status %}
+
+st13: {{ TradeMark.ApplicationNumber | st13('BG') }}
+gbdStatus: {{ status }}
+registrationOfficeCode: BG
+type: TRADEMARK
+
+{% if not status == 'Delete' %}
+kind: {{ TradeMark.KindMark | translate_kind }}
+markFeature: {{ TradeMark.MarkFeature | translate_feature }}
+designatedCountries:
+  - {{ TradeMark.RegistrationOfficeCode }}
+applicationNumber: {{ TradeMark.ApplicationNumber }}
+applicationDate: {{ TradeMark.ApplicationDate | convertdate('%Y-%m-%d') }}
+registrationNumber: {{ TradeMark | get_registration_nb(TradeMark.MarkCurrentStatusCode)}}
+registrationDate: {{ TradeMark.RegistrationDate }}
+applicationLanguageCode: bg
+secondLanguageCode: {{ TradeMark.SecondLanguageCode }}
+expiryDate:  {{ TradeMark.ExpiryDate }}
+officeStatus: {{ TradeMark.MarkCurrentStatusCode }}
+terminationDate: {{ TradeMark.MarkCurrentStatusDate | get_termination(status) }}
+statusDate: {{ TradeMark.MarkCurrentStatusDate | convertdate('%Y-%m-%d') }}
+markDisclaimerDetails:
+  {% call(desc) match('MarkDisclaimerDetails.MarkDisclaimer', TradeMark) %}
+  - text: {{ desc }}
+    languageCode: {{ desc | guess_language(desc._languageCode, 'bg') }}
+  {% endcall %}
+markDescriptionDetails:
+  {% call(desc) match('MarkDescriptionDetails.MarkDescription', TradeMark) %}
+  - text: {{ desc }}
+    languageCode: {{ desc | guess_language(desc._languageCode, 'bg') }}
+  {% endcall %}
+wordMarkSpecification:
+  markVerbalElement:
+    {% call(desc) match('WordMarkSpecification.MarkVerbalElementText', TradeMark) %}
+    - text: {{ desc | remove_cr }}
+      languageCode: {{ desc | guess_language(desc._languageCode, 'bg') }}
+    {% endcall %}
+markImageDetails:
+  {% call(img) match('MarkImageDetails.MarkImage', TradeMark) %}
+  - name: {{ img.MarkImageFilename }}
+    colourIndicator: {{ img.MarkImageColourClaimedText | get_true_or_false }}
+    colourClaimed:
+      {% call(desc) match('MarkImageColourClaimedText', img) %}
+      - text: {{ desc }}
+        languageCode: {{ desc | guess_language(desc._languageCode, 'bg') }}
+      {% endcall %}
+    classification:
+      kind: Vienna
+      version: {{ ASK_THE_OFFICE }}
+      code:
+      {% call(code) match('MarkImageCategory.CategoryCodeDetails.CategoryCode', img) %}
+        - {{ code }}
+      {% endcall %}
+  {% endcall %}
+markSoundDetails:
+  {% call(sound) match('MarkSoundDetails.MarkSound', TradeMark) %}
+  - filename: {{ sound.MarkSoundFilename }}
+    fileformat: {{ sound.MarkSoundFileFormat }}
+  {% endcall %}
+markVideoDetails:
+  {% call(video) match('MarkVideoDetails.MarkVideo', TradeMark) %}
+  - filename: {{ video.MarkVideoFilename }}
+    fileformat: {{ video.MarkVideoFileFormat }}
+  {% endcall %}
+
+{% call(nc_gs) match('GoodsServicesDetails.GoodsServices', TradeMark) %}
+goodsServicesClassification:
+  kind: Nice
+  version: {{ ASK_THE_OFFICE }}
+  class:
+    {% call(nice) match('ClassDescriptionDetails.ClassDescription', nc_gs) %}
+    - code: {{ nice.ClassNumber | int }}
+      terms:
+      {% call(desc) match('GoodsServicesDescription', nice) %}
+        {{ desc | guess_language(desc._languageCode, 'bg') | field_name }}:
+        {% for gsline in desc.__value | remove_trailing('.') | split_terms %}
+          - {{ gsline }}
+        {% endfor %}
+      {% endcall %}
+    {% endcall %}
+{% endcall %}
+
+priorities:
+  {% call(priority) match('PriorityDetails.Priority', TradeMark) %}
+    - countryCode: {{ priority.PriorityCountryCode }}
+      number: {{ priority.PriorityNumber }}
+      date: {{ priority.PriorityDate }}
+      comment: {{ priority.PriorityStatusCode }}
+  {% endcall %}
+publications:
+  {% call(publication) match('PublicationDetails.Publication', TradeMark) %}
+    - identifier: {{ publication.PublicationIdentifier }}
+      date: {{ publication.PublicationDate }}
+      section: {{ publication.PublicationSection }}
+  {% endcall %}
+appeals:
+  {% call(apeal) match('AppealDetails.Appeal.AppealEventDetails.AppealEvent', TradeMark) %}
+  - kind: {{ apeal.AppealEventCode }}
+    date: {{ apeal.AppealEventDate }}
+  {% endcall %}
+applicants:
+  {% call(applicant) match('ApplicantDetails.Applicant', TradeMark) %}
+  - identifier: {{ applicant.ApplicantIdentifier }}
+    kind: {{ applicant.ApplicantLegalEntity }}
+    fullName:
+      - languageCode: 'bg'
+        {% if applicant.ApplicantAddressBook.FormattedNameAddress.Name.FormattedName.OrganizationName  %}
+        text: {{ applicant.ApplicantAddressBook.FormattedNameAddress.Name.FormattedName.OrganizationName }}
+        {% else %}
+        text: {{ applicant.ApplicantAddressBook.FormattedNameAddress.Name.FormattedName | format_name }}
+        {% endif %}
+    fullAddress:
+      - languageCode: 'bg'
+        text: {{ applicant.ApplicantAddressBook.FormattedNameAddress.Address.FormattedAddress | format_address }}
+    contact:
+      phone: {{ applicant.ApplicantAddressBook.ContactInformationDetails.Phone }}
+      fax: {{ applicant.ApplicantAddressBook.ContactInformationDetails.Fax }}
+      email: {{ applicant.ApplicantAddressBook.ContactInformationDetails.Email }}
+      url: {{ applicant.ApplicantAddressBook.ContactInformationDetails.URL }}
+    countryCode: {{ applicant.ApplicantAddressBook.FormattedNameAddress.Address.AddressCountryCode }}
+  {% endcall %}
+
+representatives:
+  {% call(representative) match('RepresentativeDetails.Representative', TradeMark) %}
+  {% if not representative._operationCode == 'Delete' %}
+  - identifier: {{ representative.RepresentativeIdentifier }}
+    kind: {{representative.RepresentativeLegalEntity | append(' (') | append(representative.RepresentativeTypeCode) | append(')')}}
+    {% call(fna) match('RepresentativeAddressBook.FormattedNameAddress', representative)%}
+    fullName:
+      - languageCode: 'bg'
+        text: {{ fna.Name.FormattedName | format_name }}
+    fullAddress:
+      - languageCode: 'bg'
+        text: {{ fna.Address.FormattedAddress | format_address }}
+    contact:
+      phone: {{ representative.RepresentativeAddressBook.ContactInformationDetails.Phone }}
+      fax: {{ representative.RepresentativeAddressBook.ContactInformationDetails.Fax }}
+      email: {{ representative.RepresentativeAddressBook.ContactInformationDetails.Email }}
+      url: {{ representative.RepresentativeAddressBook.ContactInformationDetails.URL }}
+    countryCode: {{ fna.Address.AddressCountryCode }}
+    {% endcall %}
+  {% endif %}
+  {% endcall %}
+correspondence:
+  {% call(rep) match('xxxCorrespondenceAddress', TradeMark) %}
+    {{ rep.CorrespondenceAddressIdentifier}}
+  {% endcall %}
+
+{% endif %}

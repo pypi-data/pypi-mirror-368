@@ -1,0 +1,148 @@
+{% from 'navigation.tmpl' import match %}
+{% from 'navigation.tmpl' import enumerate %}
+
+{% set comma = "," %}
+
+type: TRADEMARK
+kind:
+  - Individual
+statusDate: {{ mark.last_update | format_date }}
+
+gbdStatus: {{ mark | translate_status }}
+officeStatus: {{ mark | translate_status }}
+
+{% call(data) match('data', mark) %}
+registrationOfficeCode: UA
+designatedCountries:
+  - UA
+
+st13: {{ data.ApplicationNumber | appnum_escape | st13('UA', appdate=data.ApplicationDate) }}
+applicationNumber: {{ data.ApplicationNumber | appnum_escape }}
+applicationDate: {{ mark.app_date | format_date }}
+registrationNumber:  {{ data.RegistrationNumber }}
+registrationDate:  {{ data.RegistrationDate }}
+terminationDate:  {{ data.TerminationDate }}
+expiryDate: {{ data.ProlonagationExpiryDate or data.ExpiryDate }}
+
+applicationLanguageCode: uk
+secondLanguageCode: en
+markFeature: {{ data.MarkImageDetails.MarkImage.MarkImageCategory.CategoryCodeDetails.CategoryCode.item | guess_mark_feauture }}
+
+wordMarkSpecification:
+  {% set verbal = data.WordMarkSpecification.MarkSignificantVerbalElement.item | first %}
+  {% call(key)  match('key', verbal) %}
+  {% if key._name == '#text' %}
+    markVerbalElement:
+      - text: {{ key.__value }}
+        languageCode: {{ key.__value | guess_language(default='uk') }}
+  {% endif %}
+  {% endcall %}
+
+markImageDetails:
+  {% call(img) match('MarkImageDetails.MarkImage', data) %}
+  - name: {{ img.MarkImageFilename }}
+    colourIndicator: {{ img.MarkImageColourIndicator | get_true_or_false }}
+    colourClaimed:
+      {% call(item) match('MarkImageColourClaimedText.item', img) %}
+      {% call(key) match('key', item) %}
+      {% if key._name == '#text' %}
+        - text: {{ key.__value }}
+          languageCode: {{ key.__value | guess_language(default='uk') }}
+      {% endif %}
+      {% endcall %}
+      {% endcall %}
+
+    {% call(classification) match('MarkImageCategory.CategoryCodeDetails.CategoryCode', img)%}
+    classification:
+      kind: Vienna
+      version: {{ ASK_THE_OFFICE }}
+      code:
+      {% call(vc) match('item', classification) %}
+        - {{ vc }}
+      {% endcall %}
+    {% endcall %}
+  {% endcall %}
+
+{% if data.GoodsServicesDetails %}
+goodsServicesClassification:
+  kind: Nice
+  version: {{ ASK_THE_OFFICE }}
+  class:
+  {% call(gs) match('GoodsServicesDetails.GoodsServices.ClassDescriptionDetails.ClassDescription.item', data)%}
+    - code: {{ gs.ClassNumber | int }}
+      terms:
+        {% if gs.ClassificationTermDetails %}
+        {{ gs.ClassificationTermDetails.ClassificationTerm.item | get_gs_language | field_name }}:
+        {% call(gsline) match('ClassificationTermDetails.ClassificationTerm.item', gs)%}
+          - {{ gsline.ClassificationTermText | remove_trailing(comma) | lower }}
+        {% endcall %}
+        {% endif %}
+  {% endcall %}
+{% endif %}
+
+priorities:
+  {% call(priority) match('PriorityDetails.Priority.item', data) %}
+    - countryCode: {{ priority.PriorityCountryCode }}
+      number: {{ priority.PriorityNumber }}
+      date: {{ priority.PriorityDate | convertdate('%d.%m.%Y') }}
+  {% endcall %}
+
+publications:
+  {% call(publication) match('PublicationDetails.Publication', data) %}
+    - identifier: {{ publication.PublicationIdentifier }}
+      date: {{ publication.PublicationDate | convertdate('%d.%m.%Y') }}
+      date: {{ publication.PublicationSection }}
+  {% endcall %}
+
+applicants:
+  {% call(applicant) match('ApplicantDetails.Applicant.item', data) %}
+    {% call(details) match('ApplicantAddressBook.FormattedNameAddress.Name.FreeFormatName', applicant) %}
+      - identifier: {{ details.EDRPOU }}
+        kind: {{ details.NameKind }}
+        fullName:
+          - text: {{ details.FreeFormatNameDetails.FreeFormatNameLine }}
+            languageCode: {{ details.FreeFormatNameDetails.FreeFormatNameLine | guess_language(default='uk') }}
+      {% endcall %}
+      {% call(address) match('ApplicantAddressBook.FormattedNameAddress.Address', applicant) %}
+        fullAddress:
+          - text: {{ address.FreeFormatAddress.FreeFormatAddressLine | remove_trailing('*') }}
+            languageCode: {{ address.FreeFormatAddress.FreeFormatAddressLine | guess_language(default='uk') }}
+        countryCode: {{ address.AddressCountryCode }}
+      {% endcall %}
+    {% endcall %}
+
+representatives:
+  {% call(representative) match('RepresentativeDetails.Representative.item', data) %}
+    {% call(details) match('RepresentativeAddressBook.FormattedNameAddress.Name.FreeFormatName', representative) %}
+      - identifier: {{ details.EDRPOU }}
+        fullName:
+          - text: {{ details.FreeFormatNameDetails.FreeFormatNameDetails.FreeFormatNameLine }}
+            languageCode: {{ details.FreeFormatNameDetails.FreeFormatNameDetails.FreeFormatNameLine | guess_language(default='uk') }}
+      {% endcall %}
+      {% call(address) match('RepresentativeAddressBook.FormattedNameAddress.Address', representative) %}
+        fullAddress:
+          - text: {{ address.FreeFormatAddress.FreeFormatAddressLine | remove_trailing('*') }}
+            languageCode: {{ address.FreeFormatAddress.FreeFormatAddressLine | guess_language(default='uk') }}
+        countryCode: {{ address.AddressCountryCode }}
+      {% endcall %}
+    {% endcall %}
+
+{% call(correspondence) match('CorrespondenceAddress.CorrespondenceAddressBook', data) %}
+correspondence:
+  fullName:
+    - text: {{ correspondence.Name.FreeFormatNameLine }}
+      languageCode: {{ correspondence.Name.FreeFormatNameLine | guess_language(default='uk') }}
+  fullAddress:
+    - text: {{ correspondence.Address.FreeFormatAddressLine }}
+      languageCode: {{ correspondence.Address.FreeFormatAddressLine | guess_language(default='uk') }}
+  countryCode: {{ correspondence.Address.AddressCountryCode }}
+{% endcall %}
+
+extra:
+  id: {{ mark.id  }}
+  {% call(ussr) match('UssrApplicationDetails.UssrApplication', data) %}
+  ussr:
+    number: {{ ussr.UssrApplicationNumber }}
+    date: {{ ussr.UssrApplicationDate }}
+  {% endcall %}
+{% endcall %}

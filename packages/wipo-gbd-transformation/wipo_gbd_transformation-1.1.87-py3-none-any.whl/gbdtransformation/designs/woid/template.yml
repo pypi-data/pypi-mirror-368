@@ -1,0 +1,516 @@
+{% from 'navigation.tmpl' import match %}
+
+type: 'DESIGN'
+subtype: {{ HagueExpressTransaction | detectSealedDepositIndicator }}
+designGrouping: 'MULTIPLE'
+designsCount: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.DesignTotalQuantity }}
+kind:
+  - 'Industrial Design'
+registrationOfficeCode: 'WO'
+designatedCountries:
+  {% call(designation) match('DesignatedCountry', HagueExpressTransaction.HagueCurrent.HagueRegistration.DesignatedCountryBag) %}
+    - {{ designation.DesignatedCountryCode }}
+  {% endcall %}
+
+{% set ApplicationNumber = HagueExpressTransaction.HagueCurrent.HagueRegistration.ApplicationNumber.ApplicationNumberText %}
+
+# in Hague records, there is no application date, sometimes an international filing date, otherwise just the internatioal registration date
+{% set filingDate = HagueExpressTransaction.HagueCurrent.HagueRegistration.InternationalFilingDate %}
+{% set registrationDate = HagueExpressTransaction.HagueCurrent.HagueRegistration.InternationalRegistrationDate %}
+{% set appdate = filingDate if filingDate else registrationDate %}
+
+# can be deduced from appnum given office cc and (optional) appdate
+# note: we pass registration date when we don't have application or filing date, not rare with with Hague records
+st13: {{ ApplicationNumber | st13(HagueExpressTransaction.HagueCurrent.HagueRegistration.InternationalRegistrationNumber, 'WO', 0, appdate=appdate) }}
+
+applicationNumber: {{ ApplicationNumber }}
+
+# assuming application date is the same as filing date (valid with Hague data)
+applicationDate: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.InternationalFilingDate }}
+
+# some collections have registration number
+# equals application number when registered
+registrationNumber: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.InternationalRegistrationNumber }}
+# some collections we can guess registration date
+# from event list
+registrationDate: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.InternationalRegistrationDate }}
+
+{% if HagueExpressTransaction.HagueCurrent.HagueRegistration.PublicationDate %}
+publicationDates: 
+  - {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.PublicationDate }}
+earliestPublicationDate: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.PublicationDate }}
+{% else %}  
+publicationDates:
+  - {{ HagueExpressTransaction.HagueHistory[0].PublicationDate }}
+earliestPublicationDate: {{ HagueExpressTransaction.HagueHistory[0].PublicationDate }}
+{% endif %}
+
+# In Hague, default deferment period is 30 months after priority date or application date, 
+# but it can be lower for some Hague contracting parties, so deferment expiry date is a good 
+# way to give this information, rather than period
+defermentExpiryDate: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.DefermentExpiryDate }}
+
+# a safety fix for expiry date not propagate to current
+{% set hagueHistories = HagueExpressTransaction.HagueHistory %}
+
+applicationLanguageCode: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.FilingLanguageCode }}
+
+# include fix of expiry date not updated in the current
+# expiry dates should normally be at the level of design, not whole application, because
+# renewals are applied to affected designs, but at current level it would mean the latest expiry date of
+# at least one design of the application
+expiryDate: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.ExpiryDate | getExpiryDate(hagueHistories) }}
+
+reference:
+  # officeReferenceIdentifier in Hague ST96 schema
+  office: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.OfficeReferenceIdentifier }}
+
+applicants:
+  {% call(holder) match('Holder', HagueExpressTransaction.HagueCurrent.HagueRegistration.HolderBag) %}
+    - identifier:
+
+      {% if holder.Contact.Name.PersonName %}
+      kind: 'person'
+      fullName:
+        - languageCode:  {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.FilingLanguageCode }}
+          text: {{ holder.Contact.Name.PersonName.PersonStructuredName | build_person_name() }}
+      firstName:
+        - languageCode:  {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.FilingLanguageCode | should_display_language(holder.Contact.Name.PersonName.PersonStructuredName.FirstName) }}
+          text: {{ holder.Contact.Name.PersonName.PersonStructuredName.FirstName }}
+      lastName:
+        - languageCode:  {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.FilingLanguageCode | should_display_language(holder.Contact.Name.PersonName.PersonStructuredName.LastName) }}
+          text: {{ holder.Contact.Name.PersonName.PersonStructuredName.LastName }}
+      middleName:
+        - languageCode:
+          text:
+      {% endif %}
+
+      {% if holder.Contact.Name.OrganizationName %}
+      kind: 'organization'
+      fullName:
+        - languageCode: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.FilingLanguageCode }}
+          text: {{ holder.Contact.Name.OrganizationName.OrganizationStandardName }}
+      {% endif %}
+      fullAddress:
+      {% call(postalAddress) match('PostalAddress', holder.Contact.PostalAddressBag) %}
+        - languageCode: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.FilingLanguageCode }}
+          text: {{ postalAddress.PostalStructuredAddress | format_complete_address }}
+          addressLines: {{ postalAddress.PostalStructuredAddress.AddressLineText | format_address }}
+          cityName: {{ postalAddress.PostalStructuredAddress.CityName }}
+          geographicRegionName: {{ postalAddress.PostalStructuredAddress.GeographicRegionName }}
+          postalCode: {{ postalAddress.PostalStructuredAddress.PostalCode }}
+          countryCode: {{ postalAddress.PostalStructuredAddress.CountryCode }}
+      {% endcall %}
+      # new, addition
+      entitlement:
+        entitlementNationalityCode: {{ holder.Entitlement.EntitlementNationalityCode }}
+        entitlementEstablishment: {{ holder.Entitlement.EntitlementEstablishment.EntitlementEstablishmentCode }}
+        entitlementDomiciled: {{ holder.Entitlement.EntitlementDomiciled.EntitlementDomiciledCode }}
+  {% endcall %}
+
+applicantsNormalized:
+  {% call(holder) match('HolderNormalized', HagueExpressTransaction.HagueCurrent.HagueRegistration.HolderBag) %}
+    - identifier:
+
+      {% set ns = namespace(kind='organization') %}
+      {% call(name) match('Name', holder.Contact) %}
+        {% if name.PersonName %}
+          {% set ns.kind = 'person' %}
+        {% endif %}
+      {% endcall %}
+      kind: {{ ns.kind }}
+
+      {% call(name) match('Name', holder.Contact) %}
+      {% if name.PersonName %}
+      firstName:
+        - languageCode: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.FilingLanguageCode | should_display_language(name.PersonName.PersonStructuredName.FirstName) }}
+          text: {{ name.PersonName.PersonStructuredName.FirstName }}
+      lastName:
+        - languageCode: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.FilingLanguageCode | should_display_language(name.PersonName.PersonStructuredName.LastName) }}
+          text: {{ name.PersonName.PersonStructuredName.LastName }}
+      middleName:
+        - languageCode: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.FilingLanguageCode | should_display_language(name.PersonName.PersonStructuredName.MiddleName) }}
+          text: {{ name.PersonName.PersonStructuredName.MiddleName }}
+      {% endif %}
+
+      {% if name.OrganizationName %}
+      orgName:
+        - languageCode: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.FilingLanguageCode }}
+          text: {{ name.OrganizationName.OrganizationStandardName }}
+      {% endif %}
+      {% endcall %}
+
+      fullAddress:
+      {% call(postalAddress) match('PostalAddress', holder.Contact.PostalAddressBag) %}
+        - languageCode: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.FilingLanguageCode }}
+          #text: {{ postalAddress.PostalStructuredAddress | format_complete_address }}
+          addressLine: {{ postalAddress.PostalStructuredAddress.AddressLineText }}
+          cityName: {{ postalAddress.PostalStructuredAddress.CityName }}
+          geographicRegionName: {{ postalAddress.PostalStructuredAddress.GeographicRegionName }}
+          postalCode: {{ postalAddress.PostalStructuredAddress.PostalCode }}
+          postalBox: {{ postalAddress.PostalStructuredAddress.PostalBox }}
+          countryCode: {{ postalAddress.PostalStructuredAddress.CountryCode }}
+      {% endcall %}
+
+      processingTool:
+        name: {{ holder.Contact._type }}
+        version: {{ holder.Contact._subtype }}
+        processingDate: {{ holder.Contact._when }}
+
+      entitlement:
+        entitlementNationalityCode: {{ holder.Entitlement.EntitlementNationalityCode }}
+        entitlementEstablishment: {{ holder.Entitlement.EntitlementEstablishment.EntitlementEstablishmentCode }}
+        entitlementDomiciled: {{ holder.Entitlement.EntitlementDomiciled.EntitlementDomiciledCode }}
+  {% endcall %}
+
+representatives:
+  {% call(representative) match('Representative', HagueExpressTransaction.HagueCurrent.HagueRegistration.RepresentativeBag) %}
+    - identifier:
+      {% if representative.Contact.Name.PersonName %}
+      kind: 'person'
+      fullName:
+        - languageCode: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.FilingLanguageCode }}
+          text: {{ representative.Contact.Name.PersonName.PersonStructuredName | build_person_name() }}
+      firstName:
+        - languageCode: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.FilingLanguageCode | should_display_language(representative.Contact.Name.PersonName.PersonStructuredName.FirstName) }}
+          text: {{ representative.Contact.Name.PersonName.PersonStructuredName.FirstName }}
+      lastName:
+        - languageCode: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.FilingLanguageCode | should_display_language(representative.Contact.Name.PersonName.PersonStructuredName.LastName) }}
+          text: {{ representative.Contact.Name.PersonName.PersonStructuredName.LastName }}
+      middleName:
+        - languageCode:
+          text:
+      {% endif %}
+
+      {% if representative.Contact.Name.OrganizationName %}
+      kind: 'organization'
+      fullName:
+        - languageCode: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.FilingLanguageCode }}
+          text: {{ representative.Contact.Name.OrganizationName.OrganizationStandardName }}
+      {% endif %}
+      fullAddress:
+      {% call(postalAddress) match('PostalAddress', representative.Contact.PostalAddressBag) %}
+        - languageCode: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.FilingLanguageCode }}
+          text: {{ postalAddress.PostalStructuredAddress | format_complete_address }}
+          addressLines: {{ postalAddress.PostalStructuredAddress.AddressLineText | format_address }}
+          cityName: {{ postalAddress.PostalStructuredAddress.CityName }}
+          geographicRegionName: {{ postalAddress.PostalStructuredAddress.GeographicRegionName }}
+          countryCode: {{ postalAddress.PostalStructuredAddress.CountryCode }}
+          postalCode: {{ postalAddress.PostalStructuredAddress.PostalCode }}
+      {% endcall %}
+  {% endcall %}
+
+representativesNormalized:
+  {% call(representative) match('RepresentativeNormalized', HagueExpressTransaction.HagueCurrent.HagueRegistration.RepresentativeBag) %}
+    - identifier:
+
+      {% set ns = namespace(kind='organization') %}
+      {% call(name) match('Name', representative.Contact) %}
+        {% if name.PersonName %}
+          {% set ns.kind = 'person' %}
+        {% endif %}
+      {% endcall %}
+      kind: {{ ns.kind }}
+
+      {% call(name) match('Name', representative.Contact) %}
+      {% if name.PersonName %}
+      firstName:
+        - languageCode: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.FilingLanguageCode | should_display_language(name.PersonName.PersonStructuredName.FirstName) }}
+          text: {{ name.PersonName.PersonStructuredName.FirstName }}
+      lastName:
+        - languageCode: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.FilingLanguageCode | should_display_language(name.PersonName.PersonStructuredName.LastName) }}
+          text: {{ name.PersonName.PersonStructuredName.LastName }}
+      middleName:
+        - languageCode: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.FilingLanguageCode | should_display_language(name.PersonName.PersonStructuredName.MiddleName) }}
+          text: {{ name.PersonName.PersonStructuredName.MiddleName }}
+      {% endif %}
+
+      {% if name.OrganizationName %}
+      orgName:
+        - languageCode: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.FilingLanguageCode }}
+          text: {{ name.OrganizationName.OrganizationStandardName }}
+      {% endif %}
+      {% endcall %}
+
+      fullAddress:
+      {% call(postalAddress) match('PostalAddress', representative.Contact.PostalAddressBag) %}
+        - languageCode: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.FilingLanguageCode }}
+          #text: {{ postalAddress.PostalStructuredAddress | format_complete_address }}
+          addressLine: {{ postalAddress.PostalStructuredAddress.AddressLineText }}
+          cityName: {{ postalAddress.PostalStructuredAddress.CityName }}
+          geographicRegionName: {{ postalAddress.PostalStructuredAddress.GeographicRegionName }}
+          postalCode: {{ postalAddress.PostalStructuredAddress.PostalCode }}
+          postalBox: {{ postalAddress.PostalStructuredAddress.PostalBox }}
+          countryCode: {{ postalAddress.PostalStructuredAddress.CountryCode }}
+      {% endcall %}
+
+      processingTool:
+        name: {{ representative.Contact._type }}
+        version: {{ representative.Contact._subtype }}
+        processingDate: {{ representative.Contact._when }}
+  {% endcall %}
+
+designClaim:
+# updated for supporting Hague data
+{% if HagueExpressTransaction.HagueCurrent.HagueRegistration.DesignClaimBag.DesignClaim.DesignClaimTextBag %}
+  claims:
+    {% call(designClaimText) match('DesignClaimText', HagueExpressTransaction.HagueCurrent.HagueRegistration.DesignClaimBag.DesignClaim.DesignClaimTextBag) %}
+    - languageCode: {{ designClaimText._languageCode }}
+      claim: {{ designClaimText.__value }}
+    {% endcall %}
+  designatedCountries:
+    {% call(claimDesignation) match('DesignatedCountry', HagueExpressTransaction.HagueCurrent.HagueRegistration.DesignClaimBag.DesignClaim.DesignatedCountryBag) %}
+    - {{ claimDesignation.DesignatedCountryCode }}
+    {% endcall %}
+    - {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.DesignClaimBag.DesignClaim.DesignatedCountryCode }}
+  affectedDesigns:
+    allDesignsIndicator: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.DesignClaimBag.DesignClaim.AffectedDesign.AllDesignsIndicator }}
+{% else %}
+  claims:
+    {% call(designClaim) match('DesignClaim', HagueExpressTransaction.HagueCurrent.HagueRegistration.DesignClaimBag) %}
+    - languageCode: {{ designClaim._languageCode }}
+      claim: {{ designClaim.__value }}
+    {% endcall %}
+  designatedCountries:
+    {% call(claimDesignation) match('DesignatedCountry', HagueExpressTransaction.HagueCurrent.HagueRegistration.DesignClaimBag.DesignatedCountryBag) %}
+    - {{ claimDesignation.DesignatedCountryCode }}
+    {% endcall %}
+    - {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.DesignClaimBag.DesignatedCountryCode }}
+  # Although affectedDesigns is present under DesignClaim, it is always applied to all the designs in our data (always AllDesignsIndicator=True)
+  # so designClaim can stay at the level of the application, and not under design
+  affectedDesigns:
+    allDesignsIndicator: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.DesignClaimBag.AffectedDesign.AllDesignsIndicator }}
+{% endif %}
+
+businessEntityStatusClaim:
+{% if HagueExpressTransaction.HagueCurrent.HagueRegistration.BusinessEntityStatusCategory %}
+  - BusinessEntityStatusCategory: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.BusinessEntityStatusCategory }}
+  {% endif %}
+  {% if HagueExpressTransaction.HagueHistory[0].HagueRegistration.BusinessEntityStatusClaimBag %}
+  {% call(businessEntity) match('BusinessEntityStatusClaim', HagueExpressTransaction.HagueHistory[0].HagueRegistration.BusinessEntityStatusClaimBag) %}
+  - BusinessEntityStatusCategory: {{ businessEntity.BusinessEntityStatusCategory }}
+    DesignatedCountryCode: {{ businessEntity.DesignatedCountryCode }}
+  {% endcall %}
+  {% endif %}
+
+designs:
+  {% call(design) match('HagueDesign', HagueExpressTransaction.HagueCurrent.HagueRegistration.HagueDesignBag) %}
+
+  - designPos: {{ design.DesignIdentifier }}
+
+    # status as is in the document
+    officeStatus: # afaik Hague data do not provide an explicit status
+    # status as translated to gbdFormat
+    gbdStatus: {{ registrationDate | getGbdStatus(expiryDate, hagueHistories, design.DesignIdentifier) }} 
+    #(Ended|Expired|Pending|Registered|Unknown)
+    # in the case of Hague, it would be the latest of registration date or renewal dates 
+    statusDate:  {{ registrationDate | getOfficeStatusDate(expiryDate, hagueHistories, design.DesignIdentifier) }}
+
+    productIndication:
+      {% call(productText) match('ProductDescriptionText', design.ProductDescriptionTextBag) %}
+      - languageCode: {{ productText._languageCode }}
+        text: {{ productText.__value }}
+      {% endcall %}
+
+    designDescription:
+      {% call(designText) match('DesignDescriptionText', design.DesignDescriptionTextBag) %}
+      - languageCode: {{ designText._languageCode }}
+        text: {{ designText.__value }}
+      {% endcall %}
+
+    designImageDetails:
+      # Hague image substructures are not sorted, ViewIdentifier must be used to get the image rank
+      {% call(view) match('View', design.ViewBag) %}
+        - name: {{ view.FileName }}
+          rank: {{ view.ViewIdentifier }}
+          # type is a useful information to normalise the kind of view corresponding to this picture
+          type: {{ view.ViewTypeCategory }}
+          # new, more than one legend per picture, in 3 different languages
+          legends:
+          {% call(viewTypeText) match('ViewTypeText', view.ViewTypeTextBag) %}
+            - languageCode: {{ viewTypeText._languageCode }}
+              legend: {{ viewTypeText.__value }}
+          {% endcall %}
+      {% endcall %}
+
+    designer:
+      {% call(designer) match('Designer', design.DesignerBag) %}
+        - identifier:
+          {% if designer.Contact.Name.PersonName %}
+          kind: 'person'
+          fullName:
+            - languageCode:
+              text: {{ designer.Contact.Name.PersonName.PersonStructuredName | build_person_name() }}
+          firstName:
+            - languageCode: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.FilingLanguageCode | should_display_language(designer.Contact.Name.PersonName.PersonStructuredName.FirstName) }}
+              text: {{ designer.Contact.Name.PersonName.PersonStructuredName.FirstName }}
+          lastName:
+            - languageCode: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.FilingLanguageCode | should_display_language(designer.Contact.Name.PersonName.PersonStructuredName.LastName) }}
+              text: {{ designer.Contact.Name.PersonName.PersonStructuredName.LastName }}
+          middleName:
+            - languageCode:
+              text:
+          {% endif %}
+          {% if designer.Contact.Name.OrganizationName %}
+          kind: 'organization'
+          fullName:
+            - languageCode:
+              text: {{ designer.Contact.Name.OrganizationName.OrganizationStandardName }}
+          {% endif %}
+          fullAddress:
+          {% call(postalAddress) match('PostalAddress', designer.Contact.PostalAddressBag) %}
+            - languageCode: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.FilingLanguageCode }}
+              text: {{ postalAddress.PostalStructuredAddress | format_complete_address }}
+              addressLines: {{ postalAddress.PostalStructuredAddress.AddressLineText | format_address }}
+              cityName: {{ postalAddress.PostalStructuredAddress.CityName }}
+              geographicRegionName: {{ postalAddress.PostalStructuredAddress.GeographicRegionName }}
+              countryCode: {{ postalAddress.PostalStructuredAddress.CountryCode }}
+              postalCode: {{ postalAddress.PostalStructuredAddress.PostalCode }}
+          {% endcall %}
+      {% endcall %}
+
+    designerNormalized:
+      {% call(designer) match('DesignerNormalized', design.DesignerBag) %}
+      - identifier:
+
+        {% set ns = namespace(kind='organization') %}
+        {% call(name) match('Name', designer.Contact) %}
+          {% if name.PersonName %}
+            {% set ns.kind = 'person' %}
+          {% endif %}
+        {% endcall %}
+        kind: {{ ns.kind }}
+
+        {% call(name) match('Name', designer.Contact) %}
+        {% if name.PersonName %}
+        firstName:
+          - languageCode: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.FilingLanguageCode | should_display_language(name.PersonName.PersonStructuredName.FirstName) }}
+            text: {{ name.PersonName.PersonStructuredName.FirstName }}
+        lastName:
+          - languageCode: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.FilingLanguageCode | should_display_language(name.PersonName.PersonStructuredName.LastName) }}
+            text: {{ name.PersonName.PersonStructuredName.LastName }}
+        middleName:
+          - languageCode: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.FilingLanguageCode | should_display_language(name.PersonName.PersonStructuredName.MiddleName) }}
+            text: {{ name.PersonName.PersonStructuredName.MiddleName }}
+        {% endif %}
+          
+        {% if name.OrganizationName %}
+        orgName:
+          - languageCode: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.FilingLanguageCode }}
+            text: {{ name.OrganizationName.OrganizationStandardName }}
+        {% endif %}
+        {% endcall %}
+
+        fullAddress:
+        {% call(postalAddress) match('PostalAddress', designer.Contact.PostalAddressBag) %}
+          - languageCode: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.FilingLanguageCode }}
+            #text: {{ postalAddress.PostalStructuredAddress | format_complete_address }}
+            addressLine: {{ postalAddress.PostalStructuredAddress.AddressLineText }}
+            cityName: {{ postalAddress.PostalStructuredAddress.CityName }}
+            geographicRegionName: {{ postalAddress.PostalStructuredAddress.GeographicRegionName }}
+            postalCode: {{ postalAddress.PostalStructuredAddress.PostalCode }}
+            postalBox: {{ postalAddress.PostalStructuredAddress.PostalBox }}
+            countryCode: {{ postalAddress.PostalStructuredAddress.CountryCode }}
+        {% endcall %}
+
+        processingTool:
+          name: {{ designer.Contact._type }}
+          version: {{ designer.Contact._subtype }}
+          processingDate: {{ designer.Contact._when }}
+      {% endcall %}
+    
+    productIndicationClasses:
+      kind: "Locarno"
+      version: {{ design.LocarnoClassificationBag.LocarnoClassificationEdition }}
+      classes:
+        {% call(classification) match('LocarnoClassification', design.LocarnoClassificationBag) %}
+          {% call(subClassification) match('LocarnoSubclass', classification.LocarnoSubclassBag) %}
+            - code: {{ (classification.LocarnoClass ~ '-' ~ subClassification) | pad_locarno}}
+          {% endcall %}
+      {% endcall %}
+
+    # unfortunately, ExhibitionPriorityBag present in the registratioon history event is not propagated to the current,
+    # so we need a fix
+    {% call(design2) match('HagueDesign', HagueExpressTransaction.HagueHistory[0].HagueRegistration.HagueDesignBag) %}
+      {% if design.DesignIdentifier == design2.DesignIdentifier %}
+    exhibition:
+      {% call(exhibition) match('ExhibitionPriority', design2.ExhibitionPriorityBag) %}
+      - date: {{ exhibition.ExhibitionDate }}
+        name: {{ exhibition.ExhibitionName | replace_quotes() }}
+        location: {{ exhibition.ExhibitionCityName }}
+      {% endcall %}
+      {% endif%}
+    {% endcall %}
+
+    priorities:
+    {% call(priority) match('Priority', design.PriorityBag) %}
+      - countryCode: {{ priority.PriorityCountryCode }}
+        number: {{ priority.ApplicationNumber.ApplicationNumberText }}
+        date: {{ priority.PriorityApplicationFilingDate }}
+        # the following seems Hague specific
+        DASAccessCode: {{ priority.DASAccessCode }}
+    {% endcall %}
+
+    # only Hague, but attached to individual design
+    exceptionLackNoveltyDeclaration:
+    {% call(lackNoveltyDeclaration) match('ExceptionLackNoveltyDeclaration', design.ExceptionLackNoveltyDeclarationBag) %}
+      {% call(designation) match('DesignatedCountry', lackNoveltyDeclaration.DesignatedCountryBag) %}
+      - country: {{ designation.DesignatedCountryCode }}
+        legalBasis: {{ designation.HagueAgreementActCategory | cleanHagueAgreementActCategory() }}
+      {% endcall %}
+    {% endcall %}
+
+    # only Hague, but attached to individual design
+    principalDesignRelations:
+    {% call(principalDesignRelation) match('PrincipalDesignRelation', design.PrincipalDesignRelationBag) %}
+
+      - principalDesignCategory: {{ principalDesignRelation.PrincipalDesignCategory }}
+        documentIdentifier: {{ principalDesignRelation.DocumentIdentifier }}
+        principalDesignReference: {{ principalDesignRelation.PrincipalDesignReference }}
+        designatedCountries:
+        {% call(designation) match('DesignatedCountry', principalDesignRelation.DesignatedCountryBag) %}
+          - country: {{ designation.DesignatedCountryCode }}
+            legalBasis: {{ designation.HagueAgreementActCategory | cleanHagueAgreementActCategory() }}
+        {% endcall %}
+
+    {% endcall %}
+
+  {% endcall %}
+
+# here goes extra information that is office specific and that is pertinent for us to retain.
+extra:
+  feeCalculationDate: {{ HagueExpressTransaction.HagueCurrent.HagueRegistration.FeeCalculationDate }}
+
+  fullyDesignatedCountries:
+    {% call(designation) match('DesignatedCountry', HagueExpressTransaction.HagueCurrent.HagueRegistration.DesignatedCountryBag) %}
+    # new, replace simple country field
+    - country: {{ designation.DesignatedCountryCode }}
+      legalBasis: {{ designation.HagueAgreementActCategory | cleanHagueAgreementActCategory() }}
+    {% endcall %}
+
+  statusByCountry:
+    # list the status for designated country when known, for each design
+    designs:
+    {% call(design) match('HagueDesign', HagueExpressTransaction.HagueCurrent.HagueRegistration.HagueDesignBag) %}
+
+    - designPos: {{ design.DesignIdentifier }}
+      status: 
+        {% call(designation) match('DesignatedCountry', HagueExpressTransaction.HagueCurrent.HagueRegistration.DesignatedCountryBag) %}
+        - country: {{ designation.DesignatedCountryCode }}
+          # status as translated to gbdFormat (Ended|Expired|Pending|Registered|Unknown)
+          gbdStatus: {{ registrationDate | getGbdStatus(expiryDate, hagueHistories, design.DesignIdentifier, designation.DesignatedCountryCode) }} 
+          statusDate:  {{ registrationDate | getOfficeStatusDate(expiryDate, hagueHistories, design.DesignIdentifier, designation.DesignatedCountryCode) }} 
+        {% endcall %}
+        
+    {% endcall %}
+    
+  history:
+    {% call(history) match('HagueHistory', HagueExpressTransaction) %}
+
+      - sequenceNumber: {{ history._sequenceNumber }}
+        hagueBulletinNumber: {{ history.HagueBulletinNumber }}
+        publicationDate: {{ history.PublicationDate }}
+        eventType: {{ history | get_event_type() }}
+        content: {{ history | serialize() }}
+
+    {% endcall %}

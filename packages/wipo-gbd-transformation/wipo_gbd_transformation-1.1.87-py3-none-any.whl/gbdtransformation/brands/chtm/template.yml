@@ -1,0 +1,121 @@
+{% from 'navigation.tmpl' import match %}
+
+{% set trademark = Trademark %}
+{% set status = trademark.MarkCurrentStatusCode | translate_status %}
+{% set officeCode = trademark.RegistrationOfficeCode %}
+
+{% if officeCode == 'CH' %}
+
+st13: {{ trademark.ApplicationNumber.ApplicationNumberText | st13('CH', appdate=trademark.ApplicationDate) }}
+gbdStatus: {{ status }}
+registrationOfficeCode: {{ officeCode }}
+type: TRADEMARK
+
+{% if not status == 'Delete' %}
+kind: {{ tradenark.MarkCategory | translate_kind }}
+markFeature: {{ trademark.MarkRepresentation.MarkFeatureCategory | translate_feature }}
+designatedCountries: 
+  - {{ officeCode }}
+
+applicationNumber: {{ trademark.ApplicationNumber.ApplicationNumberText }}
+applicationDate: {{ trademark.ApplicationDate | convertdate('%Y-%m-%d') }}
+registrationNumber: {{ trademark | get_registration_nb(trademark.MarkCurrentStatusCode) }}
+registrationDate: {{ trademark.RegistrationDate }}
+applicationLanguageCode: 
+officeStatus: {{ trademark.MarkCurrentStatusCode }}
+statusDate: 
+expiryDate: {{ trademark.ExpiryDate }}
+
+markDisclaimerDetails: 
+
+markDescriptionDetails:
+
+wordMarkSpecification:
+  markVerbalElement:
+    {% set verbalElement = trademark.MarkRepresentation.MarkReproduction.WordMarkSpecification.MarkSignificantVerbalElementText | clean_verbal_element %}
+    - text: {{ verbalElement }}
+
+markImageDetails:
+  {% call(img) match('MarkImage', trademark.MarkRepresentation.MarkImageBag) %}
+  - name: {{ img.FileName }}
+    colourIndicator: {{ img.MarkImageColourClaimedText | get_true_or_false }}
+    colourClaimed:
+      - text: {{ img.MarkImageColourClaimedText }}
+        languageCode: {{ img.MarkImageColourClaimedText | local_guess_language() }}
+    classification:
+      kind: Vienna
+      code:
+      - 
+  {% endcall %}
+
+markSoundDetails:
+  {% call(sound) match('MarkSoundDetails.MarkSound', trademark.MarkRepresentation.MarkSoundBag) %}
+  - filename: {{ sound.MarkSoundFilename }}
+    fileformat: {{ sound.MarkSoundFileFormat }}
+  {% endcall %}
+
+markVideoDetails:
+  {% call(video) match('MarkVideoDetails.MarkVideo', trademark.MarkRepresentation) %}
+  - filename: {{ video.MarkVideoFilename }}
+    fileformat: {{ video.MarkVideoFileFormat }}
+  {% endcall %}
+
+goodsServicesClassification:
+  kind: Nice
+  version: {{ ASK_THE_OFFICE }}
+  class: 
+     {% call(ClassDescription) match('ClassDescription', trademark.GoodsServicesBag.GoodsServices.ClassDescriptionBag) %}
+    - code: {{ ClassDescription.ClassNumber| int }}
+      terms:
+        {{ ClassDescription.GoodsServicesDescriptionText | local_guess_language() }}:
+        - {{ ClassDescription.GoodsServicesDescriptionText }}
+     {% endcall %}
+
+priorities:
+  {% call(priority) match('PriorityBag.Priority', trademark) %}
+  - countryCode: {{ priority.PriorityCountryCode }}
+    number: {{ priority.PriorityRegistrationNumber }}
+    date: {{ select_priority_date }}
+  {% endcall %}
+
+publications:
+  {% call(publication) match('PublicationBag.Publication', trademark) %}
+  - identifier: {{ publication.PublicationIdentifier }}
+    date: {{ publication.PublicationDate }}
+    section: {{ publication.PublicationPage }}
+  {% endcall %}
+
+applicants:
+  {% call(Applicant) match('Applicant', trademark.ApplicantBag) %}
+  - identifier: 
+    kind: 
+    fullName:
+      - text: {{ Applicant.Contact.Name.PersonName.PersonFullName }}
+        languageCode: 
+    {% call(postalAddress) match('PostalAddress', Applicant.Contact.PostalAddressBag) %}
+    fullAddress:
+      {% set addr = postalAddress.PostalStructuredAddress | get_full_address %}
+      - text: {{ addr }} 
+        languageCode: {{ addr | local_guess_language() }}
+    countryCode: {{ postalAddress.PostalStructuredAddress.CountryCode }}
+    {% endcall %}
+  {% endcall %}
+
+representatives:
+  {% call(Representative) match('Representative', trademark.RepresentativeBag) %}
+  - identifier: 
+    kind: 
+    fullName:
+      - text: {{ Representative.Contact.Name.PersonName.PersonFullName }}
+        languageCode: 
+    {% call(postalAddress) match('PostalAddress', Representative.Contact.PostalAddressBag) %}
+    fullAddress:
+      {% set addr = postalAddress.PostalStructuredAddress | get_full_address %}
+      - text: {{ addr }} 
+        languageCode: {{ addr | local_guess_language() }} 
+    countryCode: {{ postalAddress.PostalStructuredAddress.CountryCode }}
+    {% endcall %}
+  {% endcall %}
+
+{% endif %}
+{% endif %}

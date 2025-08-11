@@ -1,0 +1,22 @@
+{% include "ipas/template.yml" %}
+{% from 'navigation.tmpl' import match %}
+{% call(header) match('TradeMarkTransactionBody.TransactionContentDetails', Transaction) %}
+{% call(trademark) match('TransactionData.TradeMarkApplication.TradeMarkDetails.TradeMark', header) %}
+{% set nc_gs = trademark.GoodsServicesDetails.GoodsServices.ClassDescriptionDetails.ClassDescription | get_goods_services(nice_only=False) %}
+{% if (nc_gs.keys() | length) > 0 %}
+nationalGoodsServicesClassification:
+  kind: INPI
+  class:
+    {% for nc in nc_gs.keys() %}
+    - code: {{ nc | int }}
+      {% if nc_gs[nc]['terms'] %}
+      terms:
+        {{ nc_gs[nc]['terms'] | guess_language(nc_gs[nc['terms']], trademark.ApplicationLanguageCode) | field_name}}:
+        {% for gsline in nc_gs[nc]['terms'] | remove_trailing('.', '-') | split_terms %}
+          - {{ gsline | lower }}
+        {% endfor %}
+      {% endif %}
+    {% endfor %}
+{% endif %}
+{% endcall %}
+{% endcall %}

@@ -1,0 +1,157 @@
+{% from 'navigation.tmpl' import match %}
+
+{% set is_series = TMEXTRACT.MARKDET.TYPMARI | contains('series') %}
+{% set nb_images = TMEXTRACT | get_nb_images %}
+{% set is_color_claimed =  TMEXTRACT.MARKDET.DISCLAI | contains('colour claimed') %}
+{% set mark_status =  TMEXTRACT.BASGR.BASSTA | translate_status %}
+{% set mark_feature = TMEXTRACT.MARKDET.TYPMARI | translate_feature(words=TMEXTRACT.MARKDET.MARDESC) %}
+{% set _comma = "," %}
+{% set _scoln = ";" %}
+{% set _space = " " %}
+
+type: TRADEMARK
+kind: {{ TMEXTRACT.OTHTMDET.TYPMARI | translate_kind }}
+markFeature: {{ mark_feature }}
+
+registrationOfficeCode: {{ TMEXTRACT.BASGR.OOCC }}
+designatedCountries:
+  - {{ TMEXTRACT.BASGR.OOCC }}
+
+reference:
+{% call(ir) match('INTREGG.INTREGN', TMEXTRACT) %}
+  office: WO
+  registration:
+    - number: {{ ir }}
+{% endcall %}
+
+st13: {{ TMEXTRACT.BASGR.BASAPPN | st13('AU', appdate=TMEXTRACT.BASGR.BASAPPD) }}
+applicationNumber: {{ TMEXTRACT.BASGR.BASAPPN }}
+applicationDate: {{ TMEXTRACT | get_application_date | convertdate('%Y%m%d') }}
+
+{% if mark_status == 'Registered' or mark_status == 'Expired' %}
+registrationNumber: {{ TMEXTRACT.BASGR.BASAPPN }}
+{% endif %}
+registrationDate: {{ TMEXTRACT | get_registration_date | convertdate('%Y%m%d') }}
+
+applicationLanguageCode: {{ TMEXTRACT.MARKDET.ORIGLAN | lower }}
+expiryDate: {{ TMEXTRACT | get_expiry_date | convertdate('%Y%m%d') }}
+
+officeStatus: {{ TMEXTRACT.BASGR.BASSTA }}
+gbdStatus:  {{ mark_status }}
+statusDate:
+
+wordMarkSpecification:
+  {% call(words) match('MARKDET.MARDESC', TMEXTRACT) %}
+  markVerbalElement:
+  {% for val in words | get_word_series(is_series) %}
+    - languageCode: {{ val | guess_language('en') }}
+      text: {{ val | trim }}
+  {% endfor %}
+  {% endcall %}
+
+{% if nb_images > 0 or is_color_claimed %}
+markImageDetails:
+  - name: {{ nb_images }}
+    {% if is_color_claimed %}
+    colourIndicator: {{ is_color_claimed }}
+    colourClaimed:
+      - languageCode: en
+        text: {{ TMEXTRACT.MARKDET.DISCLAI }}
+    {% endif %}
+    classification:
+      kind: KeyWords
+      version: AU
+      {% call(desc) match('MARKDET.DEVDESC', TMEXTRACT) %}
+      {% set desc_line = desc | remove_cr | remove_tab %}
+      code:
+      {% for val in desc_line.split(_comma) %}
+        - {{ val | trim }}
+      {% endfor %}
+      {% endcall %}
+{% endif %}
+
+{% if mark_feature == 'Sound' %}
+markSoundDetails:
+  - filename: {{ TODO }}
+    fileformat: {{ TODO }}
+{% endif %}
+
+{% if TMEXTRACT.GSGR %}
+goodsServicesClassification:
+  kind: Nice
+  version: {{ ASK_THE_OFFICE }}
+  class:
+  {% call(gs) match('GSGR', TMEXTRACT)%}
+    - code: {{ gs.NICCLAI | int }}
+      terms:
+        en :
+          {% for term in gs.GSTERMO | split_terms %}
+          - {{ term | trim | lower }}
+          {% endfor %}
+  {% endcall %}
+{% endif %}
+
+priorities:
+{% call(priority) match('PRIGR', TMEXTRACT)%}
+  - countryCode: {{ priority.COUNTRY }}
+    number: {{ priority.PRIAPPN }}
+    date: {{ priority.PRIAPPD | convertdate('%Y%m%d') }}
+    comment:
+{% endcall %}
+
+{% call(publication) match('PUBREG', TMEXTRACT)%}
+publications:
+  - identifier:
+    date: {{ publication.PUBREGD | convertdate('%Y%m%d') }}
+    section: {{ publication.PUBREGIS }}
+{% endcall %}
+
+{% set applicants = TMEXTRACT.APCTADD | unique_persons %}
+applicants:
+  {% for applicant in applicants %}
+  - identifier: {{ applicant.NAML8 }}
+    kind: {{ "Natural Person" if applicant.NAML3 else "Legal Entity"  }}
+    fullName:
+      - languageCode: {{ applicant | get_person_name | guess_language('en') }}
+        text: {{ applicant | get_person_name }}
+    fullAddress:
+      - languageCode: {{ applicant.ADDRL6 | guess_language('en') }}
+        text: {{ applicant.ADDRL6 | append(_space, applicant.POSTCDE) }}
+    countryCode: {{ applicant.COUNTRY }}
+  {% endfor %}
+
+{% set representatives = TMEXTRACT.SRVCADD | unique_persons %}
+representatives:
+  {% for representative in representatives %}
+  - identifier: {{ representative.NAML8 }}
+    kind: {{ "Natural Person" if representative.NAML3 else "Legal Entity"  }}
+    fullName:
+      - languageCode: {{ representative | get_person_name | guess_language('en') }}
+        text: {{ representative | get_person_name }}
+    fullAddress:
+      - languageCode: {{ representative.ADDRL6 | guess_language('en') }}
+        text: {{ representative.ADDRL6 | append(_space, representative.POSTCDE) }}
+    countryCode: {{ representative.COUNTRY }}
+  {% endfor %}
+
+{% call(corr) match('INTREGG.CORADD', TMEXTRACT) %}
+correspondence:
+  fullName:
+    - languageCode: {{ corr | get_person_name | guess_language('en') }}
+      text: {{ corr | get_person_name }}
+  fullAddress:
+    - languageCode: {{ corr.ADDRL6 | guess_language('en') }}
+      text: {{ corr.ADDRL6 | append(_space, corr.POSTCDE) }}
+  countryCode: {{ corr.COUNTRY }}
+{% endcall %}
+
+# events:
+#   - officeKind:
+#     gbdKind: # (Filed|Registered|Published|Opposed|Withdrawn)
+#     date:
+
+
+# here goes extra information that is office specific and that is pertinent for us to retain.
+extra:
+  isSeries: {{ is_series | get_true_or_false }}
+  imgCount: {{ nb_images }}

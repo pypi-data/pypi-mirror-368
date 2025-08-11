@@ -1,0 +1,151 @@
+{% from 'navigation.tmpl' import match %}
+
+{% call(trademark) match('CURRENT', MARKDOC) %}
+{% set (gbdStatus, officeStatus) = trademark | translate_status %}
+
+type: TRADEMARK
+kind: {{ trademark.MARKENKATEGORIE | translate_kind }}
+
+markFeature: {{ trademark.MARKTYPE | translate_feature }}
+
+registrationOfficeCode: DE
+designatedCountries:
+  - DE
+
+st13: {{ trademark.NR | st13('DE') }}
+
+applicationNumber: {{ trademark.FILENR | replace('.', '') }}
+applicationDate: {{ trademark.FILDATE }}
+
+{% if trademark.REGDATE %}
+registrationNumber: {{ trademark.NR | replace('DE', '') }}
+registrationDate: {{ trademark.REGDATE }}
+{% endif %}
+
+publicationDate: {{ trademark.PUBDATE }}
+
+applicationLanguageCode: de
+
+expiryDate: {{ trademark | get_expiry_date(gbdStatus)}}
+{% if gbdStatus == 'Ended' %}
+terminationDate:  {{ trademark.PROCDATE | convertdate('%Y-%m-%dT%H:%M:%S') }}
+{% endif %}
+
+officeStatus: {{ officeStatus }}
+gbdStatus:  {{ gbdStatus }}
+statusDate: {{ trademark.PROCDATE | convertdate('%Y-%m-%dT%H:%M:%S') }}
+
+{% call(desc) match('MARKDESCR.MARKDESCRTEXT', trademark) %}
+markDescriptionDetails:
+  - languageCode: de
+    text: {{ desc }}
+{% endcall %}
+
+{% call(text) match('MARKTEXT', trademark) %}
+wordMarkSpecification:
+  markVerbalElement:
+    - languageCode: {{ text | guess_language('de') }}
+      text: {{ text }}
+{% endcall %}
+
+{% if (trademark.IMAGENAME) %}
+markImageDetails:
+  - name: {{ trademark.FILENR }}
+    {% if trademark.COLOURGR %}
+    colourIndicator: true
+    colourClaimed:
+      - languageCode: de
+        text: {{ trademark.COLOURGR.COLOUR }}
+    {% endif %}
+    {% if trademark.VIENNAGR %}
+    classification:
+      kind: Vienna
+      version: {{ ASK_THE_OFFICE }}
+      code:
+      {% call (class) match ('VIENNAGR.VIENNACL', trademark) %}
+        - {{ class }}
+      {% endcall %}
+    {% endif %}
+{% endif %}
+
+{% call(nc_gs) match('TLT', trademark) %}
+goodsServicesClassification:
+  kind: Nice
+  version: {{ ASK_THE_OFFICE }}
+  class:
+  {% call(nice) match('NICEGR', nc_gs) %}
+    - code: {{ nice.NICECLMAIN or nice.NICECLOTHER | int }}
+      terms:
+      {% if nice.LGS | has_value %}
+        de:
+          {% for term in nice.LGS | split_terms %}
+          - {{ term }}
+          {% endfor %}
+      {% endif %}
+  {% endcall %}
+{% endcall %}
+{% call(nc_gs) match('NOTLT', trademark) %}
+goodsServicesClassification:
+  kind : Nice
+  version: {{ ASK_THE_OFFICE }}
+  class:
+    - code: {{ nc_gs.NICECLMAIN | int }}
+    {% if nc_gs.NICECOTHER %}
+    {% for code in nc_gs.NICECLOTHER %}
+    - code: {{ code | int }}
+    {% endfor %}
+    {% endif %}
+    {% if nc_gs.LGSCOMPLETE %}
+    - terms:
+         de: 
+           {% for term in nc_gs.LGSCOMPLETE | split_terms %}
+          - {{ term }}
+           {% endfor %}
+    {% endif %}
+{% endcall %}
+priorities:
+  - countryCode:
+    number:
+    date:
+    comment:
+
+publications:
+  - identifier:
+    date:
+    section:
+
+applicants:
+{% call(applicant) match('OWNERGR.OWNER', trademark) %}
+  - fullName:
+      - languageCode: {{ applicant.OWNAME | guess_language('de') }}
+        text: {{ applicant.OWNAME }}
+    fullAddress:
+      - languageCode: {{ applicant.OWCITY | guess_language('de') }}
+        text: {{ applicant.OWCITY }}
+    countryCode: {{ applicant.OWCC }}
+{% endcall %}
+
+representatives:
+{% call(representative) match('AGENT', trademark) %}
+  - fullName:
+      - languageCode: {{ representative.AGNAME | guess_language('de') }}
+        text: {{ representative.AGNAME }}
+    fullAddress:
+      - languageCode: {{ representative.AGCITY | guess_language('de') }}
+        text: {{ representative.AGCITY }}
+    countryCode: {{ representative.AGCC }}
+{% endcall %}
+
+{% if trademark.DELIVERYADDR %}
+correspondence:
+  fullAddress:
+    - languageCode: de
+      text: {{ trademark.DELIVERYADDR }}
+  countryCode:
+{% endif %}
+
+extra:
+  {% if trademark.STATUSOPPOSABLE %}
+  opposable: true
+  {% endif %}
+{% endcall %}

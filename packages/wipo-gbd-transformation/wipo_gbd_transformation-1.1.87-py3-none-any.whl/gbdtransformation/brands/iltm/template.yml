@@ -1,0 +1,213 @@
+{% from 'navigation.tmpl' import match %}
+
+type: TRADEMARK
+
+{% call(details) match('DETAILS', TMBRAND) %}
+
+{% set status = details | translate_status %}
+
+kind: {{ details.BRANDTYPE | translate_kind }}
+st13: {{ details.OFFICENUMBER | st13('IL', appdate=details.FILINGDATE) }}
+applicationNumber: {{ details.OFFICENUMBER }}
+applicationDate: {{ details.FILINGDATE | convertdate('%Y%m%d')}}
+expiryDate: {{ details.EXPIRATIONDATE | convertdate('%Y%m%d')}}
+
+registrationOfficeCode: IL
+designatedCountries:
+  - IL
+
+{% if details.REGISTRATIONDATE %}
+registrationNumber:  {{ details.OFFICENUMBER }}
+{% endif %}
+registrationDate:  {{ details.REGISTRATIONDATE | convertdate('%Y%m%d') }}
+applicationLanguageCode: en
+secondLanguageCode: he
+
+officeStatus: {{ details.STATUS }}
+gbdStatus: {{ status }}
+statusDate: {{ TMBRAND | get_mark_last_update | convertdate('%Y%m%d') }}
+
+{% if status == 'Ended' %}
+terminationDate: {{ TMBRAND | get_mark_last_update | convertdate('%Y%m%d') }}
+{% endif %}
+
+reference:
+{% if details.INTERNATIONALNUMBER %}
+  office: WO
+  registration:
+    - number: {{ details.INTERNATIONALNUMBER }}
+{% endif %}
+
+wordMarkSpecification:
+  {% call(name)  match('BRAND.NAME', details) %}
+  {% if name.__value %}
+  markVerbalElement:
+    - languageCode: {{ name._lang }}
+      text: {{ name.__value }}
+  {% endif %}
+  {% endcall %}
+  {% if details.MarkTranscription %}
+  markTransliteration: {{ details.MarkTranscription }}
+  {% endif %}
+
+{% endcall %}
+
+markDisclaimerDetails:
+  {% call(colorclaim) match('COLORCLAIMS.COLORCLAIM', TMBRAND) %}
+  {% call(desc) match('DESC', colorclaim) %}
+  {% if(desc | has_value) %}
+  - text: {{ desc }}
+    languageCode: {{ desc._lang }}
+  {% endif %}
+  {% endcall %}
+  {% endcall %}
+
+  {% call(disclaimer) match('DISCLAIMERS.DISCLAIMER', TMBRAND) %}
+  {% call(desc) match('DESC', disclaimer) %}
+  {% if(desc | has_value) %}
+  - text: {{ desc }}
+    languageCode: {{ desc._lang }}
+  {% endif %}
+  {% endcall %}
+  {% endcall %}
+
+  {% call(term) match('TERMS.TERM', TMBRAND) %}
+  {% call(desc) match('DESC', term) %}
+  {% if(desc | has_value) %}
+  - text: {{ desc }}
+    languageCode: {{ desc._lang }}
+  {% endif %}
+  {% endcall %}
+  {% endcall %}
+
+markFeature: {{ TMBRAND | translate_feature }}
+
+markImageDetails:
+  {% if TMBRAND.IMAGEFILE %}
+  - name: {{ TMBRAND.IMAGEFILE }}
+    {% call(claim) match('COLORCLAIMS.COLORCLAIM', TMBRAND) %}
+    colourIndicator: true
+    colourClaimed:
+    {% call(desc) match('DESC', claim) %}
+    {% if desc | has_value %}
+      - languageCode: {{ desc._lang }}
+        text: {{ desc.__value }}
+    {% endif %}
+    {% endcall %}
+    {% endcall %}
+
+    {% call(vienna) match('VIENNAGROUP', TMBRAND) %}
+    classification:
+      kind: Vienna
+      version: {{ ASK_THE_OFFICE }}
+      code:
+      {% call(vc) match('VIENNATYPE', vienna) %}
+          - {{ vc | pad_vienna }}
+      {% endcall %}
+    {% endcall %}
+  {% endif %}
+
+
+{% call(nc_gs) match('NICEGROUP', TMBRAND)%}
+goodsServicesClassification:
+  kind: Nice
+  version: {{ ASK_THE_OFFICE }}
+  class:
+  {% call(nice) match('NICECLASS', nc_gs)%}
+    - code: {{ nice.TYPE | int }}
+      terms:
+      {% call(gsline) match('LIST', nice)%}
+      {% if gsline.__value %}
+        {{ gsline._lang | guess_language(gsline._lang, 'he') | field_name }}:
+        {% for term in gsline.__value | split_terms %}
+          - {{ term | lower }}
+        {% endfor %}
+      {% endif %}
+      {% endcall %}
+    {% endcall %}
+{% endcall %}
+
+applicants:
+  {% call(applicant) match('APPLICANTS.APPLICANT', TMBRAND) %}
+    - identifier: {{ applicant._number }}
+      fullName:
+        {% call(name) match('NAMES.NAME', applicant) %}
+        {% if name.__value %}
+        - text: {{ name.__value }}
+          languageCode: {{ name.__value| guess_language(name._lang, 'he') }}
+        {% endif %}
+        {% endcall %}
+      fullAddress:
+        {% call(adr) match('ADDRESSES.ADDRESS', applicant) %}
+        {% if adr.__value %}
+        - text: {{ adr.__value  }}
+          languageCode: {{ adr.__value | guess_language(adr._lang, 'he') }}
+          {% if adr._lang == 'en' %}
+      countryCode: {{ adr.__value | address_line2country_code}}
+          {% endif %}
+        {% endif %}
+        {% endcall %}
+    {% endcall %}
+
+representatives:
+  {% call(representative) match('REPRESENTATIVES.REPRESENTATIVE', TMBRAND) %}
+    - identifier: {{ representative._number }}
+      fullName:
+        {% call(name) match('NAMES.NAME', representative) %}
+        {% if name.__value %}
+        - text: {{ name.__value }}
+          languageCode: {{ name.__value| guess_language(name._lang, 'he') }}
+        {% endif %}
+        {% endcall %}
+      fullAddress:
+        {% call(adr) match('ADDRESSES.ADDRESS', representative) %}
+        {% if adr.__value %}
+        - text: {{ adr.__value  }}
+          languageCode: {{ adr.__value | guess_language(adr._lang, 'he') }}
+          {% if adr._lang == 'en' %}
+      countryCode: {{ adr.__value | address_line2country_code}}
+          {% endif %}
+        {% endif %}
+        {% endcall %}
+    {% endcall %}
+
+priorities:
+  {% call(priority) match('PRIORGROUP.PRIORITY', TMBRAND) %}
+  - countryCode: {{ priority | get_en_from_priority('COUNTRY') | replace('Trade Mark', '') | country_name2code}}
+    number: {{ priority.NUMBER }}
+    date: {{ priority.DATE | convertdate('%Y%m%d') }}
+    comment: {{ priority | get_en_from_priority('LIST') }}
+  {% endcall %}
+  {% call(priority) match('EXTREGISTRATIONGROUP.EXTERNALREGISTRATION', TMBRAND) %}
+  - countryCode: {{ priority | get_en_from_priority('COUNTRY') | replace('Trade Mark', '') | country_name2code}}
+    number: {{ priority.NUMBER }}
+    date: {{ priority.DATE | convertdate('%Y%m%d') }}
+    comment: external registration
+  {% endcall %}
+
+events:
+  {% call(event) match('EVENTS.EVENT', TMBRAND) %}
+  - date: {{ event.EventDate | convertdate('%Y%m%d') }}
+    {% call(nature) match('NatureOfEvent', event) %}
+    {% if(nature._lang == 'en') %}
+    officeKind: {{ nature.__value }}
+    gbdKind: {{ nature.__value | translate_event }}
+    {% endif %}
+    {% endcall %}
+  {% endcall %}
+
+extra:
+  tmlimk: {{ TMBRAND.EXTRACT }}
+  caseid: {{ TMBRAND.EXTRACT | get_case_id }}
+
+  oppositions:
+  {% call(opposition) match('OPPOSITIONS.OPPOSITION', TMBRAND) %}
+    - openingdate: {{ opposition.OPENINGDATE | convertdate('%Y%m%d') }}
+      closingdate: {{ opposition.CLOSINGDATE | convertdate('%Y%m%d') }}
+  {% endcall %}
+
+  cancellations:
+  {% call(cancellation) match('CANCELLATIONS.CANCELLATION', TMBRAND) %}
+    - openingdate: {{ cancellation.OPENINGDATE | convertdate('%Y%m%d') }}
+      closingdate: {{ cancellation.CLOSINGDATE | convertdate('%Y%m%d') }}
+  {% endcall %}

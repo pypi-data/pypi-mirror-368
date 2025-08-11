@@ -1,0 +1,219 @@
+# WARNING: pypers is making a transformation of the original USPTO XML
+# into a "compressed" format that change the names of tags
+# for example <mark-drawing-code> becomes <drawCode>, so
+# the USPTO documentation has to be "translated" to this weirdo intermediary
+# format (why doing simple and readable? :)
+# to see this "pypers" mapping: 
+# https://git.wipo.int/projects/BDDS/repos/gbd_etl_pypers/browse/pypers/steps/fetch/extract/us/ustm-tags.xml
+
+{% from 'navigation.tmpl' import match %}
+
+{% set flags = file.head._flags %}
+
+st13: {{ file.serNum | st13('US', appdate=file.head.fileDate) }}
+registrationOfficeCode: US
+type: TRADEMARK
+
+{% if False and flags == '00000000000000000000000000000000000000000000000' or flags == '00000000000000000000000001000000000000000000000' %}
+gbdStatus: Delete
+
+{% else %}
+
+{% set status = file.head.statusCode | translate_status %}
+
+gbdStatus: {{ status['gbd'] }}
+officeStatus: {{ status['office'] }}
+statusDate: {{ file.head.statusDate | convertdate('%Y%m%d') }}
+kind: {{ flags | translate_kind }}
+applicationNumber: {{ file.serNum }}
+applicationDate: {{ file.head.fileDate | convertdate('%Y%m%d') }}
+
+{% if not file.regNum == '0000000' %}
+registrationNumber: {{ file.regNum | remove_leading ('0') }}
+registrationDate: {{ file.head.regDate | convertdate('%Y%m%d') }}
+{% endif %}
+
+{% call(ir) match('intReg', file) %}
+{% if ir.intRegNum %}
+reference:
+  office: WO
+  registration:
+    - number: {{ ir.intRegNum }}
+      date: {{ ir.intRegDate | convertdate('%Y%m%d') }}
+{% endif %}
+{% endcall %}
+
+{% call(irs) match('madIntFileReqs', file) %}
+reference:
+  office: WO
+  registration:
+  {% call(ir) match('madIntFileRec', irs) %}
+  {% if ir.intRegNum %}
+    - number: {{ ir.intRegNum }}
+      date: {{ ir.intRegDate | convertdate('%Y%m%d') }}
+  {% endif %}
+  {% endcall %}
+{% endcall %}
+
+designatedCountries:
+  - US
+
+applicationLanguageCode: en
+
+{% set feature = file.head.drawCode | translate_feature %}
+markFeature: {{ feature }}
+
+{% set end_date = file.head.cancelDate or file.head.abDate %}
+{% if status['gbd'] == 'Expired' %}
+expiryDate: {{ file.head.statusDate | convertdate('%Y%m%d') }}
+{% elif status['gbd'] == 'Ended' %}
+terminationDate: {{ end_date | convertdate('%Y%m%d') }}
+{% endif %}
+
+wordMarkSpecification:
+  markVerbalElement:
+    - languageCode: {{ file.head.mark | guess_language('en') }}
+      text: {{ file.head.mark }}
+
+{% set desc = file.stmts.stmt | get_mark_description %}
+markDescriptionDetails:
+  - languageCode: {{ desc | guess_language('en') }}
+    text: {{ desc }}
+
+{% if not (feature == 'Word' or feature == 'Olfactory')%}
+markImageDetails:
+  - name: {{ file.serNum }}
+    {% set claim = file.stmts.stmt | get_color_claim %}
+    {% if claim %}
+    colourIndicator: true
+    colourClaimed:
+      - languageCode: en
+        text: {{ claim }}
+    {% endif %}
+    {% set dc = file.desSearches.desSearch | get_img_class %}
+    {% if dc %}
+    classification:
+      kind: USDesignCode
+      code:
+        {% for code in dc %}
+        - {{ code }}
+        {% endfor %}
+    {% endif %}
+{% endif %}
+
+{% set nc_gs, uc_gs = file.stmts.stmt | get_goods_services %}
+{% if (nc_gs.keys() | length) > 0 %}
+goodsServicesClassification:
+  kind: Nice
+  version: {{ ASK_THE_OFFICE }}
+  class:
+  {% for nc in nc_gs.keys() %}
+    - code: {{ nc | int }}
+      terms:
+        en:
+          {% for term in nc_gs[nc] %}
+          - {{ term | lower }}
+          {% endfor %}
+  {% endfor %}
+{% endif %}
+
+goodsServicesUnclassified:
+  en:
+    {% for term in uc_gs %}
+    - {{ term }}
+    {% endfor %}
+
+priorities:
+  - countryCode:
+    number:
+    date:
+    comment:
+
+publications:
+  - identifier:
+    date:
+    section:
+
+{% set applicants = file.owners.owner | get_applicants(status['gbd']) %}
+applicants:
+  {% for applicant in applicants %}
+  - identifier:
+    kind: {{ applicant.kind }}
+    fullName:
+      - languageCode: en
+        text: {{ applicant.name }}
+    firstName:
+      - languageCode:
+        text:
+    lastName:
+      - languageCode:
+        text:
+    middleName:
+      - languageCode:
+        text:
+    organizationName:
+      - languageCode:
+        text:
+    fullAddress:
+      - languageCode: en
+        text: {{ applicant.address }}
+    detailedAddress:
+      - languageCode: en
+        text: {{ applicant.addressLines }}
+        cityName: {{ applicant.city }}
+        geographicRegionName: {{ applicant.state }}
+        postalCode: {{ applicant.postCode }}
+        countryCode: {{ applicant.country }}
+    contact:
+      phone: 
+      fax: 
+      email: 
+      url:
+    countryCode: {{ applicant.country }}
+  {% endfor %}
+
+representatives:
+  {% if file.head.attName %}
+  - fullName:
+      - languageCode: en
+        text: {{ file.head.attName }}
+    kind: Attorney
+  {% endif %}
+  {% if file.head.domRep %}
+  - fullName:
+      - languageCode: en
+        text: {{ file.head.domRep }}
+    kind: Domestic Representative
+    countryCode: US
+  {% endif %}
+
+{% set corr = file.corr | get_correspondence %}
+{% if corr %}
+correspondence:
+  fullName:
+    - languageCode: en
+      text: {{ corr.name }}
+  fullAddress:
+    - languageCode: en
+      text: {{ corr.address }}
+{% endif %}
+
+events:
+  {% call(event) match('eventStmts.eventStmt', file) %}
+  - officeKind: {{ event.descText }}
+    date: {{ event.date | convertdate('%Y%m%d') }}
+  {% endcall %}
+
+{% set (relapps, relregs) = file.priorRegApps.priorRegApp | get_related_docs %}
+extra:
+  nationalApplicationRefNumber:
+  {% for relapp in relapps %}
+    - {{ relapp }}
+  {% endfor%}
+  nationalRegistrationRefNumber:
+  {% for relreg in relregs %}
+    - {{ relreg }}
+  {% endfor%}
+
+{% endif %}
+

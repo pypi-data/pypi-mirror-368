@@ -1,0 +1,358 @@
+{% from 'navigation.tmpl' import match %}
+
+type: # DESIGN
+subtype: # (OPEN|SEALED) -INID 27 - SealedDepositIndicator
+designGrouping: # SINGLE|MULTIPLE
+designsCount:
+kind:
+  - # INDUSTRIAL DESIGN|DESING PATENT(US)
+registrationOfficeCode:
+designatedCountries:
+  - str (CountryCode)
+
+# some collections indicate that the application
+# originates from international filing and provide IR number
+reference:
+  application:
+    - number:
+      date:
+      office:
+  registration:
+    - number:
+      date:
+      office:
+
+# rarely passed
+filingPlace:
+
+# can be deduced from appnum given office cc and (optional) appdate, if no application number, fallback to registration number
+st13: # {{ Design.ApplicationNumber | st13(registrationNumber, 'XX', appdate=... }}
+
+applicationNumber:
+# dates can be converted if not matching expected format
+applicationDate: # ex: {{ Design.ApplicationDate | convertdate('%Y%m%d') }}
+
+# some collections have registration number
+# equals application number when registered
+registrationNumber:
+# some collections we can guess registration date
+# from event list
+registrationDate:
+
+# this is a list
+publicationDates:
+  - str (date)
+
+# for novelty search
+earliestPublicationDate:
+
+effectiveDate:
+defermentExpiryDate:
+expiryDate:
+
+applicationLanguageCode:
+# rarely passed
+secondLanguageCode:
+
+applicants:
+  - identifier:
+    kind:
+    fullName:
+      - languageCode:
+        text:
+    firstName:
+      - languageCode:
+        text:
+    lastName:
+      - languageCode:
+        text:
+    middleName:
+      - languageCode:
+        text:
+    fullAddress:
+      - languageCode:
+        text:
+        cityName:
+        geographicRegionName:
+        countryCode:
+        postalCode:
+    countryCode: # sometimes, country name is provided instead
+    entitlement:
+        entitlementNationalityCode: 
+        entitlementEstablishment: 
+        entitlementDomiciled:
+
+applicantsNormalized:
+  - identifier:
+    kind:
+    orgName:
+      - languageCode:
+        text:
+    firstName:
+      - languageCode:
+        text:
+    lastName:
+      - languageCode:
+        text:
+    middleName:
+      - languageCode:
+        text:
+    fullAddress:
+      - languageCode:
+        addressLine:
+        cityName:
+        geographicRegionName:
+        countryCode:
+        country:
+        postalCode:
+        postalBox: 
+    processingTool:
+      name:
+      version:
+      processingDate:
+
+representatives:
+  - identifier:
+    kind:
+    fullName:
+      - languageCode:
+        text:
+    firstName:
+      - languageCode:
+        text:
+    lastName:
+      - languageCode:
+        text:
+    middleName:
+      - languageCode:
+        text:
+    fullAddress:
+      - languageCode:
+        text:
+        cityName:
+        geographicRegionName:
+        countryCode:
+        postalCode:
+    countryCode: # sometimes, country name is provided instead
+
+representativesNormalized:
+  - identifier:
+    kind:
+    orgName:
+      - languageCode:
+        text:
+    firstName:
+      - languageCode:
+        text:
+    lastName:
+      - languageCode:
+        text:
+    middleName:
+      - languageCode:
+        text:
+    fullAddress:
+      - languageCode:
+        addressLine:
+        cityName:
+        geographicRegionName:
+        countryCode:
+        country:
+        postalCode:
+        postalBox:
+    processingTool:
+      name:
+      version:
+      processingDate:
+
+correspondence:
+  fullName:
+    - languageCode:
+      text:
+  firstName:
+    - languageCode:
+      text:
+  lastName:
+    - languageCode:
+      text:
+  middleName:
+    - languageCode:
+      text:
+  fullAddress:
+    - languageCode:
+      text:
+      cityName:
+      geographicRegionName:
+      countryCode:
+      postalCode:
+  countryCode: # sometimes, country name is provided instead
+
+correspondenceNormalized:
+  kind:
+  orgName:
+    - languageCode:
+      text:
+  firstName:
+    - languageCode:
+      text:
+  lastName:
+    - languageCode:
+      text:
+  middleName:
+    - languageCode:
+      text:
+  fullAddress:
+    - languageCode:
+      addressLine:
+      cityName:
+      geographicRegionName:
+      countryCode:
+      country:
+      postalCode:
+      postalBox:
+  processingTool:
+    name:
+    version:
+    processingDate:
+
+designClaim:
+  claims:
+    - languageCode:
+      claim:
+  designatedCountries:
+    - str
+  affectedDesigns:
+    allDesignsIndicator:
+
+businessEntityStatusClaim:
+  - BusinessEntityStatusCategory:
+    DesignatedCountryCode:
+
+designs:
+  - designPos:
+    # status as is in the document
+    officeStatus:
+    # status as translated to gbdFormat
+    gbdStatus:  # (Ended|Expired|Pending|Registered|Unknown)
+    # can also be the date of the last event in markevents if given
+    statusDate:
+
+    productIndication:
+      - languageCode:
+        text:
+
+    designDescription: #Init 57
+      - languageCode:
+        text:
+
+    productDisclaimer:
+      - languageCode:
+        text:
+
+    designImageDetails:
+      - name:
+        rank:
+        type:
+        legends:
+          - languageCode:
+            legend:
+
+    designer:
+      - identifier:
+        kind:
+        fullName:
+          - languageCode:
+            text:
+        firstName:
+          - languageCode:
+            text:
+        lastName:
+          - languageCode:
+            text:
+        middleName:
+          - languageCode:
+            text:
+        fullAddress:
+          - languageCode:
+            text:
+            cityName:
+            geographicRegionName:
+            countryCode:
+            postalCode:
+        countryCode: # sometimes, country name is provided instead
+
+    designerNormalized:
+      - identifier:
+        kind:
+        orgName:
+          - languageCode:
+            text:
+        firstName:
+          - languageCode:
+            text:
+        lastName:
+          - languageCode:
+            text:
+        middleName:
+          - languageCode:
+            text:
+        fullAddress:
+          - languageCode:
+            addressLine:
+            cityName:
+            geographicRegionName:
+            countryCode:
+            country:
+            postalCode:
+            postalBox:
+        processingTool:
+          name:
+          version:
+          processingDate:
+
+    productIndicationClasses:
+      - kind: Locarno/US/CA/Etc
+        version:  #mostly
+        classes:
+        - code:
+
+    exhibition:
+      - date:
+        name:
+        location:
+
+    priorities:
+      - countryCode:
+        number:
+        date:
+        comment:
+        DASAccessCode:
+
+    exceptionLackNoveltyDeclaration:
+      - country:
+        legalBasis:
+
+    principalDesignRelations:
+      - principalDesignCategory:
+        documentIdentifier:
+        principalDesignReference:
+        designatedCountries:
+          - country:
+            legalBasis:
+
+    noveltyStatement:
+      - languageCode:
+        text:
+
+    publications:
+      - identifier:
+        date:
+        section:
+
+# here goes extra information that is office specific and that is pertinent for us to retain.
+extra:
+
+
+
+
+
+

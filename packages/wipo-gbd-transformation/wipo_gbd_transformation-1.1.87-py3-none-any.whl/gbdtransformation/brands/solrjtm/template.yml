@@ -1,0 +1,195 @@
+{% from 'navigation.tmpl' import match %}
+
+st13: {{st13 }}
+office: {{ registrationOfficeCode }}
+
+{% if not gbdStatus == 'Delete' %}
+type: {{ type }}
+kind: {{ kind }}
+
+designation:
+{% for ds in designatedCountries %}
+{% for exp_ds in  ds | expand_territories(applicationDate)  %}
+  - {{ exp_ds }}
+{% endfor %}
+{% endfor %}
+
+priorityNumberSynonyms:
+{% for prio in priorities %}
+{% for syn in prio.number | create_synonyms(prio.countryCode, 'regnum', lenient=True) %}
+  - {{ syn }}
+{% endfor %}
+{% endfor %}
+
+status: {{ gbdStatus | validate_status }}
+
+refOffice: {{ reference.office }}
+applicationRefNumber:
+{% call (ref) match('application', reference) %}
+  - {{ ref.number }}
+{% endcall %}
+applicationRefNumberSynonyms:
+{% call (ref) match('application', reference) %}
+{% for ans in ref.number | create_synonyms(reference.office, 'appnum', lenient=True) %}
+  - {{ ans }}
+{% endfor %}
+{% endcall %}
+registrationRefNumber:
+{% call (ref) match('registration', reference) %}
+  - {{ ref.number }}
+{% endcall %}
+registrationRefNumberSynonyms:
+{% call (ref) match('registration', reference) %}
+{% for rns in ref.number | create_synonyms(reference.office, 'regnum', lenient=True) %}
+  - {{ rns }}
+{% endfor %}
+{% endcall %}
+
+applicationNumber: {{ applicationNumber }}
+applicationNumberSynonyms:
+{% for ans in applicationNumber | create_synonyms(registrationOfficeCode, 'appnum') %}
+  - {{ ans }}
+{% endfor %}
+
+registrationNumber: {{ registrationNumber }}
+registrationNumberSynonyms:
+{% for rns in registrationNumber | create_synonyms(registrationOfficeCode, 'regnum') %}
+  - {{ rns }}
+{% endfor %}
+
+lastUpdateDate: {{ statusDate | append('T23:59:59Z') }}
+applicationDate: {{ applicationDate | append('T23:59:59Z') }}
+registrationDate: {{ registrationDate | append('T23:59:59Z') }}
+expiryDate: {{ expiryDate | append('T23:59:59Z') }}
+terminationDate: {{ terminationDate | append('T23:59:59Z') }}
+
+markFeature: {{ markFeature }}
+
+{% call(verbal) match('markVerbalElement', wordMarkSpecification) %}
+brandName_{{ verbal.languageCode | field_name }}: {{ verbal.text }}
+{% endcall %}
+
+{% call(signif) match('markSignificantVerbalElement', wordMarkSpecification) %}
+brandSignifName_{{ signif.languageCode | field_name }}: {{ signif.text }}
+{% endcall %}
+
+{% call(trans) match('markTranslation', wordMarkSpecification) %}
+translation_{{ trans.languageCode | field_name }}:
+  - {{ trans.text }}
+{% endcall %}
+
+{% call(tlit) match('markTransliteration', wordMarkSpecification) %}
+transliteration: {{ tlit }}
+{% endcall %}
+
+{% set applicants_info = applicants | transform_name_address(applicationLanguageCode) %}
+{% for k,v in applicants_info.names.items() %}
+applicant_{{ k | field_name }}: {% for x in v %}
+  - {{ x }}
+{% endfor %}
+{% endfor %}
+applicantNormalized: {% for k,v in applicants_info.names.items() %} {% for x in v %}
+  - {{ x | sanitize_name }}
+{% endfor %}
+{% endfor %}
+applicantCountryCode:
+{% for cc in applicants_info.cc %}
+  - {{ cc }}
+{% endfor %}
+
+{% set representatives_info = representatives | transform_name_address(applicationLanguageCode) %}
+{% for k,v in representatives_info.names.items() %}
+representative_{{ k | field_name }}: {% for x in v %}
+  - {{ x }}
+{% endfor %}
+{% endfor %}
+representativeNormalized: {% for k,v in representatives_info.names.items() %} {% for x in v %}
+  - {{ x | sanitize_name }}
+{% endfor %}
+{% endfor %}
+representativeCountryCode:
+{% for cc in representatives_info.cc %}
+  - {{ cc }}
+{% endfor %}
+
+{% for img in markImageDetails %}
+{% if img.colourIndicator %}
+colour: {{ img.colourIndicator }}
+{% endif %}
+{% call(imgclass) match('classification', img) %}
+imgClassKind: {{ imgclass.kind }}
+imgClassVersion: {{ imgclass.version }}
+{% if imgclass.code %}
+imgClass:
+{% for(cl) in imgclass.code | unique %}
+  - {{ cl }}
+{% endfor %}
+{% if imgclass.kind == 'Vienna' or imgclass.kind == 'USDesignCode' %}
+imgClassTop2:
+{% for(cl) in imgclass.code | cl_top2 | unique %}
+  - {{ cl }}
+{% endfor %}
+{% endif %}
+{% endif %}
+{% endcall %}
+{% endfor %}
+
+nationalClassVersion: {{ nationalGoodsServicesClassification.kind }}
+nationalClass:
+{% if nationalGoodsServicesClassification.class %}
+{% for nc in nationalGoodsServicesClassification.class %}
+  - {{ nc.code }}
+{% endfor %}
+{% endif %}
+
+{% if goodsServicesClassification.kind == 'Nice' %}
+niceClassVersion: {{ goodsServicesClassification.version }}
+niceClass:
+{% if goodsServicesClassification.class %}
+{% for nc in goodsServicesClassification.class %}
+  - {{ nc.code | int }}
+{% endfor %}
+{% endif %}
+{% endif %}
+
+{% set gservices_info = goodsServicesClassification.class | transform_goods_services %}
+
+{% for class,langs in gservices_info.items() %}
+{% set name = 'goodsServices_' + class %}
+
+{% for lang,terms in gservices_info[class].items() %}
+{% set name = name + '_' + lang %}
+{{ name | field_name }}:
+{% for term in terms %}
+  - {{ term | remove_trailing(',', '.') }}
+{% endfor %}
+{% endfor %}
+{% endfor %}
+
+{% set gservices_unclassified = goodsServicesUnclassified | transform_unclassified_goods_services %}
+{% set gservices_national = nationalGoodsServicesClassification.class | transform_goods_services %}
+{% set gservices = gservices_national | merge_national_unclassified_goods_services(gservices_unclassified) %}
+{% set name = 'goodsServices' %}
+{% for lang,terms in gservices.items() %}
+{% set name = name + '_' + lang %}
+{{ name | field_name }}:
+{% for term in terms %}
+  - {{ term | remove_trailing(',', '.', '-') }}
+{% endfor %}
+{% endfor %}
+
+events:
+{% for event in events | filter_events %}
+  - {{ event }}
+{% endfor %}
+
+qc:
+{% for qc_item in qc %}
+  - {{ qc_item['code']  }}
+{% endfor %}
+
+collection: {{ collection  }}
+
+{% else %}
+deleted: true
+{% endif %}
