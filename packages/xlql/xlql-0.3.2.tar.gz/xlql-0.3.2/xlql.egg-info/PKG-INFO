@@ -1,0 +1,189 @@
+Metadata-Version: 2.4
+Name: xlql
+Version: 0.3.2
+Description-Content-Type: text/markdown
+Requires-Dist: duckdb>=1.3.2
+Requires-Dist: questionary>=2.1.0
+Requires-Dist: tabulate>=0.9.0
+Requires-Dist: pandas>=2.3.1
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: requires-dist
+
+# **XLQL**  
+**A Lightweight Local DBMS for CSV Data Using DuckDB**  
+
+XLQL is a **command-line tool** written in Python that allows you to manage databases stored as folders containing CSV files and run SQL queries on them using **DuckDB**, without the need for a extensive hassle for setting up traditional database server.  Also sometime you will just hate working with spreadsheets
+
+It is perfect for quick analysis, structured storage of tabular files, and performing SQL-like operations locally on spreadsheets.  
+
+---
+
+## **Features**
+- Create and manage **databases** (as folders) locally.
+- Manage **tables** (CSV files) inside each database.
+- Run SQL queries directly on CSV files using **DuckDB**.
+- Pretty-print query results with **Tabulate**.
+- Export query results to multiple formats (CSV, JSON, Parquet).
+- Interactive menus for selecting databases/tables via **Questionary**.
+- Fully offline — works without any external DB connection.
+
+---
+
+## **Installation**
+```bash
+pip install xlql
+```
+
+## **Available Commands**
+Below are the commands supported in **Version 1**:
+
+---
+
+### **1️. createdb**
+_Creates a new database_. When running this command for the first time you will need to specify a ```base db path```. Now this is the path where you ```databases``` folder will be present inside which your databases will be added as new folders.
+
+```bash
+xlql createdb
+```
+
+### **2. listdb**
+_Lists all the databases you have_. 
+
+```bash
+xlql listdb
+```
+
+### **3.  dropdb**
+_Drops the selected database._ After running the command you will get a menu to choose the database from.
+
+```bash
+xlql dropdb
+```
+### **4.  insert**
+_Inserts a table in the selected database._ After you run the command you get a menu to choose the database. Further add the name for the table and **_absolute path_** of the csv file.
+```bash
+xlql insert 
+```
+
+### **5. list**
+_Shows all the tables in `mydbname` database._
+```bash
+xlql list [mydbname]
+```
+
+### **6.  droptable**
+_Deletes the selected table from the specified database._. After you run the command you the menu to choose the table to be deleted from.
+```bash
+xlql droptable [mydbname]
+```
+
+### **7.  show**
+_Shows the first N rows of specified table._ The command can be run in three ways. 
+
+- If the `db name and table name are not specified` user gets a menu for both to choose from. 
+    - [`xlql show`]
+- If `only the table name is not specified` user gets a menu to choose table from. 
+    - [`xlql show dbname`]
+- If `both the dbname and table name are specified` user gets a prompt to enter the number of rows he want to see. 
+    - [`xlql show dbname tablename`]
+
+```bash
+xlql show [mydbname] [mytablename]
+```
+
+### **8. desc**
+_Describes the schema of the table._ Similar to `xlql shpw` command this can also run in three scenarios.
+- If the `db name and table name are not specified` user gets a menu for both to choose from. 
+    - [`xlql show`]
+- If `only the table name is not specified` user gets a menu to choose table from. 
+    - [`xlql desc dbname`]
+- If `both the dbname and table name are specified` command runs fine.
+    - [`xlql desc dbname tablename`]
+
+```bash
+xlql desc [mydbname] [mytablename]
+```
+
+### **9.  sql**
+_Helps user run SQL queries on the inserted tables._ User is supposed to make a `.sql` file and write their query in that file. Also please use the table name you specified and try to follow general SQL syntax rules for best outcomes. There are two ways in which this command helps you.
+
+- If you do not want to store the query result, you can skip the `format` and `output` flags. The result will be printed to your terminal.
+
+- However if you wish to keep the output with you. Specify the format (CSV, JSON, Parquet) via the `format` flag and the output directory path using the `output` flag.
+
+```bash
+xlql sql [mydbname] [querypath] --format [outputformat] --output [output_directory_path]
+```
+
+## **System Architecture Overview**
+
+XLQL is designed as a lightweight, file-based database management tool for working with CSV datasets using SQL.  
+Its architecture prioritizes simplicity, portability, and minimal setup while providing powerful querying capabilities.
+
+---
+
+### **1. Databases**
+- A *database* in XLQL is represented as a **directory** within the configured base path:
+`{base_path}/databases/{database_name}/`
+- This design removes the need for complex database servers or installation steps.
+- Ensures easy portability and compatibility with version control systems and also customisations.
+
+---
+
+### **2. Tables**
+- A *table* is currently implemented as a **CSV file** stored inside a database directory:
+`{base_path}/databases/{database_name}/{table_name}.csv`
+
+- Standard CSV format ensures universal compatibility and avoids vendor lock-in.
+- Future updates will extend support to additional formats (e.g., Excel, Parquet).
+
+---
+
+### **3. Query Engine**
+- **DuckDB** is used as the underlying query processor.
+- Executes SQL directly on CSV files without importing data into a separate database.
+- Key advantages:
+    - Embedded, lightweight, and serverless
+    - Full SQL syntax support
+    - Optimized for analytical workloads
+
+---
+
+### **4. Interactive Menus**
+- **Questionary** provides interactive selection menus for databases and tables.
+- Enhances user experience by eliminating the need to remember complex file names.
+- Particularly useful when working with multiple datasets or long file names.
+
+---
+
+### **5. Result Formatting**
+- **Tabulate** is used for clear, structured result presentation in the terminal.
+- Produces professional-looking table outputs with multiple style options.
+- Ensures readable query results even for large datasets.
+
+---
+
+### **6. Design Goals**
+- **Minimal Setup** – No infrastructure beyond your local file system.
+- **Portability** – Easily copy, share, or version-control entire databases.
+- **SQL-Powered** – Use familiar SQL syntax for data queries.
+- **Extensibility** – Roadmap includes more file format support, quick operations, and an interactive SQL shell.
+
+---
+
+### **Example Directory Structure**
+```
+base_path
+└── databases/
+    ├── sales_db/
+    │      ├── orders.csv
+    │      └── customers.csv
+    └── hr_db/
+             ├── employees.csv
+             └── payroll.csv
+```
+
+---
+**TL;DR**: **It’s simple, fast, easy to setup and gets the job done.** And if you ever find yourself explaining to someone that your “database engine” is actually a bunch of folders and CSV files…  
+Just smile confidently and say: *"It’s a design choice and it was made in just 5 hours"*
