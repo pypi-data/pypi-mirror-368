@@ -1,0 +1,167 @@
+Metadata-Version: 2.4
+Name: FermaCongress
+Version: 0.1.8
+Summary: A ZoomRx - Ferma Congress package for internal usage
+Home-page: https://www.zoomrx.com/ferma/
+Author: Ferma Congress Team
+Author-email: hema.murapaka@zoomrx.com
+License: MIT
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+Dynamic: author
+Dynamic: author-email
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: license
+Dynamic: requires-python
+Dynamic: summary
+
+# Ferma Congress
+This is a Python package built for Internal Purposes of ZoomRx - Ferma Congress which does some operation related in planning.
+
+## 🔐 Authentication Setup
+
+To access the Ferma API, you need a `.env` file with your Authorized Ferma  credentials.
+
+### ✅ Option 1: Non-Encoded Credentials (default)
+
+```env
+FERMA_USERNAME=your_email@domain.com
+FERMA_PASSWORD=your_password
+```
+
+### ✅ Option 2: Encoded Credentials (for `format="ENCODED"`)
+
+```env
+FERMA_USERNAME_ENC=encoded_username
+FERMA_PASSWORD_ENC=encoded_password
+```
+
+Then use:
+
+```python
+from FermaCongress.ExtractFerma import *
+
+login("path/to/.env") # Default: In Case of Non-Encoded Credentials
+
+login("path/to/.env", format="ENCODED") # Encoded: In Case of Encoded Credentials
+```
+
+---
+
+# ExtractFerma
+
+To use the `ExtractFerma` functionality, you must first authenticate using the `login()` function. Once authenticated, you can call various data extraction functions to retrieve Ferma Congress data. Each function returns a `pandas.DataFrame` for easy analysis or export.
+
+```python
+from FermaCongress.ExtractFerma import *
+
+get_all_sessions(congress_id)                         # Fetches Session-Level Metadata
+get_skg(congress_id)                                  # Fetches Session Entities Data
+get_tweets(congress_id)                               # Fetches tweet-level data linked to sessions
+get_priority(congress_id, include=None, exclude=None) # Fetches session priorities across planners
+get_summary(congress_id)                              # Fetches Sessions generated v1 summary
+get_fullabstracts(congress_id)                        # Fetches Session Full Abstracts
+```
+
+```python
+# Usage Examples
+from FermaCongress.ExtractFerma import *
+
+get_all_sessions("217")
+
+get_skg("217")
+
+get_tweets("217")
+
+get_summary("217)
+
+get_fullabstracts("217") 
+
+get_priority("217")
+get_priority("217", include=["ClientA", "ClientB"])   # Include only specific clients
+get_priority("217", exclude=["ClientX"])              # Exclude specific clients
+```
+
+---
+
+# FormatExcel
+
+The `FormatExcel` utility is used to apply styling and export your Ferma data (from a DataFrame or input file) into a clean, Ferma-styled Excel format.
+
+```python
+from FermaCongress.FormatExcel import format
+
+format(dataframe=df, output_path="priority_report.xlsx")  # Format from a DataFrame
+
+format(input_path="raw_sessions.xlsx", output_path="formatted_sessions.xlsx")  # Format from Excel file
+
+format(input_path="raw_data.csv", output_path="formatted_output.xlsx")  # Format from CSV file
+```
+
+
+| Parameter      | Type                         | Description                                                                                |
+| -------------- | ---------------------------- | ------------------------------------------------------------------------------------------ |
+| `input_path`   | `str`                        | Path to an input Excel or CSV file.                                                        |
+| `dataframe`    | `pandas.DataFrame`           | DataFrame to format.                                                                       |
+| `output_path`  | `str`                        | File path to save the formatted Excel output.                                              |
+| `headers`      | `bool`                       | True to convert headers to proper casing (e.g., buzz_score → Buzz Score).                  |
+| `input_sheet`  | `str`                        | Name of the sheet to read from (Excel only). Optional if only one sheet.                   |
+| `output_sheet` | `str`                        | Name of the sheet to write into in the output Excel file.                                  |
+
+---
+
+## **Annotate**
+
+The `Annotate` module enables CSV annotation through the Ferma Support Portal. It supports custom needles, entity filters, and output format selection. Results are returned as a `pandas.DataFrame`.
+
+### Setup
+
+First, login to the Ferma Support Portal using your `.env` credentials:
+
+```python
+from FermaCongress.Annotate import supportlogin
+
+supportlogin("path/to/.env")  # Required before annotation
+```
+
+---
+
+### Usage
+
+```python
+from FermaCongress.Annotate import annotate
+
+df = annotate(input_df=my_dataframe)  # Basic annotation
+
+df = annotate(input_df=my_dataframe, custom_needles_df="path/to/custom_needles.csv", long_table=False) # With custom needles and pivot table format
+
+df = annotate(input_df=my_dataframe, entities={"institution": ["Agency"], "author": []}) # With entity filters (e.g., Agency-only)
+```
+
+---
+
+### 🧩 Parameters
+
+| Parameter             | Type               | Description                                                          |
+| --------------------- | ------------------ | -------------------------------------------------------------------- |
+| `input_df`            | `pandas.DataFrame` | Input data with an `id` column.                                      |
+| `custom_needles_df`   | `pandas.DataFrame or None`      | Optional DataFrame of custom needles to include in annotation.                            |
+| `needles`             | `list[int, int]`   | Whether to include `"kb"` and/or `"nct"` needles. Example: `[1, 0]`. |
+| `entities`            | `dict or None`     | Filter by entity types (e.g., `{"institution": ["Agency"]}`).        |
+| `long_table`          | `bool`             | Output format. `True` = long table (default), `False` = pivot.       |
+| `poll_interval`       | `int`              | Seconds between status checks. Default is `10`.                      |
+| `max_wait`            | `int`              | Max wait time (in seconds) before timeout. Default is `300`.         |
+
+---
+
+## 📋 **Changelog**
+
+| Version   | Date       | Change Type | Description                                                                                                                                             |
+| --------- | ---------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **0.1.6** | 2025-08-10 | Fix         | - Optimised Annotation - Logic                               |
+| **0.1.5** | 2025-07-31 | Fix         | - Optimised Annotation - Support Portal Login logic                                                                                                     |
+| **0.1.2** | 2025-07-27 | Feature     | - Annotation module to upload CSVs and download long/pivot format results via Ferma AaaS portal.                                                        |
+| **0.1.1** | 2025-07-24 | Feature     | - Congress-level extraction logic for full abstracts and V1 summaries.                                                                                  |
+| **0.1.0** | 2025-07-17 | Feature     | - Ferma-style Excel formatting utilities.<br>- Initial version of congress data extraction from Ferma Admin portal.                                     |
