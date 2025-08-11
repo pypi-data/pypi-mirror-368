@@ -1,0 +1,61 @@
+Metadata-Version: 2.4
+Name: kozhindev_data_labeler
+Version: 0.0.1
+Summary: Пакет, содержащий пайплайн для разметки данных, используя большие языковые модели
+Author: YVoskanyan
+Author-email: yuvoskanyan@team.kozhin.dev
+Keywords: kozhindev datalaber classification llm
+Classifier: Programming Language :: Python :: 3.12
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+License-File: LICENCE
+Requires-Dist: pandas>=2.3.1
+Requires-Dist: pydantic>=2.11.7
+Requires-Dist: litellm>=1.75.4
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: keywords
+Dynamic: license-file
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+# Usage example
+```python
+from pydantic import BaseModel
+
+from kozhindev_data_labeler import LLMClient
+from kozhindev_data_labeler import Pipeline
+
+
+class LLMPredict(BaseModel):
+    reviews: list[str]
+    target: list[int]
+
+llm_client = LLMClient(
+    model='gpt-4o-mini',
+    api_key='API_KEY',
+    response_format=LLMPredict
+)
+
+reviews = [
+    'Сегодня отличная погода, настроение супер!',
+    'SOME TEXT 123312!312OKF;SEKF;',
+    'PostgreSQL- свободная объектно-реляционная базами данных',
+    "Congratulations! You've won a $1,000 Walmart gift card to http://bit.ly/123456 tp claim now."
+]
+
+pipeline = Pipeline(
+    data={'reviews': reviews},
+    prompt='Сделай классификацию сообщений на негативные и позитивные (0 - позитивный, 1 - негативный)',
+    model_client=llm_client
+)
+
+pipeline.run()
+pipeline.to_csv('result.csv')
+```
