@@ -1,0 +1,111 @@
+Metadata-Version: 2.4
+Name: codewright
+Version: 0.1.0
+Summary: A CLI and utility package with decorators and tools to accelerate development.
+Author-email: Srajan <srajansolanki04@gmail.com>
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Intended Audience :: Developers
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Requires-Dist: click>=8.0
+
+# Codewright 🛠️
+
+A CLI and utility package by Srajan with decorators and tools to accelerate Python development.
+
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/Srajan04/codewright)
+[![PyPI version](https://img.shields.io/pypi/v/codewright.svg)](https://pypi.org/project/codewright/)
+
+## Installation
+
+Once published to PyPI, you can install it via `pip`:
+```bash
+pip install codewright
+```
+
+For local development, clone this repository and run:
+
+```bash
+pip install -e .
+```
+
+## Features
+
+### 1. Utility Decorators
+
+Simply import the decorators you need from `codewright`.
+
+#### `@timer`
+
+Measures and prints the execution time of any function.
+
+```python
+from codewright import timer
+import time
+
+@timer
+def some_task():
+    time.sleep(1)
+
+# Prints: Finished 'some_task' in 1.0007 secs
+some_task()
+```
+
+#### `@retry`
+
+Retries a function if it throws an exception.
+
+```python
+from codewright import retry
+
+@retry(tries=3, delay=1)
+def connect_to_flaky_service():
+    print("Attempting to connect...")
+    raise ConnectionError("Connection failed!")
+
+# This will attempt to run 3 times before failing.
+connect_to_flaky_service()
+```
+
+#### `@cache`
+
+Caches the results of function calls to avoid re-computation (memoization).
+
+```python
+from codewright import cache
+
+@cache
+def expensive_fibonacci(n):
+    if n < 2: return n
+    return expensive_fibonacci(n - 1) + expensive_fibonacci(n - 2)
+
+# The first call is slow.
+expensive_fibonacci(35) 
+
+# This second call is instantaneous.
+expensive_fibonacci(35)
+```
+
+### 2. CLI Scaffolding Tool
+
+`codewright` includes a command-line tool to quickly set up new projects.
+
+#### `setup`
+
+Run this command in your terminal to create a standard project structure.
+
+```bash
+codewright setup my_new_project
+```
+
+This will generate a ready-to-use folder structure for `my_new_project`.
+
+## Contributing
+
+Contributions are welcome! Please feel free to open an issue or submit a pull request at [https://github.com/Srajan04/codewright](https://github.com/Srajan04/codewright).
+
+## License
+
+This project is licensed under the MIT License.
