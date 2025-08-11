@@ -1,0 +1,117 @@
+Metadata-Version: 2.3
+Name: vton-eval
+Version: 0.1.0
+Summary: A comprehensive evaluation suite for Virtual Try-On (VTON) models
+License: MIT
+Keywords: vton,virtual-try-on,evaluation,computer-vision,fashion
+Author: Arnab Ghosh
+Author-email: arnabghosh93@gmail.com
+Requires-Python: >=3.9,<4.0
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Classifier: Topic :: Scientific/Engineering :: Image Recognition
+Provides-Extra: dev
+Provides-Extra: vlm
+Requires-Dist: Pillow (>=10.1.0)
+Requires-Dist: autodoc-pydantic (>=2.0.0) ; extra == "dev"
+Requires-Dist: black (>=23.7.0) ; extra == "dev"
+Requires-Dist: dataclasses-json (>=0.6.1)
+Requires-Dist: deepface (>=0.0.81)
+Requires-Dist: flake8 (>=6.1.0) ; extra == "dev"
+Requires-Dist: google-genai (>=0.8.0) ; extra == "vlm"
+Requires-Dist: ipykernel (>=6.25.0) ; extra == "dev"
+Requires-Dist: isort (>=5.12.0) ; extra == "dev"
+Requires-Dist: matplotlib (>=3.8.0)
+Requires-Dist: mediapipe (>=0.10.8)
+Requires-Dist: mypy (>=1.5.1) ; extra == "dev"
+Requires-Dist: notebook (>=7.0.0) ; extra == "dev"
+Requires-Dist: numpy (>=1.26.0)
+Requires-Dist: open-clip-torch (>=2.24.0)
+Requires-Dist: opencv-python (>=4.8.1.78)
+Requires-Dist: pandas (>=2.1.3)
+Requires-Dist: pytest (>=7.4.0) ; extra == "dev"
+Requires-Dist: pytest-cov (>=4.1.0) ; extra == "dev"
+Requires-Dist: pytest-mock (>=3.11.1) ; extra == "dev"
+Requires-Dist: pyyaml (>=6.0.1)
+Requires-Dist: requests (>=2.31.0)
+Requires-Dist: sam2 (>=0.4.1)
+Requires-Dist: scikit-image (>=0.21.0)
+Requires-Dist: scikit-learn (>=1.3.2)
+Requires-Dist: scipy (>=1.11.3)
+Requires-Dist: seaborn (>=0.13.0)
+Requires-Dist: segment-anything (>=1.0)
+Requires-Dist: sphinx (>=7.2.0) ; extra == "dev"
+Requires-Dist: sphinx-rtd-theme (>=1.3.0) ; extra == "dev"
+Requires-Dist: tensorflow (>=2.15.0)
+Requires-Dist: tf-keras (>=2.15.0)
+Requires-Dist: torch (>=2.1.0)
+Requires-Dist: torchmetrics (>=1.2.0)
+Requires-Dist: torchvision (>=0.16.0)
+Requires-Dist: tqdm (>=4.66.1)
+Project-URL: Documentation, https://github.com/vybe-ai/vton-eval/blob/main/README.md
+Project-URL: Homepage, https://github.com/vybe-ai/vton-eval
+Project-URL: Issues, https://github.com/vybe-ai/vton-eval/issues
+Project-URL: Repository, https://github.com/vybe-ai/vton-eval
+Description-Content-Type: text/markdown
+
+# VTON Evaluation Suite
+
+A comprehensive evaluation suite for Virtual Try-On (VTON) models.
+
+## Installation
+
+```bash
+# Install from PyPI (after publication)
+pip install vton-eval
+
+# Development installation
+git clone https://github.com/your-org/vton-eval.git
+cd vton-eval
+pip install -e .[dev]
+
+# Setup models and environment
+vton-setup --download-models --gpu
+```
+
+## Basic Usage
+
+```python
+# Python API
+from vton_eval import VTONConfig, VTONEvaluationPipeline
+
+config = VTONConfig.from_file('evaluation_config.yaml')
+pipeline = VTONEvaluationPipeline(config)
+
+# Evaluate a submission directory
+results = pipeline.evaluate_submission(
+    submission_dir='submissions/my_model/',
+    output_path='results/my_model_results.json'
+)
+
+print(f"VTON Score: {results['overall_score']:.3f}")
+print(f"Production Ready: {results['production_ready']}")
+```
+
+### Command Line Usage
+```bash
+# Basic evaluation
+vton-eval evaluate --submission-dir submissions/model_a/ --output results.json
+
+# Custom configuration
+vton-eval evaluate --config custom_config.yaml --submission-dir submissions/model_b/ --output results_b.json
+
+# Validate submission format
+vton-eval validate --submission-dir submissions/model_c/
+
+# Setup and model download
+vton-eval setup --download-models --config-template advanced
+```
+
