@@ -1,0 +1,137 @@
+# -*- coding: utf-8 -*-
+#
+# This class was auto-generated from the API references found at
+# https://apireference.connect.worldline-solutions.com/
+#
+from typing import Optional
+
+from worldline.connect.sdk.domain.data_object import DataObject
+from worldline.connect.sdk.v1.domain.amount_of_money import AmountOfMoney
+from worldline.connect.sdk.v1.domain.frequency import Frequency
+from worldline.connect.sdk.v1.domain.trial_period import TrialPeriod
+
+
+class TrialInformation(DataObject):
+    """
+    | The object containing data of the trial period: no-cost or discounted time-constrained trial subscription period.
+    """
+
+    __amount_of_money_after_trial: Optional[AmountOfMoney] = None
+    __end_date: Optional[str] = None
+    __is_recurring: Optional[bool] = None
+    __trial_period: Optional[TrialPeriod] = None
+    __trial_period_recurring: Optional[Frequency] = None
+
+    @property
+    def amount_of_money_after_trial(self) -> Optional[AmountOfMoney]:
+        """
+        | The object containing the amount and ISO currency code attributes of money to be paid after the trial period ends.
+        
+        | Note:
+        
+        | The property order.amountOfMoney should be populated with the amount to be paid during or for the trial period (no-cost or discounted time-constrained trial subscription period).
+
+        Type: :class:`worldline.connect.sdk.v1.domain.amount_of_money.AmountOfMoney`
+        """
+        return self.__amount_of_money_after_trial
+
+    @amount_of_money_after_trial.setter
+    def amount_of_money_after_trial(self, value: Optional[AmountOfMoney]) -> None:
+        self.__amount_of_money_after_trial = value
+
+    @property
+    def end_date(self) -> Optional[str]:
+        """
+        | The date that the trial period ends in YYYYMMDD format.
+
+        Type: str
+        """
+        return self.__end_date
+
+    @end_date.setter
+    def end_date(self, value: Optional[str]) -> None:
+        self.__end_date = value
+
+    @property
+    def is_recurring(self) -> Optional[bool]:
+        """
+        | The property specifying if there will be recurring charges throughout the trial period (when the trial period involves a temporary discounted rate).
+        | True = there will be recurring charges during the trial period
+        | False = there will not be recurring charges during the trial period
+
+        Type: bool
+        """
+        return self.__is_recurring
+
+    @is_recurring.setter
+    def is_recurring(self, value: Optional[bool]) -> None:
+        self.__is_recurring = value
+
+    @property
+    def trial_period(self) -> Optional[TrialPeriod]:
+        """
+        | The object containing information on the trial period duration and the interval between payments during that period.
+
+        Type: :class:`worldline.connect.sdk.v1.domain.trial_period.TrialPeriod`
+        """
+        return self.__trial_period
+
+    @trial_period.setter
+    def trial_period(self, value: Optional[TrialPeriod]) -> None:
+        self.__trial_period = value
+
+    @property
+    def trial_period_recurring(self) -> Optional[Frequency]:
+        """
+        | The object containing the frequency and interval between recurring payments.
+        
+        | Note:
+        
+        | This object should only be populated if the frequency of recurring payments between the trial and regular periods is different.
+        
+        | If you do not populated this object, then the same interval frequency and interval of recurringPaymentsData.recurringInterval will be used
+
+        Type: :class:`worldline.connect.sdk.v1.domain.frequency.Frequency`
+        """
+        return self.__trial_period_recurring
+
+    @trial_period_recurring.setter
+    def trial_period_recurring(self, value: Optional[Frequency]) -> None:
+        self.__trial_period_recurring = value
+
+    def to_dictionary(self) -> dict:
+        dictionary = super(TrialInformation, self).to_dictionary()
+        if self.amount_of_money_after_trial is not None:
+            dictionary['amountOfMoneyAfterTrial'] = self.amount_of_money_after_trial.to_dictionary()
+        if self.end_date is not None:
+            dictionary['endDate'] = self.end_date
+        if self.is_recurring is not None:
+            dictionary['isRecurring'] = self.is_recurring
+        if self.trial_period is not None:
+            dictionary['trialPeriod'] = self.trial_period.to_dictionary()
+        if self.trial_period_recurring is not None:
+            dictionary['trialPeriodRecurring'] = self.trial_period_recurring.to_dictionary()
+        return dictionary
+
+    def from_dictionary(self, dictionary: dict) -> 'TrialInformation':
+        super(TrialInformation, self).from_dictionary(dictionary)
+        if 'amountOfMoneyAfterTrial' in dictionary:
+            if not isinstance(dictionary['amountOfMoneyAfterTrial'], dict):
+                raise TypeError('value \'{}\' is not a dictionary'.format(dictionary['amountOfMoneyAfterTrial']))
+            value = AmountOfMoney()
+            self.amount_of_money_after_trial = value.from_dictionary(dictionary['amountOfMoneyAfterTrial'])
+        if 'endDate' in dictionary:
+            self.end_date = dictionary['endDate']
+        if 'isRecurring' in dictionary:
+            self.is_recurring = dictionary['isRecurring']
+        if 'trialPeriod' in dictionary:
+            if not isinstance(dictionary['trialPeriod'], dict):
+                raise TypeError('value \'{}\' is not a dictionary'.format(dictionary['trialPeriod']))
+            value = TrialPeriod()
+            self.trial_period = value.from_dictionary(dictionary['trialPeriod'])
+        if 'trialPeriodRecurring' in dictionary:
+            if not isinstance(dictionary['trialPeriodRecurring'], dict):
+                raise TypeError('value \'{}\' is not a dictionary'.format(dictionary['trialPeriodRecurring']))
+            value = Frequency()
+            self.trial_period_recurring = value.from_dictionary(dictionary['trialPeriodRecurring'])
+        return self

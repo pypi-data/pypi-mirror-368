@@ -1,0 +1,67 @@
+# -*- coding: utf-8 -*-
+#
+# This class was auto-generated from the API references found at
+# https://apireference.connect.worldline-solutions.com/
+#
+from typing import Optional
+
+from worldline.connect.sdk.v1.domain.abstract_redirect_payment_product840_specific_input import AbstractRedirectPaymentProduct840SpecificInput
+
+
+class RedirectPaymentProduct840SpecificInput(AbstractRedirectPaymentProduct840SpecificInput):
+    """
+    | Please find below specific input fields for payment product 840 (PayPal)
+    """
+
+    __custom: Optional[str] = None
+    __is_shortcut: Optional[bool] = None
+
+    @property
+    def custom(self) -> Optional[str]:
+        """
+        | A free text string that you can send to PayPal. With a special agreement between PayPal and you, PayPal uses the data in that property, for custom services they offer to you.
+
+        Type: str
+
+        Deprecated; Use Order.references.descriptor instead
+        """
+        return self.__custom
+
+    @custom.setter
+    def custom(self, value: Optional[str]) -> None:
+        self.__custom = value
+
+    @property
+    def is_shortcut(self) -> Optional[bool]:
+        """
+        | Deprecated: If your PayPal payments are processed by Worldline's Ogone Payment Platform, please use the property addressSelectionAtPayPal instead.
+        | Indicates whether to use PayPal Express Checkout for payments processed by Worldline's GlobalCollect Payment Platform. 
+        
+        * true = PayPal Express Checkout 
+        * false = Regular PayPal payment 
+        
+        | For payments processed by Worldline's Ogone Payment Platform, please see the addressSelectionAtPayPal property for more information.
+
+        Type: bool
+        """
+        return self.__is_shortcut
+
+    @is_shortcut.setter
+    def is_shortcut(self, value: Optional[bool]) -> None:
+        self.__is_shortcut = value
+
+    def to_dictionary(self) -> dict:
+        dictionary = super(RedirectPaymentProduct840SpecificInput, self).to_dictionary()
+        if self.custom is not None:
+            dictionary['custom'] = self.custom
+        if self.is_shortcut is not None:
+            dictionary['isShortcut'] = self.is_shortcut
+        return dictionary
+
+    def from_dictionary(self, dictionary: dict) -> 'RedirectPaymentProduct840SpecificInput':
+        super(RedirectPaymentProduct840SpecificInput, self).from_dictionary(dictionary)
+        if 'custom' in dictionary:
+            self.custom = dictionary['custom']
+        if 'isShortcut' in dictionary:
+            self.is_shortcut = dictionary['isShortcut']
+        return self

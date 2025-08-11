@@ -1,0 +1,64 @@
+# -*- coding: utf-8 -*-
+#
+# This class was auto-generated from the API references found at
+# https://apireference.connect.worldline-solutions.com/
+#
+from typing import Optional
+
+from worldline.connect.sdk.domain.data_object import DataObject
+from worldline.connect.sdk.v1.domain.address import Address
+from worldline.connect.sdk.v1.domain.trustly_bank_account import TrustlyBankAccount
+
+
+class PaymentProduct806SpecificOutput(DataObject):
+
+    __billing_address: Optional[Address] = None
+    __customer_account: Optional[TrustlyBankAccount] = None
+
+    @property
+    def billing_address(self) -> Optional[Address]:
+        """
+        | Object containing the billing address details of the customer
+
+        Type: :class:`worldline.connect.sdk.v1.domain.address.Address`
+        """
+        return self.__billing_address
+
+    @billing_address.setter
+    def billing_address(self, value: Optional[Address]) -> None:
+        self.__billing_address = value
+
+    @property
+    def customer_account(self) -> Optional[TrustlyBankAccount]:
+        """
+        | Object containing the account details
+
+        Type: :class:`worldline.connect.sdk.v1.domain.trustly_bank_account.TrustlyBankAccount`
+        """
+        return self.__customer_account
+
+    @customer_account.setter
+    def customer_account(self, value: Optional[TrustlyBankAccount]) -> None:
+        self.__customer_account = value
+
+    def to_dictionary(self) -> dict:
+        dictionary = super(PaymentProduct806SpecificOutput, self).to_dictionary()
+        if self.billing_address is not None:
+            dictionary['billingAddress'] = self.billing_address.to_dictionary()
+        if self.customer_account is not None:
+            dictionary['customerAccount'] = self.customer_account.to_dictionary()
+        return dictionary
+
+    def from_dictionary(self, dictionary: dict) -> 'PaymentProduct806SpecificOutput':
+        super(PaymentProduct806SpecificOutput, self).from_dictionary(dictionary)
+        if 'billingAddress' in dictionary:
+            if not isinstance(dictionary['billingAddress'], dict):
+                raise TypeError('value \'{}\' is not a dictionary'.format(dictionary['billingAddress']))
+            value = Address()
+            self.billing_address = value.from_dictionary(dictionary['billingAddress'])
+        if 'customerAccount' in dictionary:
+            if not isinstance(dictionary['customerAccount'], dict):
+                raise TypeError('value \'{}\' is not a dictionary'.format(dictionary['customerAccount']))
+            value = TrustlyBankAccount()
+            self.customer_account = value.from_dictionary(dictionary['customerAccount'])
+        return self

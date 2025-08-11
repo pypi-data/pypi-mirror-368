@@ -1,0 +1,67 @@
+# -*- coding: utf-8 -*-
+#
+# This class was auto-generated from the API references found at
+# https://apireference.connect.worldline-solutions.com/
+#
+from typing import Optional
+
+from worldline.connect.sdk.v1.domain.abstract_three_d_secure import AbstractThreeDSecure
+from worldline.connect.sdk.v1.domain.external_cardholder_authentication_data import ExternalCardholderAuthenticationData
+from worldline.connect.sdk.v1.domain.redirection_data import RedirectionData
+
+
+class ThreeDSecure(AbstractThreeDSecure):
+    """
+    | Object containing specific data regarding 3-D Secure
+    """
+
+    __external_cardholder_authentication_data: Optional[ExternalCardholderAuthenticationData] = None
+    __redirection_data: Optional[RedirectionData] = None
+
+    @property
+    def external_cardholder_authentication_data(self) -> Optional[ExternalCardholderAuthenticationData]:
+        """
+        | Object containing 3D secure details.
+
+        Type: :class:`worldline.connect.sdk.v1.domain.external_cardholder_authentication_data.ExternalCardholderAuthenticationData`
+        """
+        return self.__external_cardholder_authentication_data
+
+    @external_cardholder_authentication_data.setter
+    def external_cardholder_authentication_data(self, value: Optional[ExternalCardholderAuthenticationData]) -> None:
+        self.__external_cardholder_authentication_data = value
+
+    @property
+    def redirection_data(self) -> Optional[RedirectionData]:
+        """
+        | Object containing browser specific redirection related data
+
+        Type: :class:`worldline.connect.sdk.v1.domain.redirection_data.RedirectionData`
+        """
+        return self.__redirection_data
+
+    @redirection_data.setter
+    def redirection_data(self, value: Optional[RedirectionData]) -> None:
+        self.__redirection_data = value
+
+    def to_dictionary(self) -> dict:
+        dictionary = super(ThreeDSecure, self).to_dictionary()
+        if self.external_cardholder_authentication_data is not None:
+            dictionary['externalCardholderAuthenticationData'] = self.external_cardholder_authentication_data.to_dictionary()
+        if self.redirection_data is not None:
+            dictionary['redirectionData'] = self.redirection_data.to_dictionary()
+        return dictionary
+
+    def from_dictionary(self, dictionary: dict) -> 'ThreeDSecure':
+        super(ThreeDSecure, self).from_dictionary(dictionary)
+        if 'externalCardholderAuthenticationData' in dictionary:
+            if not isinstance(dictionary['externalCardholderAuthenticationData'], dict):
+                raise TypeError('value \'{}\' is not a dictionary'.format(dictionary['externalCardholderAuthenticationData']))
+            value = ExternalCardholderAuthenticationData()
+            self.external_cardholder_authentication_data = value.from_dictionary(dictionary['externalCardholderAuthenticationData'])
+        if 'redirectionData' in dictionary:
+            if not isinstance(dictionary['redirectionData'], dict):
+                raise TypeError('value \'{}\' is not a dictionary'.format(dictionary['redirectionData']))
+            value = RedirectionData()
+            self.redirection_data = value.from_dictionary(dictionary['redirectionData'])
+        return self

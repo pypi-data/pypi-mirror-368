@@ -1,0 +1,67 @@
+# -*- coding: utf-8 -*-
+#
+# This class was auto-generated from the API references found at
+# https://apireference.connect.worldline-solutions.com/
+#
+from typing import Optional
+
+from worldline.connect.sdk.v1.domain.abstract_payment_method_specific_output import AbstractPaymentMethodSpecificOutput
+from worldline.connect.sdk.v1.domain.e_invoice_payment_product9000_specific_output import EInvoicePaymentProduct9000SpecificOutput
+from worldline.connect.sdk.v1.domain.fraud_results import FraudResults
+
+
+class EInvoicePaymentMethodSpecificOutput(AbstractPaymentMethodSpecificOutput):
+    """
+    | E-invoice payment specific response data
+    """
+
+    __fraud_results: Optional[FraudResults] = None
+    __payment_product9000_specific_output: Optional[EInvoicePaymentProduct9000SpecificOutput] = None
+
+    @property
+    def fraud_results(self) -> Optional[FraudResults]:
+        """
+        | Object containing the results of the fraud screening
+
+        Type: :class:`worldline.connect.sdk.v1.domain.fraud_results.FraudResults`
+        """
+        return self.__fraud_results
+
+    @fraud_results.setter
+    def fraud_results(self, value: Optional[FraudResults]) -> None:
+        self.__fraud_results = value
+
+    @property
+    def payment_product9000_specific_output(self) -> Optional[EInvoicePaymentProduct9000SpecificOutput]:
+        """
+        | AfterPay Installments (payment product 9000) specific details
+
+        Type: :class:`worldline.connect.sdk.v1.domain.e_invoice_payment_product9000_specific_output.EInvoicePaymentProduct9000SpecificOutput`
+        """
+        return self.__payment_product9000_specific_output
+
+    @payment_product9000_specific_output.setter
+    def payment_product9000_specific_output(self, value: Optional[EInvoicePaymentProduct9000SpecificOutput]) -> None:
+        self.__payment_product9000_specific_output = value
+
+    def to_dictionary(self) -> dict:
+        dictionary = super(EInvoicePaymentMethodSpecificOutput, self).to_dictionary()
+        if self.fraud_results is not None:
+            dictionary['fraudResults'] = self.fraud_results.to_dictionary()
+        if self.payment_product9000_specific_output is not None:
+            dictionary['paymentProduct9000SpecificOutput'] = self.payment_product9000_specific_output.to_dictionary()
+        return dictionary
+
+    def from_dictionary(self, dictionary: dict) -> 'EInvoicePaymentMethodSpecificOutput':
+        super(EInvoicePaymentMethodSpecificOutput, self).from_dictionary(dictionary)
+        if 'fraudResults' in dictionary:
+            if not isinstance(dictionary['fraudResults'], dict):
+                raise TypeError('value \'{}\' is not a dictionary'.format(dictionary['fraudResults']))
+            value = FraudResults()
+            self.fraud_results = value.from_dictionary(dictionary['fraudResults'])
+        if 'paymentProduct9000SpecificOutput' in dictionary:
+            if not isinstance(dictionary['paymentProduct9000SpecificOutput'], dict):
+                raise TypeError('value \'{}\' is not a dictionary'.format(dictionary['paymentProduct9000SpecificOutput']))
+            value = EInvoicePaymentProduct9000SpecificOutput()
+            self.payment_product9000_specific_output = value.from_dictionary(dictionary['paymentProduct9000SpecificOutput'])
+        return self

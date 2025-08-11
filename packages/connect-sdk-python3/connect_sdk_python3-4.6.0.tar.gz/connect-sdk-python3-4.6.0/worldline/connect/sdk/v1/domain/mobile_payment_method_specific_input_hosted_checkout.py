@@ -1,0 +1,146 @@
+# -*- coding: utf-8 -*-
+#
+# This class was auto-generated from the API references found at
+# https://apireference.connect.worldline-solutions.com/
+#
+from typing import Optional
+
+from worldline.connect.sdk.v1.domain.abstract_payment_method_specific_input import AbstractPaymentMethodSpecificInput
+from worldline.connect.sdk.v1.domain.mobile_payment_product302_specific_input_hosted_checkout import MobilePaymentProduct302SpecificInputHostedCheckout
+from worldline.connect.sdk.v1.domain.mobile_payment_product320_specific_input_hosted_checkout import MobilePaymentProduct320SpecificInputHostedCheckout
+
+
+class MobilePaymentMethodSpecificInputHostedCheckout(AbstractPaymentMethodSpecificInput):
+
+    __authorization_mode: Optional[str] = None
+    __customer_reference: Optional[str] = None
+    __payment_product302_specific_input: Optional[MobilePaymentProduct302SpecificInputHostedCheckout] = None
+    __payment_product320_specific_input: Optional[MobilePaymentProduct320SpecificInputHostedCheckout] = None
+    __requires_approval: Optional[bool] = None
+    __skip_fraud_service: Optional[bool] = None
+
+    @property
+    def authorization_mode(self) -> Optional[str]:
+        """
+        | Determines the type of the authorization that will be used. Allowed values:
+        
+        * FINAL_AUTHORIZATION - The payment creation results in an authorization that is ready for capture. Final authorizations can't be reversed and need to be captured for the full amount within 7 days.
+        * PRE_AUTHORIZATION - The payment creation results in a pre-authorization that is ready for capture. Pre-authortizations can be reversed and can be captured within 30 days. The capture amount can be lower than the authorized amount.
+        * SALE - The payment creation results in an authorization that is already captured at the moment of approval.
+        
+        | Only used with some acquirers, ingnored for acquirers that don't support this. In case the acquirer doesn't allow this to be specified the authorizationMode is 'unspecified', which behaves similar to a final authorization.
+
+        Type: str
+        """
+        return self.__authorization_mode
+
+    @authorization_mode.setter
+    def authorization_mode(self, value: Optional[str]) -> None:
+        self.__authorization_mode = value
+
+    @property
+    def customer_reference(self) -> Optional[str]:
+        """
+        | Reference of the customer for the payment (purchase order #, etc.). Only used with some acquirers.
+
+        Type: str
+        """
+        return self.__customer_reference
+
+    @customer_reference.setter
+    def customer_reference(self, value: Optional[str]) -> None:
+        self.__customer_reference = value
+
+    @property
+    def payment_product302_specific_input(self) -> Optional[MobilePaymentProduct302SpecificInputHostedCheckout]:
+        """
+        | Object containing information specific to Apple Pay
+
+        Type: :class:`worldline.connect.sdk.v1.domain.mobile_payment_product302_specific_input_hosted_checkout.MobilePaymentProduct302SpecificInputHostedCheckout`
+        """
+        return self.__payment_product302_specific_input
+
+    @payment_product302_specific_input.setter
+    def payment_product302_specific_input(self, value: Optional[MobilePaymentProduct302SpecificInputHostedCheckout]) -> None:
+        self.__payment_product302_specific_input = value
+
+    @property
+    def payment_product320_specific_input(self) -> Optional[MobilePaymentProduct320SpecificInputHostedCheckout]:
+        """
+        | Object containing information specific to Google Pay (paymentProductId 320)
+
+        Type: :class:`worldline.connect.sdk.v1.domain.mobile_payment_product320_specific_input_hosted_checkout.MobilePaymentProduct320SpecificInputHostedCheckout`
+        """
+        return self.__payment_product320_specific_input
+
+    @payment_product320_specific_input.setter
+    def payment_product320_specific_input(self, value: Optional[MobilePaymentProduct320SpecificInputHostedCheckout]) -> None:
+        self.__payment_product320_specific_input = value
+
+    @property
+    def requires_approval(self) -> Optional[bool]:
+        """
+        * true = the payment requires approval before the funds will be captured using the Capture payment <https://apireference.connect.worldline-solutions.com/s2sapi/v1/en_US/python/payments/approve.html> API
+        * false = the payment does not require approval, and the funds will be captured automatically
+
+        Type: bool
+        """
+        return self.__requires_approval
+
+    @requires_approval.setter
+    def requires_approval(self, value: Optional[bool]) -> None:
+        self.__requires_approval = value
+
+    @property
+    def skip_fraud_service(self) -> Optional[bool]:
+        """
+        * true = Fraud scoring will be skipped for this transaction
+        * false = Fraud scoring will not be skipped for this transaction
+        
+        | Note: This is only possible if your account in our system is setup for Fraud scoring and if your configuration in our system allows you to override it per transaction.
+
+        Type: bool
+        """
+        return self.__skip_fraud_service
+
+    @skip_fraud_service.setter
+    def skip_fraud_service(self, value: Optional[bool]) -> None:
+        self.__skip_fraud_service = value
+
+    def to_dictionary(self) -> dict:
+        dictionary = super(MobilePaymentMethodSpecificInputHostedCheckout, self).to_dictionary()
+        if self.authorization_mode is not None:
+            dictionary['authorizationMode'] = self.authorization_mode
+        if self.customer_reference is not None:
+            dictionary['customerReference'] = self.customer_reference
+        if self.payment_product302_specific_input is not None:
+            dictionary['paymentProduct302SpecificInput'] = self.payment_product302_specific_input.to_dictionary()
+        if self.payment_product320_specific_input is not None:
+            dictionary['paymentProduct320SpecificInput'] = self.payment_product320_specific_input.to_dictionary()
+        if self.requires_approval is not None:
+            dictionary['requiresApproval'] = self.requires_approval
+        if self.skip_fraud_service is not None:
+            dictionary['skipFraudService'] = self.skip_fraud_service
+        return dictionary
+
+    def from_dictionary(self, dictionary: dict) -> 'MobilePaymentMethodSpecificInputHostedCheckout':
+        super(MobilePaymentMethodSpecificInputHostedCheckout, self).from_dictionary(dictionary)
+        if 'authorizationMode' in dictionary:
+            self.authorization_mode = dictionary['authorizationMode']
+        if 'customerReference' in dictionary:
+            self.customer_reference = dictionary['customerReference']
+        if 'paymentProduct302SpecificInput' in dictionary:
+            if not isinstance(dictionary['paymentProduct302SpecificInput'], dict):
+                raise TypeError('value \'{}\' is not a dictionary'.format(dictionary['paymentProduct302SpecificInput']))
+            value = MobilePaymentProduct302SpecificInputHostedCheckout()
+            self.payment_product302_specific_input = value.from_dictionary(dictionary['paymentProduct302SpecificInput'])
+        if 'paymentProduct320SpecificInput' in dictionary:
+            if not isinstance(dictionary['paymentProduct320SpecificInput'], dict):
+                raise TypeError('value \'{}\' is not a dictionary'.format(dictionary['paymentProduct320SpecificInput']))
+            value = MobilePaymentProduct320SpecificInputHostedCheckout()
+            self.payment_product320_specific_input = value.from_dictionary(dictionary['paymentProduct320SpecificInput'])
+        if 'requiresApproval' in dictionary:
+            self.requires_approval = dictionary['requiresApproval']
+        if 'skipFraudService' in dictionary:
+            self.skip_fraud_service = dictionary['skipFraudService']
+        return self

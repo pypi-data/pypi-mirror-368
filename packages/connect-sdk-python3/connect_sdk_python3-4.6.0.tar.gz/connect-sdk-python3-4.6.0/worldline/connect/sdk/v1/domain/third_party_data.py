@@ -1,0 +1,42 @@
+# -*- coding: utf-8 -*-
+#
+# This class was auto-generated from the API references found at
+# https://apireference.connect.worldline-solutions.com/
+#
+from typing import Optional
+
+from worldline.connect.sdk.domain.data_object import DataObject
+from worldline.connect.sdk.v1.domain.payment_product863_third_party_data import PaymentProduct863ThirdPartyData
+
+
+class ThirdPartyData(DataObject):
+
+    __payment_product863: Optional[PaymentProduct863ThirdPartyData] = None
+
+    @property
+    def payment_product863(self) -> Optional[PaymentProduct863ThirdPartyData]:
+        """
+        | Contains the third party data for payment product 863 (WeChat Pay).
+
+        Type: :class:`worldline.connect.sdk.v1.domain.payment_product863_third_party_data.PaymentProduct863ThirdPartyData`
+        """
+        return self.__payment_product863
+
+    @payment_product863.setter
+    def payment_product863(self, value: Optional[PaymentProduct863ThirdPartyData]) -> None:
+        self.__payment_product863 = value
+
+    def to_dictionary(self) -> dict:
+        dictionary = super(ThirdPartyData, self).to_dictionary()
+        if self.payment_product863 is not None:
+            dictionary['paymentProduct863'] = self.payment_product863.to_dictionary()
+        return dictionary
+
+    def from_dictionary(self, dictionary: dict) -> 'ThirdPartyData':
+        super(ThirdPartyData, self).from_dictionary(dictionary)
+        if 'paymentProduct863' in dictionary:
+            if not isinstance(dictionary['paymentProduct863'], dict):
+                raise TypeError('value \'{}\' is not a dictionary'.format(dictionary['paymentProduct863']))
+            value = PaymentProduct863ThirdPartyData()
+            self.payment_product863 = value.from_dictionary(dictionary['paymentProduct863'])
+        return self

@@ -1,0 +1,39 @@
+# -*- coding: utf-8 -*-
+#
+# This class was auto-generated from the API references found at
+# https://apireference.connect.worldline-solutions.com/
+#
+from typing import Optional
+
+from worldline.connect.sdk.domain.data_object import DataObject
+
+
+class BoletoBancarioRequirednessValidator(DataObject):
+
+    __fiscal_number_length: Optional[int] = None
+
+    @property
+    def fiscal_number_length(self) -> Optional[int]:
+        """
+        | When performing a payment with Boleto Bancario, some values are only required when the fiscalnumber has a specific length. The length the fiscalnumber has to have to make the field required is defined here.
+        | For example the CompanyName is required when the fiscalnumber is a CNPJ. The firstname and surname are required when the fiscalnumber is a CPF.
+
+        Type: int
+        """
+        return self.__fiscal_number_length
+
+    @fiscal_number_length.setter
+    def fiscal_number_length(self, value: Optional[int]) -> None:
+        self.__fiscal_number_length = value
+
+    def to_dictionary(self) -> dict:
+        dictionary = super(BoletoBancarioRequirednessValidator, self).to_dictionary()
+        if self.fiscal_number_length is not None:
+            dictionary['fiscalNumberLength'] = self.fiscal_number_length
+        return dictionary
+
+    def from_dictionary(self, dictionary: dict) -> 'BoletoBancarioRequirednessValidator':
+        super(BoletoBancarioRequirednessValidator, self).from_dictionary(dictionary)
+        if 'fiscalNumberLength' in dictionary:
+            self.fiscal_number_length = dictionary['fiscalNumberLength']
+        return self

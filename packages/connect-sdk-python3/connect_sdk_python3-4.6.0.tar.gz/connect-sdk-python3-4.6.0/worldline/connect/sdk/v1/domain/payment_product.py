@@ -1,0 +1,546 @@
+# -*- coding: utf-8 -*-
+#
+# This class was auto-generated from the API references found at
+# https://apireference.connect.worldline-solutions.com/
+#
+from typing import List, Optional
+
+from worldline.connect.sdk.domain.data_object import DataObject
+from worldline.connect.sdk.v1.domain.account_on_file import AccountOnFile
+from worldline.connect.sdk.v1.domain.authentication_indicator import AuthenticationIndicator
+from worldline.connect.sdk.v1.domain.payment_product302_specific_data import PaymentProduct302SpecificData
+from worldline.connect.sdk.v1.domain.payment_product320_specific_data import PaymentProduct320SpecificData
+from worldline.connect.sdk.v1.domain.payment_product863_specific_data import PaymentProduct863SpecificData
+from worldline.connect.sdk.v1.domain.payment_product_display_hints import PaymentProductDisplayHints
+from worldline.connect.sdk.v1.domain.payment_product_field import PaymentProductField
+
+
+class PaymentProduct(DataObject):
+
+    __accounts_on_file: Optional[List[AccountOnFile]] = None
+    __acquirer_country: Optional[str] = None
+    __allows_installments: Optional[bool] = None
+    __allows_recurring: Optional[bool] = None
+    __allows_tokenization: Optional[bool] = None
+    __authentication_indicator: Optional[AuthenticationIndicator] = None
+    __auto_tokenized: Optional[bool] = None
+    __can_be_iframed: Optional[bool] = None
+    __device_fingerprint_enabled: Optional[bool] = None
+    __display_hints: Optional[PaymentProductDisplayHints] = None
+    __fields: Optional[List[PaymentProductField]] = None
+    __fields_warning: Optional[str] = None
+    __id: Optional[int] = None
+    __is_authentication_supported: Optional[bool] = None
+    __is_java_script_required: Optional[bool] = None
+    __max_amount: Optional[int] = None
+    __min_amount: Optional[int] = None
+    __mobile_integration_level: Optional[str] = None
+    __payment_method: Optional[str] = None
+    __payment_product302_specific_data: Optional[PaymentProduct302SpecificData] = None
+    __payment_product320_specific_data: Optional[PaymentProduct320SpecificData] = None
+    __payment_product863_specific_data: Optional[PaymentProduct863SpecificData] = None
+    __payment_product_group: Optional[str] = None
+    __supports_mandates: Optional[bool] = None
+    __uses_redirection_to3rd_party: Optional[bool] = None
+
+    @property
+    def accounts_on_file(self) -> Optional[List[AccountOnFile]]:
+        """
+        | List of tokens for that payment product
+
+        Type: list[:class:`worldline.connect.sdk.v1.domain.account_on_file.AccountOnFile`]
+        """
+        return self.__accounts_on_file
+
+    @accounts_on_file.setter
+    def accounts_on_file(self, value: Optional[List[AccountOnFile]]) -> None:
+        self.__accounts_on_file = value
+
+    @property
+    def acquirer_country(self) -> Optional[str]:
+        """
+        | ISO 3166-1 alpha-2 country code which indicates the most likely country code of the acquirer that will process the transaction. For Google Pay (paymentProductId 320) transactions this acquirerCountry is should be provided in the https://developers.google.com/pay/api/web/guides/resources/sca <https://developers.google.com/pay/api/web/reference/request-objects#TransactionInfo>
+
+        Type: str
+        """
+        return self.__acquirer_country
+
+    @acquirer_country.setter
+    def acquirer_country(self, value: Optional[str]) -> None:
+        self.__acquirer_country = value
+
+    @property
+    def allows_installments(self) -> Optional[bool]:
+        """
+        | Indicates if the product supports installments
+        
+        * true - This payment supports installments
+        * false - This payment does not support installments
+
+        Type: bool
+        """
+        return self.__allows_installments
+
+    @allows_installments.setter
+    def allows_installments(self, value: Optional[bool]) -> None:
+        self.__allows_installments = value
+
+    @property
+    def allows_recurring(self) -> Optional[bool]:
+        """
+        | Indicates if the product supports recurring payments
+        
+        * true - This payment product supports recurring payments
+        * false - This payment product does not support recurring transactions and can only be used for one-off payments
+
+        Type: bool
+        """
+        return self.__allows_recurring
+
+    @allows_recurring.setter
+    def allows_recurring(self, value: Optional[bool]) -> None:
+        self.__allows_recurring = value
+
+    @property
+    def allows_tokenization(self) -> Optional[bool]:
+        """
+        | Indicates if the payment details can be tokenized for future re-use
+        
+        * true - Payment details from payments done with this payment product can be tokenized for future re-use
+        * false - Payment details from payments done with this payment product can not be tokenized
+
+        Type: bool
+        """
+        return self.__allows_tokenization
+
+    @allows_tokenization.setter
+    def allows_tokenization(self, value: Optional[bool]) -> None:
+        self.__allows_tokenization = value
+
+    @property
+    def authentication_indicator(self) -> Optional[AuthenticationIndicator]:
+        """
+        | Indicates if the payment product supports 3D Security (mandatory, optional or not needed).
+
+        Type: :class:`worldline.connect.sdk.v1.domain.authentication_indicator.AuthenticationIndicator`
+        """
+        return self.__authentication_indicator
+
+    @authentication_indicator.setter
+    def authentication_indicator(self, value: Optional[AuthenticationIndicator]) -> None:
+        self.__authentication_indicator = value
+
+    @property
+    def auto_tokenized(self) -> Optional[bool]:
+        """
+        | Indicates if the payment details can be automatically tokenized for future re-use
+        
+        * true - Payment details from payments done with this payment product can be automatically tokenized for future re-use
+        * false - Payment details from payments done with this payment product can not be automatically tokenized
+
+        Type: bool
+        """
+        return self.__auto_tokenized
+
+    @auto_tokenized.setter
+    def auto_tokenized(self, value: Optional[bool]) -> None:
+        self.__auto_tokenized = value
+
+    @property
+    def can_be_iframed(self) -> Optional[bool]:
+        """
+        | This property is only relevant for payment products that use third party redirects. This property indicates if the third party disallows their payment pages to be embedded in an iframe using the X-Frame-Options header.
+        
+        * true - the third party allows their payment pages to be embedded in an iframe.
+        * false - the third party disallows their payment pages to be embedded in an iframe.
+
+        Type: bool
+        """
+        return self.__can_be_iframed
+
+    @can_be_iframed.setter
+    def can_be_iframed(self, value: Optional[bool]) -> None:
+        self.__can_be_iframed = value
+
+    @property
+    def device_fingerprint_enabled(self) -> Optional[bool]:
+        """
+        | Indicates if device fingerprint is enabled for the product
+        
+        * true
+        * false
+
+        Type: bool
+        """
+        return self.__device_fingerprint_enabled
+
+    @device_fingerprint_enabled.setter
+    def device_fingerprint_enabled(self, value: Optional[bool]) -> None:
+        self.__device_fingerprint_enabled = value
+
+    @property
+    def display_hints(self) -> Optional[PaymentProductDisplayHints]:
+        """
+        | Object containing display hints like the order in which the product should be shown, the name of the product and the logo
+
+        Type: :class:`worldline.connect.sdk.v1.domain.payment_product_display_hints.PaymentProductDisplayHints`
+        """
+        return self.__display_hints
+
+    @display_hints.setter
+    def display_hints(self, value: Optional[PaymentProductDisplayHints]) -> None:
+        self.__display_hints = value
+
+    @property
+    def fields(self) -> Optional[List[PaymentProductField]]:
+        """
+        | Object containing all the fields and their details that are associated with this payment product. If you are not interested in the data in the fields you should have us filter them out (using filter=fields in the query-string)
+
+        Type: list[:class:`worldline.connect.sdk.v1.domain.payment_product_field.PaymentProductField`]
+        """
+        return self.__fields
+
+    @fields.setter
+    def fields(self, value: Optional[List[PaymentProductField]]) -> None:
+        self.__fields = value
+
+    @property
+    def fields_warning(self) -> Optional[str]:
+        """
+        | If one or more of the payment product fields could not be constructed, no payment product fields will be returned and a message will be present in this property stating why.
+
+        Type: str
+        """
+        return self.__fields_warning
+
+    @fields_warning.setter
+    def fields_warning(self, value: Optional[str]) -> None:
+        self.__fields_warning = value
+
+    @property
+    def id(self) -> Optional[int]:
+        """
+        | The ID of the payment product in our system
+
+        Type: int
+        """
+        return self.__id
+
+    @id.setter
+    def id(self, value: Optional[int]) -> None:
+        self.__id = value
+
+    @property
+    def is_authentication_supported(self) -> Optional[bool]:
+        """
+        | Indicates if the payment product supports 3D-Secure.
+
+        Type: bool
+        """
+        return self.__is_authentication_supported
+
+    @is_authentication_supported.setter
+    def is_authentication_supported(self, value: Optional[bool]) -> None:
+        self.__is_authentication_supported = value
+
+    @property
+    def is_java_script_required(self) -> Optional[bool]:
+        """
+        | This property indicates if the payment product requires JavaScript to be enabled on the customer's browser. This is usually only true if the payment product depends on a third party JavaScript integration.
+        
+        * true - the payment product requires JavaScript to be enabled.
+        * false - the payment product does not require JavaScript to be enabled. This is the default value if the property is not present.
+
+        Type: bool
+        """
+        return self.__is_java_script_required
+
+    @is_java_script_required.setter
+    def is_java_script_required(self, value: Optional[bool]) -> None:
+        self.__is_java_script_required = value
+
+    @property
+    def max_amount(self) -> Optional[int]:
+        """
+        | Maximum amount in cents (using 2 decimals, so 1 EUR becomes 100 cents) for transactions done with this payment product
+
+        Type: int
+        """
+        return self.__max_amount
+
+    @max_amount.setter
+    def max_amount(self, value: Optional[int]) -> None:
+        self.__max_amount = value
+
+    @property
+    def min_amount(self) -> Optional[int]:
+        """
+        | Minimum amount in cents (using 2 decimals, so 1 EUR becomes 100 cents) for transactions done with this payment product
+
+        Type: int
+        """
+        return self.__min_amount
+
+    @min_amount.setter
+    def min_amount(self, value: Optional[int]) -> None:
+        self.__min_amount = value
+
+    @property
+    def mobile_integration_level(self) -> Optional[str]:
+        """
+        | This provides insight into the level of support for payments using a device with a smaller screen size. You can for instance use this to rank payment products differently on devices with a smaller screen. Possible values are:
+        
+        * NO_SUPPORT - The payment product does not work at all on a mobile device
+        * BASIC_SUPPORT - The payment product has not optimized its user experience for devices with smaller screens
+        * OPTIMISED_SUPPORT - The payment product offers a user experience that has been optimized for devices with smaller screens
+
+        Type: str
+        """
+        return self.__mobile_integration_level
+
+    @mobile_integration_level.setter
+    def mobile_integration_level(self, value: Optional[str]) -> None:
+        self.__mobile_integration_level = value
+
+    @property
+    def payment_method(self) -> Optional[str]:
+        """
+        | Indicates which payment method will be used for this payment product. Payment method is one of:
+        
+        * bankTransfer
+        * card
+        * cash
+        * directDebit
+        * eInvoice
+        * invoice
+        * redirect
+
+        Type: str
+        """
+        return self.__payment_method
+
+    @payment_method.setter
+    def payment_method(self, value: Optional[str]) -> None:
+        self.__payment_method = value
+
+    @property
+    def payment_product302_specific_data(self) -> Optional[PaymentProduct302SpecificData]:
+        """
+        | Apple Pay (payment product 302) specific details.
+
+        Type: :class:`worldline.connect.sdk.v1.domain.payment_product302_specific_data.PaymentProduct302SpecificData`
+        """
+        return self.__payment_product302_specific_data
+
+    @payment_product302_specific_data.setter
+    def payment_product302_specific_data(self, value: Optional[PaymentProduct302SpecificData]) -> None:
+        self.__payment_product302_specific_data = value
+
+    @property
+    def payment_product320_specific_data(self) -> Optional[PaymentProduct320SpecificData]:
+        """
+        | Google Pay (payment product 320) specific details.
+
+        Type: :class:`worldline.connect.sdk.v1.domain.payment_product320_specific_data.PaymentProduct320SpecificData`
+        """
+        return self.__payment_product320_specific_data
+
+    @payment_product320_specific_data.setter
+    def payment_product320_specific_data(self, value: Optional[PaymentProduct320SpecificData]) -> None:
+        self.__payment_product320_specific_data = value
+
+    @property
+    def payment_product863_specific_data(self) -> Optional[PaymentProduct863SpecificData]:
+        """
+        | WeChat Pay (payment product 863) specific details.
+
+        Type: :class:`worldline.connect.sdk.v1.domain.payment_product863_specific_data.PaymentProduct863SpecificData`
+        """
+        return self.__payment_product863_specific_data
+
+    @payment_product863_specific_data.setter
+    def payment_product863_specific_data(self, value: Optional[PaymentProduct863SpecificData]) -> None:
+        self.__payment_product863_specific_data = value
+
+    @property
+    def payment_product_group(self) -> Optional[str]:
+        """
+        | The payment product group that has this payment product, if there is any. Not populated otherwise. Currently only one payment product group is supported:
+        
+        * cards
+
+        Type: str
+        """
+        return self.__payment_product_group
+
+    @payment_product_group.setter
+    def payment_product_group(self, value: Optional[str]) -> None:
+        self.__payment_product_group = value
+
+    @property
+    def supports_mandates(self) -> Optional[bool]:
+        """
+        | Indicates whether the payment product supports mandates.
+
+        Type: bool
+        """
+        return self.__supports_mandates
+
+    @supports_mandates.setter
+    def supports_mandates(self, value: Optional[bool]) -> None:
+        self.__supports_mandates = value
+
+    @property
+    def uses_redirection_to3rd_party(self) -> Optional[bool]:
+        """
+        | Indicates whether the payment product requires redirection to a third party to complete the payment. You can use this to filter out products that require a redirect if you don't want to support that.
+        
+        * true - Redirection is required
+        * false - No redirection is required
+
+        Type: bool
+        """
+        return self.__uses_redirection_to3rd_party
+
+    @uses_redirection_to3rd_party.setter
+    def uses_redirection_to3rd_party(self, value: Optional[bool]) -> None:
+        self.__uses_redirection_to3rd_party = value
+
+    def to_dictionary(self) -> dict:
+        dictionary = super(PaymentProduct, self).to_dictionary()
+        if self.accounts_on_file is not None:
+            dictionary['accountsOnFile'] = []
+            for element in self.accounts_on_file:
+                if element is not None:
+                    dictionary['accountsOnFile'].append(element.to_dictionary())
+        if self.acquirer_country is not None:
+            dictionary['acquirerCountry'] = self.acquirer_country
+        if self.allows_installments is not None:
+            dictionary['allowsInstallments'] = self.allows_installments
+        if self.allows_recurring is not None:
+            dictionary['allowsRecurring'] = self.allows_recurring
+        if self.allows_tokenization is not None:
+            dictionary['allowsTokenization'] = self.allows_tokenization
+        if self.authentication_indicator is not None:
+            dictionary['authenticationIndicator'] = self.authentication_indicator.to_dictionary()
+        if self.auto_tokenized is not None:
+            dictionary['autoTokenized'] = self.auto_tokenized
+        if self.can_be_iframed is not None:
+            dictionary['canBeIframed'] = self.can_be_iframed
+        if self.device_fingerprint_enabled is not None:
+            dictionary['deviceFingerprintEnabled'] = self.device_fingerprint_enabled
+        if self.display_hints is not None:
+            dictionary['displayHints'] = self.display_hints.to_dictionary()
+        if self.fields is not None:
+            dictionary['fields'] = []
+            for element in self.fields:
+                if element is not None:
+                    dictionary['fields'].append(element.to_dictionary())
+        if self.fields_warning is not None:
+            dictionary['fieldsWarning'] = self.fields_warning
+        if self.id is not None:
+            dictionary['id'] = self.id
+        if self.is_authentication_supported is not None:
+            dictionary['isAuthenticationSupported'] = self.is_authentication_supported
+        if self.is_java_script_required is not None:
+            dictionary['isJavaScriptRequired'] = self.is_java_script_required
+        if self.max_amount is not None:
+            dictionary['maxAmount'] = self.max_amount
+        if self.min_amount is not None:
+            dictionary['minAmount'] = self.min_amount
+        if self.mobile_integration_level is not None:
+            dictionary['mobileIntegrationLevel'] = self.mobile_integration_level
+        if self.payment_method is not None:
+            dictionary['paymentMethod'] = self.payment_method
+        if self.payment_product302_specific_data is not None:
+            dictionary['paymentProduct302SpecificData'] = self.payment_product302_specific_data.to_dictionary()
+        if self.payment_product320_specific_data is not None:
+            dictionary['paymentProduct320SpecificData'] = self.payment_product320_specific_data.to_dictionary()
+        if self.payment_product863_specific_data is not None:
+            dictionary['paymentProduct863SpecificData'] = self.payment_product863_specific_data.to_dictionary()
+        if self.payment_product_group is not None:
+            dictionary['paymentProductGroup'] = self.payment_product_group
+        if self.supports_mandates is not None:
+            dictionary['supportsMandates'] = self.supports_mandates
+        if self.uses_redirection_to3rd_party is not None:
+            dictionary['usesRedirectionTo3rdParty'] = self.uses_redirection_to3rd_party
+        return dictionary
+
+    def from_dictionary(self, dictionary: dict) -> 'PaymentProduct':
+        super(PaymentProduct, self).from_dictionary(dictionary)
+        if 'accountsOnFile' in dictionary:
+            if not isinstance(dictionary['accountsOnFile'], list):
+                raise TypeError('value \'{}\' is not a list'.format(dictionary['accountsOnFile']))
+            self.accounts_on_file = []
+            for element in dictionary['accountsOnFile']:
+                value = AccountOnFile()
+                self.accounts_on_file.append(value.from_dictionary(element))
+        if 'acquirerCountry' in dictionary:
+            self.acquirer_country = dictionary['acquirerCountry']
+        if 'allowsInstallments' in dictionary:
+            self.allows_installments = dictionary['allowsInstallments']
+        if 'allowsRecurring' in dictionary:
+            self.allows_recurring = dictionary['allowsRecurring']
+        if 'allowsTokenization' in dictionary:
+            self.allows_tokenization = dictionary['allowsTokenization']
+        if 'authenticationIndicator' in dictionary:
+            if not isinstance(dictionary['authenticationIndicator'], dict):
+                raise TypeError('value \'{}\' is not a dictionary'.format(dictionary['authenticationIndicator']))
+            value = AuthenticationIndicator()
+            self.authentication_indicator = value.from_dictionary(dictionary['authenticationIndicator'])
+        if 'autoTokenized' in dictionary:
+            self.auto_tokenized = dictionary['autoTokenized']
+        if 'canBeIframed' in dictionary:
+            self.can_be_iframed = dictionary['canBeIframed']
+        if 'deviceFingerprintEnabled' in dictionary:
+            self.device_fingerprint_enabled = dictionary['deviceFingerprintEnabled']
+        if 'displayHints' in dictionary:
+            if not isinstance(dictionary['displayHints'], dict):
+                raise TypeError('value \'{}\' is not a dictionary'.format(dictionary['displayHints']))
+            value = PaymentProductDisplayHints()
+            self.display_hints = value.from_dictionary(dictionary['displayHints'])
+        if 'fields' in dictionary:
+            if not isinstance(dictionary['fields'], list):
+                raise TypeError('value \'{}\' is not a list'.format(dictionary['fields']))
+            self.fields = []
+            for element in dictionary['fields']:
+                value = PaymentProductField()
+                self.fields.append(value.from_dictionary(element))
+        if 'fieldsWarning' in dictionary:
+            self.fields_warning = dictionary['fieldsWarning']
+        if 'id' in dictionary:
+            self.id = dictionary['id']
+        if 'isAuthenticationSupported' in dictionary:
+            self.is_authentication_supported = dictionary['isAuthenticationSupported']
+        if 'isJavaScriptRequired' in dictionary:
+            self.is_java_script_required = dictionary['isJavaScriptRequired']
+        if 'maxAmount' in dictionary:
+            self.max_amount = dictionary['maxAmount']
+        if 'minAmount' in dictionary:
+            self.min_amount = dictionary['minAmount']
+        if 'mobileIntegrationLevel' in dictionary:
+            self.mobile_integration_level = dictionary['mobileIntegrationLevel']
+        if 'paymentMethod' in dictionary:
+            self.payment_method = dictionary['paymentMethod']
+        if 'paymentProduct302SpecificData' in dictionary:
+            if not isinstance(dictionary['paymentProduct302SpecificData'], dict):
+                raise TypeError('value \'{}\' is not a dictionary'.format(dictionary['paymentProduct302SpecificData']))
+            value = PaymentProduct302SpecificData()
+            self.payment_product302_specific_data = value.from_dictionary(dictionary['paymentProduct302SpecificData'])
+        if 'paymentProduct320SpecificData' in dictionary:
+            if not isinstance(dictionary['paymentProduct320SpecificData'], dict):
+                raise TypeError('value \'{}\' is not a dictionary'.format(dictionary['paymentProduct320SpecificData']))
+            value = PaymentProduct320SpecificData()
+            self.payment_product320_specific_data = value.from_dictionary(dictionary['paymentProduct320SpecificData'])
+        if 'paymentProduct863SpecificData' in dictionary:
+            if not isinstance(dictionary['paymentProduct863SpecificData'], dict):
+                raise TypeError('value \'{}\' is not a dictionary'.format(dictionary['paymentProduct863SpecificData']))
+            value = PaymentProduct863SpecificData()
+            self.payment_product863_specific_data = value.from_dictionary(dictionary['paymentProduct863SpecificData'])
+        if 'paymentProductGroup' in dictionary:
+            self.payment_product_group = dictionary['paymentProductGroup']
+        if 'supportsMandates' in dictionary:
+            self.supports_mandates = dictionary['supportsMandates']
+        if 'usesRedirectionTo3rdParty' in dictionary:
+            self.uses_redirection_to3rd_party = dictionary['usesRedirectionTo3rdParty']
+        return self

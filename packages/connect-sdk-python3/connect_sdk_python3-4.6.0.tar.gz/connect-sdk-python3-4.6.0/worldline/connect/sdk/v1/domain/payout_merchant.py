@@ -1,0 +1,38 @@
+# -*- coding: utf-8 -*-
+#
+# This class was auto-generated from the API references found at
+# https://apireference.connect.worldline-solutions.com/
+#
+from typing import Optional
+
+from worldline.connect.sdk.domain.data_object import DataObject
+
+
+class PayoutMerchant(DataObject):
+
+    __configuration_id: Optional[str] = None
+
+    @property
+    def configuration_id(self) -> Optional[str]:
+        """
+        | In case your account has been setup with multiple configurations you can use this property to identify the one you would like to use for the transaction. Note that you can only submit preconfigured values in combination with the Worldline Online Payments Acceptance platform. In case no value is supplied a default value of 0 will be submitted to the Worldline Online Payments Acceptance platform. The Worldline Online Payments Acceptance platform internally refers to this as a PosId.
+
+        Type: str
+        """
+        return self.__configuration_id
+
+    @configuration_id.setter
+    def configuration_id(self, value: Optional[str]) -> None:
+        self.__configuration_id = value
+
+    def to_dictionary(self) -> dict:
+        dictionary = super(PayoutMerchant, self).to_dictionary()
+        if self.configuration_id is not None:
+            dictionary['configurationId'] = self.configuration_id
+        return dictionary
+
+    def from_dictionary(self, dictionary: dict) -> 'PayoutMerchant':
+        super(PayoutMerchant, self).from_dictionary(dictionary)
+        if 'configurationId' in dictionary:
+            self.configuration_id = dictionary['configurationId']
+        return self
