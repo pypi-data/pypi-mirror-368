@@ -1,0 +1,190 @@
+Metadata-Version: 2.4
+Name: oslislim
+Version: 0.3.0
+Summary: Open Source License Limitation - 保护开源项目免受商业滥用
+Home-page: https://github.com/oslislim/oslislim
+Author: OSLisLim Contributors
+Author-email: contact@oslislim.org
+Keywords: license protection open-source anti-piracy packaging wheel
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Security
+Classifier: Topic :: System :: Software Distribution
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Provides-Extra: dev
+Requires-Dist: pytest>=6.0; extra == "dev"
+Requires-Dist: pytest-cov>=2.0; extra == "dev"
+Requires-Dist: black>=21.0; extra == "dev"
+Requires-Dist: flake8>=3.8; extra == "dev"
+Requires-Dist: build>=0.7.0; extra == "dev"
+Requires-Dist: wheel>=0.37.0; extra == "dev"
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: keywords
+Dynamic: license-file
+Dynamic: provides-extra
+Dynamic: requires-python
+Dynamic: summary
+
+# OSLisLim
+
+OSLisLim (Open Source License Limitation) 是一个用于保护开源项目免受商业滥用的 Python 库。
+
+## 🎯 核心特性
+
+- 🔒 **强制依赖机制**：删除保护代码项目无法运行
+- 📊 **智能使用追踪**：自动记录函数调用和使用数据
+- 🚫 **打包环境检测**：阻止 PyInstaller 等工具打包分发
+- 🔐 **完全加密保护**：保护包为单行加密文本
+- 🌐 **Cloudflare Workers 支持**：全球边缘计算 API
+
+## 📦 安装
+
+```bash
+pip install oslislim
+```
+
+## 🚀 快速开始
+
+### 基本使用
+
+```python
+from oslislim import decrypt_and_execute, protect_function
+
+# 必须调用（删除后项目无法运行）
+decrypt_and_execute("protection.oslim")
+
+@protect_function
+def main():
+    print("🔒 受保护的开源项目")
+    return "项目执行完成"
+
+if __name__ == "__main__":
+    result = main()
+    print(result)
+```
+
+### 生成保护包
+
+1. **部署 Cloudflare Workers API**（推荐）
+2. **设置环境变量**：`OSLISLIM_CF_API_URL=https://your-api.domain.com`
+3. **生成保护包**：运行保护包生成脚本
+
+## 🔒 工作原理
+
+### 1. 完全加密的保护包
+```
+exec(__import__('oslislim.crypto_client',fromlist=['decrypt_bundle_code']).decrypt_bundle_code('OSL_加密数据...'))
+```
+
+### 2. 强制依赖机制
+- 项目必须调用 `decrypt_and_execute("protection.oslim")`
+- 删除这行代码项目无法运行
+- 形成真正的技术依赖关系
+
+### 3. 打包环境检测
+- 自动检测 PyInstaller、cx_Freeze、Nuitka 等
+- 检测到打包环境立即拒绝运行
+- 有效防止商家打包成 exe 分发
+
+### 4. 智能追踪系统
+- 所有 `@protect_function` 装饰的函数被自动追踪
+- 支持本地和远程两种追踪模式
+- 匿名化处理用户信息，保护隐私
+
+## 🌐 Cloudflare Workers 部署
+
+### 1. 部署 Workers
+```javascript
+// 复制提供的 cloudflare-worker.js 到 CF Workers
+// 配置自定义域名和安全密钥
+```
+
+### 2. 配置客户端
+```bash
+export OSLISLIM_CF_API_URL="https://your-api.domain.com"
+```
+
+### 3. 生成保护包
+```python
+# 运行生成脚本，自动调用 CF Workers API
+python generate_protection.py
+```
+
+## 💡 商业价值
+
+### 对开源作者
+- **技术防护**：真正阻止打包分发
+- **商业发现**：识别企业级使用
+- **法律支持**：提供维权证据
+- **全球监控**：了解项目使用情况
+
+### 对用户
+- **正常使用**：源代码方式完全无感知
+- **开发友好**：不影响正常开发流程
+- **性能优化**：只在启动时解密，运行时无开销
+
+## 🔧 高级配置
+
+### 追踪模式配置
+```python
+import os
+
+# 本地追踪模式
+os.environ["OSLISLIM_TRACKING_MODE"] = "local"
+
+# 远程追踪模式（默认）
+os.environ["OSLISLIM_TRACKING_MODE"] = "remote"
+```
+
+### 自定义 API 地址
+```python
+import os
+
+# 设置自定义 CF Workers API 地址
+os.environ["OSLISLIM_CF_API_URL"] = "https://your-api.domain.com"
+```
+
+## 📊 使用统计
+
+追踪数据包含：
+- 函数调用时间戳
+- 函数名称和参数数量
+- 用户信息（匿名化哈希）
+- Python 版本和平台信息
+
+## 🛡️ 安全特性
+
+- **多重验证**：时间戳 + 签名 + 数据格式验证
+- **防重放攻击**：时间窗口验证
+- **匿名化处理**：用户信息哈希化
+- **边缘计算**：全球分布，低延迟
+
+## 📄 许可证
+
+MIT License - 详见 [LICENSE](LICENSE) 文件
+
+## 🤝 贡献
+
+欢迎提交 Issue 和 Pull Request！
+
+---
+
+**OSLisLim - 保护开源项目，促进健康生态** 🌟
