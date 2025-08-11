@@ -1,0 +1,76 @@
+
+<!-- Button trigger modal -->
+<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#reportModal">
+  <span class="me-1">Analysis Details </span>
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box-arrow-up-right" viewBox="0 0 16 16">
+    <path fill-rule="evenodd" d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5z"/>
+    <path fill-rule="evenodd" d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0v-5z"/>
+  </svg>
+</button>
+
+
+<!-- Modal -->
+<div class="modal fade" id="reportModal" tabindex="-1" aria-labelledby="reportModalLabel" aria-hidden="true">
+  <!-- <div class="modal-dialog"> -->
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="me-3"> <h3 class="modal-title" id="reportModalLabel">Model Details</h3> </span>
+        <div class="d-flex justify-content-end align-items-center">
+          <span class="d-inline-block" tabindex="0" data-bs-toggle="tooltip" data-bs-placement="left" title="Disabled">
+            <button disabled type="button" id="btnPrint" class="btn btn-primary me-2" >
+              <span class="me-1">Print Report </span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-printer" viewBox="0 0 16 16">
+                  <path d="M2.5 8a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1z"/>
+                  <path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2H5zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4V3zm1 5a2 2 0 0 0-2 2v1H2a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v-1a2 2 0 0 0-2-2H5zm7 2v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1z"/>
+              </svg>
+            </button>
+          </span>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+      </div>
+      <div class="modal-body">
+        {% for metric_name, details in evaluation_details.items %}        
+        <h1 class="fs-4 fw-bold mb-0">{{ metric_name }}</h1>
+        {# with details=metric.details #}
+        {# if all_evaluations.PEAK_DRIFT #}
+        {# with details=all_evaluations.PEAK_DRIFT.details #}
+        {% for name, table in details.items %}
+        <h2 class="fs-5 fw-bold mb-0">Model: <code>{{ name }}</code></h2>
+        <div class="container">
+          <div class="row col-8 justify-content-center">
+            <table class="table table-sm table-hover">
+              <thead class="thead-light">
+                <tr>
+                  {% for heading in table.0 %}
+                  <th>{{ heading }}</th>
+                  {% endfor %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in table|slice:"1:" %}
+                <tr>
+                  {% for col in row %}
+                  <td>{{ col }}</td>
+                  {% endfor %}
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% endfor  %}
+        {# endwith #}
+        {# endwith #}
+        {# endif   #}
+        {% endfor  %}
+        <p></p>
+      </div>
+
+
+      <div class="modal-footer">
+        Model Details
+      </div>
+    </div>
+  </div>
+</div>

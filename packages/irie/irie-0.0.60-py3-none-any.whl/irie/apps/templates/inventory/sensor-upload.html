@@ -1,0 +1,325 @@
+<!-- 
+===----------------------------------------------------------------------===#
+
+         STAIRLab -- STructural Artificial Intelligence Laboratory
+
+===----------------------------------------------------------------------===#
+
+Chrystal Chern, Spring 2025
+
+-->
+{% extends "layouts/base.html" %}
+
+{% block stylesheets %}
+<style>
+  input[type="number"] {
+    -moz-appearance: textfield; /* Firefox */
+    appearance: textfield; /* Standard */
+  }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.172.0/examples/jsm/"
+  }
+}
+</script>
+{% endblock stylesheets %}
+
+{% block title %} Add Sensor Group to {{ asset.calid }} {% endblock %} 
+
+{% block content %}
+<h1>Add Sensor Group to <code>{{ asset.calid }}</code></h1>
+
+<div class="py-4 align-right">
+  <a role="button" class="button btn btn-outline-primary"
+     href="{% url 'asset_profile' calid=asset.calid %}" 
+     class="me-1">Back to Structure</a>
+  <a role="button" class="button btn btn-outline-primary"
+     href="{% url 'asset_sensors' calid=asset.calid %}" 
+     class="me-1">Back to Sensors</a>
+</div>
+
+
+<div class="container">
+  <div class="row align-right">
+        
+<!-- Left Side: Sensor Form -->
+    <div class="col-md-4" >
+      <form method="post">
+        {% csrf_token %}
+
+        <fieldset class="mb-4">
+          <legend>Sensor Group</legend>
+          {{ group_form.as_p }}
+          <div id="datum-info" class="mb-4 p-2 border rounded bg-light" style="display: none;">
+            <strong>Datum Location (x;y;z):</strong> <span id="datum-location">_, _, _</span> <br>
+            <strong>Datum Orientation (dx;dy;dz):</strong> <span id="datum-orientation">_, _, _</span>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Sensors</legend>
+            {{ formset.management_form }}
+          <div id="formset-container" class="container">
+                {% for form in formset %}
+                        <div class="sensor-form mb-4">
+                            <div class="row mb-3">
+                              <div class="input-group">
+                                <span class="input-group-text col-md-2 text-dark border-dark">{{ form.name.label }}</span>
+                                <input id="{{form.name.html_name}}" 
+                                       type="text" 
+                                       name="{{form.name.html_name}}" 
+                                       value="{{ form.name.value|default_if_none:'' }}"
+                                       class="form-control col-md-4 text-dark border-dark" required></input>
+                              </div>
+                            </div>
+                            <div class="row"><div class="col-md-12 d-flex align-items-center mb-3">
+                              <div class="input-group">
+                                <span class="input-group-text col-md-4 text-gray">{{ form.x.label }}</span>
+                                <input id="{{form.x.html_name}}" 
+                                       type="number" step="any" 
+                                       name="{{form.x.html_name}}" 
+                                       value="{{ form.x.value|default_if_none:'' }}"
+                                       class="form-control col-md-8 text-gray" required></input>
+                              </div>
+                              <div class="input-group">
+                                <span class="input-group-text col-md-4 text-gray">{{ form.y.label }}</span>
+                                <input id="{{form.y.html_name}}" 
+                                       type="number" step="any" 
+                                       name="{{form.y.html_name}}"
+                                       value="{{ form.y.value|default_if_none:'' }}"
+                                       class="form-control col-md-8 text-gray" required></input>
+                              </div>
+                              <div class="input-group">
+                                <span class="input-group-text col-md-4 text-gray">{{ form.z.label }}</span>
+                                <input id="{{form.z.html_name}}" 
+                                       type="number" step="any" 
+                                       name="{{form.z.html_name}}" 
+                                       value="{{ form.z.value|default_if_none:'' }}"
+                                       class="form-control col-md-8 text-gray" required></input>
+                              </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12 d-flex align-items-center mb-3">
+                                <div class="input-group">
+                                  <span class="input-group-text col-md-5 text-gray">{{ form.dx.label }}</span>
+                                  <input id="{{form.dx.html_name}}" 
+                                         type="number" 
+                                         step="any" 
+                                         name="{{form.dx.html_name}}" 
+                                         value="{{ form.dx.value|default_if_none:'' }}"
+                                         class="form-control col-md-8 text-gray" required></input>
+                                </div>
+                                <div class="input-group">
+                                  <span class="input-group-text col-md-5 text-gray">{{ form.dy.label }}</span>
+                                  <input id="{{form.dy.html_name}}" 
+                                         type="number" 
+                                         step="any" 
+                                         name="{{form.dy.html_name}}"
+                                         value="{{ form.dy.value|default_if_none:'' }}" 
+                                         class="form-control col-md-8 text-gray" required></input>
+                                </div>
+                                <div class="input-group">
+                                  <span class="input-group-text col-md-5 text-gray">{{ form.dz.label }}</span>
+                                  <input id="{{form.dz.html_name}}" 
+                                         type="number" 
+                                         step="any" 
+                                         name="{{form.dz.html_name}}"
+                                         value="{{ form.dz.value|default_if_none:'' }}" 
+                                         class="form-control col-md-8 text-gray" required></input>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="remove-form btn btn-danger btn-sm ml-2">Remove</button>
+                    </div>
+                {% endfor %}
+            </div>
+            <button id="add-form" class="btn btn-sm button btn-outline-primary mb-3">Add Sensor</button>
+        </fieldset>
+        <button type="button" id="plot-btn" class="btn btn-info btn-sm mb-3">Plot</button>
+        <button type="submit" class="btn btn-sm button btn-success mb-3">Save</button>
+      </form>
+    </div>
+
+    <!-- Right Side: Asset Geometry -->
+    <div class="col-md-8">
+        <h4>Geometry</h4>
+        <div id="rendering" class="card bg-white-100 border-1 rounded-0 shadow">
+            {% if renderings %}
+            <div class="card-header d-sm-flex flex-row align-items-center flex-0">
+                <select id="id_rendering" class="form-select form-select-sm mb-3" name="rendering">
+                    {% for rendering in renderings %}
+                        <option value="{{ rendering.glb }}">{{ rendering.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="card-body text-center" style="background-color: #f0f0f0;">
+                <div id="veux-container"
+                    style="width: 100%; height: 300px; background-color: #f0f0f0; margin: 0 auto;">
+                </div>
+            </div>
+            <div class="card-footer text-center">
+                Powered by <a href="https://veux.io/"><emph>veux</emph></a>
+            </div>
+        </div>
+
+        {% if asset.cesmd %}
+        <div id="sensors" class="card bg-white-100 border-1 rounded-0 shadow mb-3">
+            <div class="card-body text-center p-2">
+                <img src="{{ ASSETS_ROOT }}/inventory/ll{{ asset.cesmd|slice:"2:" }}.svg" class="img-fluid">
+            </div>
+            <div class="card-footer text-center">
+                <span class="small">
+                    Source: <a rel="nofollow noreferrer" href="https://www.strongmotioncenter.org/cgi-bin/CESMD/stationhtml.pl?stationID={{asset.cesmd}}&network=CGS">CGS</a>
+                </span>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+  </div>
+</div>
+{%endblock content %}
+
+
+{% block javascripts %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const formsetContainer = document.getElementById("formset-container");
+    const addButton = document.getElementById("add-form");
+    const totalForms = document.getElementById("id_form-TOTAL_FORMS");
+
+    function updateRemoveButtons() {
+        let forms = document.querySelectorAll(".sensor-form");
+
+        forms.forEach((form, index) => {
+            let removeButton = form.querySelector(".remove-form");
+            if (forms.length > 1)
+                removeButton.style.display = "inline-block";
+            else 
+                removeButton.style.display =  "none";
+        });
+    }
+
+    addButton.addEventListener("click", (e) => {
+        e.preventDefault();
+        let formNum = parseInt(totalForms.value);
+        let newForm = document.querySelector(".sensor-form").cloneNode(true);
+        
+        // Update form attributes
+        newForm.innerHTML = newForm.innerHTML.replace(/form-(\d+)-/g, `form-${formNum}-`);
+        formsetContainer.appendChild(newForm);
+
+        // Increment the management form count
+        totalForms.value = formNum + 1;
+
+        updateRemoveButtons();
+    });
+
+    formsetContainer.addEventListener("click", (e) => {
+        if (e.target.classList.contains("remove-form")) {
+            e.preventDefault();
+            if (document.querySelectorAll(".sensor-form").length > 1) {
+                e.target.closest(".sensor-form").remove();
+                totalForms.value = document.querySelectorAll(".sensor-form").length;
+                updateRemoveButtons();
+            }
+        }
+    });
+
+    // Ensure the correct remove button state on load
+    updateRemoveButtons();
+});
+</script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+      const datumSelect = document.getElementById("id_datum");
+      const datumInfoDiv = document.getElementById("datum-info");
+      const locationSpan = document.getElementById("datum-location");
+      const orientationSpan = document.getElementById("datum-orientation");
+  
+      // Store datum data from Django
+      const datums = {{ datums|safe }};
+  
+      datumSelect.addEventListener("change", function () {
+          const selectedDatumId = this.value;
+          const selectedDatum = datums.find(d => d.id == selectedDatumId);
+  
+          if (selectedDatum) {
+              locationSpan.textContent = `${selectedDatum.locate_x}; ${selectedDatum.locate_y}; ${selectedDatum.locate_z}`;
+              orientationSpan.textContent = `${selectedDatum.orient_x}; ${selectedDatum.orient_y}; ${selectedDatum.orient_z}`;
+              datumInfoDiv.style.display = "block";  // Show info box
+          } else {
+              datumInfoDiv.style.display = "none";  // Hide if no datum selected
+          }
+      });
+  });
+</script>
+
+<script type="module">
+{% include "sensors/render-sensors.js" %}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const container = document.getElementById("veux-container");
+    // Fallback or real path
+    {% if asset.rendering %}
+    const modelPath = "{{ asset.rendering|safe }}";
+    {% else %}
+    const modelPath = "";
+    {% endif %}
+
+    const scene = createSensorRenderer(container, modelPath);
+
+    //
+    // Plot Button
+    //
+    const arrowObjects = [];
+    const plotButton = document.getElementById('plot-btn');
+    plotButton.addEventListener('click', function () {
+        arrowObjects.forEach(arrow => {
+                scene.remove(arrow);
+        });
+        arrowObjects.length = 0;
+
+        // Grab sensor forms
+        const sensorForms = document.querySelectorAll('.sensor-form');
+        sensorForms.forEach((form) => {
+            const x = parseFloat(form.querySelector("input[name*='x']").value) || 0;
+            const y = parseFloat(form.querySelector("input[name*='y']").value) || 0;
+            const z = parseFloat(form.querySelector("input[name*='z']").value) || 0;
+            const dx = parseFloat(form.querySelector("input[name*='dx']").value) || 0;
+            const dy = parseFloat(form.querySelector("input[name*='dy']").value) || 0;
+            const dz = parseFloat(form.querySelector("input[name*='dz']").value) || 0;
+
+            // Create a direction vector from dx,dy,dz
+            const direction = new THREE.Vector3(dx, dy, dz);
+            const length = direction.length() || 0.1; // arrow length
+            direction.normalize();
+
+            const origin = new THREE.Vector3(x, y, z);
+            const color = 0xff0000;
+            const arrow = createArrow(
+                                        origin,
+                                        direction, 
+                                        length,
+                                        color,
+                                        0.3*length, // head length 
+                                        0.2*length, // head width
+                                        0.1*length  // shaft radius
+                                    );
+
+            scene.add(arrow);
+            arrowObjects.push(arrow);
+        });
+    });
+});
+</script>
+{% endblock javascripts %}

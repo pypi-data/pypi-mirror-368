@@ -1,0 +1,910 @@
+{% extends "layouts/base.html" %}
+
+{% block title %} {{ asset.calid }} Health | {{event.id}} {% endblock %} 
+{% block meta %}
+<meta name="description" content="Health evaluation of the {{asset.name}} in response to event {{ event.id }}.">
+{% endblock %}
+
+{% block stylesheets %}
+{% if asset.rendering %}
+<!-- <meta name="viewport" content="width=device-width, initial-scale=1.0"> -->
+<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
+{% endif %}
+<style>
+.ct-series-a .ct-point, .ct-series-a .ct-line, .ct-series-a .ct-bar, .ct-series-a .ct-slice-donut{
+  stroke: #506690;
+}
+.ct-series-b .ct-point, .ct-series-b .ct-line, .ct-series-b .ct-bar, .ct-series-b .ct-slice-donut {
+  stroke: #61DAFB;
+}
+</style>
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js" charset="utf-8"></script>
+{% endblock stylesheets %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center py-4">
+  <div class="d-block mb-4 mb-md-0">
+      <nav aria-label="breadcrumb" class="d-none d-md-inline-block">
+        <ol class="breadcrumb breadcrumb-dark breadcrumb-transparent">
+          <li class="breadcrumb-item">
+            <a href="{% url 'dashboard' %}">
+              <svg class="icon icon-xxs" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+            </a>
+          </li>
+          <li class="breadcrumb-item" aria-current="page">Evaluations</li>
+          <li class="breadcrumb-item" aria-current="page">{{ event.id }}</li>
+          <li class="breadcrumb-item active"><code>{{ asset.calid }}</code></li>
+        </ol>
+      </nav>
+      <h2 class="fs-2 lh-2 me-3">{{ asset.name }}</h2>
+  </div>
+  <div class="btn-toolbar mb-2 mb-md-0">
+    <a role="button" 
+       href="/inventory/{{ asset.calid }}"
+       class="btn btn-sm btn-outline-primary d-inline-flex align-items-center">
+      Asset Profile
+    </a>
+    <form method="POST" action="#">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center">
+        <svg class="icon icon-xxs" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        Evaluate
+      </button>
+    </form>
+  </div>
+</div>
+
+    <div class="py-4 align-right">
+      {% comment %}
+      <a role="button" class="button btn btn-outline-primary"
+         href="/inventory/{{ asset.calid }}" class="me-1">Structure Profile</a>
+
+      {% include 'includes/modal-report.html' with event_summaries=event_summaries %}
+      {% endcomment %}
+    </div>
+
+    {# BRIDGE RENDER #}
+    <div class="row">
+      <div class="col-12 mb-4">
+        <div class="card h-100 bg-white-100 border-0 shadow rounded-sm">
+          <div class="card-body p-2">
+            <div class="tab-content" id="pills-tabContent">
+              <div class="tab-pane fade show active" 
+                   id="pills-rendering" role="tabpanel">
+                {% if asset.rendering %}
+                  <model-viewer 
+                    id="viewer"
+                    src="{{ asset.rendering }}" 
+                    alt="3D Model" 
+                    auto-rotate 
+                    camera-controls
+                    interaction-prompt="none"
+                    camera-orbit="0deg 75deg 2m" 
+                    field-of-view="30deg"
+                    style="width: 100%; height: 400px;">
+                  </model-viewer>
+                {% endif %}
+              </div>
+              <div class="tab-pane fade show {% if not asset.rendering %}active{% endif %}"
+                   id="pills-sensors" role="tabpanel">
+                <img src="{{ ASSETS_ROOT }}/inventory/ll{{ asset.cesmd|slice:"2:" }}.svg">
+              </div>
+            </div>
+          </div>
+          {% if asset.is_complete %}
+          <div class="card-footer">
+            <ul class="nav nav-pills my-0" id="pills-tab" role="tablist">    
+              <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="pills-active-tab-strain" data-bs-toggle="pill" 
+                        data-bs-target="#pills-rendering" type="button" role="tab">
+                    Rendering
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="pills-inactive-tab-strain" data-bs-toggle="pill" 
+                        data-bs-target="#pills-sensors" type="button" role="tab">
+                    Sensor Layout
+                </button>
+              </li>
+            </ul>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {# RESPONSE SUMMARY CARDS #}
+    {% if asset.is_complete %}
+    <div class="row">
+      <div class="col-12 col-sm-6 col-xl-4 mb-4">
+        {# if false #}
+        <div class="card h-100 border-0 shadow rounded-sm">
+          <div class="card-body">
+            <div class="col-xs-12">
+              <div class="progress mb-3">
+                <div class="progress-bar bg-gray-600" role="progressbar" 
+                     style="width: {{ all_evaluations.COLUMN_STRAIN_STATES.completion }}%;"></div>
+              </div>
+            </div>
+            <div class="tab-content" id="pills-tabContent">
+            {% if all_evaluations.COLUMN_STRAIN_STATES %}
+            {% with summary=all_evaluations.COLUMN_STRAIN_STATES.summary %}
+            {% for model_name, metric_data in summary.items %}
+                {% if metric_data.is_primary %}
+                  <div class="tab-pane fade show active" id="pills-{{ model_name }}-strain" data-strains="{{ metric_data.col_ids }}" role="tabpanel">
+                {% else %}
+                  <div class="tab-pane fade" id="pills-{{ model_name }}-strain"
+                       data-strains="{{ metric_data.col_ids }}" role="tabpanel">
+                {% endif %}
+                    <div class="row d-block d-xl-flex align-items-center">
+                      <div class="col-12 col-xl-5 text-xl-center mb-3 mb-xl-0 d-flex align-items-center justify-content-xl-center">
+                        <img class="img-fluid w-75" 
+                             src="{{ ASSETS_ROOT }}/img/colStrains_small.png" alt="404 not found">
+                        <div class="d-sm-none">
+                          <h2 class="h5">Section strain damage states</h2>
+                          <div class="alert alert-warning" role="alert">
+                            <h3 class='fw-extrabold mb-0 mt-0'>
+                            {{ metric_data.max_ds }}
+                            </h3>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="col-12 col-xl-7 px-xl-0">
+                        <div class="d-none d-sm-block">
+                          <h2 class="h6 text-gray-800 mb-0">Component damage states</h2>
+                          <h3 class="fw-extrabold mt-2 mb-3">
+                              Max: <span class="text-warning">{{ metric_data.max_ds }}</span>
+                          </h3>
+                        </div>
+                        {% if nce_version %}
+                        <small class="d-flex align-items-center text-gray-500">
+                            {{ metric_data.ds_descr }}
+                        </small>
+                        <small class="d-flex align-items-center text-gray-500">
+                            timepoint: {{ metric_data.time }}
+                        </small> 
+                        {% endif %}
+                        <div class="small d-flex mt-1">                               
+                            <div>At {{ metric_data.no_col }} of 28 evaluated columns </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+              {% endfor  %}
+              {% endwith %}
+              {% else %}
+              <center>NA</center>
+              {% endif   %}
+              </div>
+            </div>
+            <div class="card-footer">
+              <ul class="nav nav-pills my-0" id="pills-tab" role="tablist">    
+                  {% if all_evaluations.COLUMN_STRAIN_STATES %}
+                  {% with summary=all_evaluations.COLUMN_STRAIN_STATES.summary %}
+                  {% for model_name, metric_data in summary.items %}
+                      <li class="nav-item" role="presentation">
+                          {% if metric_data.is_primary %}
+                          <button class="nav-link active" id="pills-active-tab-strain" data-bs-toggle="pill" data-bs-target="#pills-{{ model_name }}-strain" type="button" role="tab">
+                          {% else %}
+                          <button class="nav-link" id="pills-inactive-tab-strain" data-bs-toggle="pill" data-bs-target="#pills-{{ model_name }}-strain" type="button" role="tab">
+                          {% endif %}
+                              {{ model_name }}
+                          </button>
+                      </li>
+                  {% endfor  %}
+                  {% endwith %}
+                  {% endif   %}
+              </ul>
+            </div>
+          </div>
+        </div>
+        {# endif #}
+      <!-- </div> -->
+      <div class="col-12 col-sm-6 col-xl-4 mb-4">
+        <div class="card h-100 border-0 shadow rounded-sm">
+          <div class="card-body">
+            <div class="col-xs-12">
+              <div class="progress mb-3">
+                <div class="progress-bar bg-gray-600" role="progressbar" style="width: {{ all_evaluations.PEAK_DRIFT.completion }}%;"></div>
+              </div>
+            </div>
+            <div class="tab-content" id="pills-tabContent">
+                {% if all_evaluations.PEAK_DRIFT %}
+                {% with summary=all_evaluations.PEAK_DRIFT.summary %}
+                {% for model_name, metric_data in summary.items %}
+                    {% if metric_data.is_primary %}
+                    <div class="tab-pane fade show active" id="pills-{{ model_name }}-drift" role="tabpanel">
+                    {% else %}
+                    <div class="tab-pane fade" id="pills-{{ model_name }}-drift" role="tabpanel">
+                    {% endif %}
+                        <div class="row d-block d-xl-flex align-items-center">
+                            <div class="col-12 col-xl-5 text-xl-center mb-3 mb-xl-0 d-flex align-items-center justify-content-xl-center">
+                              <img class="img-fluid w-75" src="{{ ASSETS_ROOT }}/img/drift.svg" alt="404 not found">
+                            </div>
+                            <div class="d-sm-none">
+                              <h2 class="h6 text-gray-800 mb-0"> Peak drift</h2>
+                              <span class="mb-1  fs-3 fw-extrabold lh-lg">{{ metric_data.peak | floatformat:3}}</span> <span class="fst-normal lh-sm">{{metric_data.units|safe}}</span>
+                            </div>
+                            <div class="col-12 col-xl-7 px-xl-0">
+                              <div class="d-none d-sm-block">
+                                <h2 class="h6 text-gray-800 mb-0"> Peak drift</h2>
+                                <span class="mb-1  fs-3 fw-extrabold lh-lg">{{metric_data.peak | floatformat:3}}</span> <span class="fst-normal lh-sm">{{metric_data.units|safe}}</span>
+                              </div>
+                              {% comment %}
+                              <small class="d-flex align-items-center text-gray-500">
+                                  timepoint: {{metric_data.time}}
+                              </small> 
+                              {% endcomment %}
+                              <div class="d-flex mt-1">                               
+                                <div>Location: {{metric_data.col}} </div>
+                              </div>
+                            </div>
+                        </div>
+                    </div>                        
+                {% endfor  %}
+                {% endwith %}
+                {% else %}
+                <center>NA</center>
+                {% endif   %}
+            </div>
+          </div>
+          <div class="card-footer">
+            <ul class="nav nav-pills my-0" id="pills-tab" role="tablist">    
+              {% if all_evaluations.PEAK_DRIFT %}
+              {% with summary=all_evaluations.PEAK_DRIFT.summary %}
+              {% for model_name, metric_data in summary.items %}
+                <li class="nav-item" role="presentation">
+                  {% if metric_data.is_primary %}
+                  <button class="nav-link active" id="pills-active-tab-drift" data-bs-toggle="pill" data-bs-target="#pills-{{ model_name }}-drift" type="button" role="tab">
+                  {% else %}
+                  <button class="nav-link" id="pills-inactive-tab-drift" data-bs-toggle="pill" data-bs-target="#pills-{{ model_name }}-drift" type="button" role="tab">
+                  {% endif %}
+                      {{ model_name }}
+                  </button>
+                </li>
+              {% endfor  %}
+              {% endwith %}
+              {% endif   %}
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-sm-6 col-xl-4 mb-4">
+        <div class="card h-100 border-0 shadow">
+          <div class="card-body">
+            <div class="col-xs-12">
+              <div class="progress mb-3">
+                <div class="progress-bar bg-gray-600" role="progressbar" 
+                     style="width: {{ all_evaluations.PEAK_ACCEL.completion }}%;">
+                </div>
+              </div>
+            </div>
+            <div class="tab-content" id="pills-tabContent">
+                {% if all_evaluations.PEAK_ACCEL %}
+                {% with summary=all_evaluations.PEAK_ACCEL.summary %}
+                {% for model_name, metric_data in summary.items %}
+                    {% if metric_data.is_primary %}
+                    <div class="tab-pane fade show active" id="pills-{{ model_name }}-accel" role="tabpanel">
+                    {% else %}
+                    <div class="tab-pane fade" id="pills-{{ model_name }}-accel" role="tabpanel">
+                    {% endif %}
+                        <div class="row d-block d-xl-flex align-items-center">
+                          <div class="col-12 col-xl-5 text-xl-center mb-3 mb-xl-0 d-flex align-items-center justify-content-xl-center">
+                            <!-- <div class="icon-shape icon-shape-tertiary rounded me-4 me-sm-0">
+                                <svg class="icon" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                            </div> -->
+                            <svg xmlns="http://www.w3.org/2000/svg" width="90%" height="90%" fill="currentColor" class="bi bi-speedometer2" viewBox="0 0 16 16">
+                                <path d="M8 4a.5.5 0 0 1 .5.5V6a.5.5 0 0 1-1 0V4.5A.5.5 0 0 1 8 4zM3.732 5.732a.5.5 0 0 1 .707 0l.915.914a.5.5 0 1 1-.708.708l-.914-.915a.5.5 0 0 1 0-.707zM2 10a.5.5 0 0 1 .5-.5h1.586a.5.5 0 0 1 0 1H2.5A.5.5 0 0 1 2 10zm9.5 0a.5.5 0 0 1 .5-.5h1.5a.5.5 0 0 1 0 1H12a.5.5 0 0 1-.5-.5zm.754-4.246a.389.389 0 0 0-.527-.02L7.547 9.31a.91.91 0 1 0 1.302 1.258l3.434-4.297a.389.389 0 0 0-.029-.518z"/>
+                                <path fill-rule="evenodd" d="M0 10a8 8 0 1 1 15.547 2.661c-.442 1.253-1.845 1.602-2.932 1.25C11.309 13.488 9.475 13 8 13c-1.474 0-3.31.488-4.615.911-1.087.352-2.49.003-2.932-1.25A7.988 7.988 0 0 1 0 10zm8-7a7 7 0 0 0-6.603 9.329c.203.575.923.876 1.68.63C4.397 12.533 6.358 12 8 12s3.604.532 4.923.96c.757.245 1.477-.056 1.68-.631A7 7 0 0 0 8 3z"/>
+                            </svg>
+                            <div class="d-sm-none">
+                              <h2 class="h6 text-gray-800 mb-0"> Peak acceleration</h2>
+                              <!-- <h3 class="fw-extrabold mb-2">{{evaluation_summaries.PEAK_ACCEL.peak}}</h3> -->
+                              <span class="mb-1  fs-3 fw-extrabold lh-lg">{{ metric_data.peak|floatformat:3}}</span> {{ metric_data.units|safe }}
+                            </div>
+                          </div>
+                          <div class="col-12 col-xl-7 px-xl-0">
+                            <div class="d-none d-sm-block">
+                              <h2 class="h6 text-gray-800 mb-0"> Peak acceleration</h2>
+                              <span class="mb-1  fs-3 fw-extrabold lh-lg">{{ metric_data.peak|floatformat:3 }}</span> {{ metric_data.units|safe }}
+                            </div>
+                            <div class="d-flex mt-1">                               
+                                <div> Location: {{ metric_data.col }}</div>
+                            </div>
+                          </div>
+                        </div>
+                    </div>                        
+                {% endfor  %}
+                {% endwith %}
+                {% endif   %}
+            </div>
+          </div>
+          <div class="card-footer">
+              <ul class="nav nav-pills my-0" id="pills-tab" role="tablist">    
+                  {% if all_evaluations.PEAK_ACCEL %}
+                  {% with summary=all_evaluations.PEAK_ACCEL.summary %}
+                  {% for model_name, metric_data in summary.items %}
+                      <li class="nav-item" role="presentation">
+                        {% if metric_data.is_primary %}
+                          <button class="nav-link active"
+                                  data-bs-toggle="pill" type="button" role="tab"
+                                  id="pills-active-tab-accel" 
+                                  data-bs-target="#pills-{{ model_name }}-accel">
+                        {% else %}
+                          <button class="nav-link" 
+                            id="pills-inactive-tab-accel" data-bs-toggle="pill" 
+                            data-bs-target="#pills-{{ model_name }}-accel" 
+                            type="button" role="tab">
+                        {% endif %}
+                            {{ model_name }}
+                          </button>
+                      </li>                        
+                  {% endfor  %}
+                  {% endwith %}
+                  {% endif   %}
+              </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %} {# if .rendering is not None #}
+
+    <div class="row">
+      <div class="col-12 col-xl-7">
+        <div class="row">
+          {% if event_data %}
+          <div class="col-12 mb-4">
+            <div class="card border-0 shadow">
+              <div class="card-header">
+                <div class="row align-items-center">
+                  <div class="col">
+                    <h2 class="fs-5 fw-bold mb-0">Sensor Data</h2>
+                    {# TODO: Have quakeio hoist record_identifier to event #}
+                    {% if event_data.motions and event_data.motions and event_data.motions.0.components.0 %}
+                    <span title="record identifier">
+                      Record ID:
+                      <code>{{ event_data.motions.0.components.0.record_identifier }}</code>
+                    </span>
+                    {% endif %}
+                  </div>
+                  <div class="col text-end">
+                    <div class="align-right">
+                      <div class="dropdown">
+                        <button class="btn btn-gray-800 d-inline-flex align-items-center me-2 dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <svg class="icon icon-xs me-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                            <span id="sensor-peak">
+                            Acceleration
+                            </span>
+                        </button>
+                        <div class="dropdown-menu dashboard-dropdown dropdown-menu-start mt-2 py-1">
+                          <a id="sensor-set-accel" class="dropdown-item d-flex align-items-center" >Acceleration</a>
+                          <a id="sensor-set-veloc" class="dropdown-item d-flex align-items-center" >Velocity</a>
+                          <a id="sensor-set-displ" class="dropdown-item d-flex align-items-center" >Displacement</a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="table-responsive">
+                {% if event_data.motions %}
+                {# event_data #}
+                <table class="table align-items-center table-flush">
+                  <thead class="thead-light">
+                  <tr>
+                    <th class="border-bottom" scope="col">Location</th>
+                    <th class="border-bottom" scope="col">IDs</th>
+                    <th class="border-bottom" scope="col">1</th>
+                    <th class="border-bottom" scope="col">2</th>
+                    <th class="border-bottom" scope="col">3</th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                    {% for motion in event_data.motions %}
+                  <tr>
+                    <td class="fw-bolder text-gray-800">{{ motion.components.0.location_name }}</td>
+                   {# <th class="text-gray-900" scope="row">{{ component.station_channel }}</th> #}
+                   {# <td class="fw-bolder text-gray-800">{{ component.component }}</td> #}
+                    <td class="fw-bolder text-gray-800">
+                      <div class="d-flex">
+                     {% for component in motion.components %}
+                        {{ component.station_channel }}
+                     {% endfor %}
+                      </div>
+                    </td>
+                    {#  <td class="fw-bolder text-gray-800">{{ component.accel.shape }}</td> #}
+                   {% for component in motion.components %}
+                    <td class="fw-bolder text-gray-800 sensor-col-accel">
+                      <div class="d-flex">
+                        {{ component.peak_accel }}
+                      </div>
+                    </td>
+                   {% endfor %}
+                   {% for component in motion.components %}
+                    <td class="fw-bolder text-gray-800 sensor-col-veloc" style="display:none;">
+                      <div class="d-flex">
+                        {{ component.peak_veloc }}
+                      </div>
+                    </td>
+                   {% endfor %}
+                   {% for component in motion.components %}
+                    <td class="fw-bolder text-gray-800 sensor-col-displ" style="display:none;">
+                      <div class="d-flex">
+                        {{ component.peak_displ }}
+                      </div>
+                    </td>
+                   {% endfor %}
+                  </tr>
+                  {% endfor %}
+                  </tbody>
+                </table>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endif %}
+          {% if nce_version %}
+          <div class="col-12 col-xxl-6 mb-4">
+            <div class="card border-0 shadow">
+              <div class="card-header border-bottom d-flex align-items-center justify-content-between">
+                <h2 class="fs-5 fw-bold mb-0">Predictor progress</h2>
+                <a href="#" class="btn btn-sm btn-primary">See tasks</a>
+              </div>
+              <div class="card-body">
+                <div class="row mb-4">
+                  <div class="col-auto">
+                    <svg class="icon icon-sm text-gray-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path></svg>
+                  </div>
+                  <div class="col">
+                    <div class="progress-wrapper">
+                      <div class="progress-info">
+                        <div class="h6 mb-0">M1 - Linear structural analysis.</div>
+                        <div class="small fw-bold text-gray-500"><span>75 %</span></div>
+                      </div>
+                      <div class="progress mb-0">
+                        <div class="progress-bar bg-gray-600" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" style="width: 60%;"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="row align-items-center mb-4">
+                  <div class="col-auto">
+                    <svg class="icon icon-sm text-gray-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path></svg>
+                  </div>
+                  <div class="col">
+                      <div class="progress-wrapper">
+                          <div class="progress-info">
+                              <div class="h6 mb-0">M2 - Nonlinear structural analysis</div>
+                              <div class="small fw-bold text-gray-500"><span>60 %</span></div>
+                          </div>
+                          {% if nce_version %}
+                          <div class="progress mb-0">
+                              <div class="progress-bar bg-gray-600" role="progressbar" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100" style="width: 0%;"></div>
+                          </div>
+                          {% else %}
+                          <div class="progress mb-0">
+                              <div class="progress-bar bg-warning" role="progressbar" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100" style="width: 45%;"></div>
+                          </div>
+                          {% endif %}
+                      </div>
+                  </div>
+                </div>
+                <div class="row align-items-center mb-4">
+                    <div class="col-auto">
+                        <svg class="icon icon-sm text-gray-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path></svg>
+                    </div>
+                    <div class="col">
+                        <div class="progress-wrapper">
+                            <div class="progress-info">
+                                <div class="h6 mb-0">A1 - ARIMA predictor</div>
+                                <div class="small fw-bold text-gray-500"><span>45 %</span></div>
+                            </div>
+                            <div class="progress mb-0">
+                                <div class="progress-bar bg-success" role="progressbar" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100" style="width: 75%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row align-items-center mb-3">
+                  <div class="col-auto">
+                    <svg class="icon icon-sm text-gray-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path></svg>
+                  </div>
+                  <div class="col">
+                    <div class="progress-wrapper">
+                      <div class="progress-info">
+                        <div class="h6 mb-0">A2 - LSTM predictor</div>
+                        <div class="small fw-bold text-gray-500"><span>34 %</span></div>
+                      </div>
+                      <div class="progress mb-0">
+                        <div class="progress-bar bg-danger" role="progressbar" aria-valuenow="34" aria-valuemin="0" aria-valuemax="100" style="width: 34%;"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <!-- <div class="col-12 col-xxl-6 mb-4"> 
+               <div class="col-12 mb-4">
+          -->
+          <div class="col-12 col-xl-12">
+            <div class="card border-0 shadow">
+                <div class="card-body">
+                    <h2 class="fs-5 fw-bold mb-1">System ID</h2>
+                    <p>Event results for configured system identification procedures.</p>
+                    <div class="d-block">
+                      {% comment %}
+                      <div class="d-flex align-items-center pt-3">
+                        <div class="icon-shape icon-sm icon-shape-purple rounded me-3">
+                          <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path></svg>
+                        </div>
+                        <div class="d-block">
+                          <label class="mb-0">Evaluations</label>
+                          <h4 class="mb-0">NA</h4>
+                        </div>
+                      </div>
+                      {% endcomment %}
+                      {% comment %}
+                        <div class="d-flex align-items-center me-5">
+                          <div class="icon-shape icon-sm rounded me-3">
+                            <img class="img-fluid w-75" src="{{ ASSETS_ROOT }}/img/colStrains_small.png" alt="404 not found">                                
+                          </div>
+                          <div class="d-block">
+                            <label class="mb-0">Rate</label><h4 class="mb-0">33.50%</h4>
+                          </div>
+                        </div>
+                      {% endcomment %}
+                  <div class="tab-content" id="ssid-pills" style="overflow-x:auto;">
+                  {% if all_evaluations.SPECTRAL_SHIFT_IDENTIFICATION %}
+                    {% with summary=all_evaluations.SPECTRAL_SHIFT_IDENTIFICATION.summary %}
+                    {% for model_name, metric_data in summary.items %}
+                        {{ metric_data.description }}
+                        <div class="tab-pane fade {% if not forloop.counter0 %}show active{% endif %}" id="pills-{{ model_name }}-ssid"
+                             role="tabpanel">
+                          {% if "error" in metric_data %}
+                          This metric failed to run. The error message reads:
+                          <blockquote style="padding: 20px;">
+                            {{ metric_data.error }}
+                          </blockquote>
+                          {% else %}
+                          <table class="table align-items-center table-flush">
+                            <thead class="thead-light">
+                              <tr>
+                                {% for head in metric_data.data.0.keys %}<th class="border-bottom" scope="col">{{ head.title }}</th>
+                                {% endfor %}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <!-- Rows limited to the first 10 items, sorted by amplitude if it exists, else don't sort -->
+                              {% for row in metric_data.data|dictsortreversed:"amplitude"|slice:10|default:metric_data.data|slice:10 %}
+                              <tr>
+                                {% for key,col in row.items %}
+                                <td class="{% if col < 0.5 and key.lower == "mpc" or col < 0.5 and key.lower == "emac"  %}text-danger{% elif col > 0.9  and key.lower == "mpc" or col > 0.9  and key.lower == "emac" %}text-success{% endif %}">{% if key.lower != "shape" %}{{ col | floatformat:3 }}{% else %}{{ col }}{% endif %}</td>
+                                {% endfor %}
+                              </tr>
+                              {% endfor %}
+                            </tbody>
+                          </table>
+                        {% endif %}
+                        </div>
+                    {% endfor  %}
+                    {% endwith %}
+                  {% else %}
+                    <center>NA</center>
+                  {% endif %}
+                  </div>
+                </div>
+                <div class="card-footer">
+                  <ul class="nav nav-pills my-0" id="pills-tab" role="tablist">    
+                    {% if all_evaluations.SPECTRAL_SHIFT_IDENTIFICATION %}
+                    {% with summary=all_evaluations.SPECTRAL_SHIFT_IDENTIFICATION.summary %}
+                    {% for model_name, metric_data in summary.items %}
+                        <li class="nav-item" role="presentation">
+                          {% if not forloop.counter0 %}
+                          <button class="nav-link active" id="pills-active-tab-ssid" data-bs-toggle="pill"
+                            data-bs-target="#pills-{{ model_name }}-ssid" type="button" role="tab">
+                          {% else %}
+                          <button class="nav-link" id="pills-inactive-tab-ssid" data-bs-toggle="pill" 
+                            data-bs-target="#pills-{{ model_name }}-ssid" type="button" role="tab">
+                          {% endif %}
+                              {{ model_name }}
+                          </button>
+                        </li>
+                    {% endfor  %}
+                    {% endwith %}
+                    {% endif   %}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+        </div>
+      </div>
+      <div class="col-12 col-xl-5">
+          <div class="col-12 px-0 mb-4">
+              <div class="card border-0 shadow">
+                  <div class="card-header d-flex flex-row align-items-center flex-0 border-bottom">
+                    <div class="d-block">
+                      <h2 class="h3 fw-extrabold">Frequency Content</h2>
+                      {% if nce_version %}
+                      <h2 class="{% if nce_version %}text-success{% endif %} fw-extrabold">18.2%</h2>
+                      <!-- <div class="small mt-2">                               
+                        <span class="fas fa-angle-up text-success"></span>                                   
+                        <span class="{% if nce_version %}text-success{% endif %} fw-extrabold">18.2%</span>
+                      </div> -->
+                      {% endif %}
+                    </div>
+                    <div class="d-block ms-auto">
+                        <div class="d-flex align-items-center text-end mb-2">
+                            <span class="dot rounded-circle bg-gray-800 me-2"></span>
+                            <span class="fw-normal small">mdof</span>
+                        </div>
+                        {% comment %}
+                        <div class="d-flex align-items-center text-end">
+                            <span class="dot rounded-circle bg-secondary me-2"></span>
+                            <span class="fw-normal small">Damping [%]</span>
+                        </div>
+                        {% endcomment %}
+                    </div>
+                  </div>
+                  <div class="card-body p-2">
+                    <div class="col-xs-12">
+                      <div class="progress mb-3">
+                        <div class="progress-bar bg-gray-600" 
+                             role="progressbar" 
+                             style="width: {{ all_evaluations.COLUMN_STRAIN_STATES.completion }}%;">
+                        </div>
+                      </div>
+                    </div>
+                    <div class="tab-content" id="period-pills"  style="overflow-x:auto;">
+                      <div id="freqPlot" data-freq-plot="{{ freq_plot_json }}"></div>
+                    </div>
+                  </div>
+                {% comment %}
+                <div class="card-footer">
+                    <ul class="nav nav-pills my-0" id="pills-tab" role="tablist">    
+                        {% if all_evaluations.SPECTRAL_SHIFT_IDENTIFICATION %}
+                        {% with summary=all_evaluations.SPECTRAL_SHIFT_IDENTIFICATION.summary %}
+                        {% for model_name, metric_data in summary.items %}
+                            <li class="nav-item" role="presentation">
+                              {% if not forloop.counter0 %}
+                              <button class="nav-link active" id="pills-active-tab-period" data-bs-toggle="pill"
+                                data-bs-target="#pills-{{ model_name }}-period" type="button" role="tab">
+                              {% else %}
+                              <button class="nav-link" id="pills-inactive-tab-period" data-bs-toggle="pill" 
+                                data-bs-target="#pills-{{ model_name }}-period" type="button" role="tab">
+                              {% endif %}
+                                  {{ model_name }}
+                              </button>
+                            </li>
+                        {% endfor  %}
+                        {% endwith %}
+                        {% endif   %}
+                    </ul>
+                </div>
+                {% endcomment %}
+              </div>
+          </div>
+
+          {% comment %}
+          <div class="col-12 px-0 mb-4">
+              <div class="card border-0 shadow">
+                  <div class="card-body">
+                    {% if False %}
+                    <div class="d-flex align-items-center justify-content-between border-bottom pb-3">
+                      <div>
+                        <div class="h6 mb-0 d-flex align-items-center">
+                          <svg class="icon icon-xs text-gray-500 me-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z" clip-rule="evenodd"></path></svg>
+                          Global Rank
+                        </div>
+                      </div>
+                      <div>
+                        <a href="#" class="d-flex align-items-center fw-bold">
+                          #755
+                          <svg class="icon icon-xs text-gray-500 ms-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                        </a>
+                      </div>
+                    </div>
+                    <div class="d-flex align-items-center justify-content-between border-bottom py-3">
+                      <div>
+                        <div class="h6 mb-0 d-flex align-items-center">
+                          <svg class="icon icon-xs text-gray-500 me-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M3 6a3 3 0 013-3h10a1 1 0 01.8 1.6L14.25 8l2.55 3.4A1 1 0 0116 13H6a1 1 0 00-1 1v3a1 1 0 11-2 0V6z" clip-rule="evenodd"></path></svg>
+                          Country Rank
+                        </div>
+                        <div class="small card-stats">
+                          United States
+                          <svg class="icon icon-xs text-success" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"></path></svg>
+                        </div>
+                      </div>
+                      <div>
+                        <a href="#" class="d-flex align-items-center fw-bold">
+                          #32
+                          <svg class="icon icon-xs text-gray-500 ms-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                        </a>
+                      </div>
+                    </div>
+                    <div class="d-flex align-items-center justify-content-between pt-3">
+                      <div>
+                          <div class="h6 mb-0 d-flex align-items-center">
+                            <svg class="icon icon-xs text-gray-500 me-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1H8a3 3 0 00-3 3v1.5a1.5 1.5 0 01-3 0V6z" clip-rule="evenodd"></path><path d="M6 12a2 2 0 012-2h8a2 2 0 012 2v2a2 2 0 01-2 2H2h2a2 2 0 002-2v-2z"></path></svg>
+                            Category Rank
+                          </div>
+                          <div class="small card-stats">
+                            Computers Electronics > Technology
+                            <svg class="icon icon-xs text-success" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"></path></svg>
+                          </div>
+                      </div>
+                      <div>
+                        <a href="#" class="d-flex align-items-center fw-bold">
+                            #11
+                            <svg class="icon icon-xs text-gray-500 ms-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                        </a>
+                      </div>
+                    </div>
+                    {% endif %}
+                  </div>
+              </div>
+          </div>
+          {% endcomment %}
+          {% comment %}
+          <div class="col-12 px-0">
+            <div class="card border-0 shadow">
+              <div class="card-body">
+                  <h2 class="fs-5 fw-bold mb-1">Local News</h2>
+                  <!-- <p>Event results for configured system identification procedures.</p> -->
+                  <div class="d-block">
+                    {% if True %}
+                    <div class="d-flex align-items-center pt-3">
+                      <div class="icon-shape icon-sm icon-shape-purple rounded me-3">
+                        <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path></svg>                                        </div>
+                      <div class="d-block">
+                        <label class="mb-0">Earthquake in Bakersfield! </label>
+                        <!-- <h4 class="mb-0">Earthquake in Bakersfield!</h4> -->
+                        <p>An earthquake has been felt in Bakersfield</p>
+                      </div>
+                    </div>
+                    <div class="d-flex align-items-center pt-3">
+                      <div class="icon-shape icon-sm icon-shape-purple rounded me-3">
+                        <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path></svg>                                        </div>
+                      <div class="d-block">
+                        <label class="mb-0">Another news article</label>
+                        <!-- <h4 class="mb-0">Earthquake in Bakersfield!</h4> -->
+                        <p>A quick synopsis</p>
+                      </div>
+                    </div>
+                    {% endif %}
+                    {% if False %}
+                      <div class="d-flex align-items-center me-5">
+                        <div class="icon-shape icon-sm rounded me-3">
+                          <img class="img-fluid w-75" src="{{ ASSETS_ROOT }}/img/colStrains_small.png" alt="404 not found">                                </div>
+                        <div class="d-block">
+                          <label class="mb-0">Rate</label><h4 class="mb-0">33.50%</h4>
+                        </div>
+                      </div>
+                    {% endif %}
+                {% if False %}
+                <div class="tab-content" id="ssid-pills">
+                  {% if all_evaluations.SPECTRAL_SHIFT_IDENTIFICATION %}
+                  {% with summary=all_evaluations.SPECTRAL_SHIFT_IDENTIFICATION.summary %}
+                  {% for model_name, metric_data in summary.items %}
+                      {% if "error" in metric_data %}
+                      <b>{{ metric_data.error }}</b>
+                      {% else %}
+                      <div class="tab-pane fade {% if not forloop.counter0 %}show active{% endif %}" id="pills-{{ model_name }}-ssid"
+                           role="tabpanel">
+
+                        <table class="table align-items-center table-flush">
+                          <thead class="thead-light">
+                            <tr>
+                              {% for head in metric_data.data.0.keys %}
+                              <th class="border-bottom" scope="col">{{ head.title }}</th>
+                              {% endfor %}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {% for row in metric_data.data %}
+                            <tr>
+                              {% for col in row.values %}
+                              <td class="{% if key.lower == "mpc" and col < 0.5 %}text-success{% endif %}">{{ col | floatformat:3 }}</td>
+                              {% endfor %}
+                            </tr>
+                            {% endfor %}
+                          </tbody>
+                        </table>
+                      {% endif %}
+                      </div>
+                  {% endfor  %}
+                  {% endwith %}
+                  {% else %}
+                  <center>NA</center>
+                  {% endif   %}
+                {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endcomment %}
+      </div>
+    </div>
+
+{% endblock content %}
+
+{% block javascripts %}
+<script>
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+</script>
+{% if False %}
+<script src="{{ ASSETS_ROOT }}/vendor/chartist/dist/chartist.min.js"></script>
+<script src="{{ ASSETS_ROOT }}/vendor/chartist-plugin-tooltips/dist/chartist-plugin-tooltip.min.js"></script>
+{% endif %}
+
+<script>
+  // System Identification plot
+  let elem = document.querySelector('#freqPlot');
+  let elem_data = JSON.parse(elem.dataset.freqPlot);
+  Plotly.newPlot('freqPlot', elem_data.data, elem_data.layout);
+</script>
+
+<script>
+  for (const key of ["accel", "veloc", "displ"]) {
+    let elem = document.querySelector(`#sensor-set-${key}`);
+    elem.onclick = () => {
+      // Unhide
+      [...document.querySelectorAll(`.sensor-col-${key}`)].map((x) => {
+        console.log(x);
+        x.style.display = null;
+      });
+      document.querySelector("#sensor-peak").textContent = elem.innerText;
+      // Hide rest
+      for (const oth of ["accel", "veloc", "displ"]) {
+        if (oth != key)
+          [...document.querySelectorAll(`.sensor-col-${oth}`)].map((x) => {
+            console.log(x);
+            x.style.display = 'none';
+          });
+      }
+    };
+  }
+</script>
+<script>
+// CMP
+function printElement(elem, append, delimiter) {
+    var domClone = elem.cloneNode(true);
+
+    var $printSection = document.getElementById("printSection");
+
+    if (!$printSection) {
+        $printSection = document.createElement("div");
+        $printSection.id = "printSection";
+        document.body.appendChild($printSection);
+    }
+
+    if (append !== true) {
+        $printSection.innerHTML = "";
+    }
+
+    else if (append === true) {
+        if (typeof (delimiter) === "string") {
+            $printSection.innerHTML += delimiter;
+        }
+        else if (typeof (delimiter) === "object") {
+            $printSection.appendChild(delimiter);
+        }
+    }
+
+    $printSection.appendChild(domClone);
+    window.print();
+}
+document.addEventListener("DOMContentLoaded", function(event) {
+    document.getElementById("btnPrint").onclick = function () {
+        printElement(document.getElementById("reportModal"), false, "\n");
+        window.print();
+    }
+});
+</script>
+{% endblock javascripts %}
+
+

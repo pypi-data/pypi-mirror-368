@@ -1,0 +1,276 @@
+{% extends "layouts/base.html" %}
+
+{% block title %} Inventory {% endblock %}
+
+{% block stylesheets %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+
+<style>
+table a[href^="http"]::after,
+table a[href^="https://"]::after
+{
+  content: "";
+  width: 11px;
+  height: 11px;
+  margin-left: 4px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5z'/%3E%3Cpath fill-rule='evenodd' d='M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0v-5z'/%3E%3C/svg%3E");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  display: inline-block;
+}
+</style>
+{% endblock stylesheets %}
+
+{% block content %}
+  <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center py-4">
+    <div class="d-block mb-4 mb-md-0">
+        <nav aria-label="breadcrumb" class="d-none d-md-inline-block">
+          <ol class="breadcrumb breadcrumb-dark breadcrumb-transparent">
+            <li class="breadcrumb-item">
+              <a href="{% url 'dashboard' %}">
+                <svg class="icon icon-xxs" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+              </a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">Inventory</li>
+          </ol>
+        </nav>
+        <h2 class="h4">Inventory</h2>
+    </div>
+    <div class="btn-toolbar mb-2 mb-md-0">
+      <form action="{% url 'asset_table_export_csv' %}" method="get">
+        {% for key, value in request.GET.items %}
+            <input type="hidden" name="{{ key }}" value="{{ value }}">
+        {% endfor %}
+        <button type="submit" class="btn btn-sm btn-outline-primary">Export</button>
+      </form>
+    </div>
+  </div>
+
+  {# Content #}
+  <div class="row">
+    <div class="col-xl-4">
+      <div class="card border-0 shadow">
+          <div class="card-header">
+            <div class="row align-items-center">
+            <div class="col">
+                <h2 class="fs-5 fw-bold mb-0">Search</h2>
+            </div>
+            </div>
+          </div>
+    
+          <div class="card card-body border-0 shadow table-wrapper table-responsive">
+            <form method="get" class="row g-3 mb-4">
+              <!-- Search Field -->
+              <div class="input-group mb-3">
+                <span class="input-group-text">
+                    <svg class="icon icon-xs" x-description="Heroicon name: solid/search" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path>
+                    </svg>
+                </span>
+                {% if False %}
+                <button type="button" class="btn input-group-text btn-outline dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-caret-down-fill" viewBox="0 0 16 16">
+                    <path d="M7.247 11.14l-4.796-5.481C2.014 5.334 2.482 4.5 3.25 4.5h9.5c.768 0 1.236.835.799 1.159l-4.796 5.481a1 1 0 0 1-1.506 0z"/>
+                  </svg>                  
+                  <span class="visually-hidden">Toggle Dropdown</span>
+                </button>
+                <ul class="dropdown-menu">
+                  <li><a class="dropdown-item" href="#">Include fields:</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault">
+                    <label class="form-check-label" for="flexSwitchCheckDefault">ID</label>
+                  </div></li>
+                  <li><div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckChecked" checked>
+                    <label class="form-check-label" for="flexSwitchCheckChecked">Name</label>
+                  </div></li>
+                  <li><div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDisabled" >
+                    <label class="form-check-label" for="flexSwitchCheckDisabled">District</label>
+                  </div></li>
+                </ul>
+                {% endif %}
+                <input 
+                  id="search" 
+                  name="search"
+                  type="text" 
+                  class="form-control" 
+                  value="{{ filter.form.search.value|default_if_none:'' }}" 
+                  placeholder="Search assets"
+                >
+              </div>
+
+              <!-- Latest Year -->
+              <div class="input-group mb-3">
+                <span class="input-group-text">
+                    <svg class="icon icon-xs" x-description="Heroicon name: solid/search" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path>
+                    </svg>
+                </span>
+                {% if False %}
+                <button type="button" class="btn input-group-text btn-outline dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-caret-down-fill" viewBox="0 0 16 16">
+                    <path d="M7.247 11.14l-4.796-5.481C2.014 5.334 2.482 4.5 3.25 4.5h9.5c.768 0 1.236.835.799 1.159l-4.796 5.481a1 1 0 0 1-1.506 0z"/>
+                  </svg>                  
+                  <span class="visually-hidden">Toggle Dropdown</span>
+                </button>
+                <ul class="dropdown-menu">
+                  <li><a class="dropdown-item" href="#">Include fields:</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault">
+                    <label class="form-check-label" for="flexSwitchCheckDefault">Retrofit</label>
+                  </div></li>
+                  <li><div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckChecked" checked>
+                    <label class="form-check-label" for="flexSwitchCheckChecked">Built</label>
+                  </div></li>
+                </ul>
+                {% endif %}
+                <input 
+                  id="max_year" 
+                  name="max_year"
+                  type="number"
+                  max="2024"
+                  step="1"
+                  class="form-control" 
+                  value="{{ filter.form.max_year.value|default_if_none:'2024' }}" 
+                  placeholder="Latest Year Built"
+                >
+              </div>
+
+              <!-- CESMD Not Null Checkbox -->
+              <div class="col-12">
+                  <div class="form-check">
+                      <input 
+                          type="checkbox" 
+                          name="cesmd_not_null" 
+                          id="cesmd_not_null" 
+                          class="form-check-input" 
+                          {% if filter.form.cesmd_not_null.value %}checked{% endif %}>
+                      <label for="cesmd_not_null" class="form-check-label">
+                          {{ filter.form.cesmd_not_null.label }}
+                      </label>
+                  </div>
+              </div>
+              <!-- Streaming check box -->
+              <div class="col-12">
+                <div class="form-check">
+                    <input 
+                        type="checkbox" 
+                        name="is_streaming" 
+                        id="is_streaming" 
+                        class="form-check-input" 
+                        {% if filter.form.is_streaming.value %}checked{% endif %}>
+                    <label for="is_streaming" class="form-check-label">
+                        {{ filter.form.is_streaming.label }}
+                    </label>
+                </div>
+            </div>
+
+              {# Buttons #}
+              <div class="col-12 d-flex justify-content-between">
+                  <button type="submit" class="btn btn-primary">
+                      <i class="bi bi-search"></i> Apply 
+                  </button>
+                  <a href="{% url 'asset_table' %}" class="btn btn-gray-800">
+                      <i class="bi bi-x-circle"></i> Reset
+                  </a>
+              </div>
+          </form>
+          </div>
+      </div>
+    </div>
+    <div class="col-xl-8">
+      <div class="card bg-white-100 border-0 shadow">
+        <!-- 
+        <div class="card-header d-sm-flex flex-row align-items-center flex-0">
+          <div class="d-block mb-3 mb-sm-0">
+              <div class="fs-5 fw-normal mb-2">Inventory Map</div>
+          </div>
+        </div> 
+        -->
+        <div class="card-body p-2">
+          {{ asset_map|safe }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+<div class="card my-4">
+  <div class="card-body border-0 shadow table-wrapper table-responsive">
+    <table class="table table-hover">
+    <thead>
+      <tr>
+        <th><span 
+            title="Structure Number is an alphanumeric sequence assigned by each State to uniquely identify the structure within each State.">
+            CALID
+          </span></th>
+        <th><a href="?page=1&order=cesmd&{{ order_query }}">CESMD</a></th>
+        <th><a href="?page=1&order=name&{{ order_query }}">Name</a></th>
+        <th><a href="?page=1&order=event_count&{{ order_query }}">Events</a></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for v in bridges %}
+        <tr>
+          <td><code>{{ v.calid.split|first }}</code></td>
+
+          <td><a target="_blank"
+                href="https://www.strongmotioncenter.org/cgi-bin/CESMD/stationhtml.pl?stationID={{ v.cesmd }}&netword=CGS">
+              <code>{{ v.cesmd }}</code></a></td>
+
+          {% if v.name %}
+          <td> <a href="{% url 'asset_profile' calid=v.calid %}" >{{ v.name }}</a></td>
+          {% else %}
+          <td> <a href="{% url 'asset_profile' calid=v.calid %}" >{{ v.calid }}</a></td>
+          {% endif %}
+
+          <td>{{ v.event_count }}</td>
+
+        </tr>
+      {% endfor %}
+    </tbody>
+    </table>
+  </div>
+
+  <div class="card-footer px-3 border-0 d-flex flex-column flex-lg-row align-items-center justify-content-between">
+    <nav aria-label="Page navigation example">
+        <ul class="pagination mb-0">
+          <li class="page-item {% if not bridges.has_previous %}disabled{% endif %}">
+            {% if bridges.has_previous %}
+              <a class="page-link" href="?page={{ bridges.previous_page_number }}&{{ page_query }}">Previous</a>
+            {% else %}
+              <a class="page-link disabled" href="#">Previous</a>
+            {% endif %}
+          </li>
+          {% for page in bridges.paginator.page_range %}
+            {% if page <= bridges.number|add:3 and page >= bridges.number|add:-3 %}
+              <li class="page-item {% if page == bridges.number %}active{% endif %}">
+                <a class="page-link" href="?page={{ page }}&{{ page_query }}">{{ page }}</a>
+              </li>
+            {% endif %}
+          {% endfor %}
+          <li class="page-item {% if not bridges.has_next %}disabled{% endif %}">
+            {% if bridges.has_next %}
+              <a class="page-link" href="?page={{ bridges.next_page_number }}&{{ page_query }}">Next</a>
+            {% else %}
+              <a class="page-link disabled" href="#">Next</a>
+            {% endif %}
+          </li>
+        </ul>
+    </nav>
+    <div class="fw-normal small mt-4 mt-lg-0">Showing <b>{{ bridges|length }}</b> out of <b>{{ bridges.paginator.count }}</b> entries</div>
+  </div>
+</div>
+
+{% endblock content %}
+
+{% block javascripts %}
+<script>
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+</script>
+{% endblock javascripts %}

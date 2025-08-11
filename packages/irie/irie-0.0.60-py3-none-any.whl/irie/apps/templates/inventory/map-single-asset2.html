@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head> 
+    <!-- <meta http-equiv="Content-Type" content="text/html; charset=utf-8"> -->
+
+    
+    <!-- <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> -->
+    
+    <link rel="icon" href="/static/assets/favicon.ico?v=2">
+    <link rel="manifest" href="/static/assets/img/favicon/site.webmanifest">
+    <link rel="mask-icon" href="/static/assets/img/favicon/safari-pinned-tab.svg" color="#ffffff">
+    
+    <!-- <link type="text/css" href="/static/assets/vendor/sweetalert2/dist/sweetalert2.min.css" rel="stylesheet">
+    <link type="text/css" href="/static/assets/vendor/notyf/notyf.min.css" rel="stylesheet"> -->
+    <link type="text/css" href="/static/assets/css/brace.css" media="screen" rel="stylesheet">
+
+    <title>Test Maps</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.2.0/dist/maplibre-gl.css">
+    <script src="https://unpkg.com/maplibre-gl@5.2.0/dist/maplibre-gl.js"></script>
+
+    <script type="importmap">
+        {
+            "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+            }
+        }
+    </script>
+    <style>
+        #map { height: 100%;  margin: 0; padding: 0; }
+    </style>
+    <!-- <style>
+        body { margin: 0; padding: 0; }
+        html, body, #map { height: 100%; }
+    </style> -->
+</head>
+    <body class="g-sidenav-show">
+
+            <nav class="navbar navbar-theme-secondary navbar-dark px-4 col-12 d-lg-none">
+                <a class="navbar-brand me-lg-5" href="/">
+                    <img class="navbar-brand-light" src="/static/assets/img/brace2-no_text.png" alt="BRACE2 logo">
+                </a>
+                <div class="d-flex align-items-center">
+                    <a href="javascript:;" class="nav-link text-body p-0" id="iconNavbarSidenav">
+                      <div class="sidenav-toggler-inner">
+                        <i class="sidenav-toggler-line"></i>
+                        <i class="sidenav-toggler-line"></i>
+                        <i class="sidenav-toggler-line"></i>
+                      </div>
+                    </a>
+                    <button class="navbar-toggler collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
+                      <span class="navbar-toggler-icon"></span>
+                    </button>
+                </div>
+            </nav>
+    
+            <aside id="sidenav-main" style="z-index: 1;" class="sidebar navbar navbar-vertical navbar-expand-xs d-lg-block collapse bg-white ms-2 my-2 fixed-start">
+              <div class="collapse navbar-collapse sidebar-inner px-4 pt-3 w-auto" id="sidenav-collapse-main">
+                <ul class="nav navbar-nav flex-column pt-3 pt-md-0">
+                  <li class="nav-item">
+                    <a href="/" class="nav-link d-flex align-items-center" data-bs-toggle="collapse">
+                      <span class="sidebar-icon">
+                        <img src="/static/assets/img/brace2-no_text.png" height="20" width="20" alt="BRACE2 Logo">
+                      </span>
+                      <span class="mt-1 ms-1 sidebar-text center">BRACE<sup class="superscript">2</sup></span>
+                    </a>
+                  </li>
+                  <hr class="horizontal dark mt-0">
+    
+                  <li role="separator" class="dropdown-divider mt-2 mb-2 border-gray-700"></li>
+                  
+                  <li class="nav-item " data-bs-toggle="collapse">
+                    <a href="/dashboard/" class="nav-link">
+                      <span class="sidebar-icon">
+                        <svg class="icon icon-xs me-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z"></path><path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z"></path></svg>
+                      </span> 
+                      <span class="sidebar-text">Dashboard</span>
+                    </a>
+                  </li>
+    
+                  <li class="nav-item " data-bs-toggle="collapse">
+                    <span class="nav-link collapsed  d-flex justify-content-between align-items-center" data-bs-toggle="collapse" data-bs-target="#submenu-events">
+                      <span>
+                        <span class="sidebar-icon">
+                          <svg class="icon icon-xs me-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M5 4a3 3 0 00-3 3v6a3 3 0 003 3h10a3 3 0 003-3V7a3 3 0 00-3-3H5zm-1 9v-1h5v2H5a1 1 0 01-1-1zm7 1h4a1 1 0 001-1v-1h-5v2zm0-4h5V8h-5v2zM9 8H4v2h5V8z" clip-rule="evenodd"></path></svg>
+                        </span> 
+                        <span title="Listing of processed events" class="sidebar-text">Events</span>
+                      </span>
+                      <span class="link-arrow">
+                        <svg class="icon icon-sm" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
+                      </span>
+                    </span>
+                    <div class="multi-level collapse " role="list" id="submenu-events" aria-expanded="false">
+                      <ul class="flex-column nav">
+                        <li class="nav-item ">
+                          <a class="nav-link" href="/event-table/">
+                            <span class="sidebar-text">CGS Motions</span>
+                          </a>
+                        </li>
+                      </ul>
+                    </div>
+                  </li>
+    
+                  <li class="nav-item text-dark " data-bs-toggle="collapse">
+                    <a href="/asset-table/" class="nav-link">
+                      <span class="sidebar-icon">
+                        <svg class="icon icon-xs me-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"></path><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"></path></svg>
+                      </span>
+                      <span title="Listing of bridges with hosted digital twins" class="sidebar-text">Inventory</span>
+                    </a>
+                  </li>
+    
+                  <li class="nav-item ">
+                    <span class="nav-link  collapsed  d-flex justify-content-between align-items-center" data-bs-toggle="collapse" data-bs-target="#submenu-apps">
+                      <span>
+                        <span class="sidebar-icon">
+                          <svg class="icon icon-xs me-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M5 4a3 3 0 00-3 3v6a3 3 0 003 3h10a3 3 0 003-3V7a3 3 0 00-3-3H5zm-1 9v-1h5v2H5a1 1 0 01-1-1zm7 1h4a1 1 0 001-1v-1h-5v2zm0-4h5V8h-5v2zM9 8H4v2h5V8z" clip-rule="evenodd"></path></svg>
+                        </span> 
+                        <span title="Listing of processed events" class="sidebar-text">Applications</span>
+                      </span>
+                      <span class="link-arrow">
+                        <svg class="icon icon-sm" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
+                      </span>
+                    </span>
+                    <div class="multi-level collapse " role="list" id="submenu-apps" aria-expanded="false">
+                      <ul class="flex-column nav">
+                        <li class="nav-item ">
+                          <a class="nav-link" href="/networks/">
+                            <span class="sidebar-text">Networks</span>
+                          </a>
+                        </li>
+                        <li class="nav-item ">
+                          <a class="nav-link" href="/simulations/">
+                            <span class="sidebar-text">Simulation</span>
+                          </a>
+                        </li>
+                        <li class="nav-item ">
+                          <a class="nav-link" href="/visualization/">
+                            <span class="sidebar-text">Visualization</span>
+                          </a>
+                        </li>
+                      </ul>
+                    </div>
+                  </li>
+                  <li role="separator" class="dropdown-divider mt-4 mb-3 border-gray-700"></li>
+                  <li class="nav-item">
+                    <a href="/documents/" class="nav-link d-flex align-items-center">
+                      <span class="sidebar-icon">
+                        <svg class="icon icon-xs me-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path></svg>
+                      </span>
+                      <span class="sidebar-text">Documents</span>
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </aside>
+
+     <div id="irie-map" data-location="[-116.94864, 32.565277]" data-rendering="/uploads/renderings/002917ff-7ab8-4a97-91de-68ce3ff2e3e4.glb" >
+
+      <main class="content">
+        <h1>hi</h1>
+        </div>
+        <footer class="bg-white rounded shadow p-5 mb-2 mt-2 py-3">
+            <div class="row">
+                <div class="col-10 col-md-8 col-xl-8 mb-0 mb-md-0">
+                    <p class="mb-0 text-left">
+                    © <em>BRACE</em><sup class="superscript">2</sup>
+                    - A project by <a target="_blank" href="https://peer.berkeley.edu">PEER</a>.
+                    </p>
+                </div>
+                <div class="col-10 col-md-4 col-xl-4 text-end">
+                <ul class="list-inline list-group-flush list-group-borderless text-end mb-0">
+                    <li class="list-inline-item px-0 px-sm-2">
+                    Powered by 
+                        <a target="_blank" href="https://stairlab.berkeley.edu/software/irie/">
+                        IRiE</a>
+                    </li>
+                </ul>
+                </div>
+            </div>
+        </footer>
+    
+    </main>
+    
+<!--       
+    <script src="/static/assets/vendor/@popperjs/core/dist/umd/popper.min.js"></script>
+    <script src="/static/assets/vendor/bootstrap/dist/js/bootstrap.min.js"></script> 
+
+    <script>
+        var win = navigator.platform.indexOf('Win') > -1;
+        if (win && document.querySelector('#sidenav-scrollbar')) {
+          var options = {
+            damping: '0.5'
+          }
+          Scrollbar.init(document.querySelector('#sidenav-scrollbar'), options);
+        }
+    </script>
+
+    -->
+<!-- 
+    <script src="/static/assets/vendor/smooth-scroll/dist/smooth-scroll.polyfills.min.js"></script>
+    <script src="/static/assets/vendor/sweetalert2/dist/sweetalert2.all.min.js"></script>
+    <script src="/static/assets/vendor/notyf/notyf.min.js"></script>
+    <script async="" defer="" src="https://buttons.github.io/buttons.js"></script>
+    <script src="/static/assets/js/brace.js"></script> 
+    -->
+
+    
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    
+        function createAssetLayerThreeJS(options) {
+            const {map, modelSource, modelOrigin, modelRotate, unitToMeter} = options;
+            const modelAltitude = 0;
+            const modelCoord = maplibregl.MercatorCoordinate.fromLngLat(
+                modelOrigin,
+                modelAltitude
+            );
+            const modelScale = modelCoord.meterInMercatorCoordinateUnits()*unitToMeter;
+            const modelTransform = {
+                translateX: modelCoord.x,
+                translateY: modelCoord.y-25*modelScale,
+                translateZ: modelCoord.z+35*modelScale,
+                rotateX: modelRotate[0],
+                rotateY: modelRotate[1],
+                rotateZ: modelRotate[2],
+                scale: modelScale
+            };
+    
+            return {
+                id: '3d-model',
+                type: 'custom',
+                renderingMode: '3d',
+                onAdd(map, gl) {
+                    this.camera = new THREE.Camera();
+                    this.scene = new THREE.Scene();
+    
+                    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+                    directionalLight.position.set(100, 100, 100);
+                    directionalLight.castShadow = true;
+                    this.scene.add(directionalLight);
+    
+                    directionalLight.shadow.camera.near = 0.1;
+                    directionalLight.shadow.camera.far = 2000;
+                    directionalLight.shadow.camera.left = -500;
+                    directionalLight.shadow.camera.right = 500;
+                    directionalLight.shadow.camera.top = 500;
+                    directionalLight.shadow.camera.bottom = -500;
+    
+                    directionalLight.shadow.mapSize.width = 4096;
+                    directionalLight.shadow.mapSize.height = 4096;
+    
+                    const groundGeometry = new THREE.PlaneGeometry(1000, 1000);
+                    const groundMaterial = new THREE.ShadowMaterial({ opacity: 0.5 });
+                    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+                    ground.rotation.x = -Math.PI / 2;
+                    ground.position.y = modelCoord.z;
+                    ground.receiveShadow = true;
+                    this.scene.add(ground);
+    
+                    const loader = new GLTFLoader();
+                    loader.load(
+                        modelSource,
+                        (gltf) => {
+                            gltf.scene.traverse(function (node) {
+                                if (node.isMesh || node.isLight) {
+                                    node.castShadow = true;
+                                    node.receiveShadow = true;
+                                }
+                            });
+                            this.scene.add(gltf.scene);
+                        }
+                    );
+                    this.map = map;
+    
+                    this.renderer = new THREE.WebGLRenderer({
+                        canvas: map.getCanvas(),
+                        context: gl,
+                        antialias: true
+                    });
+                    this.renderer.shadowMap.enabled = true;
+                    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    
+                    this.renderer.autoClear = false;
+                },
+                render(gl, args) {
+                    const rotationX = new THREE.Matrix4().makeRotationAxis(
+                        new THREE.Vector3(1, 0, 0),
+                        modelTransform.rotateX
+                    );
+                    const rotationY = new THREE.Matrix4().makeRotationAxis(
+                        new THREE.Vector3(0, 1, 0),
+                        modelTransform.rotateY
+                    );
+                    const rotationZ = new THREE.Matrix4().makeRotationAxis(
+                        new THREE.Vector3(0, 0, 1),
+                        modelTransform.rotateZ
+                    );
+    
+                    const m = new THREE.Matrix4().fromArray(args.defaultProjectionData.mainMatrix);
+                    const l = new THREE.Matrix4()
+                        .makeTranslation(
+                            modelTransform.translateX,
+                            modelTransform.translateY,
+                            modelTransform.translateZ
+                        )
+                        .scale(
+                            new THREE.Vector3(
+                                modelTransform.scale,
+                                -modelTransform.scale,
+                                modelTransform.scale
+                            )
+                        )
+                        .multiply(rotationX)
+                        .multiply(rotationY)
+                        .multiply(rotationZ);
+    
+                    this.camera.projectionMatrix = m.multiply(l);
+                    this.renderer.resetState();
+                    this.renderer.render(this.scene, this.camera);
+                    this.map.triggerRepaint();
+                }
+            };
+        }
+    
+        function createAssetLayerBabylon(options) {
+            const {map, modelSource, modelOrigin, modelRotate, unitToMeter} = options;
+            const worldAltitude = 0;
+    
+            const BABYLON = window.BABYLON;
+            // +x east, +y up, +z north
+            // const modelRotate = [Math.PI / 2, 0, 0];
+            // Maplibre.js default coordinate system (no rotations)
+            // +x east, -y north, +z up
+            //var worldRotate = [0, 0, 0];
+    
+            const worldOriginMercator = maplibregl.MercatorCoordinate.fromLngLat(
+                modelOrigin,
+                worldAltitude
+            );
+            const modelScale = worldOriginMercator.meterInMercatorCoordinateUnits()*unitToMeter;
+            const modelTransform = {
+                    translateX: worldOriginMercator.x,
+                    translateY: worldOriginMercator.y-25*modelScale,
+                    translateZ: worldOriginMercator.z+35*modelScale,
+                    rotateX: modelRotate[0],
+                    rotateY: modelRotate[1],
+                    rotateZ: modelRotate[2],
+                    scale: modelScale
+            };
+    
+            // Calculate world matrix
+            const worldMatrix = BABYLON.Matrix.Compose(
+                new BABYLON.Vector3(modelScale, modelScale, modelScale),
+                BABYLON.Quaternion.FromEulerAngles(
+                    modelRotate[0],
+                    modelRotate[1],
+                    modelRotate[2]
+                ),
+                new BABYLON.Vector3(
+                    worldOriginMercator.x,
+                    worldOriginMercator.y,
+                    worldOriginMercator.z
+                )
+            );
+    
+            return {
+                id: '3d-model',
+                type: 'custom',
+                renderingMode: '3d',
+                onAdd (map, gl) {
+                    this.engine = new BABYLON.Engine(
+                        gl,
+                        true,
+                        {
+                            useHighPrecisionMatrix: true // Important to prevent jitter at mercator scale
+                        },
+                        true
+                    );
+                    this.scene = new BABYLON.Scene(this.engine);
+                    /**
+                    * optionally add
+                    * this.scene.autoClearDepthAndStencil = false
+                    * and for renderingGroupIds set this individually via
+                    * this.scene.setRenderingAutoClearDepthStencil(1,false)
+                    * to allow blending with maplibre scene
+                    * as documented in https://doc.babylonjs.com/features/featuresDeepDive/scene/optimize_your_scene#reducing-calls-to-glclear
+                    */
+                    this.scene.autoClear = false;
+                    /**
+                    * use detachControl if you only want to interact with maplibre-gl and do not need pointer events of babylonjs.
+                    * alternatively exchange this.scene.detachControl() with the following two lines, they will allow bubbling up events to maplibre-gl.
+                    * this.scene.preventDefaultOnPointerDown = false
+                    * this.scene.preventDefaultOnPointerUp = false
+                    * https://doc.babylonjs.com/typedoc/classes/BABYLON.Scene#preventDefaultOnPointerDown
+                    */
+                    this.scene.detachControl();
+    
+                    this.scene.beforeRender = () => {
+                        this.engine.wipeCaches(true);
+                    };
+    
+                    // create simple camera (will have its project matrix manually calculated)
+                    this.camera = new BABYLON.Camera(
+                        'Camera',
+                        new BABYLON.Vector3(0, 0, 0),
+                        this.scene
+                    );
+    
+                    // create simple light
+                    const light = new BABYLON.HemisphericLight(
+                        'light1',
+                        new BABYLON.Vector3(0, 0, 100),
+                        this.scene
+                    );
+                    light.intensity = 0.7;
+    
+                    // Add debug axes viewer, positioned at origin, 10 meter axis lengths
+                    new BABYLON.AxesViewer(this.scene, 10);
+    
+                    // load GLTF model in to the scene
+                    BABYLON.SceneLoader.LoadAssetContainerAsync(
+                        modelSource, '', this.scene
+                    ).then((modelContainer) => {
+                        modelContainer.addAllToScene();
+    
+                        const rootMesh = modelContainer.createRootMesh();
+    
+                        // If using maplibre.js coordinate system (+z up)
+                        // rootMesh.rotation.x = Math.PI/2
+    
+                        // // Create a second mesh
+                        // const rootMesh2 = rootMesh.clone();
+    
+                        // // Position in babylon.js coordinate system
+                        // rootMesh2.position.x = 25; // +east, meters
+                        // rootMesh2.position.z = 25; // +north, meters
+                    });
+    
+                    this.map = map;
+                },
+                render (gl, args) {
+                    const cameraMatrix = BABYLON.Matrix.FromArray(args.defaultProjectionData.mainMatrix);
+    
+                    // world-view-projection matrix
+                    const wvpMatrix = worldMatrix.multiply(cameraMatrix);
+    
+                    this.camera.freezeProjectionMatrix(wvpMatrix);
+    
+                    this.scene.render(false);
+                    this.map.triggerRepaint();
+                }
+            };
+    
+        }
+    
+        /*
+        * Helper function used to get threejs-scene-coordinates from mercator coordinates.
+        * This is just a quick and dirty solution - it won't work if points are far away from each other
+        * because a meter near the north-pole covers more mercator-units
+        * than a meter near the equator.
+        */
+        function calculateDistanceMercatorToMeters(from, to) {
+            const mercatorPerMeter = from.meterInMercatorCoordinateUnits();
+            // mercator x: 0=west, 1=east
+            const dEast = to.x - from.x;
+            const dEastMeter = dEast / mercatorPerMeter;
+            // mercator y: 0=north, 1=south
+            const dNorth = from.y - to.y;
+            const dNorthMeter = dNorth / mercatorPerMeter;
+            return {dEastMeter, dNorthMeter};
+        }
+        
+        const div = document.querySelector('#irie-map');
+        const modelOrigin = JSON.parse(div.dataset.location); // [-124.1014, 40.50303];
+        const modelSource = div.dataset.rendering ; //'/uploads/renderings/painter.glb';
+        const unitToMeter = 1/3.2808;
+    
+        const MAPTILER_KEY = 'get_your_own_OpIi9ZULNHzrESv6T2vL';
+        const mapid = 'winter'; // 'dataviz'; // 'basic-v2'; // 'aquarelle';
+        const map = (window.map = new maplibregl.Map({
+            container: 'irie-map',
+            style: `https://api.maptiler.com/maps/${mapid}/style.json?key=${MAPTILER_KEY}`,
+            // style: {
+            //   version: 8,
+            //   sources: {
+            //       osm: {
+            //           type: 'raster',
+            //           tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
+            //           tileSize: 256,
+            //           attribution: '&copy; OpenStreetMap Contributors',
+            //           maxzoom: 19
+            //       },
+            //       // Use a different source for terrain and hillshade layers, to improve render quality
+            //       terrainSource: {
+            //           type: 'raster-dem',
+            //           url: 'https://demotiles.maplibre.org/terrain-tiles/tiles.json',
+            //           tileSize: 256
+            //       },
+            //       hillshadeSource: {
+            //           type: 'raster-dem',
+            //           url: 'https://demotiles.maplibre.org/terrain-tiles/tiles.json',
+            //           tileSize: 256
+            //       }
+            //   },
+            //   layers: [
+            //       {
+            //           id: 'osm',
+            //           type: 'raster',
+            //           source: 'osm'
+            //       },
+            //       {
+            //           id: 'hills',
+            //           type: 'hillshade',
+            //           source: 'hillshadeSource',
+            //           layout: {visibility: 'visible'},
+            //           paint: {'hillshade-shadow-color': '#473B24'}
+            //       }
+            //   ],
+            //   terrain: {
+            //       source: 'terrainSource',
+            //       exaggeration: 1
+            //   }
+            // },
+            zoom: 18,
+            center: modelOrigin,
+            zoom: 18,
+            maxZoom: 30,
+            maxPitch: 85,
+            pitch: 77,
+            canvasContextAttributes: {antialias: true} // create the gl context with MSAA antialiasing, so custom layers are antialiased
+        }));
+    
+    
+        //
+        // Add Buildings
+        //
+    
+        // The 'building' layer in the streets vector source contains building-height
+        // data from OpenStreetMap.
+        map.on('load', () => {
+            // Insert the layer beneath any symbol layer.
+            const layers = map.getStyle().layers;
+    
+            let labelLayerId;
+            for (let i = 0; i < layers.length; i++) {
+                if (layers[i].type === 'symbol' && layers[i].layout['text-field']) {
+                    labelLayerId = layers[i].id;
+                    break;
+                }
+            }
+    
+            map.addSource('openmaptiles', {
+                url: `https://api.maptiler.com/tiles/v3/tiles.json?key=${MAPTILER_KEY}`,
+                type: 'vector',
+            });
+    
+            map.addLayer(
+                {
+                    'id': '3d-buildings',
+                    'source': 'openmaptiles',
+                    'source-layer': 'building',
+                    'type': 'fill-extrusion',
+                    'minzoom': 15,
+                    'filter': ['!=', ['get', 'hide_3d'], true],
+                    'paint': {
+                        'fill-extrusion-color': [
+                            'interpolate',
+                            ['linear'],
+                            ['get', 'render_height'], 0, 'lightgray', 200, 'royalblue', 400, 'lightblue'
+                        ],
+                        'fill-extrusion-height': [
+                            'interpolate',
+                            ['linear'],
+                            ['zoom'],
+                            15,
+                            0,
+                            16,
+                            ['get', 'render_height']
+                        ],
+                        'fill-extrusion-base': ['case',
+                            ['>=', ['get', 'zoom'], 16],
+                            ['get', 'render_min_height'], 0
+                        ]
+                    }
+                },
+                labelLayerId
+            );
+        });
+    
+    
+        //
+        // Add Asset
+        //
+        const worldAltitude = 0;
+        // +x east, +y up, +z north
+        const modelRotate = [Math.PI / 2, 0, 0];
+        // Maplibre.js default coordinate system (no rotations)
+        // +x east, -y north, +z up
+        // const modelRotate = [0, 0, 0];
+    
+        map.on('style.load', () => {
+            map.addLayer(createAssetLayerThreeJS({
+            
+                map,
+                modelSource,
+                modelOrigin,
+                modelRotate,
+                unitToMeter
+            }));
+        });
+    </script>
+
+    </body>
+</html>

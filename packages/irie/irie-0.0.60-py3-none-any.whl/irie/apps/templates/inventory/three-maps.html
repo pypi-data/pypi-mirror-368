@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Test Maps</title>
+    <meta property="og:description" content="Use a custom style layer with three.js to add a 3D model with shadow to the map." />
+    <meta charset='utf-8'>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel='stylesheet' href='https://unpkg.com/maplibre-gl@5.2.0/dist/maplibre-gl.css' />
+    <script src='https://unpkg.com/maplibre-gl@5.2.0/dist/maplibre-gl.js'></script>
+    <style>
+        body { margin: 0; padding: 0; }
+        html, body, #map { height: 100%; }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <div id="map"></div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        const modelOrigin = [-124.1014, 40.50303]; // [148.9819, -35.39847];
+//      const modelSource = 'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf';
+        const modelSource = '/uploads/renderings/painter.glb';
+        const unitToMeter = 1/3.2808;
+        const MAPTILER_KEY = 'get_your_own_OpIi9ZULNHzrESv6T2vL';
+        
+        //
+        // Initialize Map
+        //
+        const map = new maplibregl.Map({
+            container: 'map',
+
+            style: `https://api.maptiler.com/maps/basic-v2/style.json?key=${MAPTILER_KEY}`,
+            center: modelOrigin,
+            zoom: 18,
+            maxZoom: 30,
+            maxPitch: 85,
+            pitch: 77,
+            canvasContextAttributes: {antialias: true}
+        });
+
+        //
+        // Add Buildings
+        //
+
+        // The 'building' layer in the streets vector source contains building-height
+        // data from OpenStreetMap.
+        map.on('load', () => {
+            // Insert the layer beneath any symbol layer.
+            const layers = map.getStyle().layers;
+
+            let labelLayerId;
+            for (let i = 0; i < layers.length; i++) {
+                if (layers[i].type === 'symbol' && layers[i].layout['text-field']) {
+                    labelLayerId = layers[i].id;
+                    break;
+                }
+            }
+
+            map.addSource('openmaptiles', {
+                url: `https://api.maptiler.com/tiles/v3/tiles.json?key=${MAPTILER_KEY}`,
+                type: 'vector',
+            });
+
+            map.addLayer(
+                {
+                    'id': '3d-buildings',
+                    'source': 'openmaptiles',
+                    'source-layer': 'building',
+                    'type': 'fill-extrusion',
+                    'minzoom': 15,
+                    'filter': ['!=', ['get', 'hide_3d'], true],
+                    'paint': {
+                        'fill-extrusion-color': [
+                            'interpolate',
+                            ['linear'],
+                            ['get', 'render_height'], 0, 'lightgray', 200, 'royalblue', 400, 'lightblue'
+                        ],
+                        'fill-extrusion-height': [
+                            'interpolate',
+                            ['linear'],
+                            ['zoom'],
+                            15,
+                            0,
+                            16,
+                            ['get', 'render_height']
+                        ],
+                        'fill-extrusion-base': ['case',
+                            ['>=', ['get', 'zoom'], 16],
+                            ['get', 'render_min_height'], 0
+                        ]
+                    }
+                },
+                labelLayerId
+            );
+        });
+
+        //
+        // Add Asset
+        //
+        const modelAltitude = 0;
+        const modelRotate = [Math.PI / 2, 0, 0];
+        const modelCoord = maplibregl.MercatorCoordinate.fromLngLat(
+            modelOrigin,
+            modelAltitude
+        );
+        const modelScale = modelCoord.meterInMercatorCoordinateUnits()*unitToMeter;
+        const modelTransform = {
+            translateX: modelCoord.x,
+            translateY: modelCoord.y-25*modelScale,
+            translateZ: modelCoord.z+35*modelScale,
+            rotateX: modelRotate[0],
+            rotateY: modelRotate[1],
+            rotateZ: modelRotate[2],
+            scale: modelScale
+        };
+
+        const customLayer = {
+            id: '3d-model',
+            type: 'custom',
+            renderingMode: '3d',
+            onAdd(map, gl) {
+                this.camera = new THREE.Camera();
+                this.scene = new THREE.Scene();
+
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+                directionalLight.position.set(100, 100, 100);
+                directionalLight.castShadow = true;
+                this.scene.add(directionalLight);
+
+                directionalLight.shadow.camera.near = 0.1;
+                directionalLight.shadow.camera.far = 2000;
+                directionalLight.shadow.camera.left = -500;
+                directionalLight.shadow.camera.right = 500;
+                directionalLight.shadow.camera.top = 500;
+                directionalLight.shadow.camera.bottom = -500;
+
+                directionalLight.shadow.mapSize.width = 4096;
+                directionalLight.shadow.mapSize.height = 4096;
+
+                const groundGeometry = new THREE.PlaneGeometry(1000, 1000);
+                const groundMaterial = new THREE.ShadowMaterial({ opacity: 0.5 });
+                const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+                ground.rotation.x = -Math.PI / 2;
+                ground.position.y = modelCoord.z;
+                ground.receiveShadow = true;
+                this.scene.add(ground);
+
+                const loader = new GLTFLoader();
+                loader.load(
+                    modelSource,
+                    (gltf) => {
+                        gltf.scene.traverse(function (node) {
+                            if (node.isMesh || node.isLight) {
+                                node.castShadow = true;
+                                node.receiveShadow = true;
+                            }
+                        });
+                        this.scene.add(gltf.scene);
+                    }
+                );
+                this.map = map;
+
+                this.renderer = new THREE.WebGLRenderer({
+                    canvas: map.getCanvas(),
+                    context: gl,
+                    antialias: true
+                });
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+                this.renderer.autoClear = false;
+            },
+            render(gl, args) {
+                const rotationX = new THREE.Matrix4().makeRotationAxis(
+                    new THREE.Vector3(1, 0, 0),
+                    modelTransform.rotateX
+                );
+                const rotationY = new THREE.Matrix4().makeRotationAxis(
+                    new THREE.Vector3(0, 1, 0),
+                    modelTransform.rotateY
+                );
+                const rotationZ = new THREE.Matrix4().makeRotationAxis(
+                    new THREE.Vector3(0, 0, 1),
+                    modelTransform.rotateZ
+                );
+
+                const m = new THREE.Matrix4().fromArray(args.defaultProjectionData.mainMatrix);
+                const l = new THREE.Matrix4()
+                    .makeTranslation(
+                        modelTransform.translateX,
+                        modelTransform.translateY,
+                        modelTransform.translateZ
+                    )
+                    .scale(
+                        new THREE.Vector3(
+                            modelTransform.scale,
+                            -modelTransform.scale,
+                            modelTransform.scale
+                        )
+                    )
+                    .multiply(rotationX)
+                    .multiply(rotationY)
+                    .multiply(rotationZ);
+
+                this.camera.projectionMatrix = m.multiply(l);
+                this.renderer.resetState();
+                this.renderer.render(this.scene, this.camera);
+                this.map.triggerRepaint();
+            }
+        };
+
+        map.on('style.load', () => {
+            map.addLayer(customLayer);
+        });
+    </script>
+</body>
+
+</html>

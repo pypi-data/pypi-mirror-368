@@ -1,0 +1,163 @@
+{% extends "layouts/base.html" %}
+{% load indexing %}
+{% load crispy_forms_tags %}
+
+{% block title %} Networks {% endblock %} 
+{% block stylesheets %}
+{# For pagination.js #}
+<style>
+  .tableSearch {
+    color: black;
+  }
+  .pagination {
+      justify-content: center;
+  }
+  th {
+      cursor: pointer;
+  }
+</style>
+<style>
+.nav-tabs .nav-item .nav-link.active {
+  background-color: #506690;
+}
+</style>
+<style>
+.form-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.form-row label {
+    margin-right: 10px;
+    width: 150px;
+    text-align: right;
+}
+.styled-input {
+    flex: 1;
+}
+</style>
+{# Style for positioning the button slightly right and up #}
+<style>
+  .download-btn-wrapper {
+    margin-right:   20px; /* Adjust the value for horizontal positioning (right shift) */
+    margin-bottom: -20px; /* Adjust the value for vertical positioning (move up) */
+    display: flex;
+  /*  justify-content: flex-end;  Aligns the content to the right */
+  }
+</style>
+{% endblock stylesheets %}
+
+{% block content %}
+    <h1>Networks</h1>
+    <i class="fa-thin fa-bridge"></i>
+    <div class="row">
+        <div class="col-xl-4">
+          <div class="card border-0 shadow">
+              <div class="card-header">
+                <h2 class="fs-5 fw-bold mb-0">Corridor ranking</h2>
+                <span class="mb-0">
+                  <button class="btn btn-link" type="button" id="toggleWeights">
+                      Collapse the weight form
+                  </button>
+                </span>
+              </div>
+              <div id="weightsBody" class="collapse show">
+              {% for key,tab in maps.items %}
+                <div class="tab-pane mt-3 card-body p-2"
+                      role="tabpanel"
+                      aria-labelledby="{{key}}-form">
+                    <form id="{{ key }}-form" onsubmit="handleCorridorUpdate(event)">
+
+                    {% crispy tab.form %}
+                      <div style="font-size: 0.9em; color: gray; margin-top: 5px;">
+                          (The weights are normalized when calculating)
+                      </div>
+                      <br>
+                    </form>
+                </div>
+              {% endfor %}
+              </div>
+              <br>
+              <h2 class="fs-5 fw-bold mb-0 ms-3">Detailed information of each corridor</h2>
+              <div id="corridor-table" class="table-responsive">
+              </div>
+          </div>
+        </div>
+
+        <div class="col-xl-8">
+          <div class="card bg-white-100 border-0 shadow">
+            <div class="card-header">
+              <ul id="tab-link-container" class="nav nav-tabs" id="myTab" role="tablist">
+                {% for key, tab in maps.items %}
+                  <li class="nav-item" role="presentation">
+                    <a class="nav-link tab-link {% if not forloop.counter0 %}active{% endif %}" 
+                       id="{{ key }}-tab" 
+                       data-bs-toggle="tab" href="#" 
+                       data-tab="{{ key }}" 
+                       role="tab">{{ tab.name }}</a>
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+
+            {# Map content is dynamically loaded into this div #}
+            <div id="tab-content" class="tab-content mt-3 card-body p-2">
+            </div>
+            
+            <div id="tab-content-container">
+            {% for key,tab in maps.items %}
+            <div id="{{key}}-content" 
+                 style="display: {% if not forloop.counter0 %}block{% else %}none{% endif %}"
+                 class="tab-content mt-3 card-body p-2">
+            </div>
+            {% endfor %}
+            </div>
+          </div>
+
+          <!-- This will appear near the bottom of the content but shifted right and up -->
+          <div class="text-center row mt-4 download-btn-wrapper">
+            <a href="https://drive.google.com/drive/folders/1D-KBEe19kknyxW75wTzMLRedwmGHOMF0?usp=sharing" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+              Download maps showing the path sections/corridors used for accessing each facility
+            </a>
+            <a href="https://drive.google.com/drive/folders/1YzPYd5QOOk9WYe4uGKh1T8_lPFULWsqP?usp=sharing" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+              Download maps showing paths crossing each bridge
+            </a>
+            <a href="https://drive.google.com/drive/folders/1wX1_BQvrOxIdPeZRHMdlnP66TCLKHiXp?usp=sharing" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+              Data required for Methods A and A-alt
+            </a>
+            <div class="card border-0 shadow card-body mt-1">
+              <a href="https://geomechanics.berkeley.edu/">
+                <img src="{{ ASSETS_ROOT }}/img/soga-logo.jpeg"  width="40%" alt="Soga Research Group">
+              </a>
+            </div>
+          </div>
+        </div>
+    </div>
+{% endblock content %}
+
+{% block javascripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+      const toggleButton = document.getElementById('toggleWeights');
+      const cardBody = document.getElementById('weightsBody');
+
+      toggleButton.addEventListener('click', function () {
+          if (cardBody.classList.contains('show')) {
+              cardBody.classList.remove('show');
+              toggleButton.innerText = 'Show the weight form';
+          } else {
+              cardBody.classList.add('show');
+              toggleButton.innerText = 'Collapse the weight form';
+          }
+      });
+  });
+</script>
+<script>
+{% include "includes/paginate.js" %}
+</script>
+<script>
+{% include "networks/networks.js" %}
+</script>
+{% endblock javascripts %}
+
