@@ -1,0 +1,157 @@
+[build-system]
+requires = [
+    "pdm-backend",
+]
+build-backend = "pdm.backend"
+
+[project]
+name = "arclet-alconna"
+description = "A High-performance, Generality, Humane Command Line Arguments Parser Library."
+authors = [
+    { name = "RF-Tar-Railt", email = "rf_tar_railt@qq.com" },
+]
+dependencies = [
+    "typing-extensions>=4.5.0",
+    "nepattern<1.0.0,>=0.7.7",
+    "tarina<0.8.0,>=0.7.0",
+]
+dynamic = []
+requires-python = ">=3.9"
+readme = "README-EN.md"
+keywords = [
+    "command",
+    "argparse",
+    "fast",
+    "alconna",
+    "cli",
+    "command-line",
+    "parsing",
+    "optparse",
+]
+classifiers = [
+    "Typing :: Typed",
+    "Development Status :: 5 - Production/Stable",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+]
+version = "1.8.42"
+
+[project.license]
+text = "MIT"
+
+[project.urls]
+documentation = "https://arcletproject.github.io/docs/alconna/tutorial"
+repository = "https://github.com/ArcletProject/Alconna"
+
+[project.optional-dependencies]
+full = [
+    "arclet-alconna-tools>=0.2.0",
+]
+
+[tool.pdm.build]
+includes = [
+    "src/arclet",
+]
+
+[tool.pdm.dev-dependencies]
+dev = [
+    "pytest~=7.2.0",
+    "coverage~=7.0.1",
+    "pydeps~=1.11.0",
+    "fix-future-annotations>=0.4.0",
+    "isort>=5.13.2",
+    "black>=24.2.0",
+]
+
+[tool.pdm.scripts]
+test = "pytest -v -W ignore --ignore entry_test.py"
+benchmark = "python benchmark.py"
+deps = "pydeps -o alconna.svg ./src/arclet/alconna --max-bacon=4 --cluster --keep-target-cluster --rmprefix alconna. "
+
+[tool.pdm.version]
+source = "file"
+path = "src/arclet/alconna/__init__.py"
+
+[tool.pylint.BASIC]
+class-const-naming-style = "any"
+
+[tool.pylint."MESSAGE CONTROL"]
+max-line-length = 120
+disable = [
+    "broad-except",
+    "wrong-import-order",
+    "unused-import",
+    "invalid-name",
+    "use-a-generator",
+    "unbalanced-tuple-unpacking",
+    "inconsistent-return-statements",
+    "redefined-builtin",
+    "redefined-outer-name",
+    "import-outside-toplevel",
+    "too-many-arguments",
+    "too-many-instance-attributes",
+    "too-many-branches",
+    "too-many-boolean-expressions",
+    "too-many-locals",
+    "too-many-statements",
+    "too-many-return-statements",
+    "super-init-not-called",
+    "no-self-use",
+]
+
+[tool.coverage.run]
+branch = true
+source = [
+    ".",
+]
+omit = [
+    "test_alconna/entry_test.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "if (typing\\.)?TYPE_CHECKING( is True)?:",
+    "\\.\\.\\.",
+    "pass",
+    "@(abc\\.)?abstractmethod",
+    "@(typing\\.)?overload",
+    "def __repr__",
+    "def __str__",
+    "def __eq__",
+    "except ImportError:",
+]
+
+[tool.black]
+line-length = 120
+target-version = [
+    "py39",
+    "py310",
+    "py311",
+    "py312",
+    "py313",
+]
+include = "\\.pyi?$"
+extend-exclude = ""
+
+[tool.isort]
+profile = "black"
+line_length = 120
+skip_gitignore = true
+extra_standard_library = [
+    "typing_extensions",
+]
+
+[tool.pyright]
+pythonVersion = "3.9"
+pythonPlatform = "All"
+typeCheckingMode = "basic"
+disableBytesTypePromotions = true
