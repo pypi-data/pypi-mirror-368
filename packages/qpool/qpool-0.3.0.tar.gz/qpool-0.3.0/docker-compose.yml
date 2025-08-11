@@ -1,0 +1,25 @@
+services:
+  localstack-main:
+    container_name: localstack-main  # Name of the container set to localstack
+    image: localstack/localstack:latest   # The correct image tag
+    environment:
+      - DEBUG=1
+      - EDGE_PORT=4566
+      - AWS_ENDPOINT_URL=http://127.0.0.1:4566
+      - LOG_HANDLER=console
+      - LOG_LEVEL=INFO
+      - LS_LOG=info
+      - LOCALSTACK_HOSTNAME=127.0.0.1
+      - TEST_AWS_ACCOUNT_ID=000000000000
+      - AWS_DEFAULT_REGION=us-east-1
+      - DATA_DIR=/tmp/localstack/data
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - SERVICES=s3,lambda,dynamodb,apigateway,cloudwatch,logs,iam # Specify the services to be enabled
+      - LAMBDA_EXECUTOR=docker-reuse  # Use Docker for Lambda runtime
+      - LAMBDA_REMOTE_DOCKER=false    # Use the same Docker network
+    ports:
+      - "4566:4566"
+      - "4571:4571"
+    volumes:
+      - ./logs:/var/log/localstack
+      - /var/run/docker.sock:/var/run/docker.sock

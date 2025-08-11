@@ -1,0 +1,72 @@
+[project]
+name = "qpool"
+version = "0.3.0"
+description = "Trait based multiprocessing with queues"
+readme = "README.md"
+requires-python = ">=3.11.11"
+dependencies = [
+    "aiohttp>=3.11.11",
+    "certifi>=2025.1.31",
+    "pydantic>=2.9.1",
+    "python-dotenv>=1.0.1",
+    "wombat-utils>=0.2.4",
+    "rich>=13.9.2",
+    "uvloop>=0.21.0",
+    "pydantic-partial>=0.6.0",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest-check>=2.4.1",
+    "pytest-timeout>=2.3.1",
+    "faker>=37.5.3",
+    "pytest>=8.3.3",
+    "twine>=6.0.1",
+    "vulture>=2.13",
+    "pytest-asyncio>=1.1.0",
+    "pytest-cov>=6.0.0",
+    "aresponses>=3.0.0",
+    "qpool",
+    "pandas>=2.2.3",
+    "dask>=2025.2.0",
+    "pyarrow>=21.0.0",
+    "pytest-xdist>=3.6.1",
+]
+
+[tool.uv.sources]
+qpool = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+sources = ["src"]
+only-include = ["src/wombat/multiprocessing"]
+
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+# Regexes for lines to exclude from consideration
+exclude_also = [
+    # Don't complain about missing debug-only code:
+    "def __repr__",
+    "if self\\.debug",
+
+    # Don't complain if tests don't hit defensive assertion code:
+    "raise AssertionError",
+    "raise NotImplementedError",
+
+    # Don't complain if non-runnable code isn't run:
+    "if 0:",
+    "if __name__ == .__main__.:",
+
+    # Don't complain about abstract methods, they aren't run:
+    "@(abc\\.)?abstractmethod",
+]
+
+ignore_errors = true
+
+[tool.coverage.html]
+directory = "coverage_html_report"

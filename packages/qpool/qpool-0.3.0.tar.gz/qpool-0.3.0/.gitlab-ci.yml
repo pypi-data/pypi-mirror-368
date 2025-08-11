@@ -1,0 +1,43 @@
+# Official language image. Look for the different tagged releases at:
+# https://hub.docker.com/r/library/python/tags/
+image: python:latest
+
+stages:
+  - publish # Deploy new version of package to registry
+
+variables:
+  PIP_CACHE_DIR: $CI_PROJECT_DIR/.cache/pip # Set folder in working dir for cache
+
+# Runs on 1) commit in main branch that were not made by the semantic-release job
+# GITLAB_USER_NAME and GITLAB_USER_EMAIL are the person responsible for the job.
+# This can be either the person who clicked on the merge button in the UI,
+# or the person whose credentials where used to push to the master branch.
+# This can be different from the author of the last commit message which is $CI_COMMITER_NAME
+version_and_publish:
+  stage: publish
+  image: python:latest
+  variables:
+    GIT_DEPTH: 0
+    GIT_COMMIT_AUTHOR: "semantic-release <$GITLAB_USER_EMAIL>"
+  before_script:
+    - pip install twine
+    - pip install poetry
+    - pip install python-semantic-release
+    - poetry install
+  script:
+    - git fetch --all
+    - git checkout main
+    - git pull origin main
+    - poetry run pytest
+    - semantic-release -c pyproject.toml version --no-commit
+    - |
+      if [ -d "dist" ] && [ "$(ls -A dist)" ]; then
+        python -m twine upload --repository internal dist/* --config-file $PYPIRC
+      fi
+  cache:
+    paths:
+      - ${PIP_CACHE_DIR}
+  # rules:
+  # Don't run on automatic commits
+  # - if: '$CI_COMMIT_REF_NAME == "main" && $CI_COMMIT_AUTHOR !~ /semantic-release.*/'
+  #   when: never
