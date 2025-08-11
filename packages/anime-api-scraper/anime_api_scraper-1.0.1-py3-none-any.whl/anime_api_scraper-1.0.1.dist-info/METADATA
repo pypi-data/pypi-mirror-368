@@ -1,0 +1,440 @@
+Metadata-Version: 2.4
+Name: anime_api_scraper
+Version: 1.0.1
+Summary: Scraper robusto para extraer información de sitios de anime, comenzando con AnimeFlv
+Author-email: DSt3v3n <haroldsabogal48@gmail.com>
+License: MIT
+Project-URL: Homepage, https://github.com/dst3v3n/Anime-Api
+Project-URL: Documentation, https://github.com/dst3v3n/Anime-Api#readme
+Project-URL: Repository, https://github.com/dst3v3n/Anime-Api.git
+Project-URL: Bug Tracker, https://github.com/dst3v3n/Anime-Api/issues
+Keywords: anime,scraper,web-scraping,animeflv,streaming
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Internet :: WWW/HTTP :: Dynamic Content
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: beautifulsoup4>=4.11.0
+Requires-Dist: cloudscraper>=1.2.60
+Requires-Dist: requests>=2.28.0
+Requires-Dist: lxml>=4.9.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0.0; extra == "dev"
+Requires-Dist: black>=22.0.0; extra == "dev"
+Requires-Dist: flake8>=5.0.0; extra == "dev"
+Requires-Dist: mypy>=0.991; extra == "dev"
+Dynamic: license-file
+
+# 🎌 Anime Scraper
+
+Un scraper web robusto y escalable para extraer información de sitios de anime, comenzando con **AnimeFlv**. Este proyecto está diseñado con una arquitectura modular que permite agregar fácilmente nuevos sitios de anime en el futuro.
+
+## 📋 Características
+
+- 🔍 **Búsqueda de animes** por nombre con paginación
+- 📊 **Información detallada** de animes (sinopsis, géneros, episodios, etc.)
+- 🆕 **Animes más recientes** desde la página principal
+- 📺 **Episodios recientes** con información actualizada
+- 🔗 **Enlaces de reproducción** para episodios específicos
+- 🛡️ **Protección anti-bot** usando cloudscraper
+- 🏗️ **Arquitectura modular** para fácil extensión a nuevos sitios
+
+## 🚀 Instalación
+
+### Requisitos previos
+
+- Python 3.8+
+- pip (gestor de paquetes de Python)
+
+### Instalación desde PyPI
+
+```bash
+pip install anime-api-scraper
+```
+
+**Dependencias incluidas:**
+- `beautifulsoup4` - Parsing HTML
+- `cloudscraper` - Evadir protecciones anti-bot
+- `requests` - Peticiones HTTP
+- `lxml` - Parser XML/HTML rápido
+
+## 📁 Estructura del Proyecto
+
+```
+anime_api_scraper/
+├── models/
+│   └── data_models.py          # Modelos de datos (AnimeInfo, SearchResponse, etc.)
+├── processors/
+│   ├── base_processors.py      # Clase base para procesadores
+│   └── animeflv_processors.py  # Procesador específico para AnimeFlv
+├── scraper/
+│   ├── base_scraper.py         # Clase base para scrapers
+│   └── animeflv_scraper.py     # Scraper específico para AnimeFlv
+├── services/
+│   ├── base_services.py        # Clase base para servicios
+│   └── animeflv_services.py    # Servicio principal para AnimeFlv
+└── utils/
+    └── exception.py            # Excepciones personalizadas
+```
+
+## 🔧 Uso
+
+### Inicialización del Servicio
+
+```python
+from anime_api_scraper import AnimeFLV
+
+# Usando context manager (recomendado)
+with AnimeFLV() as anime_service:
+    # Tu código aquí
+    pass
+```
+
+### Búsqueda de Animes
+
+```python
+with AnimeFLV() as anime_service:
+    # Buscar animes por nombre
+    resultados = anime_service.search_anime("Naruto", pagina=1)
+    
+    print(f"Página {resultados.pagination.pagina_actual} de {resultados.pagination.pagina_total}")
+    
+    for anime in resultados.results:
+        print(f"ID: {anime.anime_id}")
+        print(f"Nombre: {anime.nombre}")
+        print(f"Imagen: {anime.imagen}")
+```
+
+### Información Detallada de un Anime
+
+```python
+with AnimeFLV() as anime_service:
+    # Obtener información completa
+    anime_info = anime_service.anime_info("naruto-tv")
+    
+    print(f"Nombre: {anime_info.nombre}")
+    print(f"Tipo: {anime_info.tipo}")
+    print(f"Géneros: {anime_info.genero}")
+    print(f"Descripción: {anime_info.descripcion}")
+    print(f"Estado: {anime_info.estado}")
+    print(f"Episodios disponibles: {len(anime_info.episodios)}")
+    
+    if anime_info.proximo_episodio:
+        print(f"Próximo episodio: {anime_info.proximo_episodio}")
+    
+    # Animes relacionados
+    for relacionado in anime_info.animes_relacionados:
+        print(f"- {relacionado.nombre} (ID: {relacionado.anime_id})")
+```
+
+### Animes y Episodios Recientes
+
+```python
+with AnimeFLV() as anime_service:
+    # Obtener animes más recientes
+    animes_recientes = anime_service.latest_anime()
+    
+    for anime in animes_recientes:
+        print(f"{anime.nombre} - {anime.tipo} - ⭐{anime.puntaje}")
+    
+    # Obtener episodios más recientes
+    episodios_recientes = anime_service.latest_episodes()
+    
+    for episodio in episodios_recientes:
+        print(f"{episodio.nombre} - Episodio {episodio.episodio}")
+```
+
+### Enlaces de Reproducción
+
+```python
+with AnimeFLV() as anime_service:
+    # Obtener enlaces para un episodio específico
+    enlaces = anime_service.links("naruto", "1")
+    
+    for enlace in enlaces:
+        print(f"Servidor: {enlace.server}")
+        print(f"Título: {enlace.titulo}")
+        print(f"URL: {enlace.url}")
+```
+
+## 📊 Modelos de Datos
+
+### AnimeSearchResult
+Información básica para resultados de búsqueda:
+- `anime_id`: Identificador único
+- `nombre`: Título del anime
+- `imagen`: URL de la imagen de portada
+
+### AnimeInfo
+Información completa del anime:
+- `anime_id`: Identificador único
+- `nombre`: Título completo
+- `tipo`: Tipo (TV, Movie, OVA, etc.)
+- `genero`: Géneros separados por comas
+- `descripcion`: Sinopsis del anime
+- `animes_relacionados`: Lista de animes relacionados
+- `episodios`: Lista de números de episodios disponibles
+- `estado`: Estado de emisión (En emisión, Finalizado, etc.)
+- `proximo_episodio`: Fecha del próximo episodio (si aplica)
+
+### LatestAnime
+Información de animes recientes:
+- `anime_id`: Identificador único
+- `nombre`: Título del anime
+- `tipo`: Tipo de anime
+- `puntaje`: Puntuación (rating)
+- `descripción`: Descripción breve
+- `imagen`: URL de la imagen
+
+### LatestEpisodes
+Información de episodios recientes:
+- `anime_id`: Identificador del anime
+- `nombre`: Nombre del anime
+- `episodio`: Número del episodio
+- `imagen`: URL de la imagen del episodio
+
+## 🏗️ Arquitectura
+
+### Patrón de Diseño
+
+El proyecto utiliza una **arquitectura modular** basada en el patrón de responsabilidad única:
+
+1. **Services** (`BaseServices` → `AnimeFLVServices`)
+   - Capa de abstracción principal para el cliente
+   - Gestión optimizada de recursos y contexto
+   - API limpia y consistente
+
+2. **Scrapers** (`BaseScraper` → `AnimeFLVScraper`)
+   - Manejan las peticiones HTTP
+   - Coordinan el flujo de scraping
+   - Gestionan la sesión y configuración específica del sitio
+
+3. **Processors** (`BaseProcessors` → `AnimeFLVProcessors`)
+   - Procesan el HTML crudo
+   - Extraen y estructuran los datos
+   - Convierten HTML en objetos Python
+
+4. **Models** (`data_models.py`)
+   - Definen la estructura de datos
+   - Validan tipos usando dataclasses
+   - Proporcionan consistencia entre componentes
+
+### Ventajas de esta Arquitectura
+
+- ✅ **Escalabilidad**: Fácil agregar nuevos sitios
+- ✅ **Mantenibilidad**: Separación clara de responsabilidades
+- ✅ **Reutilización**: Componentes base reutilizables
+- ✅ **Testeo**: Cada componente se puede testear independientemente
+
+## 🔮 Extensibilidad
+
+Para agregar un nuevo sitio de anime (ej: Crunchyroll):
+
+1. **Crear el procesador específico**:
+```python
+from anime_api_scraper.processors.base_processors import BaseProcessors
+
+class CrunchyrollProcessors(BaseProcessors):
+    def process_search(self, response):
+        # Lógica específica para Crunchyroll
+        pass
+```
+
+2. **Crear el scraper específico**:
+```python
+from anime_api_scraper.scraper.base_scraper import BaseScraper
+
+class CrunchyrollScraper(BaseScraper):
+    def __init__(self):
+        self._base_url = "https://crunchyroll.com"
+        self._processor = CrunchyrollProcessors()
+```
+
+3. **Crear el servicio específico**:
+```python
+from anime_api_scraper.services.base_services import BaseServices
+
+class CrunchyrollServices(BaseServices):
+    def __init__(self):
+        super().__init__()
+        self._scraper = CrunchyrollScraper()
+```
+
+## ⚡ Manejo de Errores
+
+El proyecto incluye manejo robusto de errores:
+
+### AnimeException
+Excepción personalizada que incluye:
+- `message`: Descripción del error
+- `metodo`: Método donde ocurrió el error
+- `source`: Fuente del error (ej: "animeflv")
+
+### Validaciones Comunes
+- ✅ Validación de parámetros de entrada
+- ✅ Verificación de elementos HTML existentes
+- ✅ Manejo de contenido malformado
+- ✅ Timeout y errores de conectividad
+
+## 🛡️ Características Técnicas
+
+### Anti-Bot Protection
+- Utiliza `cloudscraper` para evadir protecciones Cloudflare
+- Headers realistas de navegador
+- Manejo automático de challenges JavaScript
+
+### Parsing Robusto
+- Múltiples selectores CSS como fallback
+- Validación de datos extraídos
+- Manejo graceful de contenido faltante
+
+### Performance
+- Sesión persistente para múltiples requests
+- Parser `lxml` para velocidad optimizada
+- Context managers para gestión eficiente de recursos
+
+## 📝 Ejemplos Avanzados
+
+### Búsqueda con Paginación Completa
+
+```python
+def buscar_anime_completo(nombre):
+    """Busca un anime en todas las páginas disponibles."""
+    from anime_api_scraper import AnimeFLV
+    
+    with AnimeFLV() as anime_service:
+        todos_resultados = []
+        pagina = 1
+        
+        while True:
+            resultado = anime_service.search_anime(nombre, pagina)
+            todos_resultados.extend(resultado.results)
+            
+            if pagina >= resultado.pagination.pagina_total:
+                break
+            pagina += 1
+        
+        return todos_resultados
+```
+
+### Información Completa de un Anime
+
+```python
+def info_anime_completa(anime_id):
+    """Obtiene toda la información disponible de un anime."""
+    from anime_api_scraper import AnimeFLV
+    
+    with AnimeFLV() as anime_service:
+        info = anime_service.anime_info(anime_id)
+        
+        # Obtener enlaces del primer episodio si está disponible
+        enlaces = []
+        if info.episodios:
+            try:
+                enlaces = anime_service.links(anime_id, info.episodios[0])
+            except Exception as e:
+                print(f"No se pudieron obtener enlaces: {e}")
+        
+        return {
+            'info': info,
+            'enlaces_primer_episodio': enlaces
+        }
+```
+
+## 🤝 Contribuir
+
+1. Fork el repositorio
+2. Crea una rama para tu feature (`git checkout -b feature/nueva-funcionalidad`)
+3. Commit tus cambios (`git commit -am 'Agrega nueva funcionalidad'`)
+4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
+5. Crea un Pull Request
+
+### Guías para Contribuir
+
+- Sigue el estilo de código existente
+- Agrega docstrings a todas las funciones públicas
+- Incluye manejo de errores apropiado
+- Escribe tests para nuevas funcionalidades
+
+## ⚠️ Consideraciones Legales
+
+Este proyecto está diseñado para **uso educativo y personal**. Los usuarios son responsables de:
+
+- Cumplir con los términos de servicio de los sitios web
+- Respetar los derechos de autor del contenido
+- Usar el scraper de manera responsable y ética
+- No sobrecargar los servidores con requests excesivos
+
+## 🐛 Resolución de Problemas
+
+### Errores Comunes
+
+**Error: "No se encontraron resultados"**
+- Verifica que el nombre del anime esté escrito correctamente
+- Algunos animes pueden tener nombres específicos en el sitio
+
+**Error de conexión**
+- Verifica tu conexión a internet
+- El sitio podría estar temporalmente inaccesible
+- Considera implementar reintentos automáticos
+
+**Error: "No se pudieron obtener enlaces"**
+- Verifica que el anime_id y número de episodio sean correctos
+- Algunos episodios pueden no tener enlaces disponibles
+
+## 🔄 Roadmap
+
+### Versión Actual (v1.0)
+- ✅ Scraper completo para AnimeFlv
+- ✅ Búsqueda, información detallada y enlaces
+- ✅ Manejo robusto de errores
+
+### Futuras Versiones
+- 📋 Soporte para múltiples sitios de anime
+- 🔄 Sistema de cache para mejorar performance
+- 📊 API REST para acceso programático
+- 🤖 Rate limiting inteligente
+- 📱 Interfaz web para uso fácil
+- 🔍 Búsqueda avanzada con filtros
+- 📈 Estadísticas y analytics
+
+## 🏷️ Versionado
+
+Utilizamos [SemVer](http://semver.org/) para el versionado. Para las versiones disponibles, revisa los [tags de este repositorio](https://github.com/dst3v3n/Anime-Api/tags).
+
+## 📄 Licencia
+
+Este proyecto está bajo la Licencia MIT - revisa el archivo [LICENSE](LICENSE) para más detalles.
+
+## 👥 Autores
+
+- **DSt3v3n** - *Desarrollo inicial* - [dst3v3n](https://github.com/dst3v3n)
+
+## 🙏 Agradecimientos
+
+- Comunidad de desarrolladores de Python
+- Mantenedores de BeautifulSoup y cloudscraper
+- Sitios de anime que proporcionan contenido a los fans
+
+## 📞 Soporte
+
+Si encuentras algún problema o tienes preguntas:
+
+1. Revisa la sección de [Issues](https://github.com/dst3v3n/Anime-Api/issues)
+2. Crea un nuevo issue con detalles del problema
+3. Incluye información de tu entorno (Python version, OS, etc.)
+
+---
+
+**⚡ ¿Te gusta el proyecto?** ¡Dale una estrella ⭐ en GitHub!
