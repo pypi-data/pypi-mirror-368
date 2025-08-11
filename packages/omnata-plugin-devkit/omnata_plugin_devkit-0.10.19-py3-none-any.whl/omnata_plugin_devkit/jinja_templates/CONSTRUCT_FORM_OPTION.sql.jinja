@@ -1,0 +1,45 @@
+create or replace procedure PLUGIN.CONSTRUCT_FORM_OPTION(FUNCTION_NAME VARCHAR,STORED_VALUES ARRAY)
+returns object
+language python
+RUNTIME_VERSION = '3.10'
+PACKAGES = ({{packages}})
+IMPORTS = ('/app.zip')
+HANDLER = 'run'
+COMMENT = $$
+Constructs a form option for a data source which supports the creation of new options.
+$$
+execute as owner
+as
+$$
+from logging import getLogger
+from omnata_plugin_runtime.logging import log_exception
+import json
+logger = getLogger(__name__)
+def run(session,function_name,stored_values):
+   try:
+      logger.info('plugin entrypoint wrapper')
+      from omnata_plugin_runtime.plugin_entrypoints import PluginEntrypoint
+      logger.info('importing plugin {{plugin_class_name}} from module {{plugin_class_module}}')
+      entrypoint = PluginEntrypoint(session=session,
+         plugin_fqn='{{plugin_fqn}}',
+         module_name='{{plugin_class_module}}',
+         class_name='{{plugin_class_name}}'
+      )
+      result = entrypoint.construct_form_option(function_name=function_name,
+                            stored_values=stored_values)
+      logger.debug(f'result from plugin: {result}')
+      return {
+         "success": True,
+         "data": result
+      }
+   except Exception as exception:
+      log_exception(exception,logger)
+      return {
+         "success": False,
+         "error": f"CONSTRUCT_FORM_OPTION: {str(exception)}"
+      }
+$$
+;
+   
+grant usage on procedure PLUGIN.CONSTRUCT_FORM_OPTION(VARCHAR,ARRAY)
+to application role OMNATA_MANAGEMENT;

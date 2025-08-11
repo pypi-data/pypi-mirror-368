@@ -1,0 +1,78 @@
+create or replace procedure PLUGIN.UPDATE_API_CONFIGURATION(APP_DATABASE VARCHAR,
+                                                EXTERNAL_ACCESS_INTEGRATIONS OBJECT)
+   returns object
+   language javascript
+   COMMENT = $$
+   Updates the list of external access integrations that this plugin needs to have its procs and functions bound to.
+   $$
+   execute as owner
+as
+$$
+
+try{
+    let twoDollars=`\$\$`;
+    if (APP_DATABASE===undefined){
+      throw "App must provide a database name";
+    }
+    var appsResults = snowflake.createStatement( {
+        sqlText: `select 
+                    APPLICATION_NAME,
+                    EXTERNAL_ACCESS_INTEGRATIONS
+                from DATA.OMNATA_REGISTRATION`,
+        binds:[]
+    } ).execute();
+    if (!appsResults.next())  {
+         if (EXTERNAL_ACCESS_INTEGRATIONS===undefined){
+            EXTERNAL_ACCESS_INTEGRATIONS = {};
+         }
+         snowflake.createStatement( {
+            sqlText: `insert into DATA.OMNATA_REGISTRATION(
+                        APPLICATION_NAME,
+                        EXTERNAL_ACCESS_INTEGRATIONS)
+                        select ?,PARSE_JSON(?)`,
+            binds:[APP_DATABASE,JSON.stringify(EXTERNAL_ACCESS_INTEGRATIONS)]
+         } ).execute();
+    }
+    else{
+      var currentApplicationName = appsResults.getColumnValue(1);
+      if (currentApplicationName !== APP_DATABASE){
+         throw `Plugin is already registered to Application ${currentApplicationName}. Reinstall the plugin in order for it to be managed by a different Application`;
+      }
+      if (EXTERNAL_ACCESS_INTEGRATIONS===undefined){
+         EXTERNAL_ACCESS_INTEGRATIONS = appsResults.getColumnValue(2);
+      }
+      snowflake.createStatement( {
+            sqlText: `update DATA.OMNATA_REGISTRATION
+                        set EXTERNAL_ACCESS_INTEGRATIONS = PARSE_JSON(?)
+                        where APPLICATION_NAME = ?`,
+            binds:[JSON.stringify(EXTERNAL_ACCESS_INTEGRATIONS),APP_DATABASE]
+         } ).execute();
+    }
+    var results = snowflake.createStatement( {
+         sqlText: `call CONFIGURE_APIS()`,
+         binds:[]
+      } ).execute();
+   results.next();
+   var procResult = results.getColumnValue(1);
+   if (procResult.success===false){
+      throw procResult.error;
+   }
+
+    return {
+        "success": true,
+        "data": null
+    }
+}
+catch(e){
+   return {
+      "success": false,
+      "error": `UPDATE_API_CONFIGURATION: ${String(e)}`
+   }
+}
+$$
+;
+
+grant usage on procedure PLUGIN.UPDATE_API_CONFIGURATION(VARCHAR,
+                                                OBJECT)
+to application role OMNATA_MANAGEMENT;
+

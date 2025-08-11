@@ -1,0 +1,47 @@
+create or replace procedure PLUGIN.RENAME_CONNECTION_METHODS(PLUGIN_FQN VARCHAR,CONNECTION_METHOD_CHANGES OBJECT)
+   returns object
+   language javascript
+   COMMENT = $$
+   Called by the setup script during installation/upgrade, used in the rare situation where you need to rename existing connection methods as part of a release.
+   $$
+   execute as owner
+as
+$$
+// snowflake object automatically injected by Snowpark
+
+try{
+    snowflake.log("info", "RENAME_CONNECTION_METHODS called");
+    var appsResults = snowflake.createStatement( {
+        sqlText: `select 
+                    APPLICATION_NAME,
+                    EXTERNAL_ACCESS_INTEGRATIONS
+                from DATA.OMNATA_REGISTRATION`,
+        binds:[]
+    } ).execute();
+    let applicationName;
+    if (appsResults.next())  {
+        applicationName = appsResults.getColumnValue(1);
+        var renameConnectionMethodsResult = snowflake.createStatement( {
+            sqlText: `call ${applicationName}.API.RENAME_PLUGIN_CONNECTION_METHODS(?,PARSE_JSON(?))`,
+            binds:[PLUGIN_FQN,JSON.stringify(CONNECTION_METHOD_CHANGES)]
+        } ).execute();
+        renameConnectionMethodsResult.next();
+        snowflake.log("info", `RENAME_PLUGIN_CONNECTION_METHODS result: ${renameConnectionMethodsResult.getColumnValue(1)}`);
+    }else{
+        snowflake.log("info", `Plugin not registered yet, skipping connection methods rename`);
+    }
+    return {
+        "success": true,
+        "data": {}
+    }
+}
+catch(e){
+    snowflake.log("error", e.message);
+    return {
+       "success": false,
+       "error": `RENAME_CONNECTION_METHODS: ${String(e)}`
+    }
+}
+
+$$
+;

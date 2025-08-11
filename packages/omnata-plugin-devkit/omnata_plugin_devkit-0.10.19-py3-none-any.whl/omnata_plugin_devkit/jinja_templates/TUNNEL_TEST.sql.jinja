@@ -1,0 +1,103 @@
+create or replace procedure PLUGIN.TUNNEL_TEST(TUNNEL_TYPE VARCHAR,
+                                                OTHER_SECRETS_NAME VARCHAR)
+returns object
+language python
+RUNTIME_VERSION = '3.10'
+PACKAGES = ({{packages}})
+IMPORTS = ('/app.zip')
+HANDLER = 'run'
+COMMENT = $$
+Requests that the plugin test that it can reach the service on the other end of an ngrok tunnel
+$$
+execute as owner
+as
+$$
+from logging import getLogger
+from omnata_plugin_runtime.logging import log_exception
+import json
+from urllib3.contrib.pyopenssl import PyOpenSSLContext
+import OpenSSL.crypto
+import urllib3
+import ssl
+import certifi
+logger = getLogger(__name__)
+def run(session,tunnel_type:str,other_secrets_name:str):
+   try:
+      logger.info('plugin entrypoint wrapper')
+      if tunnel_type!='ngrok':
+         raise ValueError('Only ngrok tunnels are supported')
+      from omnata_plugin_runtime.configuration import get_secrets
+      secrets = get_secrets(None,other_secrets_name)
+      if "ngrok_endpoint_host" not in secrets:
+         raise ValueError("No endpoint host available for tunnel test")
+      if "ngrok_endpoint_port" not in secrets:
+         raise ValueError("No endpoint port available for tunnel test")
+      if "ngrok_client_certificate" not in secrets:
+         raise ValueError("No client certificate available for tunnel test")
+      if "ngrok_client_key" not in secrets:
+         raise ValueError("No client key available for tunnel test")
+      ngrok_endpoint_host = secrets['ngrok_endpoint_host'].value
+      ngrok_endpoint_port = int(secrets['ngrok_endpoint_port'].value)
+      if ngrok_endpoint_port != 443:
+         raise ValueError('Currently we always expect port 443')
+      ngrok_client_certificate = secrets['ngrok_client_certificate'].value
+      ngrok_client_key = secrets['ngrok_client_key'].value
+      return_data = {}
+      ssl_context = create_ssl_context(ngrok_client_certificate, ngrok_client_key)
+      http = urllib3.PoolManager(ssl_context=ssl_context)
+      url = f'https://{ngrok_endpoint_host}/'
+      try:
+         response=http.request('GET',url)
+         return_data['mtls_success'] = True
+      except urllib3.exceptions.MaxRetryError as max_retry_error:
+         if isinstance(max_retry_error.reason, urllib3.exceptions.SSLError):
+            ssl_error:urllib3.exceptions.SSLError = max_retry_error.reason
+            if 'sslv3 alert bad certificate' in str(ssl_error):
+                  logger.exception("Client certificate was not valid")
+                  return_data['mtls_success'] = False
+                  return_data['mtls_failure_reason'] = "Client certificate was not valid. Contact Omnata Support for assistance."
+            elif 'certificate verify failed' in str(ssl_error):
+                  logger.exception("Server certificate was not trusted")
+                  return_data['mtls_success'] = False
+                  return_data['mtls_failure_reason'] = "Server certificate was not trusted. Contact Omnata Support for assistance."
+            else:
+                  raise
+         elif isinstance(max_retry_error.reason, urllib3.exceptions.ProtocolError):
+            return_data['mtls_success'] = True
+         else:
+            raise
+
+      logger.info(f'result from tunnel test : {return_data}')
+      return {
+         "success": True,
+         "data": return_data
+      }
+   except Exception as exception:
+      log_exception(exception,logger)
+      return {
+         "success": False,
+         "error": f"TUNNEL_TEST: {str(exception)}"
+      }
+
+def create_ssl_context(cert_str, key_str):
+    # Load client certificate and key
+    certificate = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, cert_str)
+    private_key = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, key_str)
+
+    # Create a PyOpenSSL Context
+    ssl_context = PyOpenSSLContext(ssl.PROTOCOL_TLSv1_2)
+    
+    # Use the certificate and key in the context
+    ssl_context._ctx.use_certificate(certificate)
+    ssl_context._ctx.use_privatekey(private_key)
+    ssl_context.verify_mode = ssl.VerifyMode.CERT_REQUIRED
+    ssl_context.load_verify_locations(cafile=certifi.where())
+
+    return ssl_context
+
+$$
+;
+   
+grant usage on procedure PLUGIN.TUNNEL_TEST(VARCHAR, 
+                                    VARCHAR)
+to application role OMNATA_MANAGEMENT;
