@@ -1,0 +1,2 @@
+class HardwareError(Exception):
+    pass
