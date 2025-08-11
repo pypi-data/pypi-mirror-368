@@ -1,0 +1,1 @@
+from fabriq.llm_model.llm_model import LLMModel

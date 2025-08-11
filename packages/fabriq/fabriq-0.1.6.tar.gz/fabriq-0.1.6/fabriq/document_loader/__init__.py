@@ -1,0 +1,2 @@
+from fabriq.document_loader.document_loader import DocumentLoader
+from fabriq.document_loader.smart_doc_loader import SmartDocumentLoader
