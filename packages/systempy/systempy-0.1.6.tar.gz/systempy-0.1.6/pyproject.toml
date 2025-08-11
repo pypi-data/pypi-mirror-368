@@ -1,0 +1,99 @@
+[project]
+name = "systempy"
+version = "0.1.6"
+description = "Python application component initialization system"
+authors = [{name = "kai3341"}]
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "typing-extensions",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+keywords = [
+    "asyncio",
+    "graceful",
+    "init",
+    "initialization",
+    "shutdown",
+    "manager"
+]
+license="MIT"
+license-files = ["LICENSE"]
+
+[project.optional-dependencies]
+extra = [
+    "ptpython>=3.0.30",
+]
+
+[tool.pyright]
+include = ["systempy/", "tests/", "_util/"]
+exclude = [
+    "^build/",
+    "^dist/",
+    "systempy/unit/ext/celery.py",
+    "systempy/unit/ext/starlette.py",
+]
+reportMissingModuleSource = false
+reportArgumentType = false
+reportCallIssue = false
+reportAssignmentType = false
+reportGeneralTypeIssues = false
+reportIndexIssue = false
+reportInvalidTypeArguments = false
+reportIncompatibleMethodOverride = false
+reportAttributeAccessIssue = false
+
+[tool.ruff.lint]
+select=["ALL"]
+ignore = ["D", "S101", "TID252", "ANN401", "PTH119", "RET503", "PT009"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["INP001", "E402", "C901"]
+"examples/*" = ["INP001", "E402"]
+"_util/*" = ["E402"]
+
+[tool.mypy]
+python_version = "3.11"
+mypy_path = "$MYPY_CONFIG_FILE_DIR/systempy"
+disable_error_code = ["import-untyped", "return", "empty-body"]
+exclude = [
+    "^build/",
+    "^dist/",
+    "systempy/unit/ext/celery.py",
+    "systempy/unit/ext/starlette.py",
+]
+
+[dependency-groups]
+dev = [
+    "mkdocs-material>=9.6.11",
+    "mypy[mypyc]>=1.15.0; python_version >= '3.9'",
+    "ruff>=0.11.5",
+    "wheel>=0.45.1; python_version >= '3.14'",
+]
+
+[build-system]
+requires = [
+    "tomli; python_version < '3.11'",
+    "mypy[mypyc]>=1.15.0; python_version >= '3.9'",
+    "wheel>=0.45.1; python_version >= '3.14'",
+]
