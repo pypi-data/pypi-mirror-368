@@ -1,0 +1,218 @@
+# 自定义网络
+networks:
+  ninja:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.118.120.0/24
+
+services:
+  #Configuration for MySQL8.0
+  mysql:
+    env_file: .env
+    image: registry.cn-hangzhou.aliyuncs.com/ailab2023/mysql:8.0
+    restart: always
+    container_name: ailab-mysql80
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD} # 数据库密码
+      MYSQL_USER: ${MYSQL_USER} # 数据库用户名
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD} # 用户密码,注意与root用户的区别
+      TZ: Asia/Shanghai
+
+    volumes:
+      - ./compose/mysql/data:/var/lib/mysql:rw # 挂载数据库数据, 可读可写
+      - ./compose/mysql/mysql.cnf:/etc/mysql/mysql.cnf # 挂载配置文件
+    networks:
+      ninja:
+        ipv4_address: ${MYSQL_HOST}
+    ports:
+      - ${MYSQL_PORT}:3306 # 与配置文件保持一致
+    #expose暴露容器给link到当前容器的容器
+    expose:
+      - 3306
+    command:
+      --max_connections=1000
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_general_ci
+      --default-authentication-plugin=mysql_native_password
+
+  #Configuration for REDIS
+
+  redis:
+    env_file: .env
+    build:
+      context: ./compose/redis
+      dockerfile: Dockerfile
+    container_name: ailab-redis
+    image: ailab/redis
+    restart: always # always表容器运行发生错误时一直重启
+    #为网络指定网段；并为容器指定合法IP
+    environment:
+      - TZ=Asia/Shanghai
+    networks:
+      ninja:
+        ipv4_address: ${REDIS_HOST}
+    ports:
+      - ${REDIS_PORT}:6379
+    volumes:
+      - ./compose/redis/rdf:/data #挂载给redis数据备份
+      - ./compose/redis/redis.conf:/etc/redis.conf #挂载redis配置文件, 设置redis密码
+    command:
+      redis-server /etc/redis.conf # 容器启动后启动redis服务器
+
+  valkey:
+    env_file: .env
+    image: registry.cn-hangzhou.aliyuncs.com/ailab2023/valkey:8
+    container_name: ailab-valkey
+    restart: always # always表容器运行发生错误时一直重启
+
+    networks:
+      ninja:
+        ipv4_address: ${VALKEY_HOST}
+    ports:
+      - ${VALKEY_PORT}:6379
+
+    volumes:
+      - ./compose/valkey/data:/data
+    command: redis-server --requirepass ${VALKEY_PASSWORD} --maxmemory 2g --maxmemory-policy allkeys-lru
+
+
+  #Configuration for minio S3
+  minio:
+    image: registry.cn-hangzhou.aliyuncs.com/ailab2023/minios3:RELEASE.2023-12-20T01-00-02Z
+    restart: unless-stopped
+    container_name: ailab-s3minio
+    ports:
+      - ${AWS_S3_PORT}:9000 #9000是minio-server的端口
+      - ${AWS_S3_PORT1}:9001 #9001是minio-cosole的端口,web可视化界面
+    expose:
+      - 9000
+      - 9001
+    environment:
+      - MINIO_ROOT_USER=${AWS_S3_ACCESS_KEY_ID}
+      - MINIO_ROOT_PASSWORD=${AWS_S3_SECRET_ACCESS_KEY}
+      - SET_CONTAINER_TIMEZONE=true
+      - CONTAINER_TIMEZONE=Asia/Shanghai
+      #- LANG=en_US.UTF-8
+      - LANG=zh-Hans
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./ailab_minio/data:/data
+      - ./ailab_minio/minio:/minio
+      - ./ailab_minio/config:/root/.minio/     #映射配置目录
+    command: server /data --console-address ":9001" --address ":9000"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+    networks:
+      ninja:
+        ipv4_address: ${AWS_S3_HOST}
+
+  mc:
+    image: minio/mc:RELEASE.2023-06-06T13-48-56Z  # 官方mc镜像:ml-citation{ref="2,5" data="citationList"}
+    container_name: minio-client
+    volumes:
+      - ./ailab_minio/.mc:/root/.mc  # 持久化mc配置（别名、密钥等）:ml-citation{ref="4,5" data="citationList"}
+      - ./ailab_minio/local-data:/data  # 挂载本地目录用于文件操作:ml-citation{ref="5,8" data="citationList"}
+      #environment:
+      #- MC_HOST: http://${AWS_S3_ACCESS_KEY_ID}:${AWS_S3_SECRET_ACCESS_KEY}@${AWS_S3_HOST}:9000
+    # docker-compose.yml 修改示例
+    command: >
+      mc alias set minio2023 http://192.168.0.6:9000 admin adminadmin &&
+      mc ls minio2023
+  
+  
+
+  doris-fe:
+    image: registry.cn-hangzhou.aliyuncs.com/ailab2023/doris-fe:2.0.4
+    container_name: doris-1fe
+    environment:
+      - FE_SERVERS=fe1:192.118.120.29:9010
+      - FE_ID=1
+    volumes:
+      - ./doris/fe/doris-meta/:/opt/apache-doris/fe/doris-meta/
+      - ./doris/fe/log/:/opt/apache-doris/fe/log/
+    networks:
+      ninja:
+        ipv4_address: 192.118.120.29
+    ports:
+      - 8030:8030
+      - 9030:9030
+
+  doris-be:
+    image: registry.cn-hangzhou.aliyuncs.com/ailab2023/doris-be:2.0.4
+    container_name: doris-1be
+    environment:
+      - FE_SERVERS=fe1:192.118.120.29:9010
+      - BE_ADDR=192.118.120.28:9050
+    volumes:
+      - ./doris/be/storage/:/opt/apache-doris/be/storage/
+      - ./doris/be/script/:/docker-entrypoint-initdb.d/
+    networks:
+      ninja:
+        ipv4_address: 192.118.120.28
+    ports:
+      - 8040:8040
+      - 9050:9050
+    depends_on:
+      - doris-fe
+
+
+  es:
+    container_name: es
+    image: registry.cn-hangzhou.aliyuncs.com/ailab2023/elasticsearch:8.12.2
+    environment:
+      - discovery.type=single-node #配置为单节点模式。
+      - ELASTIC_PASSWORD=ailab100 #默认用户名 elastic
+      - TZ=Asia/Shanghai
+    ports:
+      - '9200:9200'
+      - '9300:9300'
+    mem_limit: 1g
+    volumes:
+      - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+      - ./elasticsearch/data:/usr/share/elasticsearch/data
+      - ./elasticsearch/plugins:/usr/share/elasticsearch/plugins
+    networks:
+      ninja:
+        ipv4_address: 192.118.120.33
+
+  mongodb:
+    # 容器的名称为 mymongo
+    container_name: mymongo
+    # 使用的镜像名称
+    image: registry.cn-hangzhou.aliyuncs.com/ailab2023/mongodb:7.0.1
+    # 当 docker 服务启动后，自动启动 mongodb 容器
+    restart: always
+    networks:
+      ninja:
+        ipv4_address: 192.118.120.32
+    # 对外映射的端口
+    ports:
+      - '27017:27017'
+    environment:
+      # 初始化一个 root 角色的用户 root 密码是 root
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=root
+    # 宿主机硬盘目录映射容器内的存放数据的目录
+    volumes:
+      - ./docker/mongodb/data:/data/db
+    # 增加启动参数，--auth，表示连接 mongodb 需要用户名和密码
+    command:
+      - '--auth'
+
+  neo4j:
+    image: neo4j:5.24.2-community
+    volumes:
+      - ./docker/neo4j/conf:/var/lib/neo4j/conf
+      - ./docker/neo4j/import:/var/lib/neo4j/import
+      - ./docker/neo4j/plugins:/plugins
+      - ./docker/neo4j/data:/data
+      - ./docker/neo4j/logs:/var/lib/neo4j/logs
+    restart: always
+    ports:
+      - 7474:7474
+      - 7687:7687
+    environment:
+      - NEO4J_AUTH=neo4j/0123456789 #修改默认用户密码,这里的密码在neo4j:5.9.0需要较长的密码要求，不然启动不成功
