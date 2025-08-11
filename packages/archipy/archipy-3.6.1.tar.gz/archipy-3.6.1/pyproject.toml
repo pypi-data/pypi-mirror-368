@@ -1,0 +1,353 @@
+[project]
+name = "archipy"
+description = "Architecture + Python – Perfect for structured design."
+authors = [
+    { name = "Hossein Nejati", email = "hosseinnejati14@gmail.com" },
+    { name = "Mehdi Einali", email = "einali@gmail.com" },
+]
+readme = "README.md"
+version = "3.6.1" # This vesrion set on publish flow!
+requires-python = ">=3.13,<4"
+dependencies = [
+    "pydantic>=2.11.7",
+    "pydantic-settings>=2.10.1",
+    "requests (>=2.32.4,<3.0.0)",
+    "jdatetime (>=5.2.0,<6.0.0)",
+]
+license = { file = "LICENSE" }
+
+[project.optional-dependencies]
+aiosqlite = ["aiosqlite (>=0.21.0)"]
+cache = ["cachetools (>=5.5.2,<6.0.0)", "async-lru (>=2.0.5,<3.0.0)"]
+dependency-injection = ["dependency-injector (>=4.48.1)"]
+elastic-apm = ["elastic-apm (>=6.23.0)"]
+fakeredis = ["fakeredis (>=2.30.1,<3.0.0)"]
+fastapi = ["fastapi[all] (>=0.115.14)"]
+grpc = ["grpcio (>=1.73.1)", "grpcio-health-checking (>=1.73.1)", "protobuf (>=6.31.1)"]
+jwt = ["pyjwt (>=2.10.1)"]
+kafka = ["confluent-kafka (>=2.11.0,<3.0.0)"]
+kavenegar = ["kavenegar (>=1.1.2)"]
+keycloak = ["python-keycloak (>=5.7.0,<6.0.0)", "cachetools (>=5.5.2,<6.0.0)", "async-lru (>=2.0.5,<3.0.0)"]
+minio = ["minio (>=7.2.15,<8.0.0)", "cachetools (>=5.5.2,<6.0.0)", "async-lru (>=2.0.5,<3.0.0)"]
+parsian-ipg = ["zeep (>=4.3.1,<5.0.0)", "requests[socks] (>=2.32.4,<3.0.0)"]
+postgres = ["psycopg[binary,pool] (>=3.2.9)"]
+prometheus = ["prometheus-client (>=0.22.1)"]
+redis = ["redis (>=6.2.0)"]
+scheduler = ["apscheduler (>=3.11.0)"]
+sentry = ["sentry-sdk (>=2.33.0)"]
+sqlalchemy = ["sqlalchemy (>=2.0.41)"]
+starrocks = ["starrocks (>=1.2.2,<2.0.0)", "pymysql (>=1.1.1,<2.0.0)"]
+starrocks-async = ["starrocks (>=1.2.2,<2.0.0)", "aiomysql (>=0.2.0,<0.3.0)"]
+elasticsearch = ["elasticsearch (>=9.0.2,<10.0.0)"]
+elasticsearch-async = ["elasticsearch[async] (>=9.0.2,<10.0.0)"]
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.4.1"
+pytest-asyncio = "^0.23.8"
+private-package = "^1.1.0"
+pre-commit = "^3.8.0"
+pre-commit-hooks = "^4.6.0"
+codespell = "^2.4.1"
+ruff = "^0.7.4"
+black = "^24.10.0"
+add-trailing-comma = "^3.2.0"
+validate-pyproject = "^0.18"
+mypy = "^1.17.0"
+behave = "^1.3.0"
+types-cachetools = "^5.5.0.20240820"
+bandit = "^1.7.8"
+
+[tool.poetry.group.docs.dependencies]
+mkdocs = "^1.6.1"
+mkdocs-material = "^9.6.7"
+pymdown-extensions = "^10.14.3"
+mkdocstrings = "^0.28.2"
+mkdocstrings-python = "^1.16.2"
+mkdocs-autorefs = "^1.4.0"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = 'tests'
+markers = []
+filterwarnings = [
+    'error',
+    'ignore:This is a placeholder until pydantic-settings.*:UserWarning',
+    'ignore::UserWarning',
+    'ignore::DeprecationWarning'
+]
+
+
+[[tool.poetry.source]]
+name = "PyPI"
+priority = "primary"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[project.urls]
+Homepage = "https://syntaxarc.github.io/ArchiPy/"
+Documentation = "https://archipy.readthedocs.io/"
+"Bug Tracker" = "https://github.com/SyntaxArc/ArchiPy/issues"
+"Source Code" = "https://github.com/SyntaxArc/ArchiPy"
+"Contributing" = "https://github.com/SyntaxArc/ArchiPy/blob/master/CONTRIBUTING.md"
+"Code of Conduct" = "https://github.com/SyntaxArc/ArchiPy/blob/master/CODE_OF_CONDUCT.md"
+
+
+[tool.black]
+# Enable colored output
+color = true
+
+# Set the maximum line length
+line-length = 120
+
+# Target Python version
+target-version = ["py313"]
+
+# Skip string normalization (useful for projects with mixed quote styles)
+skip-string-normalization = false
+
+# Exclude specific files and directories
+extend-exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | migrations  # Exclude database migration files
+  | node_modules  # Exclude Node.js dependencies
+  | __pycache__  # Exclude Python cache directories
+)/
+'''
+
+[tool.ruff]
+# Enable automatic fixes for supported rules
+fix = true
+
+lint.select = [
+    "A", # flake8-builtins
+    "ANN", # flake8-annotations
+    "ASYNC", # flake8-async
+    "B", # flake8-bugbear
+    "BLE", # flake8-blind-except
+    "C901", # complex-structure
+    "D", # pydocstyle
+    "E", # pycodestyle errors
+    "ERA", # eradicate
+    "F", # pyflakes
+    "G", # flake8-logging-format
+    "I", # isort
+    "ICN", # flake8-import-conventions
+    "RUF", # Ruff-specific rules
+    "S", # flake8-bandit
+    "T10", # flake8-debugger
+    "T20", # flake8-print
+    "TRY", # tryceratops
+    "UP", # pyupgrade
+    "W", # pycodestyle warnings
+]
+
+# Explicitly ignore specific rules
+lint.ignore = [
+    "ANN002", # Missing type annotation for *args
+    "ANN003", # Missing type annotation for **kwargs
+    "ANN101", # Missing type annotation for self in method
+    "ANN102", # Missing type annotation for cls in classmethod
+    "BLE001", # Do not catch blind exception: `Exception`
+    "C901", # Function is too complex (McCabe complexity)
+    "D100", # Missing docstring in public module
+    "D104", # Missing docstring in public package
+    "D107", # Missing docstring in `__init__`
+    "E501", # Line too long (handled by Black)
+    "F811", # Redefinition of unused function
+    "G004", # Logging statement uses f-string
+    "PLR0913", # Too many arguments in function (e.g., FastAPI Swagger)
+    "PLR2004", # Magic value used in comparison
+    "Q000", # Allow single quotes (conflicts with Black's double-quote preference)
+    "RUF001", "RUF003", # String contains ambiguous characters
+    "S101", # Ignore assert used (equivalent to bandit's B101)
+    "S301", # Ignore pickle usage (equivalent to bandit's B301)
+    "S403", # Ignore pickle usage (equivalent to bandit's B403)
+    "TCH002", # Type-checking import issues
+    "TRY003", #Avoid specifying long messages outside the exception class
+    "TRY301", # Abstract raise into a function
+]
+
+# Define source directories
+src = ["archipy", "tests", "features"]
+
+exclude = [
+    "features/*",
+    "scripts/*",
+]
+
+# Set line length to match Black's configuration
+line-length = 120
+
+# Target Python version
+target-version = "py313"
+
+# Per-file ignores
+[tool.ruff.lint.per-file-ignores]
+# Ignore F811 (redefinition of function) in steps implementations
+"archipy/helpers/decorators/*" = ["ANN401"]
+"archipy/helpers/utils/jwt_utils.py" = ["S105"]
+"archipy/helpers/decorators/sqlalchemy_atomic.py" = ["BLE001"]
+"archipy/helpers/utils/file_utils.py" = ["S324"]
+"archipy/helpers/utils/keycloak_utils.py" = ["FBT001", "FBT002"]
+"archipy/adapters/orm/sqlalchemy/ports.py" = ["ANN401"]
+"archipy/adapters/orm/sqlalchemy/adapters.py" = ["ANN401"]
+"archipy/adapters/redis/ports.py" = ["ANN401", "D102", "FBT001", "FBT002", "A002"]
+"archipy/adapters/redis/adapters.py" = ["ANN401", "FBT001", "FBT002", "RET504", "PGH003"]
+"archipy/adapters/redis/mocks.py" = ["ARG002", "ARG004", "ANN401"]
+"archipy/models/dtos/base_protobuf_dto.py" = ["ANN401"]
+"archipy//helpers/utils/keycloak_utils.py" = ["B008"]
+"archipy/adapters/keycloak/adapters.py" = ["BLE001"]
+"archipy/adapters/kafka/adapters.py" = ["BLE001"]
+"features/steps/*" = ["F811"]
+"scripts/*" = ["S603", "S607"]
+
+# Configure McCabe complexity
+[tool.ruff.lint.mccabe]
+max-complexity = 10  # Maximum allowed McCabe complexity
+
+# Configure Pylint rules
+[tool.ruff.lint.pylint]
+max-args = 5  # Maximum number of function arguments
+max-branches = 16  # Maximum number of branches in a function
+max-returns = 16  # Maximum number of return statements in a function
+max-statements = 50  # Maximum number of statements in a function
+
+# Configure isort (import sorting)
+[tool.ruff.lint.isort]
+combine-as-imports = true  # Combine `import` and `from ... import` statements
+known-first-party = ["archipy"]  # Treat `archipy` as a first-party module
+section-order = [
+    "future", # `__future__` imports
+    "standard-library", # Standard library imports
+    "third-party", # Third-party imports
+    "first-party", # First-party imports (e.g., `archipy`)
+    "local-folder", # Local folder imports
+]
+
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = "double"  # Use double quotes for inline strings
+multiline-quotes = "double"  # Use double quotes for multiline strings
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"  # Use Google-style docstrings
+
+[tool.mypy]
+# Enable checking of untyped function definitions
+check_untyped_defs = true
+
+# Disallow using `Any` in generic types
+disallow_any_generics = false
+
+# Disallow incomplete type definitions
+disallow_incomplete_defs = true
+
+# Disallow subclassing `Any`
+disallow_subclassing_any = true
+
+# Disallow calling untyped functions
+disallow_untyped_calls = true
+
+# Disallow untyped decorators
+disallow_untyped_decorators = true
+
+# Disallow untyped function definitions
+disallow_untyped_defs = true
+
+# Follow imports silently
+follow_imports = "silent"
+
+# Disallow implicit re-exports
+no_implicit_reexport = true
+
+# Enable pretty output
+pretty = true
+
+# Target Python version
+python_version = "3.13"
+
+# Show error codes
+show_error_codes = true
+
+# Show error context
+show_error_context = true
+
+# Enable strict optional checking
+strict_optional = true
+
+# Warn about missing return statements
+warn_no_return = true
+
+# Warn about redundant casts
+warn_redundant_casts = true
+
+# Warn about returning `Any`
+warn_return_any = true
+
+# Warn about unreachable code
+warn_unreachable = true
+
+# Warn about unused configs
+warn_unused_configs = true
+
+# Warn about unused `# type: ignore` comments
+warn_unused_ignores = true
+
+# Enable Pydantic plugin for better type checking
+plugins = [
+    "pydantic.mypy", # Pydantic plugin for better type checking
+]
+
+[[tool.mypy.overrides]]
+module = [
+    "apscheduler.*", # Apply overrides to apscheduler
+    "archipy.adapters.keycloak.*",
+    "archipy.adapters.redis.*",
+    "confluent_kafka.*", # Apply overrides to Kafka
+    "confluent_kafka.admin.*", # Apply overrides to Kafka
+    "features.*", # Apply overrides to features files
+    "google.protobuf.*", # Apply overrides to protobuf
+    "grpc.*", # Apply overrides to gRPC
+    "jdatetime.*", # Apply overrides to jdatetime
+    "redis.*", # Apply overrides to Redis
+    "requests.*", # Apply overrides to requests
+    "scripts.*", # Apply overrides to script files
+    "sentry_sdk.*", # Apply overrides to sentry-sdk
+]
+ignore_missing_imports = true
+disable_error_code = ["no-any-return", "misc", "return-value", "arg-type", "type-var", "unused-ignore", "no-untyped-call"]
+
+[tool.config]
+pyproject_root_var = "pyproject"
+
+[tool.codespell]
+ignore-words-list = "exat,convertor"
+skip = ".git,__pycache__,build,dist"
+
+[tool.bandit]
+# Bandit configuration for security scanning
+# https://bandit.readthedocs.io/en/latest/config.html
+
+# Target directories to scan
+targets = ["archipy"]
+
+# Exclude directories from scanning
+exclude_dirs = ["features", "docs", "scripts"]
+
+# Skip specific test IDs
+# B101: assert_used - Allow assert statements in tests
+# B301: pickle - Allow pickle usage (needed for some serialization)
+# B403: import_pickle - Allow pickle imports
+skips = ["B101", "B301", "B403"]
