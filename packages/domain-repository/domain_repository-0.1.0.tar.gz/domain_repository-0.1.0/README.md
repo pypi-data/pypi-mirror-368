@@ -1,0 +1,35 @@
+# Operational Domain Metamodels
+
+This folder contains the abstract metamodels (blueprints) for operational domain concepts used by the metadata-registry-svc.
+
+## Purpose
+- Define the structure and relationships of domain types such as Workflow, Component, Expectation, and Protocol.
+- Enable the metadata-registry-svc to register, discover, and manage these types in a standards-based, JSON-LD compatible way.
+
+## Models
+- **Workflow**: Blueprint for a workflow type, referencing component types.
+- **Component**: Blueprint for a component type, which may reference protocols and expectations.
+- **Expectation**: Blueprint for an expectation type.
+- **Protocol**: Blueprint for a protocol type.
+
+## Usage
+- These models are not concrete instances, but definitions of types.
+- Each metamodel has a unique UUID for referencing and management.
+- Relationships are represented by UUID references to other metamodels.
+
+## Example
+```python
+from operational.workflow import Workflow
+from uuid import uuid4
+
+wf = Workflow(
+    name="Example Workflow",
+    description="A sample workflow metamodel.",
+    component_ids=[uuid4(), uuid4()]
+)
+print(wf.__jsonld__)
+```
+
+## Notes
+- Do not add instance-specific fields (like timestamps or state) to these metamodels.
+- For concrete metadata, use the metadata-registry-svc to create and manage instances based on these blueprints.
