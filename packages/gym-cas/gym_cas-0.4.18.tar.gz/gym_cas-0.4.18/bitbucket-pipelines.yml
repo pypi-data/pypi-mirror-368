@@ -1,0 +1,29 @@
+image: python:3.13
+
+test: &test
+    - step:
+        name: Test
+        caches:
+            - pip
+        script:
+            - pip install hatch
+            - hatch run test.py3.13:versions
+            - hatch run test:test
+            - hatch run test.py3.13:test-cov-nobadge
+            - hatch run test.py3.13:gencovbadge
+        artifacts:
+            - coverage.svg
+
+upload-badge: &upload-badge
+  step:
+    name: Upload the coverage upload-badge
+    script:
+        - pipe: atlassian/bitbucket-upload-file:0.7.1
+          variables:
+            BITBUCKET_ACCESS_TOKEN: ATCTT3xFfGN0hi6pSND1dxaht7vI4CKMBVZ7Eb2FT6uo2uFLR5F9_xipDDM4WM_LcUSprMOEOsILSNe-UQru3AKAjghyETkZ5u4mBMBcDT6iYSrMLZQatlHJu_kBCrwf2Yh31r5X4zHEwGY-97yc9vTRTIfb8QGiTivfnlu8XH9BsfeHXANzMX8=FC21349D
+            FILENAME: 'coverage.svg'
+
+pipelines:
+  default:
+    - <<: *test
+    - <<: *upload-badge

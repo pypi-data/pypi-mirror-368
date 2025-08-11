@@ -1,0 +1,33 @@
+[version]
+path = "src/gym_cas/__about__.py"
+
+[envs.default]
+installer = "uv"
+
+[envs.test]
+installer = "uv"
+dependencies = [
+  "coverage[toml]>=6.5",
+  "pytest",
+  "pytest-mock",
+  "genbadge[coverage]",
+  "openpyxl"
+]
+
+[envs.test.scripts]
+versions = "pip list"
+test = "pytest {args:tests}"
+test-cov = "coverage run -m pytest --junitxml=./reports/junit.xml {args:tests} && coverage xml && genbadge coverage -o coverage.svg"
+test-cov-nobadge = 'coverage run -m pytest --junitxml=./reports/junit.xml {args:tests} && coverage xml && coverage report --format total'
+gencovbadge = "genbadge coverage -o coverage.svg"
+cov-report = [
+  "- coverage combine",
+  "coverage report",
+]
+cov = [
+  "test-cov",
+  "cov-report",
+]
+
+[[envs.test.matrix]]
+python = ["3.9", "3.10", "3.11", "3.12", "3.13"]

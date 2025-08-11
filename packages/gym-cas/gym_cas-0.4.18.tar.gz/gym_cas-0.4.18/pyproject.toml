@@ -1,0 +1,135 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "gym-cas"
+dynamic = ["version"]
+description = "CAS tools for danish high schools."
+readme = "README.md"
+requires-python = ">=3.9"
+License-Expression = "MIT"
+keywords = ["CAS, Matematik, Math, Gymnasium, HTX"]
+authors = [
+  { name = "JACS", email = "jacs@zbc.dk" },
+]
+classifiers = [
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Education",
+    "Topic :: Education",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Development Status :: 4 - Beta"
+]
+dependencies = [
+    "sympy >= 1.13", 
+    "matplotlib >= 3.7.1", 
+    "numpy >= 1.26.0",
+    "sympy_plot_backends >= 3.4.1"
+]
+
+[project.urls]
+"Homepage" = "https://jacs-mat.bitbucket.io/"
+
+[tool.black]
+target-version = ["py39"]
+line-length = 120
+skip-string-normalization = true
+
+[tool.pyright]
+
+
+[tool.ruff]
+target-version = "py39"
+line-length = 120
+indent-width = 4
+
+[tool.ruff.lint]
+select = [
+  "A",
+  "ARG",
+  "B",
+  "C",
+  "DTZ",
+  "E",
+  "EM",
+  "F",
+  "FBT",
+  "I",
+  "ICN",
+  "ISC",
+  "N",
+  "PLC",
+  "PLE",
+  "PLR",
+  "PLW",
+  "Q",
+  "RUF",
+  "S",
+  "T",
+  "TID",
+  "UP",
+  "W",
+  "YTT",
+  "NPY"
+]
+ignore = [
+  # Allow non-abstract empty methods in abstract base classes
+  "B027",
+  # Allow boolean positional values in function calls, like `dict.get(... True)`
+  "FBT003",
+  # Ignore checks for possible passwords
+  "S105", "S106", "S107",
+  # Ignore complexity
+  "C901", "PLR0911", "PLR0912", "PLR0913", "PLR0915",
+  # Ignore print statements
+  "T201",
+]
+unfixable = []
+
+[tool.ruff.lint.isort]
+known-first-party = ["gym_cas"]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests can use magic values, assertions, and relative imports
+"tests/**/*" = ["PLR2004", "S101", "TID252"]
+# Allow uppercase function name for trigonometry functions
+"**/trigonometry.py" = ["N802"]
+# Allow ambiguous variable name "l" for consistency 
+"src/gym_cas/__init__.py" = ["E741"]
+
+[tool.pytest.ini_options]
+python_functions = "test_"
+
+[tool.coverage.run]
+source_pkgs = ["gym_cas", "tests"]
+branch = true
+parallel = false
+data_file = "./reports/coverage/.coverage"
+relative_files = true
+omit = [
+  "src/gym_cas/__about__.py",
+]
+
+[tool.coverage.xml]
+output = "./reports/coverage/coverage.xml"
+
+[tool.coverage.paths]
+gym_cas = ["src/gym_cas", "*/gym-cas/src/gym_cas"]
+tests = ["tests", "*/gym-cas/tests"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+   ".show\\(\\)",
+]
+partial_branches = [
+  "show",
+]
