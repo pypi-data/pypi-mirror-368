@@ -1,0 +1,71 @@
+{
+  "description": "Test custom big model mapping via env variables",
+  
+  // 覆盖环境变量来测试自定义大模型映射
+  "env": {
+    "CLAUDE_PROXY_BIG_MODEL": "custom-gpt-4"
+  },
+  
+  "claude_request": {
+    "model": "claude-3-opus-20240229",
+    "max_tokens": 100,
+    "messages": [
+      {
+        "role": "user", 
+        "content": "Test custom big model mapping"
+      }
+    ]
+  },
+  
+  "expected_openai_request": {
+    "model": "custom-gpt-4", // opus -> custom big model
+    "messages": [
+      {
+        "role": "user",
+        "content": "Test custom big model mapping"
+      }
+    ],
+    "max_tokens": 100,
+    "stream": false
+  },
+  
+  "openai_response": {
+    "id": "chatcmpl-custom-big-456",
+    "object": "chat.completion",
+    "created": 1677652288,
+    "model": "custom-gpt-4",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "This is a response from the custom big model."
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 10,
+      "completion_tokens": 12,
+      "total_tokens": 22
+    }
+  },
+  
+  "expected_claude_response": {
+    "id": "chatcmpl-custom-big-456",
+    "type": "message",
+    "role": "assistant",
+    "model": "claude-3-opus-20240229",
+    "content": [
+      {
+        "type": "text",
+        "text": "This is a response from the custom big model."
+      }
+    ],
+    "stop_reason": "end_turn",
+    "usage": {
+      "input_tokens": 10,
+      "output_tokens": 12
+    }
+  }
+}
