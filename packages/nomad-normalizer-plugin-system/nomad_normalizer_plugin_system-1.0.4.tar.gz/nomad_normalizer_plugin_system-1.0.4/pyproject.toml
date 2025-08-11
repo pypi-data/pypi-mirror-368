@@ -1,0 +1,82 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "setuptools-scm>=8.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nomad-normalizer-plugin-system"
+dynamic = ["version"]
+description = "System normalizer plugin for NOMAD."
+readme = "README.md"
+authors = [{ name = "The NOMAD Authors" }]
+license = { text = "Apache-2.0" }
+dependencies = [
+    "nomad-lab>=1.3.13",
+]
+
+[project.urls]
+homepage = "https://github.com/nomad-coe/nomad-normalizer-plugin-system"
+
+[project.optional-dependencies]
+dev = [
+    "ase>=3.22.0",
+    'mypy>=1.15',
+    'pytest>= 5.3.0, <8',
+    'pytest-timeout>=1.4.2',
+    'pytest-cov>=2.7.1',
+    'ruff>=0.6',
+    'typing-extensions>=4.12',
+]
+
+tests = [
+    "nomad-schema-plugin-run>=1.0.1",
+    "nomad-schema-plugin-simulation-workflow>=1.0.1",
+]
+
+[tool.ruff]
+include = ["systemnormalizer/*.py", "tests/*.py"]
+select = [
+    "E", # pycodestyle
+    "W", # pycodestyle
+    "PL", # pylint
+]
+ignore = [
+    "E501", # Line too long ({width} > {limit} characters)
+    "E701", # Multiple statements on one line (colon)
+    "E731", # Do not assign a lambda expression, use a def
+    "E402",  # Module level import not at top of file
+    "PLR0911", # Too many return statements
+    "PLR0912", # Too many branches
+    "PLR0913", # Too many arguments in function definition
+    "PLR0915", # Too many statements
+    "PLR2004", # Magic value used instead of constant
+    "PLW0603", # Using the global statement
+    "PLW2901", # redefined-loop-name
+    "PLR1714", # consider-using-in
+    "PLR5501", # else-if-used
+]
+fixable = ["ALL"]
+
+# Same as Black.
+line-length = 88
+indent-width = 4
+
+[tool.ruff.format]
+# use single quotes for strings.
+quote-style = "single"
+
+# indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
+
+[tool.setuptools.packages.find]
+include = ["systemnormalizer*"]
+
+[tool.setuptools_scm]
+
+[project.entry-points.'nomad.plugin']
+systemnormalizer = "systemnormalizer:system_normalizer_entry_point"
