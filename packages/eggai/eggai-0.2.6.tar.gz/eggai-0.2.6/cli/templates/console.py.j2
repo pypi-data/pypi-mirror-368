@@ -1,0 +1,110 @@
+"""
+{{ project_name }} Console Frontend
+
+Interactive console interface for chatting with agents.
+"""
+
+import asyncio
+import logging
+from typing import Dict, Any
+
+import aioconsole
+
+from eggai import Channel, eggai_main
+from {{ project_name }}.models import ChatMessage
+{% if transport == "kafka" %}
+from eggai.transport import eggai_set_default_transport, KafkaTransport
+import dotenv
+
+# Load environment variables
+dotenv.load_dotenv()
+eggai_set_default_transport(lambda: KafkaTransport())
+{% endif %}
+
+logger = logging.getLogger(__name__)
+
+
+@eggai_main
+async def console_loop():
+    """Main console loop for interactive chat."""
+    response_received = asyncio.Event()
+    response_received.set()
+    prompt_shown = False
+    
+    async def show_you_prompt():
+        """Show the 'You:' prompt."""
+        nonlocal prompt_shown
+        if not prompt_shown:
+            await aioconsole.aprint("💬 \033[96mYou:\033[0m ", end="", flush=True)
+            prompt_shown = True
+    
+    async def clear_you_prompt():
+        """Clear the current 'You:' prompt line."""
+        nonlocal prompt_shown
+        if prompt_shown:
+            # Move cursor to beginning of line and clear it
+            await aioconsole.aprint("\r\033[K", end="", flush=True)
+            prompt_shown = False
+    
+    async def handle_agent_response(message: ChatMessage):
+        """Handle responses from agents."""
+        # Clear the current "You:" prompt if showing
+        await clear_you_prompt()
+        
+        # Print agent response
+        await aioconsole.aprint(f"🤖 \033[92m{message.source}:\033[0m {message.data}")
+        
+        # Show "You:" prompt again
+        await show_you_prompt()
+        
+        response_received.set()
+    
+    # Subscribe to agent responses on the human output channel
+    await Channel("human.out").subscribe(handle_agent_response, data_type=ChatMessage)
+    
+    await aioconsole.aprint("🎉 \033[96m{{ project_name }} Console\033[0m")
+    await aioconsole.aprint("Type your messages to chat with the agents.")
+    await aioconsole.aprint("Type 'exit' or press Ctrl+C to quit.\n")
+    
+    # Show initial prompt
+    await show_you_prompt()
+    
+    while True:
+        try:
+            await response_received.wait()
+            
+            # Read input without showing prompt (we manage it ourselves)
+            user_input = await aioconsole.ainput("")
+            
+            if user_input.lower().strip() in ['exit', 'quit', 'bye']:
+                await clear_you_prompt()
+                await aioconsole.aprint("👋 Goodbye!")
+                break
+                
+            if not user_input.strip():
+                # Show prompt again for empty input
+                await show_you_prompt()
+                continue
+                
+        except (EOFError, KeyboardInterrupt):
+            await clear_you_prompt()
+            await aioconsole.aprint("\n👋 Goodbye!")
+            break
+        
+        # Clear the prompt line since we're sending a message
+        await clear_you_prompt()
+        
+        # Send user message to agents via human input channel
+        await Channel("human.in").publish(ChatMessage(
+            source="console",
+            data=user_input
+        ))
+        
+        response_received.clear()
+
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(console_loop())
+    except KeyboardInterrupt:
+        print("\nExiting console...", flush=True)
