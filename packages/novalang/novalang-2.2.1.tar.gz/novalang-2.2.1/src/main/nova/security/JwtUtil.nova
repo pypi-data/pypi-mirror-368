@@ -1,0 +1,70 @@
+@Component
+class JwtUtil {
+    
+    private final SECRET_KEY: String = "mySecretKey2024NovaLangEcommerce"
+    private final EXPIRATION_TIME: Long = 86400000 // 24 hours
+    
+    public generateToken(userDetails: UserDetails): String {
+        let claims = mutableMapOf<String, Any>()
+        claims.put("userId", userDetails.getId())
+        claims.put("role", userDetails.getAuthorities().first().getAuthority())
+        return createToken(claims, userDetails.getUsername())
+    }
+    
+    private createToken(claims: Map<String, Any>, subject: String): String {
+        return Jwts.builder()
+            .setClaims(claims)
+            .setSubject(subject)
+            .setIssuedAt(Date(System.currentTimeMillis()))
+            .setExpiration(Date(System.currentTimeMillis() + EXPIRATION_TIME))
+            .signWith(SignatureAlgorithm.HS512, SECRET_KEY)
+            .compact()
+    }
+    
+    public validateToken(token: String, userDetails: UserDetails): Boolean {
+        let username = extractUsername(token)
+        return (username == userDetails.getUsername() && !isTokenExpired(token))
+    }
+    
+    public extractUsername(token: String): String {
+        return extractClaim(token) { claims -> claims.getSubject() }
+    }
+    
+    public extractUserId(token: String): Long {
+        return extractClaim(token) { claims -> claims.get("userId", Long.class) }
+    }
+    
+    public extractRole(token: String): String {
+        return extractClaim(token) { claims -> claims.get("role", String.class) }
+    }
+    
+    public extractExpiration(token: String): Date {
+        return extractClaim(token) { claims -> claims.getExpiration() }
+    }
+    
+    public <T> extractClaim(token: String, claimsResolver: Function<Claims, T>): T {
+        let claims = extractAllClaims(token)
+        return claimsResolver.apply(claims)
+    }
+    
+    private extractAllClaims(token: String): Claims {
+        return Jwts.parser().setSigningKey(SECRET_KEY).parseClaimsJws(token).getBody()
+    }
+    
+    private isTokenExpired(token: String): Boolean {
+        return extractExpiration(token).before(Date())
+    }
+    
+    public isTokenValid(token: String): Boolean {
+        try {
+            extractAllClaims(token)
+            return !isTokenExpired(token)
+        } catch (Exception e) {
+            return false
+        }
+    }
+    
+    public getExpirationTime(): Long {
+        return EXPIRATION_TIME / 1000 // Return in seconds
+    }
+}

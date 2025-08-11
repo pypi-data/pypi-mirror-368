@@ -1,0 +1,71 @@
+@Component
+class JwtRequestFilter extends OncePerRequestFilter {
+    
+    @Autowired
+    private userDetailsService: UserDetailsService
+    
+    @Autowired
+    private jwtUtil: JwtUtil
+    
+    @Autowired
+    private authenticationService: AuthenticationService
+    
+    private val logger = LoggerFactory.getLogger(JwtRequestFilter.class)
+    
+    @Override
+    protected doFilterInternal(request: HttpServletRequest, 
+                             response: HttpServletResponse, 
+                             filterChain: FilterChain): void {
+        
+        let requestTokenHeader = request.getHeader("Authorization")
+        
+        let username: String? = null
+        let jwtToken: String? = null
+        
+        // JWT Token is in the form "Bearer token". Remove Bearer word and get only the Token
+        if (requestTokenHeader != null && requestTokenHeader.startsWith("Bearer ")) {
+            jwtToken = requestTokenHeader.substring(7)
+            try {
+                // Check if token is blacklisted
+                if (authenticationService.isTokenBlacklisted(jwtToken)) {
+                    logger.warn("Blacklisted token used: ${jwtToken.substring(0, 20)}...")
+                    filterChain.doFilter(request, response)
+                    return
+                }
+                
+                username = jwtUtil.extractUsername(jwtToken)
+            } catch (IllegalArgumentException e) {
+                logger.warn("Unable to get JWT Token")
+            } catch (ExpiredJwtException e) {
+                logger.warn("JWT Token has expired")
+            } catch (Exception e) {
+                logger.warn("JWT Token validation failed: ${e.message}")
+            }
+        } else {
+            logger.debug("JWT Token does not begin with Bearer String")
+        }
+        
+        // Once we get the token validate it.
+        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            
+            let userDetails = userDetailsService.loadUserByUsername(username)
+            
+            // if token is valid configure Spring Security to manually set authentication
+            if (jwtUtil.validateToken(jwtToken!!, userDetails)) {
+                
+                let usernamePasswordAuthenticationToken = UsernamePasswordAuthenticationToken(
+                    userDetails, null, userDetails.getAuthorities()
+                )
+                usernamePasswordAuthenticationToken.setDetails(
+                    WebAuthenticationDetailsSource().buildDetails(request)
+                )
+                
+                // After setting the Authentication in the context, we specify
+                // that the current user is authenticated. So it passes the
+                // Spring Security Configurations successfully.
+                SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken)
+            }
+        }
+        filterChain.doFilter(request, response)
+    }
+}

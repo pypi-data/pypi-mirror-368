@@ -1,0 +1,168 @@
+@RestController
+@RequestMapping("/api/health")
+class HealthController {
+    
+    @Autowired
+    private dataSource: DataSource
+    
+    @Autowired
+    private mongoTemplate: MongoTemplate
+    
+    @Autowired
+    private redisTemplate: RedisTemplate
+    
+    private val logger = LoggerFactory.getLogger(HealthController.class)
+    
+    @GetMapping
+    public getHealth(): ResponseEntity<ApiResponse<Map<String, Any>>> {
+        let healthStatus = mutableMapOf<String, Any>()
+        let allHealthy = true
+        
+        // Check MySQL
+        let mysqlHealth = checkMySQLHealth()
+        healthStatus.put("mysql", mysqlHealth)
+        if (!mysqlHealth["healthy"] as Boolean) allHealthy = false
+        
+        // Check MongoDB
+        let mongoHealth = checkMongoDBHealth()
+        healthStatus.put("mongodb", mongoHealth)
+        if (!mongoHealth["healthy"] as Boolean) allHealthy = false
+        
+        // Check Redis
+        let redisHealth = checkRedisHealth()
+        healthStatus.put("redis", redisHealth)
+        if (!redisHealth["healthy"] as Boolean) allHealthy = false
+        
+        // Overall status
+        healthStatus.put("status", if (allHealthy) "UP" else "DOWN")
+        healthStatus.put("timestamp", LocalDateTime.now())
+        
+        let status = if (allHealthy) HttpStatus.OK else HttpStatus.SERVICE_UNAVAILABLE
+        return ResponseEntity.status(status).body(ApiResponse.success(healthStatus))
+    }
+    
+    @GetMapping("/mysql")
+    public getMySQLHealth(): ResponseEntity<ApiResponse<Map<String, Any>>> {
+        let health = checkMySQLHealth()
+        let status = if (health["healthy"] as Boolean) HttpStatus.OK else HttpStatus.SERVICE_UNAVAILABLE
+        return ResponseEntity.status(status).body(ApiResponse.success(health))
+    }
+    
+    @GetMapping("/mongodb")
+    public getMongoDBHealth(): ResponseEntity<ApiResponse<Map<String, Any>>> {
+        let health = checkMongoDBHealth()
+        let status = if (health["healthy"] as Boolean) HttpStatus.OK else HttpStatus.SERVICE_UNAVAILABLE
+        return ResponseEntity.status(status).body(ApiResponse.success(health))
+    }
+    
+    @GetMapping("/redis")
+    public getRedisHealth(): ResponseEntity<ApiResponse<Map<String, Any>>> {
+        let health = checkRedisHealth()
+        let status = if (health["healthy"] as Boolean) HttpStatus.OK else HttpStatus.SERVICE_UNAVAILABLE
+        return ResponseEntity.status(status).body(ApiResponse.success(health))
+    }
+    
+    @GetMapping("/readiness")
+    public getReadiness(): ResponseEntity<ApiResponse<Map<String, Any>>> {
+        let readinessStatus = mutableMapOf<String, Any>()
+        
+        // Check if application is ready to serve traffic
+        let allReady = true
+        
+        // Check database connections
+        if (!checkMySQLHealth()["healthy"] as Boolean) allReady = false
+        if (!checkMongoDBHealth()["healthy"] as Boolean) allReady = false
+        if (!checkRedisHealth()["healthy"] as Boolean) allReady = false
+        
+        readinessStatus.put("ready", allReady)
+        readinessStatus.put("timestamp", LocalDateTime.now())
+        
+        let status = if (allReady) HttpStatus.OK else HttpStatus.SERVICE_UNAVAILABLE
+        return ResponseEntity.status(status).body(ApiResponse.success(readinessStatus))
+    }
+    
+    @GetMapping("/liveness")
+    public getLiveness(): ResponseEntity<ApiResponse<Map<String, Any>>> {
+        let livenessStatus = mutableMapOf<String, Any>()
+        livenessStatus.put("alive", true)
+        livenessStatus.put("timestamp", LocalDateTime.now())
+        
+        return ResponseEntity.ok(ApiResponse.success(livenessStatus))
+    }
+    
+    private checkMySQLHealth(): Map<String, Any> {
+        let health = mutableMapOf<String, Any>()
+        let startTime = System.currentTimeMillis()
+        
+        try {
+            let connection = dataSource.getConnection()
+            let isValid = connection.isValid(5)
+            connection.close()
+            
+            let responseTime = System.currentTimeMillis() - startTime
+            
+            health.put("healthy", isValid)
+            health.put("responseTime", "${responseTime}ms")
+            health.put("database", "MySQL")
+            
+        } catch (Exception e) {
+            let responseTime = System.currentTimeMillis() - startTime
+            health.put("healthy", false)
+            health.put("error", e.message)
+            health.put("responseTime", "${responseTime}ms")
+            health.put("database", "MySQL")
+            logger.error("MySQL health check failed", e)
+        }
+        
+        return health
+    }
+    
+    private checkMongoDBHealth(): Map<String, Any> {
+        let health = mutableMapOf<String, Any>()
+        let startTime = System.currentTimeMillis()
+        
+        try {
+            mongoTemplate.getDb().runCommand(Document("ping", 1))
+            let responseTime = System.currentTimeMillis() - startTime
+            
+            health.put("healthy", true)
+            health.put("responseTime", "${responseTime}ms")
+            health.put("database", "MongoDB")
+            
+        } catch (Exception e) {
+            let responseTime = System.currentTimeMillis() - startTime
+            health.put("healthy", false)
+            health.put("error", e.message)
+            health.put("responseTime", "${responseTime}ms")
+            health.put("database", "MongoDB")
+            logger.error("MongoDB health check failed", e)
+        }
+        
+        return health
+    }
+    
+    private checkRedisHealth(): Map<String, Any> {
+        let health = mutableMapOf<String, Any>()
+        let startTime = System.currentTimeMillis()
+        
+        try {
+            redisTemplate.opsForValue().set("health-check", "ok", Duration.ofSeconds(10))
+            let result = redisTemplate.opsForValue().get("health-check")
+            let responseTime = System.currentTimeMillis() - startTime
+            
+            health.put("healthy", result == "ok")
+            health.put("responseTime", "${responseTime}ms")
+            health.put("database", "Redis")
+            
+        } catch (Exception e) {
+            let responseTime = System.currentTimeMillis() - startTime
+            health.put("healthy", false)
+            health.put("error", e.message)
+            health.put("responseTime", "${responseTime}ms")
+            health.put("database", "Redis")
+            logger.error("Redis health check failed", e)
+        }
+        
+        return health
+    }
+}

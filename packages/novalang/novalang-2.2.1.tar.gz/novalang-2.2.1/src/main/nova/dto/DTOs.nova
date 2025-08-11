@@ -1,0 +1,295 @@
+/**
+ * Data Transfer Objects (DTOs) for the E-commerce Backend
+ * These classes define the data structures for API requests and responses
+ */
+
+// User DTOs
+@Data
+class CreateUserDto {
+    @NotBlank(message: "Email is required")
+    @Email(message: "Email must be valid")
+    public email: String
+    
+    @NotBlank(message: "Username is required")
+    @Size(min: 3, max: 20, message: "Username must be between 3 and 20 characters")
+    public username: String
+    
+    @NotBlank(message: "Password is required")
+    @Size(min: 8, message: "Password must be at least 8 characters")
+    public password: String
+    
+    @NotBlank(message: "First name is required")
+    public firstName: String
+    
+    @NotBlank(message: "Last name is required")
+    public lastName: String
+    
+    public phoneNumber: String?
+}
+
+@Data
+class UpdateUserDto {
+    public firstName: String?
+    public lastName: String?
+    public phoneNumber: String?
+}
+
+@Data
+class UserResponseDto {
+    public id: Long
+    public email: String
+    public username: String
+    public firstName: String
+    public lastName: String
+    public phoneNumber: String?
+    public role: UserRole
+    public isActive: Boolean
+    public createdAt: LocalDateTime
+    public updatedAt: LocalDateTime
+}
+
+// Product DTOs
+@Data
+class CreateProductDto {
+    @NotBlank(message: "Product name is required")
+    public name: String
+    
+    public description: String?
+    
+    @NotNull(message: "Price is required")
+    @DecimalMin(value: "0.0", inclusive: false, message: "Price must be positive")
+    public price: BigDecimal
+    
+    @NotNull(message: "Stock quantity is required")
+    @Min(value: 0, message: "Stock quantity cannot be negative")
+    public stockQuantity: Integer
+    
+    @NotNull(message: "Category ID is required")
+    public categoryId: Long
+    
+    public imageUrl: String?
+}
+
+@Data
+class UpdateProductDto {
+    public name: String?
+    public description: String?
+    public price: BigDecimal?
+    public stockQuantity: Integer?
+    public categoryId: Long?
+    public imageUrl: String?
+}
+
+@Data
+class ProductResponseDto {
+    public id: Long
+    public name: String
+    public description: String?
+    public price: BigDecimal
+    public stockQuantity: Integer
+    public categoryId: Long
+    public imageUrl: String?
+    public isActive: Boolean
+    public createdAt: LocalDateTime
+    public updatedAt: LocalDateTime
+}
+
+@Data
+class StockUpdateDto {
+    @NotNull(message: "Quantity is required")
+    public quantity: Integer
+}
+
+// Order DTOs
+@Data
+class CreateOrderDto {
+    @NotNull(message: "User ID is required")
+    public userId: Long
+    
+    @NotEmpty(message: "Order items cannot be empty")
+    public orderItems: List<CreateOrderItemDto>
+    
+    @NotBlank(message: "Shipping address is required")
+    public shippingAddress: String
+}
+
+@Data
+class CreateOrderItemDto {
+    @NotNull(message: "Product ID is required")
+    public productId: Long
+    
+    @NotNull(message: "Quantity is required")
+    @Min(value: 1, message: "Quantity must be at least 1")
+    public quantity: Integer
+    
+    public price: BigDecimal?  // Optional, will be fetched from product
+}
+
+@Data
+class OrderResponseDto {
+    public id: Long
+    public orderNumber: String
+    public userId: Long
+    public totalAmount: BigDecimal
+    public status: OrderStatus
+    public shippingAddress: String
+    public createdAt: LocalDateTime
+    public orderItems: List<OrderItemResponseDto>
+}
+
+@Data
+class OrderItemResponseDto {
+    public id: Long
+    public productId: Long
+    public productName: String
+    public quantity: Integer
+    public price: BigDecimal
+    public subtotal: BigDecimal
+}
+
+@Data
+class UpdateOrderStatusDto {
+    @NotNull(message: "Status is required")
+    public status: OrderStatus
+}
+
+// Authentication DTOs
+@Data
+class LoginRequestDto {
+    @NotBlank(message: "Email or username is required")
+    public emailOrUsername: String
+    
+    @NotBlank(message: "Password is required")
+    public password: String
+}
+
+@Data
+class LoginResponseDto {
+    public token: String
+    public user: UserResponseDto
+    public expiresIn: Long  // in seconds
+}
+
+@Data
+class RefreshTokenRequestDto {
+    @NotBlank(message: "Refresh token is required")
+    public refreshToken: String
+}
+
+@Data
+class ChangePasswordDto {
+    @NotBlank(message: "Current password is required")
+    public currentPassword: String
+    
+    @NotBlank(message: "New password is required")
+    @Size(min: 8, message: "New password must be at least 8 characters")
+    public newPassword: String
+}
+
+// Search and Filter DTOs
+@Data
+class ProductSearchDto {
+    public query: String?
+    public categoryId: Long?
+    public minPrice: BigDecimal?
+    public maxPrice: BigDecimal?
+    public page: Integer = 0
+    public size: Integer = 20
+    public sortBy: String = "name"
+    public sortDirection: String = "asc"
+}
+
+@Data
+class UserSearchDto {
+    public query: String?
+    public role: UserRole?
+    public isActive: Boolean?
+    public page: Integer = 0
+    public size: Integer = 20
+    public sortBy: String = "createdAt"
+    public sortDirection: String = "desc"
+}
+
+@Data
+class OrderSearchDto {
+    public userId: Long?
+    public status: OrderStatus?
+    public startDate: LocalDateTime?
+    public endDate: LocalDateTime?
+    public page: Integer = 0
+    public size: Integer = 20
+    public sortBy: String = "createdAt"
+    public sortDirection: String = "desc"
+}
+
+// Pagination Response DTO
+@Data
+class PageResponseDto<T> {
+    public content: List<T>
+    public page: Integer
+    public size: Integer
+    public totalElements: Long
+    public totalPages: Integer
+    public first: Boolean
+    public last: Boolean
+    public numberOfElements: Integer
+}
+
+// Category DTOs
+@Data
+class CreateCategoryDto {
+    @NotBlank(message: "Category name is required")
+    public name: String
+    
+    public description: String?
+    public parentCategoryId: Long?
+}
+
+@Data
+class CategoryResponseDto {
+    public id: Long
+    public name: String
+    public description: String?
+    public parentCategoryId: Long?
+    public isActive: Boolean
+    public createdAt: LocalDateTime
+    public updatedAt: LocalDateTime
+    public productCount: Long?
+}
+
+// Statistics DTOs
+@Data
+class DashboardStatsDto {
+    public totalUsers: Long
+    public totalProducts: Long
+    public totalOrders: Long
+    public totalRevenue: BigDecimal
+    public ordersToday: Long
+    public revenueToday: BigDecimal
+    public topSellingProducts: List<ProductSalesDto>
+    public recentOrders: List<OrderResponseDto>
+}
+
+@Data
+class ProductSalesDto {
+    public productId: Long
+    public productName: String
+    public totalSold: Long
+    public totalRevenue: BigDecimal
+}
+
+// Error Response DTO
+@Data
+class ErrorResponseDto {
+    public error: String
+    public message: String
+    public timestamp: LocalDateTime
+    public path: String?
+    public details: Map<String, Any>?
+    
+    constructor(error: String, message: String) {
+        this.error = error
+        this.message = message
+        this.timestamp = LocalDateTime.now()
+    }
+}

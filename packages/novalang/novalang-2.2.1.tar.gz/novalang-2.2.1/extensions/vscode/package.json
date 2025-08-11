@@ -1,0 +1,177 @@
+{
+    "name": "novalang",
+    "displayName": "NovaLang",
+    "description": "Language support for NovaLang - The Full-Stack Programming Language",
+    "version": "1.0.0",
+    "publisher": "novalang",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/martinmaboya/novalang.git"
+    },
+    "homepage": "https://martinmaboya.github.io/novalang",
+    "engines": {
+        "vscode": "^1.74.0"
+    },
+    "categories": [
+        "Programming Languages",
+        "Snippets",
+        "Formatters",
+        "Other"
+    ],
+    "keywords": [
+        "novalang",
+        "nova",
+        "full-stack",
+        "programming language",
+        "enterprise",
+        "components",
+        "spring boot",
+        "react"
+    ],
+    "galleryBanner": {
+        "color": "#1e1e1e",
+        "theme": "dark"
+    },
+    "main": "./out/extension.js",
+    "contributes": {
+        "languages": [{
+            "id": "novalang",
+            "aliases": ["NovaLang", "nova"],
+            "extensions": [".nova"],
+            "configuration": "./language-configuration.json",
+            "icon": {
+                "light": "./icons/novalang-file.svg",
+                "dark": "./icons/novalang-file.svg"
+            }
+        }],
+        "grammars": [{
+            "language": "novalang",
+            "scopeName": "source.nova",
+            "path": "./syntaxes/novalang.tmLanguage.json"
+        }],
+        "snippets": [{
+            "language": "novalang",
+            "path": "./snippets/novalang.json"
+        }],
+        "commands": [
+            {
+                "command": "novalang.runFile",
+                "title": "Run NovaLang File",
+                "category": "NovaLang",
+                "icon": "$(play)"
+            },
+            {
+                "command": "novalang.createProject",
+                "title": "Create NovaLang Project",
+                "category": "NovaLang",
+                "icon": "$(folder-opened)"
+            },
+            {
+                "command": "novalang.createComponent",
+                "title": "Create Component",
+                "category": "NovaLang",
+                "icon": "$(symbol-class)"
+            },
+            {
+                "command": "novalang.createEntity",
+                "title": "Create Entity",
+                "category": "NovaLang",
+                "icon": "$(database)"
+            },
+            {
+                "command": "novalang.createService",
+                "title": "Create Service",
+                "category": "NovaLang",
+                "icon": "$(gear)"
+            },
+            {
+                "command": "novalang.createController",
+                "title": "Create Controller",
+                "category": "NovaLang",
+                "icon": "$(server)"
+            }
+        ],
+        "keybindings": [
+            {
+                "command": "novalang.runFile",
+                "key": "f5",
+                "when": "editorTextFocus && resourceExtname == .nova"
+            },
+            {
+                "command": "novalang.createComponent",
+                "key": "ctrl+alt+c",
+                "when": "explorerViewletVisible"
+            }
+        ],
+        "menus": {
+            "editor/title": [
+                {
+                    "command": "novalang.runFile",
+                    "when": "resourceExtname == .nova",
+                    "group": "navigation"
+                }
+            ],
+            "explorer/context": [
+                {
+                    "command": "novalang.createComponent",
+                    "group": "novalang@1"
+                },
+                {
+                    "command": "novalang.createEntity",
+                    "group": "novalang@2"
+                },
+                {
+                    "command": "novalang.createService",
+                    "group": "novalang@3"
+                },
+                {
+                    "command": "novalang.createController",
+                    "group": "novalang@4"
+                }
+            ]
+        },
+        "configuration": {
+            "type": "object",
+            "title": "NovaLang",
+            "properties": {
+                "novalang.pythonPath": {
+                    "type": "string",
+                    "default": "python",
+                    "description": "Path to Python interpreter for running NovaLang files"
+                },
+                "novalang.mainScript": {
+                    "type": "string",
+                    "default": "main.py",
+                    "description": "Path to NovaLang main script"
+                },
+                "novalang.enableAutoFormat": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable automatic code formatting on save"
+                },
+                "novalang.enableDiagnostics": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable real-time error checking"
+                }
+            }
+        }
+    },
+    "activationEvents": [
+        "onLanguage:novalang",
+        "onCommand:novalang.createProject"
+    ],
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./"
+    },
+    "devDependencies": {
+        "@types/vscode": "^1.74.0",
+        "@types/node": "16.x",
+        "typescript": "^4.9.4"
+    },
+    "dependencies": {
+        "vscode-languageclient": "^8.0.0"
+    }
+}

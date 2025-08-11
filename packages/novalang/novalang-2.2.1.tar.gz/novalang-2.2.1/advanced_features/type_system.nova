@@ -1,0 +1,204 @@
+# 🌟 NovaLang Advanced Type System
+
+## Generic Types with Constraints
+```nova
+// Generic interfaces with bounds
+interface Repository<T extends Entity & Serializable> {
+    findById<K extends Comparable<K>>(id: K): Optional<T>
+    findAll(): Stream<T>
+    save(entity: T): T
+    delete(id: K): boolean
+}
+
+// Generic classes with multiple constraints
+class CacheService<K extends Hashable, V extends Serializable> {
+    private cache: Map<K, V> = new HashMap()
+    
+    get(key: K): Optional<V> {
+        return Optional.ofNullable(cache.get(key))
+    }
+    
+    put(key: K, value: V): void {
+        cache.put(key, value)
+    }
+}
+```
+
+## Union Types and Pattern Matching
+```nova
+// Union types for better error handling
+type Result<T, E> = Success<T> | Failure<E>
+type HttpResponse = Ok<string> | BadRequest<string> | NotFound | ServerError<string>
+
+// Pattern matching with exhaustiveness checking
+function handleResponse(response: HttpResponse): string {
+    return match response {
+        Ok(content) -> "Success: " + content
+        BadRequest(msg) -> "Bad request: " + msg
+        NotFound -> "Resource not found"
+        ServerError(err) -> "Server error: " + err
+    }
+}
+
+// Smart casting in pattern matching
+function processValue(value: string | number | boolean): string {
+    return match value {
+        string s when s.length > 10 -> "Long string: " + s
+        string s -> "Short string: " + s
+        number n when n > 100 -> "Large number: " + n
+        number n -> "Small number: " + n
+        boolean b -> "Boolean: " + b
+    }
+}
+```
+
+## Null Safety with Optional Types
+```nova
+// Null-safe by default
+class User {
+    name: string              // Non-null
+    email?: string           // Optional (nullable)
+    profile: Optional<Profile>  // Explicit optional
+    
+    getDisplayName(): string {
+        return name // Safe - cannot be null
+    }
+    
+    getEmailDomain(): Optional<string> {
+        return email?.split("@").get(1) // Safe optional chaining
+    }
+}
+
+// Optional operations
+function processUser(user: Optional<User>): string {
+    return user
+        .filter(u -> u.isActive())
+        .map(u -> u.getDisplayName())
+        .orElse("Unknown User")
+}
+```
+
+## Advanced Type Inference
+```nova
+// Automatic type inference
+let users = fetchUsers() // Inferred as List<User>
+let activeUsers = users.filter(u -> u.isActive()) // Inferred as List<User>
+let userNames = activeUsers.map(u -> u.name) // Inferred as List<string>
+
+// Smart inference with generics
+let repository = new UserRepository() // Inferred as Repository<User>
+let result = repository.findById(123) // Inferred as Optional<User>
+
+// Context-sensitive inference
+users.forEach(user -> {
+    // 'user' automatically inferred as User type
+    console.log(user.name) // Type-safe access
+})
+```
+
+## Algebraic Data Types
+```nova
+// Sealed classes for exhaustive matching
+sealed class Expression {
+    class Number(value: int) extends Expression
+    class Variable(name: string) extends Expression
+    class Addition(left: Expression, right: Expression) extends Expression
+    class Multiplication(left: Expression, right: Expression) extends Expression
+}
+
+// Exhaustive pattern matching
+function evaluate(expr: Expression, variables: Map<string, int>): int {
+    return match expr {
+        Number(value) -> value
+        Variable(name) -> variables.get(name).orElse(0)
+        Addition(left, right) -> evaluate(left, variables) + evaluate(right, variables)
+        Multiplication(left, right) -> evaluate(left, variables) * evaluate(right, variables)
+    }
+}
+```
+
+## Type Classes (Traits)
+```nova
+// Type classes for ad-hoc polymorphism
+trait Serializable<T> {
+    serialize(value: T): string
+    deserialize(data: string): T
+}
+
+trait Comparable<T> {
+    compare(a: T, b: T): int
+}
+
+// Automatic derivation
+@derive(Serializable, Comparable)
+class Person {
+    name: string
+    age: int
+}
+
+// Generic functions with trait bounds
+function sort<T: Comparable<T>>(items: List<T>): List<T> {
+    return items.sortedWith((a, b) -> T.compare(a, b))
+}
+```
+
+## Dependent Types (Advanced)
+```nova
+// Types that depend on values
+type Vector<n: int> = Array<number>[n]
+type Matrix<rows: int, cols: int> = Array<Vector<cols>>[rows]
+
+function dotProduct<n: int>(a: Vector<n>, b: Vector<n>): number {
+    return a.zip(b).map((x, y) -> x * y).sum()
+}
+
+// Compile-time guarantees
+let v1: Vector<3> = [1, 2, 3]
+let v2: Vector<3> = [4, 5, 6]
+let result = dotProduct(v1, v2) // Type-safe at compile time
+
+// let v3: Vector<2> = [1, 2]
+// let invalid = dotProduct(v1, v3) // Compile error: size mismatch
+```
+
+## Higher-Kinded Types
+```nova
+// Type constructors as parameters
+trait Functor<F<_>> {
+    map<A, B>(fa: F<A>, f: A -> B): F<B>
+}
+
+trait Monad<M<_>> extends Functor<M> {
+    pure<A>(value: A): M<A>
+    flatMap<A, B>(ma: M<A>, f: A -> M<B>): M<B>
+}
+
+// Implementation for Optional
+impl Monad<Optional> {
+    pure<A>(value: A): Optional<A> = Optional.of(value)
+    
+    flatMap<A, B>(opt: Optional<A>, f: A -> Optional<B>): Optional<B> {
+        return opt.isPresent() ? f(opt.get()) : Optional.empty()
+    }
+}
+```
+
+## Type-Level Programming
+```nova
+// Compile-time type computations
+type If<Condition: boolean, Then: Type, Else: Type> = 
+    Condition extends true ? Then : Else
+
+type IsString<T> = T extends string ? true : false
+
+// Example usage
+type Result1 = If<IsString<string>, number, boolean> // number
+type Result2 = If<IsString<int>, number, boolean>    // boolean
+
+// Type-level lists and operations
+type Head<List> = List extends [infer H, ...any[]] ? H : never
+type Tail<List> = List extends [any, ...infer T] ? T : never
+
+type FirstElement = Head<[string, number, boolean]> // string
+type RestElements = Tail<[string, number, boolean]> // [number, boolean]
+```

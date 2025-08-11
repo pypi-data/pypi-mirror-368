@@ -1,0 +1,58 @@
+// 👤 User Entity
+// @Entity
+// @Table(name = "users")
+
+print "📋 Loading User Entity...";
+
+// @Entity
+// @Table(name = "users")
+function User(id, name, email) {
+    print "👤 Entity: User";
+    return "User:" + str(id) + ":" + name + ":" + email;
+}
+
+// Entity metadata for auto-table creation
+function User_getTableSchema() {
+    print "📋 Getting User table schema...";
+    
+    let schema = {};
+    return schema;
+}
+
+// Validation rules
+function User_validate(name, email) {
+    print "✅ Validating User data...";
+    
+    if (len(name) < 2) {
+        print "❌ Validation error: Name must be at least 2 characters";
+        return false;
+    }
+    
+    if (len(email) < 5) {
+        print "❌ Validation error: Email too short";
+        return false;
+    }
+    
+    // Email format validation (simplified)
+    let email_str = str(email);
+    let has_at = false;
+    
+    // Simple check for @ symbol
+    let i = 0;
+    while (i < len(email_str)) {
+        if (email_str[i] == "@") {
+            has_at = true;
+        }
+        i = i + 1;
+    }
+    
+    if (!has_at) {
+        print "❌ Validation error: Invalid email format - missing @";
+        return false;
+    }
+    
+    print "✅ User validation passed";
+    return true;
+}
+
+print "✅ User Entity loaded successfully";

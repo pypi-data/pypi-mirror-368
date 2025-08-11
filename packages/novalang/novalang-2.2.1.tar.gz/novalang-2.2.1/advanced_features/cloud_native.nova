@@ -1,0 +1,388 @@
+# 🚀 NovaLang Cloud-Native & Microservices
+
+## Microservices Architecture
+```nova
+@MicroService(
+    name: "user-service",
+    version: "1.0.0",
+    port: 8080,
+    healthCheck: "/health",
+    metrics: "/metrics"
+)
+@LoadBalancer(
+    strategy: "round-robin",
+    healthCheck: true,
+    maxRetries: 3
+)
+@CircuitBreaker(
+    failureThreshold: 5,
+    timeout: 3000,
+    recoveryTime: 30000
+)
+class UserMicroService {
+    
+    @Inject
+    private userRepository: UserRepository
+    
+    @Inject
+    private eventPublisher: EventPublisher
+    
+    @GetMapping("/users/{id}")
+    @Traced("get-user")
+    @Cached(ttl: "5m", key: "user-{id}")
+    @RateLimit(requests: 100, window: "1m")
+    async getUser(@PathVariable id: string): Response<User> {
+        try {
+            let user = await userRepository.findById(id)
+            return Response.ok(user)
+        } catch (error: UserNotFoundException) {
+            return Response.notFound("User not found")
+        }
+    }
+    
+    @PostMapping("/users")
+    @Transaction
+    @Validated
+    async createUser(@RequestBody @Valid user: CreateUserRequest): Response<User> {
+        let newUser = await userRepository.save(user.toEntity())
+        await eventPublisher.publish(UserCreatedEvent(newUser))
+        return Response.created(newUser)
+    }
+}
+```
+
+## Service Discovery & Configuration
+```nova
+@ServiceDiscovery(
+    provider: "consul",
+    datacenter: "dc1",
+    healthCheck: "/health"
+)
+@Configuration
+class ServiceConfig {
+    
+    @Value("${database.url}")
+    databaseUrl: string
+    
+    @Value("${cache.redis.host:localhost}")
+    redisHost: string
+    
+    @Profile("production")
+    @Bean
+    createDatabase(): Database {
+        return new PostgreSQLDatabase(databaseUrl)
+    }
+    
+    @Profile("development")
+    @Bean
+    createDatabase(): Database {
+        return new H2Database("mem:testdb")
+    }
+}
+
+// Auto-register with service discovery
+@AutoRegister
+@HealthCheck
+class HealthController {
+    
+    @GetMapping("/health")
+    healthCheck(): HealthStatus {
+        return HealthStatus.builder()
+            .status("UP")
+            .check("database", checkDatabase())
+            .check("redis", checkRedis())
+            .build()
+    }
+    
+    private checkDatabase(): ComponentHealth {
+        try {
+            database.ping()
+            return ComponentHealth.up()
+        } catch (error) {
+            return ComponentHealth.down(error.message)
+        }
+    }
+}
+```
+
+## Event-Driven Architecture
+```nova
+@EventHandler
+class UserEventHandler {
+    
+    @Subscribe("user.created")
+    @Async
+    async onUserCreated(event: UserCreatedEvent): void {
+        // Send welcome email
+        await emailService.sendWelcomeEmail(event.user)
+        
+        // Create user profile
+        await profileService.createProfile(event.user.id)
+        
+        // Update analytics
+        await analyticsService.trackUserRegistration(event.user)
+    }
+    
+    @Subscribe("user.updated")
+    @Retry(maxAttempts: 3, backoff: "exponential")
+    async onUserUpdated(event: UserUpdatedEvent): void {
+        // Update search index
+        await searchService.updateUserIndex(event.user)
+    }
+}
+
+@EventPublisher
+class OrderService {
+    
+    @PublishEvent("order.created")
+    async createOrder(order: CreateOrderRequest): Order {
+        let newOrder = await orderRepository.save(order.toEntity())
+        
+        // Event automatically published due to @PublishEvent
+        return newOrder
+    }
+}
+```
+
+## API Gateway & Routing
+```nova
+@ApiGateway(
+    port: 8080,
+    cors: true,
+    rateLimiting: true
+)
+class APIGateway {
+    
+    @Route("/api/users/**")
+    @LoadBalance(["user-service-1", "user-service-2"])
+    @Timeout(5000)
+    userServiceRoute(): RouteConfig {
+        return RouteConfig.builder()
+            .target("http://user-service")
+            .stripPrefix("/api")
+            .addHeader("X-Gateway", "nova-gateway")
+            .build()
+    }
+    
+    @Route("/api/orders/**")
+    @CircuitBreaker(threshold: 3)
+    @Fallback(OrderFallbackHandler.class)
+    orderServiceRoute(): RouteConfig {
+        return RouteConfig.to("http://order-service")
+    }
+    
+    @Middleware
+    @Order(1)
+    authenticationMiddleware(): Middleware {
+        return (request, response, next) -> {
+            let token = request.headers["Authorization"]
+            if (!authService.validateToken(token)) {
+                return response.unauthorized("Invalid token")
+            }
+            next()
+        }
+    }
+}
+```
+
+## Kubernetes Integration
+```nova
+@KubernetesDeployment(
+    replicas: 3,
+    namespace: "production",
+    resources: ResourceRequirements(
+        requests: Resources(cpu: "100m", memory: "256Mi"),
+        limits: Resources(cpu: "500m", memory: "512Mi")
+    )
+)
+@Service(
+    type: "ClusterIP",
+    ports: [ServicePort(port: 80, targetPort: 8080)]
+)
+@Ingress(
+    host: "api.example.com",
+    path: "/users",
+    tls: true
+)
+class UserService {
+    // Service implementation
+}
+
+// Auto-generates Kubernetes YAML:
+/*
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+  namespace: production
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+    spec:
+      containers:
+      - name: user-service
+        image: user-service:latest
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+  namespace: production
+spec:
+  selector:
+    app: user-service
+  ports:
+  - port: 80
+    targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: user-service-ingress
+  namespace: production
+spec:
+  tls:
+  - hosts:
+    - api.example.com
+  rules:
+  - host: api.example.com
+    http:
+      paths:
+      - path: /users
+        pathType: Prefix
+        backend:
+          service:
+            name: user-service
+            port:
+              number: 80
+*/
+```
+
+## Container & Docker Integration
+```nova
+@DockerImage(
+    baseImage: "openjdk:17-jre-slim",
+    port: 8080,
+    workdir: "/app"
+)
+@HealthCheck(
+    test: ["CMD", "curl", "-f", "http://localhost:8080/health"],
+    interval: "30s",
+    timeout: "3s",
+    retries: 3
+)
+class UserApplication {
+    
+    @Main
+    static main(args: string[]): void {
+        NovaApplication.run(UserApplication.class, args)
+    }
+}
+
+// Auto-generates Dockerfile:
+/*
+FROM openjdk:17-jre-slim
+
+WORKDIR /app
+
+COPY target/user-service.jar app.jar
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
+  CMD curl -f http://localhost:8080/health || exit 1
+
+ENTRYPOINT ["java", "-jar", "app.jar"]
+*/
+```
+
+## Observability & Monitoring
+```nova
+@Observability(
+    metrics: true,
+    tracing: true,
+    logging: true
+)
+class OrderService {
+    
+    @Timed(name: "order.processing.time")
+    @Counted(name: "orders.processed")
+    @Traced(operationName: "process-order")
+    async processOrder(@SpanTag("order.id") orderId: string): Order {
+        
+        @Span("validate-order")
+        let validation = await validateOrder(orderId)
+        
+        @Span("calculate-total")
+        let total = await calculateTotal(orderId)
+        
+        @Span("save-order")
+        let order = await saveOrder(orderId, total)
+        
+        // Custom metrics
+        Metrics.counter("orders.by.status", Tags.of("status", order.status)).increment()
+        Metrics.gauge("order.value", order.total)
+        
+        return order
+    }
+    
+    @LogExecutionTime
+    @LogLevel("INFO")
+    async sendNotification(order: Order): void {
+        log.info("Sending notification for order {}", order.id)
+        await notificationService.send(order)
+    }
+}
+```
+
+## Multi-Environment Configuration
+```nova
+@ConfigurationProperties("app")
+class ApplicationConfig {
+    
+    @Environment("development")
+    developmentConfig(): Config {
+        return Config.builder()
+            .database("h2:mem:testdb")
+            .logLevel("DEBUG")
+            .enableDebugMode(true)
+            .build()
+    }
+    
+    @Environment("staging")
+    stagingConfig(): Config {
+        return Config.builder()
+            .database("postgres://staging-db:5432/app")
+            .logLevel("INFO")
+            .enableMetrics(true)
+            .build()
+    }
+    
+    @Environment("production")
+    productionConfig(): Config {
+        return Config.builder()
+            .database("postgres://prod-db:5432/app")
+            .logLevel("WARN")
+            .enableMetrics(true)
+            .enableTracing(true)
+            .enableSecurity(true)
+            .build()
+    }
+}
+```

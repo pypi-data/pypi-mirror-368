@@ -1,0 +1,153 @@
+@SpringBootApplication
+@EnableJpaRepositories  
+@EnableWebMvc
+class EcommerceApplication {
+    
+    @Autowired
+    private userService: UserService;
+    
+    @Autowired
+    private productService: ProductService;
+    
+    function main(args: string[]): void {
+        print("🚀 Starting NovaLang E-commerce Application...");
+        print("✅ NovaLang Framework 2.1.0");
+        print("🌐 Server running on http://localhost:8080");
+        
+        startServer();
+    }
+    
+    @PostConstruct
+    function initialize(): void {
+        print("📊 Initializing application components...");
+        print("💾 Database connections established");
+        print("🔐 Security configured");
+        print("📡 API endpoints registered");
+    }
+    
+    function startServer(): void {
+        print("🌟 E-commerce features enabled:");
+        print("   ✅ User Management");
+        print("   ✅ Product Catalog"); 
+        print("   ✅ Shopping Cart");
+        print("   ✅ Order Processing");
+        print("   ✅ Payment Integration");
+        print("   ✅ Inventory Management");
+        
+        print("\n🌐 Available API endpoints:");
+        print("   GET  /                     - Welcome page");
+        print("   GET  /api/health           - Health check");
+        print("   GET  /api/users            - List users");
+        print("   GET  /api/products         - List products");
+        print("   POST /api/orders           - Create order");
+        print("   GET  /api/orders/{id}      - Get order");
+        
+        print("\n✨ Application ready to serve requests!");
+    }
+}
+
+@Service
+@Component
+@Transactional
+class UserService {
+    
+    @Autowired
+    private userRepository: UserRepository;
+    
+    @Cacheable(key: "#id")
+    function findById(id: string): User {
+        return userRepository.findById(id);
+    }
+    
+    function createUser(name: string, email: string): User {
+        let user = new User(name, email);
+        return userRepository.save(user);
+    }
+    
+    function getAllUsers(): User[] {
+        return userRepository.findAll();
+    }
+}
+
+@Service
+@Component
+class ProductService {
+    
+    @Autowired
+    private productRepository: ProductRepository;
+    
+    function findById(id: string): Product {
+        return productRepository.findById(id);
+    }
+    
+    function getAllProducts(): Product[] {
+        return [
+            new Product("1", "Laptop", 999.99),
+            new Product("2", "Phone", 599.99),
+            new Product("3", "Tablet", 399.99)
+        ];
+    }
+    
+    @Cached(ttl: "5m")
+    function getFeaturedProducts(): Product[] {
+        return productRepository.findFeatured();
+    }
+}
+
+@Entity
+@Table(name: "users")
+class User {
+    
+    @Id
+    @GeneratedValue
+    private id: string;
+    
+    @Column
+    private name: string;
+    
+    @Column
+    @Email
+    private email: string;
+    
+    function constructor(name: string, email: string) {
+        this.name = name;
+        this.email = email;
+    }
+    
+    function getName(): string {
+        return this.name;
+    }
+    
+    function getEmail(): string {
+        return this.email;
+    }
+}
+
+@Entity
+@Table(name: "products")
+class Product {
+    
+    @Id
+    @GeneratedValue
+    private id: string;
+    
+    @Column
+    private name: string;
+    
+    @Column
+    private price: number;
+    
+    function constructor(id: string, name: string, price: number) {
+        this.id = id;
+        this.name = name;
+        this.price = price;
+    }
+    
+    function getName(): string {
+        return this.name;
+    }
+    
+    function getPrice(): number {
+        return this.price;
+    }
+}

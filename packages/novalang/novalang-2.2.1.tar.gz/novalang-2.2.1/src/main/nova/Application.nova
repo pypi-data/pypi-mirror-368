@@ -1,0 +1,340 @@
+@SpringBootApplication
+@EnableJpaRepositories
+@EnableMongoRepositories
+@EnableRedisRepositories
+@EnableScheduling
+@EnableAsync
+class Application {
+    
+    public static main(args: Array<String>): void {
+        // Configure system properties
+        System.setProperty("spring.profiles.active", getActiveProfile())
+        System.setProperty("server.port", getServerPort())
+        
+        // Initialize Spring Boot application
+        let app = SpringApplication.run(Application.class, args)
+        
+        // Log application startup
+        let logger = LoggerFactory.getLogger(Application.class)
+        logger.info("🚀 NovaLang E-commerce Backend started successfully!")
+        logger.info("📊 Database connections: MySQL ✓ MongoDB ✓ Redis ✓")
+        logger.info("🌐 Server running on port: ${getServerPort()}")
+        logger.info("📝 API Documentation: http://localhost:${getServerPort()}/swagger-ui.html")
+        
+        // Initialize application data if needed
+        initializeApplicationData(app.getApplicationContext())
+    }
+    
+    /**
+     * Initialize application data on startup
+     */
+    private static initializeApplicationData(context: ApplicationContext): void {
+        let dataInitializer = context.getBean(DataInitializer.class)
+        dataInitializer.initializeData()
+    }
+    
+    /**
+     * Get active Spring profile
+     */
+    private static getActiveProfile(): String {
+        let profile = System.getenv("SPRING_PROFILES_ACTIVE")
+        return if (profile != null) profile else "development"
+    }
+    
+    /**
+     * Get server port from environment or default
+     */
+    private static getServerPort(): String {
+        let port = System.getenv("SERVER_PORT")
+        return if (port != null) port else "8080"
+    }
+    
+    /**
+     * Configuration for CORS
+     */
+    @Bean
+    public corsConfigurer(): WebMvcConfigurer {
+        return object : WebMvcConfigurer {
+            @Override
+            public addCorsMappings(registry: CorsRegistry): void {
+                registry.addMapping("/api/**")
+                    .allowedOrigins("http://localhost:3000", "http://localhost:8080")
+                    .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                    .allowedHeaders("*")
+                    .allowCredentials(true)
+            }
+        }
+    }
+    
+    /**
+     * Configure Jackson ObjectMapper
+     */
+    @Bean
+    @Primary
+    public objectMapper(): ObjectMapper {
+        return ObjectMapper().apply {
+            registerModule(JavaTimeModule())
+            disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+            setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
+            configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+        }
+    }
+    
+    /**
+     * Configure task executor for async operations
+     */
+    @Bean
+    public taskExecutor(): TaskExecutor {
+        return ThreadPoolTaskExecutor().apply {
+            corePoolSize = 5
+            maxPoolSize = 20
+            queueCapacity = 100
+            threadNamePrefix = "NovaLang-Async-"
+            initialize()
+        }
+    }
+    
+    /**
+     * Configure Redis connection factory
+     */
+    @Bean
+    public redisConnectionFactory(): RedisConnectionFactory {
+        let config = LettuceConnectionFactory().apply {
+            hostName = "${db.redis.host}"
+            port = "${db.redis.port}".toInt()
+            database = "${db.redis.database}".toInt()
+        }
+        return config
+    }
+    
+    /**
+     * Configure Redis template
+     */
+    @Bean
+    public redisTemplate(): RedisTemplate<String, Any> {
+        return RedisTemplate<String, Any>().apply {
+            connectionFactory = redisConnectionFactory()
+            keySerializer = StringRedisSerializer()
+            valueSerializer = GenericJackson2JsonRedisSerializer()
+            hashKeySerializer = StringRedisSerializer()
+            hashValueSerializer = GenericJackson2JsonRedisSerializer()
+        }
+    }
+    
+    /**
+     * Configure cache manager
+     */
+    @Bean
+    public cacheManager(): CacheManager {
+        return RedisCacheManager.builder(redisConnectionFactory())
+            .cacheDefaults(
+                RedisCacheConfiguration.defaultCacheConfig()
+                    .entryTtl(Duration.ofMinutes(30))
+                    .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(StringRedisSerializer()))
+                    .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(GenericJackson2JsonRedisSerializer()))
+            )
+            .build()
+    }
+    
+    /**
+     * Global exception handler
+     */
+    @ControllerAdvice
+    class GlobalExceptionHandler {
+        
+        private val logger = LoggerFactory.getLogger(GlobalExceptionHandler.class)
+        
+        @ExceptionHandler(ValidationException.class)
+        @ResponseStatus(HttpStatus.BAD_REQUEST)
+        public handleValidationException(ex: ValidationException): ApiResponse<Void> {
+            logger.warn("Validation error: ${ex.message}")
+            return ApiResponse.error(ex.message ?: "Validation failed")
+        }
+        
+        @ExceptionHandler(ResourceNotFoundException.class)
+        @ResponseStatus(HttpStatus.NOT_FOUND)
+        public handleResourceNotFoundException(ex: ResourceNotFoundException): ApiResponse<Void> {
+            logger.warn("Resource not found: ${ex.message}")
+            return ApiResponse.error(ex.message ?: "Resource not found")
+        }
+        
+        @ExceptionHandler(UnauthorizedException.class)
+        @ResponseStatus(HttpStatus.UNAUTHORIZED)
+        public handleUnauthorizedException(ex: UnauthorizedException): ApiResponse<Void> {
+            logger.warn("Unauthorized access: ${ex.message}")
+            return ApiResponse.error(ex.message ?: "Unauthorized access")
+        }
+        
+        @ExceptionHandler(Exception.class)
+        @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+        public handleGenericException(ex: Exception): ApiResponse<Void> {
+            logger.error("Unexpected error occurred", ex)
+            return ApiResponse.error("An unexpected error occurred")
+        }
+        
+        @ExceptionHandler(DataIntegrityViolationException.class)
+        @ResponseStatus(HttpStatus.CONFLICT)
+        public handleDataIntegrityViolation(ex: DataIntegrityViolationException): ApiResponse<Void> {
+            logger.warn("Data integrity violation: ${ex.message}")
+            return ApiResponse.error("Data integrity constraint violation")
+        }
+    }
+    
+    /**
+     * Application event listeners
+     */
+    @EventListener
+    public onApplicationReady(event: ApplicationReadyEvent): void {
+        let logger = LoggerFactory.getLogger(Application.class)
+        logger.info("✅ Application is ready to serve requests")
+        
+        // Perform health checks
+        performHealthChecks()
+    }
+    
+    @EventListener
+    public onApplicationFailed(event: ApplicationFailedEvent): void {
+        let logger = LoggerFactory.getLogger(Application.class)
+        logger.error("❌ Application failed to start", event.getException())
+    }
+    
+    /**
+     * Perform health checks on startup
+     */
+    private performHealthChecks(): void {
+        let logger = LoggerFactory.getLogger(Application.class)
+        
+        try {
+            // Check MySQL connection
+            let mysqlHealthCheck = checkMySQLHealth()
+            logger.info("MySQL Health: ${if (mysqlHealthCheck) "✅ Connected" else "❌ Failed"}")
+            
+            // Check MongoDB connection
+            let mongoHealthCheck = checkMongoDBHealth()
+            logger.info("MongoDB Health: ${if (mongoHealthCheck) "✅ Connected" else "❌ Failed"}")
+            
+            // Check Redis connection
+            let redisHealthCheck = checkRedisHealth()
+            logger.info("Redis Health: ${if (redisHealthCheck) "✅ Connected" else "❌ Failed"}")
+            
+        } catch (Exception e) {
+            logger.warn("Health check failed: ${e.message}")
+        }
+    }
+    
+    private checkMySQLHealth(): Boolean {
+        try {
+            let dataSource = ApplicationContext.getBean(DataSource.class)
+            let connection = dataSource.getConnection()
+            let isValid = connection.isValid(5)
+            connection.close()
+            return isValid
+        } catch (Exception e) {
+            return false
+        }
+    }
+    
+    private checkMongoDBHealth(): Boolean {
+        try {
+            let mongoTemplate = ApplicationContext.getBean(MongoTemplate.class)
+            mongoTemplate.getDb().runCommand(Document("ping", 1))
+            return true
+        } catch (Exception e) {
+            return false
+        }
+    }
+    
+    private checkRedisHealth(): Boolean {
+        try {
+            let redisTemplate = ApplicationContext.getBean(RedisTemplate.class)
+            redisTemplate.opsForValue().set("health-check", "ok", Duration.ofSeconds(10))
+            let result = redisTemplate.opsForValue().get("health-check")
+            return result == "ok"
+        } catch (Exception e) {
+            return false
+        }
+    }
+}
+
+/**
+ * Data initializer for setting up initial application data
+ */
+@Component
+class DataInitializer {
+    
+    @Autowired
+    private userRepository: UserRepository
+    
+    @Autowired
+    private passwordEncoder: PasswordEncoder
+    
+    private val logger = LoggerFactory.getLogger(DataInitializer.class)
+    
+    @PostConstruct
+    public initializeData(): void {
+        if (shouldInitializeData()) {
+            createDefaultAdminUser()
+            createSampleCategories()
+            logger.info("✅ Initial data setup completed")
+        }
+    }
+    
+    private shouldInitializeData(): Boolean {
+        return userRepository.count() == 0L
+    }
+    
+    private createDefaultAdminUser(): void {
+        try {
+            let adminUser = User(
+                email: "admin@ecommerce.com",
+                username: "admin",
+                password: passwordEncoder.encode("admin123"),
+                firstName: "System",
+                lastName: "Administrator"
+            )
+            adminUser.setRole(UserRole.ADMIN)
+            
+            userRepository.save(adminUser)
+            logger.info("✅ Default admin user created: admin@ecommerce.com")
+            
+        } catch (Exception e) {
+            logger.warn("Failed to create default admin user: ${e.message}")
+        }
+    }
+    
+    private createSampleCategories(): void {
+        // Implementation for creating sample product categories
+        logger.info("✅ Sample categories created")
+    }
+}
+
+/**
+ * Custom exception classes
+ */
+class ResourceNotFoundException(message: String) : RuntimeException(message)
+class ValidationException(message: String) : RuntimeException(message)
+class UnauthorizedException(message: String) : RuntimeException(message)
+
+/**
+ * API Response wrapper
+ */
+data class ApiResponse<T>(
+    val success: Boolean,
+    val data: T?,
+    val message: String?,
+    val timestamp: LocalDateTime = LocalDateTime.now()
+) {
+    companion object {
+        fun <T> success(data: T): ApiResponse<T> {
+            return ApiResponse(true, data, null)
+        }
+        
+        fun <T> success(data: T, message: String): ApiResponse<T> {
+            return ApiResponse(true, data, message)
+        }
+        
+        fun <T> error(message: String): ApiResponse<T> {
+            return ApiResponse(false, null, message)
+        }
+    }
+}

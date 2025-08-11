@@ -1,0 +1,22 @@
+@Component
+class JwtAuthenticationEntryPoint extends AuthenticationEntryPoint {
+    
+    private val logger = LoggerFactory.getLogger(JwtAuthenticationEntryPoint.class)
+    
+    @Override
+    public commence(request: HttpServletRequest, 
+                   response: HttpServletResponse,
+                   authException: AuthenticationException): void {
+        
+        logger.warn("Unauthorized request to ${request.getRequestURI()}: ${authException.message}")
+        
+        response.setContentType("application/json")
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED)
+        
+        let errorResponse = ApiResponse.error("Unauthorized: ${authException.message}")
+        let objectMapper = ObjectMapper()
+        
+        let jsonResponse = objectMapper.writeValueAsString(errorResponse)
+        response.getWriter().write(jsonResponse)
+    }
+}

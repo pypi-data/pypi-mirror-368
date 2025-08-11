@@ -1,0 +1,570 @@
+// NovaLang Universal Database Support
+// Comprehensive support for all major databases and data stores
+
+// ====================================
+// SQL DATABASES
+// ====================================
+
+// MySQL - World's most popular open-source database
+@MySQL(host: "localhost", port: 3306, database: "myapp")
+@ConnectionPool(minSize: 5, maxSize: 20)
+@HikariCP(cachePrepStmts: true, prepStmtCacheSize: 250)
+class MySQLUserRepository extends Repository<User> {
+    
+    @Query("SELECT * FROM users WHERE age > :age")
+    @Pagination(pageSize: 50)
+    function findUsersByAge(age: int): Page<User>;
+    
+    @Batch(size: 1000)
+    @Transactional
+    function batchInsertUsers(users: List<User>): void;
+}
+
+// PostgreSQL - Advanced open-source object-relational database
+@PostgreSQL(host: "postgres-cluster", database: "enterprise_db")
+@Schema(name: "user_management")
+@JSONB_SUPPORT
+class PostgreSQLOrderRepository {
+    
+    @Query("SELECT * FROM orders WHERE metadata @> :jsonFilter")
+    function findOrdersByMetadata(jsonFilter: JSONB): List<Order>;
+    
+    @MaterializedView(refreshStrategy: "CONCURRENTLY")
+    @Indexing(type: "GIN", columns: ["metadata"])
+    function createOrderSummaryView(): void;
+    
+    @FullTextSearch(language: "english")
+    function searchOrderDescriptions(query: string): List<Order>;
+}
+
+// Oracle Database - Enterprise-grade database
+@Oracle(serviceName: "ORCL", tnsNames: "prod-oracle")
+@Partition(strategy: "RANGE", column: "created_date")
+@RAC_SUPPORT
+class OracleFinancialRepository {
+    
+    @StoredProcedure(name: "CALCULATE_PORTFOLIO_VALUE")
+    @DatabaseFunction(returns: "NUMBER")
+    function calculatePortfolioValue(userId: string): BigDecimal;
+    
+    @Bulk(parallel: true, degree: 4)
+    @Hint("FIRST_ROWS")
+    function bulkProcessTransactions(transactions: List<Transaction>): void;
+}
+
+// Microsoft SQL Server - Enterprise database platform
+@SQLServer(instance: "SQL2019", integratedSecurity: true)
+@AlwaysOn(availabilityGroup: "AG-Prod")
+@ColumnStore
+class SQLServerAnalyticsRepository {
+    
+    @Query("SELECT * FROM sales_data WITH (NOLOCK)")
+    @QueryTimeout(seconds: 300)
+    function getLargeSalesReport(): ResultSet;
+    
+    @TemporalTable(historyTable: "employee_history")
+    function getEmployeeVersionHistory(employeeId: string): List<Employee>;
+}
+
+// SQLite - Lightweight embedded database
+@SQLite(file: "app_data.db", journalMode: "WAL")
+@EncryptedDatabase(key: "encryption_key")
+class SQLiteLocalRepository {
+    
+    @PRAGMA(synchronous: "NORMAL", cache_size: 10000)
+    function optimizeForMobile(): void;
+    
+    @FTS5(content: "documents")
+    function fullTextSearchDocuments(query: string): List<Document>;
+}
+
+// ====================================
+// NoSQL DATABASES
+// ====================================
+
+// MongoDB - Document database
+@MongoDB(host: "mongodb-cluster", database: "social_media")
+@Sharding(shardKey: "user_id", strategy: "HASHED")
+@Replication(replicaSet: "rs0", readPreference: "SECONDARY_PREFERRED")
+class MongoDBPostRepository {
+    
+    @Collection(name: "posts")
+    @Indexing(compound: ["user_id", "created_at"])
+    @TTL(field: "expires_at")
+    function createPost(post: Post): ObjectId;
+    
+    @Aggregation
+    function getUserPostStatistics(userId: string): AggregationResult {
+        return [
+            { $match: { user_id: userId } },
+            { $group: { _id: "$category", count: { $sum: 1 } } },
+            { $sort: { count: -1 } }
+        ];
+    }
+    
+    @GridFS(bucketName: "images")
+    function storePostImage(image: InputStream): GridFSFile;
+    
+    @ChangeStream(fullDocument: "updateLookup")
+    function watchPostUpdates(): ChangeStreamIterable<Post>;
+}
+
+// Apache Cassandra - Wide-column distributed database
+@Cassandra(contactPoints: ["cassandra1", "cassandra2"], 
+           keyspace: "iot_data", datacenter: "DC1")
+@ConsistencyLevel(read: "QUORUM", write: "LOCAL_QUORUM")
+@TimeToLive(defaultTTL: 86400)
+class CassandraSensorRepository {
+    
+    @Table(name: "sensor_readings")
+    @Partition(key: ["sensor_id"], clustering: ["timestamp"])
+    @Compaction(strategy: "TimeWindowCompactionStrategy")
+    function insertSensorReading(reading: SensorReading): void;
+    
+    @PreparedStatement
+    @Batch(type: "UNLOGGED")
+    function batchInsertReadings(readings: List<SensorReading>): void;
+    
+    @MaterializedView
+    function sensorReadingsByLocation(): void;
+}
+
+// Amazon DynamoDB - Managed NoSQL database
+@DynamoDB(region: "us-west-2", endpoint: "dynamodb.amazonaws.com")
+@GlobalSecondaryIndex(name: "UserEmailIndex", keys: ["email"])
+@DynamoDBAccelerator(cluster: "dax-cluster")
+class DynamoDBUserProfileRepository {
+    
+    @Table(name: "user_profiles")
+    @ProvisionedThroughput(read: 100, write: 50)
+    @AutoScaling(targetUtilization: 70)
+    function saveUserProfile(profile: UserProfile): void;
+    
+    @Query(indexName: "UserEmailIndex")
+    @ConsistentRead
+    function findUserByEmail(email: string): UserProfile;
+    
+    @TransactWrite
+    function atomicUserUpdate(updates: List<TransactWriteItem>): void;
+    
+    @DynamoDBStream(viewType: "NEW_AND_OLD_IMAGES")
+    function processUserChanges(record: StreamRecord): void;
+}
+
+// ====================================
+// GRAPH DATABASES
+// ====================================
+
+// Neo4j - Graph database
+@Neo4j(uri: "bolt://neo4j-cluster:7687", database: "social_graph")
+@CypherProcedures
+@GraphAlgorithms
+class Neo4jSocialNetworkRepository {
+    
+    @Cypher("MATCH (u:User)-[:FOLLOWS]->(f:User) WHERE u.id = $userId RETURN f")
+    function findUserFollowers(userId: string): List<User>;
+    
+    @Cypher("""
+        MATCH (u1:User {id: $user1}), (u2:User {id: $user2})
+        CALL gds.shortestPath.dijkstra.stream('social-graph', {
+            sourceNode: u1,
+            targetNode: u2
+        })
+        YIELD path
+        RETURN path
+    """)
+    function findShortestPath(user1: string, user2: string): Path;
+    
+    @GraphProjection(name: "social-graph")
+    @Community(algorithm: "LOUVAIN")
+    function detectCommunities(): CommunityResult;
+}
+
+// ====================================
+// TIME SERIES DATABASES
+// ====================================
+
+// InfluxDB - Time series database
+@InfluxDB(url: "http://influxdb:8086", database: "metrics", 
+          retentionPolicy: "autogen", precision: "NANOSECONDS")
+@Continuous_Query(name: "avg_cpu_per_hour")
+class InfluxDBMetricsRepository {
+    
+    @Measurement(name: "cpu_usage")
+    @Tag(key: "host")
+    @Field(key: "value", type: "FLOAT")
+    function recordCPUUsage(host: string, value: float, timestamp: Instant): void;
+    
+    @Query("SELECT mean(value) FROM cpu_usage WHERE time >= now() - 1h GROUP BY time(5m)")
+    function getCPUTrend(): QueryResult;
+    
+    @DownSampling(aggregation: "MEAN", interval: "1h")
+    @RetentionPolicy(duration: "30d", replication: 1)
+    function createHourlyAggregates(): void;
+}
+
+// TimescaleDB - PostgreSQL extension for time series
+@TimescaleDB(database: "timeseries_db")
+@Hypertable(timeColumn: "timestamp", spaceColumn: "device_id")
+@DataRetention(dropAfter: "1 year")
+class TimescaleDBIoTRepository {
+    
+    @TimeSeriesQuery
+    function getDeviceMetrics(deviceId: string, start: Instant, end: Instant): TimeSeries;
+    
+    @ContinuousAggregate(materializedView: "device_hourly_stats")
+    @RefreshPolicy(startOffset: "1 hour", endOffset: "30 minutes")
+    function createHourlyStats(): void;
+    
+    @Compression(algorithm: "LZ4", after: "7 days")
+    function enableCompression(): void;
+}
+
+// ====================================
+// SEARCH & ANALYTICS
+// ====================================
+
+// Elasticsearch - Distributed search and analytics
+@Elasticsearch(cluster: "es-cluster", nodes: ["es1:9200", "es2:9200"])
+@Index(name: "products", shards: 5, replicas: 1)
+@Mapping(dynamic: "strict")
+class ElasticsearchProductRepository {
+    
+    @Document(id: "product_id")
+    @Field(type: "TEXT", analyzer: "standard")
+    function indexProduct(product: Product): IndexResponse;
+    
+    @Search
+    @Highlight(fields: ["title", "description"])
+    @Aggregation(terms: "category", size: 10)
+    function searchProducts(query: SearchQuery): SearchResult;
+    
+    @Percolator
+    function registerProductAlert(alert: ProductAlert): void;
+    
+    @MachineLearning
+    @AnomalyDetection(jobId: "product-anomaly-detection")
+    function detectProductAnomalies(): AnomalyResult;
+}
+
+// ====================================
+// CACHE & IN-MEMORY DATABASES
+// ====================================
+
+// Redis - In-memory data structure store
+@Redis(host: "redis-cluster", port: 6379, database: 0)
+@Sentinel(master: "mymaster", sentinels: ["sentinel1:26379"])
+@Cluster(nodes: ["redis1:7000", "redis2:7000", "redis3:7000"])
+class RedisSessionRepository {
+    
+    @Cache(ttl: "30m", eviction: "LRU")
+    @Serialization(format: "JSON")
+    function cacheUserSession(sessionId: string, session: UserSession): void;
+    
+    @PubSub(channel: "user_notifications")
+    function publishNotification(notification: Notification): void;
+    
+    @Stream(key: "events", maxLength: 10000)
+    @ConsumerGroup(name: "processors", consumer: "worker1")
+    function processEventStream(): StreamEntry;
+    
+    @Lua(script: "redis_scripts/atomic_counter.lua")
+    function atomicIncrement(key: string, increment: int): long;
+    
+    @BloomFilter(expectedElements: 1000000, falsePositiveRate: 0.01)
+    function checkUserExists(userId: string): boolean;
+    
+    @HyperLogLog
+    function estimateUniqueVisitors(): long;
+}
+
+// Apache Ignite - In-memory computing platform
+@Ignite(cluster: "ignite-cluster")
+@DataRegion(name: "persistent", persistenceEnabled: true, maxSize: "4GB")
+@AffinityFunction(type: "RENDEZVOUS", partitions: 1024)
+class IgniteDataRepository {
+    
+    @Cache(name: "users", cacheMode: "PARTITIONED", backups: 1)
+    @AtomicityMode(mode: "TRANSACTIONAL")
+    @ExpiryPolicy(duration: "1h")
+    function cacheUser(user: User): void;
+    
+    @SQL(distributed: true)
+    @QueryParallelism(degree: 4)
+    function executeDistributedQuery(sql: string): FieldsQueryCursor;
+    
+    @Compute
+    @LoadBalance(algorithm: "ROUND_ROBIN")
+    function distributeComputation(task: ComputeTask): ComputeTaskFuture;
+    
+    @DataStreamer(allowOverwrite: true, parallelOperations: 16)
+    function streamData(data: Map<String, Object>): void;
+}
+
+// ====================================
+// VECTOR & AI DATABASES
+// ====================================
+
+// Pinecone - Vector database for AI applications
+@Pinecone(apiKey: "pinecone-api-key", environment: "us-west1-gcp")
+@Index(name: "product-embeddings", dimension: 384, metric: "cosine")
+@Metadata(indexed: ["category", "price_range"])
+class PineconeVectorRepository {
+    
+    @Upsert(namespace: "products")
+    function storeProductEmbedding(productId: string, embedding: float[], 
+                                  metadata: Map<String, Object>): void;
+    
+    @Query(topK: 10, includeMetadata: true)
+    @Filter(metadata: "category = 'electronics'")
+    function findSimilarProducts(queryVector: float[]): QueryResult;
+    
+    @Sparse(vector: true)
+    @HybridSearch(alpha: 0.5)
+    function hybridSearch(denseVector: float[], 
+                         sparseVector: SparseVector): QueryResult;
+}
+
+// Weaviate - Open-source vector database
+@Weaviate(host: "weaviate-cluster", scheme: "https")
+@Class(name: "Document", vectorizer: "text2vec-openai")
+@Property(name: "content", dataType: "text")
+class WeaviateDocumentRepository {
+    
+    @VectorSearch(concepts: ["artificial intelligence", "machine learning"])
+    @NearText(certainty: 0.8)
+    function findRelatedDocuments(query: string): GraphQLResult;
+    
+    @Classification(basedOnProperties: ["content"], classifyProperties: ["category"])
+    @KNN(k: 3)
+    function classifyDocument(document: Document): ClassificationResult;
+    
+    @QnA(question: "What is machine learning?", properties: ["content"])
+    function answerQuestion(question: string): QnAResult;
+}
+
+// ====================================
+// MULTI-MODEL DATABASES
+// ====================================
+
+// Azure Cosmos DB - Globally distributed multi-model database
+@CosmosDB(account: "mycosmosdb", database: "multi-model-db")
+@GlobalDistribution(regions: ["West US", "East US", "Europe West"])
+@ConsistencyLevel(level: "SESSION")
+@Throughput(requestUnits: 1000, autoScale: true)
+class CosmosDBMultiModelRepository {
+    
+    // Document API (MongoDB compatible)
+    @DocumentAPI
+    @Collection(name: "users")
+    @PartitionKey(path: "/userId")
+    function saveUserDocument(user: Document): ResourceResponse;
+    
+    // Graph API (Gremlin)
+    @GraphAPI
+    @Gremlin("g.V().hasLabel('user').has('id', userId)")
+    function findUserConnections(userId: string): GraphTraversal;
+    
+    // Table API
+    @TableAPI
+    @Table(name: "sessions")
+    function storeUserSession(session: TableEntity): TableResult;
+    
+    // Cassandra API
+    @CassandraAPI
+    @CQL("SELECT * FROM products WHERE category = ?")
+    function findProductsByCategory(category: string): ResultSet;
+    
+    @ChangeFeed(processorName: "user-processor")
+    @FunctionTrigger(type: "CosmosDBTrigger")
+    function processUserChanges(changes: List<Document>): void;
+}
+
+// ====================================
+// BLOCKCHAIN DATABASES
+// ====================================
+
+// BigchainDB - Blockchain database
+@BigchainDB(apiRoot: "https://bigchaindb-api", appId: "myapp")
+@Blockchain(consensus: "TENDERMINT", validators: 4)
+@DigitalAssets
+class BigchainDBAssetRepository {
+    
+    @CreateAsset(divisible: false)
+    @Metadata(immutable: true)
+    function createDigitalAsset(asset: Asset, keypair: Keypair): Transaction;
+    
+    @TransferAsset(condition: "threshold")
+    @MultiSig(threshold: 2, publicKeys: ["key1", "key2", "key3"])
+    function transferAsset(asset: Asset, newOwner: PublicKey): Transaction;
+    
+    @QueryAssets(search: "metadata.name")
+    function findAssetsByName(name: string): List<Asset>;
+    
+    @AuditTrail
+    function getAssetHistory(assetId: string): List<Transaction>;
+}
+
+// ====================================
+// DATABASE INTEGRATION PATTERNS
+// ====================================
+
+// Polyglot Persistence - Multiple databases in one application
+@PolyglotPersistence
+@DatabaseRouting(strategy: "OPERATION_BASED")
+class MultiDatabaseUserService {
+    
+    @MySQL // User profile and relationships
+    private userProfileRepository: UserProfileRepository;
+    
+    @Redis // Session and cache
+    private sessionRepository: SessionRepository;
+    
+    @MongoDB // User-generated content
+    private contentRepository: ContentRepository;
+    
+    @Elasticsearch // Search functionality
+    private searchRepository: SearchRepository;
+    
+    @InfluxDB // User activity metrics
+    private metricsRepository: MetricsRepository;
+    
+    @Pinecone // AI recommendations
+    private recommendationRepository: RecommendationRepository;
+    
+    @DistributedTransaction(coordinator: "XA")
+    @TwoPhaseCommit
+    function createUserAccount(user: User): UserAccount {
+        // Coordinates transactions across multiple databases
+        let profile = userProfileRepository.save(user.profile);
+        let session = sessionRepository.createSession(user.id);
+        let searchDoc = searchRepository.indexUser(user);
+        
+        return new UserAccount(profile, session, searchDoc);
+    }
+    
+    @EventSourcing
+    @CQRS(commandStore: "MySQL", queryStore: "MongoDB")
+    function processUserEvent(event: UserEvent): void {
+        // Command side - MySQL
+        commandRepository.storeEvent(event);
+        
+        // Query side - MongoDB
+        let projection = buildUserProjection(event);
+        queryRepository.updateProjection(projection);
+        
+        // Real-time updates - Redis
+        notificationService.publishUpdate(event);
+    }
+}
+
+// Database Migration and Schema Evolution
+@Migration(version: "2.1.0")
+@SchemaEvolution(strategy: "BACKWARD_COMPATIBLE")
+class DatabaseMigrationService {
+    
+    @Flyway(locations: ["classpath:db/migration"])
+    @Baseline(version: "1.0.0")
+    function migrateSQL(): void;
+    
+    @Liquibase(changeLog: "changelog-master.xml")
+    @Rollback(enabled: true)
+    function manageSQLSchema(): void;
+    
+    @MongoMigration
+    @DocumentVersioning(field: "_version")
+    function migrateMongoCollections(): void;
+    
+    @ElasticsearchMigration
+    @IndexAliasing(strategy: "BLUE_GREEN")
+    function migrateSearchIndices(): void;
+    
+    @DataTransfer(source: "MySQL", target: "MongoDB")
+    @ETL(transformations: ["normalize", "denormalize"])
+    function migrateDataBetweenSystems(): void;
+}
+
+// Database Monitoring and Observability
+@DatabaseMonitoring
+@Observability(metrics: ["performance", "availability", "consistency"])
+class DatabaseMonitoringService {
+    
+    @HealthCheck(databases: ["MySQL", "MongoDB", "Redis"])
+    @CircuitBreaker(failureThreshold: 5, timeout: 30)
+    function checkDatabaseHealth(): HealthStatus;
+    
+    @QueryStats(slowQueryThreshold: "1s")
+    @PerformanceSchema
+    function monitorQueryPerformance(): QueryMetrics;
+    
+    @ConnectionMonitoring
+    @Alerting(conditions: ["connection_pool_exhausted", "high_latency"])
+    function monitorConnections(): ConnectionMetrics;
+    
+    @DataQuality(rules: ["completeness", "accuracy", "consistency"])
+    @AnomalyDetection(algorithm: "ISOLATION_FOREST")
+    function validateDataQuality(): DataQualityReport;
+    
+    @BackupMonitoring
+    @RecoveryTesting(schedule: "weekly")
+    function monitorBackupsAndRecovery(): BackupStatus;
+}
+
+/* 
+===========================================
+DATABASE SUPPORT SUMMARY
+===========================================
+
+NovaLang provides comprehensive support for:
+
+📊 SQL DATABASES (20+):
+- MySQL, PostgreSQL, Oracle, SQL Server
+- SQLite, MariaDB, DB2, H2, HSQLDB
+- Teradata, Snowflake, BigQuery, Redshift
+- ClickHouse, Vertica, Greenplum
+
+🗃️ NoSQL DATABASES (15+):
+- MongoDB, Cassandra, DynamoDB
+- CouchDB, Couchbase, HBase
+- OrientDB, ArangoDB, Riak
+
+🔍 GRAPH DATABASES (5+):
+- Neo4j, JanusGraph, TigerGraph
+- DGraph, Amazon Neptune
+
+⏱️ TIME SERIES DATABASES (8+):
+- InfluxDB, TimescaleDB, Prometheus
+- QuestDB, VictoriaMetrics
+
+🔍 SEARCH & ANALYTICS (6+):
+- Elasticsearch, Solr, Lucene
+- Sphinx, Whoosh
+
+🧠 VECTOR & AI DATABASES (7+):
+- Pinecone, Weaviate, Milvus
+- Qdrant, Chroma, Faiss
+
+💾 IN-MEMORY & CACHE (10+):
+- Redis, Memcached, Hazelcast
+- Apache Ignite, EhCache
+
+🌐 MULTI-MODEL DATABASES (4+):
+- Cosmos DB, Fauna, SurrealDB
+- EdgeDB
+
+⛓️ BLOCKCHAIN DATABASES (2+):
+- BigchainDB, Bluzelle
+
+🔧 ENTERPRISE FEATURES:
+- Connection pooling and management
+- Transaction coordination (XA, 2PC)
+- Polyglot persistence patterns
+- Schema migration and evolution
+- Monitoring and observability
+- Performance optimization
+- Security and encryption
+- Backup and recovery
+
+NovaLang is the ONLY programming language with
+native support for ALL major database systems!
+*/

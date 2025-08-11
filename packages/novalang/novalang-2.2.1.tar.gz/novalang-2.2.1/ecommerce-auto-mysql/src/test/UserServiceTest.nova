@@ -1,0 +1,30 @@
+// NovaLang Test Example
+@TestSuite
+class UserServiceTest {
+    
+    @MockBean
+    private repository: UserRepository;
+    
+    @InjectMock
+    private service: UserService;
+    
+    @Test
+    async function testUserRecommendations() {
+        // Arrange
+        let user = new User("test@example.com");
+        let mockProducts = [new Product("Product 1"), new Product("Product 2")];
+        
+        // Act
+        let recommendations = await service.getUserRecommendations(user);
+        
+        // Assert
+        assert(recommendations.length > 0);
+        assert(recommendations.contains(mockProducts[0]));
+    }
+    
+    @Test
+    @Performance(maxTime: "100ms")
+    function testProcessUsersPerformance() {
+        service.processUsers();
+    }
+}
