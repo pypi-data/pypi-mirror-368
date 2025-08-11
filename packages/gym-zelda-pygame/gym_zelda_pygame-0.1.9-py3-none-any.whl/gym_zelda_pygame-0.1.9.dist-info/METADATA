@@ -1,0 +1,136 @@
+Metadata-Version: 2.4
+Name: gym-zelda-pygame
+Version: 0.1.9
+Summary: A ROM-free Zelda-like Gymnasium environment built on Pygame.
+Author: Henry LeCates
+License: MIT License
+        
+        Copyright (c) 2025 Henry LeCates
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE. 
+Keywords: reinforcement-learning,gymnasium,pygame,zelda,rl,environment
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Operating System :: OS Independent
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Classifier: Topic :: Games/Entertainment
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: gymnasium>=0.29
+Requires-Dist: pygame>=2.5
+Requires-Dist: numpy>=1.24
+Requires-Dist: Pillow>=10.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8; extra == "dev"
+Requires-Dist: flake8>=7; extra == "dev"
+Requires-Dist: build>=1; extra == "dev"
+Requires-Dist: twine>=5; extra == "dev"
+Dynamic: license-file
+
+# gym-zelda-pygame
+
+A **Gymnasium** environment that wraps the Clear Code Pygame “Zelda” game into a **ROM-free**, modern RL playground. It exposes a pixel-observation interface, discrete actions, sensible rewards, and familiar wrappers (skip-frames, gray-scale resize to 84×84, frame-stack, normalize, channel-first) so you can train DQN/PPO/IMPALA-style agents without touching emulators or legacy Gym.
+
+## Motivation
+
+I recently finished a playthrough of **_The Legend of Zelda: Breath of the Wild_** and wanted to experiment with applying **reinforcement learning** to a Zelda-style world. Most existing environments either:
+- rely on **ROMs/emulators**, or
+- are tangled up with **deprecated `gym` + NumPy compatibility issues**.
+
+## Installation
+gym-zelda-pygame is published on **PyPI**. Install with:
+
+```bash
+pip install gym-zelda-pygame
+```
+
+## Environment Details
+
+### Spaces
+
+- **Action Space**: `Discrete(8)`
+    0) no-op
+    1) move up
+    2) move down
+    3) move left
+    4) move right
+    5) attack
+    6) magic
+    7) menu
+  
+- **Observation Space**: `Box(low=0, high=255, shape=(720, 1280, 3), dtype=uint8)` by default  
+(Typically wrap this 84×84 grayscale and stack frames for learning)
+
+### Rendering
+
+- `render_mode="human"`: Pygame window (60 FPS throttle)
+- `render_mode="rgb_array"`: returns the current frame as a numpy array
+- Headless safety: when not using `"human"`, SDL dummy drivers are used automatically.
+
+### Episode Termination
+
+- Episode ends when:
+- Player health ≤ 0, or
+- All enemies defeated
+
+### Reward
+
+Default (configurable) reward shaping in `ZeldaEnv`:
+- Small step penalty: `-0.001` per step (encourage efficiency)
+- Health changes: penalty for loss, small reward for gain
+- Experience gain: small positive reward
+- Enemy defeats: large positive reward (`+10.0` per enemy)
+- Death penalty: `-100.0`
+
+You can pass a **custom reward function** via `custom_reward_fn`:
+```python
+def my_reward_fn(current_state, previous_state, episode_steps):
+  # current_state: dict with keys shown below
+  # previous_state: same keys for previous step
+  # return float
+  ...
+env = ZeldaEnv(render_mode="rgb_array", custom_reward_fn=my_reward_fn)
+```
+
+### Info Dict
+
+Each step() returns an info dict with: 
+```python
+{
+  'episode_steps': int,
+  'player_health': int,
+  'player_exp': int,
+  'enemy_count': int,
+  'player_pos': (x: int, y: int),
+}
+```
+
+## Credit
+
+- **Game code** adapted from Clear Code’s Zelda tutorial: [clear-code-projects/Zelda](https://github.com/clear-code-projects/Zelda)
+- **Graphics and audio assets** courtesy of Pixel-boy/AAA under CC0: [Ninja Adventure asset pack](https://pixel-boy.itch.io/ninja-adventure-asset-pack)
+
+Respect the original projects’ licenses and assets. This environment is an RL wrapper around their codebase to support education.
