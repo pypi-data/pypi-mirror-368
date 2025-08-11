@@ -1,0 +1,107 @@
+Metadata-Version: 2.4
+Name: netdecom
+Version: 0.0.5.5
+Summary: Dimensionality Reduction and Decomposition of Undirected Graph Models and Bayesian Networks
+Author: Hugh
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Description-Content-Type: text/markdown
+Dynamic: author
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: summary
+
+
+# netdecom Documentation
+
+## Overview
+netdecom is a Python package for advanced graph analysis, providing algorithms for convex subgraph extraction and recursive decomposition of both undirected graphs (UGs) and directed acyclic graphs (DAGs). Built on NetworkX, it offers efficient implementations of three core functionalities.
+
+## Installation
+
+```pycon
+>>> pip install netdecom
+```
+
+## Core Functionalities
+
+### 1. Convex Hull Identification in Undirected Graphs
+Finds the minimal convex subgraph containing a given node set R:
+
+```pycon
+>>> import netdecom as nd
+>>> import igraph as ig
+>>> G = ig.Graph([(0, 1), (1, 2), (2, 3)])
+>>> nd.find_convex_hull(G, [1, 3],  method="ipa")  # Inducing Path Absorbing Algorithm for igraph graph
+>>> nd.find_convex_hull(G, [1, 3],  method="cmsa")    # Close Minimal Separator Absorbing Algorithm for igraph graph
+```
+
+### 2. Recursive Graph Decomposition
+Decomposes graphs into atoms using MCS ordering:
+
+```pycon
+>>> nd.recursive_decom(G, method="cmsa")  # CMSA-based decomposition for igraph graph
+>>> nd.recursive_decom(G, method="ipa")  # IPA-based decomposition for igraph graph
+```
+
+### 3. Directed Convex Hull Identification in Directed Acyclic Graphs
+Finds the minimal d-convex subgraph containing a given node set R:
+
+```pycon
+>>> import networkx as nx
+>>> G = nx.DiGraph([(1, 2), (2, 3), (3, 4)])
+>>> nd.CMDSA(G, {1, 3})  # Close Minimal D-Separator Absorbing Algorithm
+```
+
+### 4. Random Graph Generation
+
+```pycon
+>>> ug = nd.generator_connected_ug(n,p,class_type="ig")  # generates a random connected graph with n nodes and edge probability p; returns an igraph graph by default or a NetworkX graph if class_type="nx".
+>>> dag = nd.generate_connected_dag(n, p, max_parents=3)  # Generate a connected Directed Acyclic Graph (DAG) with n nodes, edge probability p, and maximum 3 parents per node.
+>>> dag = nd.random_connected_dag(n, p)  # Generate a random Directed Acyclic Graph (DAG) with n nodes and edge probability p.
+```
+
+### 5. Load Example Graphs
+
+#### `get_example(file_name)`
+Reads the specified example file from the library and returns the corresponding undirected graph object (either `NetworkX` or `igraph`):
+
+#### Parameters:
+- `file_name` (str): The name of the example file to be read. The following example files are available:
+
+| File Name                                     | Nodes | Edges   | Connected Components | Largest Component Size |
+|-----------------------------------------------|-------|---------|----------------------|------------------------|
+| mammalia-voles-rob-trapping-22.txt            | 103   | 151     | 15                   | 59                     |
+| Animal-Network.txt                            | 445   | 1332    | 22                   | 117                    |
+| bio-CE-GT.txt                                 | 924   | 3239    | 13                   | 878                    |
+| bio-CE-GN.txt                                 | 2220  | 53683   | 3                    | 2215                   |
+| bio-DR-CX.txt                                 | 3289  | 84940   | 2                    | 3287                   |
+| as20000102.txt                                | 6474  | 12572   | 1                    | 6474                   |
+| rec-movielens-user-movies-10m.txt             | 7601  | 55384   | 1                    | 7601                   |
+| CA-HepTh.txt                                  | 9875  | 25973   | 427                  | 8638                   |
+| rec-movielens-tag-movies-10m.txt              | 16528 | 71067   | 1                    | 16528                  |
+| CA-CondMat.txt                                | 23133 | 93439   | 567                  | 21363                  |
+| Email-Enron.txt                               | 36692 | 183831  | 1065                 | 33696                  |
+| rec-yelp-user-business.txt                    | 50394 | 229572  | 19                   | 50319                  |
+| rec-eachmovie.txt                             | 61989 | 2811458 | 1                    | 61989                  |
+| rec-movielens.txt                             | 70155 | 9991339 | 1                    | 70155                  |
+| rec-amazon.txt                                | 91813 | 125704  | 1                    | 91813                  |
+
+
+#### Returns:
+- A NetworkX UG object corresponding to the specified example file.
+
+#### Example:
+
+```pycon
+>>> G = nd.get_example("Animal-Network.txt", class_type="nx")  # Reads the example file and returns a NetworkX graph.
+>>> G = nd.get_example("Animal-Network.txt", class_type="ig")  # Reads the example file and returns an igraph graph.
+```
+
+## Notes
+- All input graphs must be NetworkX Graph/DiGraph objects.
+- MCS ordering should follow graph topology.
+- DAG decomposition features are under development.
