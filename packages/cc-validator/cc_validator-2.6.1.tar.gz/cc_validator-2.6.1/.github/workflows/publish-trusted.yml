@@ -1,0 +1,77 @@
+name: Publish to PyPI (Trusted Publishing)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write  # Required for creating releases
+  id-token: write  # Required for trusted publishing
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12", "3.13"]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        enable-cache: true
+
+    - name: Set up Python ${{ matrix.python-version }}
+      run: uv python install ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: uv sync --all-extras
+
+    - name: Run linting
+      run: |
+        uvx ruff check cc_validator/
+        uvx mypy cc_validator/
+        uvx black --check cc_validator/
+
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+    # Remove environment to simplify the setup
+    # environment:
+    #   name: pypi
+    #   url: https://pypi.org/p/claude-code-adk-validator
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        enable-cache: true
+
+    - name: Set up Python
+      run: uv python install 3.12
+
+    - name: Install dependencies
+      run: uv sync
+
+    - name: Build package
+      run: uv build
+
+    - name: Publish to PyPI (Trusted Publishing)
+      uses: pypa/gh-action-pypi-publish@release/v1
+      # No password needed with trusted publishing!
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: dist/*
+        generate_release_notes: true
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
