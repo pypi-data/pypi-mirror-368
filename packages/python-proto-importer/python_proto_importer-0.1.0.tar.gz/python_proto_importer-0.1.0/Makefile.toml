@@ -1,0 +1,165 @@
+[config]
+skip_core_tasks = true
+
+[env]
+TARPAULIN_COMMON_ARGS = "tarpaulin --all-features --timeout 120 --skip-clean"
+
+[tasks.default]
+run_task = { name = ["format", "lint"], parallel = true }
+
+[tasks.all]
+run_task = { name = ["format", "lint", "test-all"], parallel = true }
+
+[tasks.format]
+command = "cargo"
+args = ["fmt", "--all"]
+
+[tasks.lint]
+command = "cargo"
+args = ["clippy", "--all-targets", "--all-features", "--", "-Dwarnings"]
+
+[tasks.build]
+command = "cargo"
+args = ["build", "--all-targets"]
+
+[tasks.check]
+command = "cargo"
+args = ["check", "--all-targets", "--all-features"]
+
+[tasks.fetch]
+command = "cargo"
+args = ["fetch"]
+
+[tasks.clean]
+command = "cargo"
+args = ["clean"]
+
+[tasks.install-nextest]
+install_crate = { crate_name = "cargo-nextest", binary = "cargo", test_arg = [
+    "nextest",
+    "--help",
+] }
+
+[tasks.install-tarpaulin]
+install_crate = { crate_name = "cargo-tarpaulin", binary = "cargo", test_arg = [
+    "tarpaulin",
+    "--help",
+] }
+
+[tasks.cov-clean]
+command = "cargo"
+args = ["clean"]
+
+[tasks.test-all]
+run_task = { name = ["test", "python-e2e"] }
+
+[tasks.test]
+command = "cargo"
+args = ["test", "--all"]
+
+[tasks.test-cov]
+dependencies = ["install-tarpaulin", "cov-clean"]
+command = "cargo"
+args = ["@@split(TARPAULIN_COMMON_ARGS, )"]
+
+[tasks.cov-html]
+dependencies = ["install-tarpaulin", "cov-clean"]
+command = "cargo"
+args = ["@@split(TARPAULIN_COMMON_ARGS, )", "--out", "Html"]
+
+[tasks.python-e2e]
+script_runner = "@shell"
+script = '''
+pushd python_e2e && makers test && popd
+'''
+
+[tasks.clippy-ci]
+command = "cargo"
+# Pass any task args (e.g., --locked) to cargo BEFORE the `--` separator,
+# so they don't get forwarded to clippy by mistake in CI.
+args = ["clippy", "${@}", "--", "--no-deps", "-Dwarnings"]
+
+[tasks.test-ci]
+run_task = "test"
+
+
+# ===== Python build =====
+[tasks.python-setup]
+private = true
+condition = { files_modified = { input = ["./pyproject.toml", "uv.lock"], output = [".venv/timestamp.txt"] } }
+script = [
+    "uv venv",
+    "uv sync",
+    "touch .venv/timestamp.txt",
+]
+
+# ===== Python build artifacts (wheels / sdist) =====
+[tasks.python-wheel]
+dependencies = ["python-setup"]
+description = "Build Python wheel using maturin (prefers uvx)"
+script_runner = "@shell"
+script = '''
+set -euo pipefail
+# Ensure project local environment (.venv) is used, not any active external venv
+unset VIRTUAL_ENV || true
+uv run --project . maturin build --features python --release
+'''
+
+[tasks.python-sdist]
+dependencies = ["python-setup"]
+description = "Build Python sdist using maturin (prefers uvx)"
+script_runner = "@shell"
+script = '''
+set -euo pipefail
+unset VIRTUAL_ENV || true
+uv run --project . maturin sdist
+'''
+
+[tasks.python-build-all]
+description = "Build wheel and sdist"
+run_task = { name = ["python-wheel", "python-sdist"], parallel = false }
+
+# ===== Pre-publish checks =====
+[tasks.cargo-publish-dry-run]
+description = "Dry-run cargo publish to crates.io"
+command = "cargo"
+args = ["publish", "--dry-run"]
+
+[tasks.python-twine-check]
+description = "Validate built PyPI distributions with twine"
+script_runner = "@shell"
+script = '''
+set -euo pipefail
+uv run python -m ensurepip --upgrade >/dev/null 2>&1 || true
+uv run python -m pip install --upgrade pip twine >/dev/null
+uv run twine check target/wheels/*
+'''
+
+[tasks.python-smoke]
+description = "Install wheel into ephemeral venv and run proto-importer --version"
+script_runner = "@shell"
+script = '''
+set -euo pipefail
+WHEEL=$(ls -1t target/wheels/*.whl | head -n1)
+if [[ -z "${WHEEL:-}" ]]; then
+  echo "No wheel found in target/wheels. Run 'makers python-build-all' first." >&2
+  exit 1
+fi
+TMPDIR=$(mktemp -d)
+uv run python -m venv "${TMPDIR}/venv"
+"${TMPDIR}/venv/bin/python" -m ensurepip --upgrade >/dev/null 2>&1 || true
+"${TMPDIR}/venv/bin/python" -m pip install --upgrade pip >/dev/null
+"${TMPDIR}/venv/bin/python" -m pip install "$WHEEL"
+if ! "${TMPDIR}/venv/bin/proto-importer" --version; then
+  echo "console_script failed; trying module entry fallback" >&2
+  "${TMPDIR}/venv/bin/python" - <<'PY'
+import sys
+import python_proto_importer as m
+sys.argv = ["proto-importer", "--version"]
+rv = m.main()
+raise SystemExit(rv)
+PY
+fi
+echo "Smoke test OK"
+rm -rf "$TMPDIR"
+'''
