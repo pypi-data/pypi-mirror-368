@@ -1,0 +1,153 @@
+[project]
+name = "archivey"
+description = "Python library for reading zip, tar, rar, 7z and other archives"
+dynamic = ["version"]
+readme = "README.md"
+authors = [
+    { name = "Davi Figueiredo", email = "gh@davitf.com" }
+]
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+    "backports-strenum>=1.3.1 ; python_full_version < '3.11'",
+    "typing-extensions>=4.0.0",
+    "tqdm>=4.67.1",
+]
+
+[project.urls]
+homepage = "https://github.com/davitf/archivey"
+documentation = "https://davitf.github.io/archivey/"
+repository = "https://github.com/davitf/archivey.git"
+
+[project.scripts]
+archivey = "archivey.__main__:main"
+
+[project.optional-dependencies]
+optional = [
+    "cryptography>=45.0.3",
+    "rarfile>=4.2",
+    "py7zr>=1.0.0",
+    "rapidgzip==0.14.5",  # 0.15.0 is causing CI failures on Mac
+    "indexed_bzip2>=1.6.0",
+    "python-xz>=0.5.0",
+    "pyzstd>=0.17.0",
+    # Not currently compatible with Python 3.14. Fix on the way, see
+    # https://github.com/indygreg/python-zstandard/pull/262
+    "zstandard>=0.23.0 ; python_full_version < '3.14'",
+    # Not currently compatible with Python 3.14. Fix on the way, see
+    # https://github.com/python-lz4/python-lz4/pull/303
+    "lz4>=4.4.4 ; python_full_version < '3.14'",
+    "pycdlib>=1.14.0",
+    "uncompresspy>=0.4.0; python_full_version >= '3.11'",
+    "brotli>=1.1.0",
+]
+
+optional-freethreaded = [
+    # Compilation fails for rapidgzip and zstandard in Github actions
+    # Compilation fails for cryptography, but rarfile can use pycryptodome instead
+    "pycryptodome>=3.23.0",
+    "rarfile>=4.2",
+    "py7zr>=1.0.0",
+    "indexed_bzip2==1.6.0",  # 1.7.0 does not compile in Github actions for free-threaded builds
+    "python-xz>=0.5.0",
+    "pyzstd>=0.17.0",
+    "lz4>=4.4.4 ; python_full_version < '3.14'",
+    "pycdlib>=1.14.0",
+    "uncompresspy>=0.4.0",
+    "brotli>=1.1.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "devtools>=0.12.2",
+    "hatch>=1.14.1",
+    "pytest>=8.3.5",
+    "pytest-cov>=5.0.0",
+    "pytest-parallel>=0.1.1",
+    "pytest-timeout>=2.3.1",
+    "ruff>=0.11.11",
+    "tox>=4.0.0",
+    "mkdocs>=1.5.3",
+    "tox-uv>=1.0.0",
+    "mkdocstrings[python]>=0.25.0",
+    "mkdocs-autorefs>=1.0.1",
+    "mkdocs-material>=9.6.15",
+    # Required to make pytest-parallel work with current pytest version, see
+    # https://github.com/kevlened/pytest-parallel/issues/118
+    "py>=1.11.0",
+    "griffe-fieldz>=0.2.1",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src", "."]
+testpaths = ["tests"]
+addopts = "--log-level=DEBUG --cov=archivey --cov-report=term-missing"
+timeout = 15
+timeout_method = "thread"
+log_format = "%(asctime)s %(levelname)s %(threadName)s %(name)s:%(filename)s:%(lineno)d %(message)s"
+log_date_format = "%Y-%m-%d %H:%M:%S"
+
+[tool.hatch.envs.default]
+python = "3.13"
+# Should be replaced by a reference to the dev group when hatch supports it:
+# https://github.com/pypa/hatch/issues/1852
+dependencies = [
+    "devtools>=0.12.2",
+    "hatch>=1.14.1",
+    "pytest>=8.3.5",
+    "pytest-cov>=5.0.0",
+    "pytest-parallel>=0.1.1",
+    "pytest-timeout>=2.3.1",
+    "ruff>=0.11.11",
+    "tox>=4.0.0",
+    "mkdocs>=1.5.3",
+    "tox-uv>=1.0.0",
+    "mkdocstrings[python]>=0.25.0",
+    "mkdocs-autorefs>=1.0.1",
+    "mkdocs-material>=9.6.15",
+    "py>=1.11.0",
+    "griffe-fieldz>=0.2.1",
+]
+features = ["optional"]
+
+[tool.hatch.envs.default.scripts]
+lint = "ruff check --fix . && ruff format . && npx pyright . && python scripts/check_api_doc.py"
+test = "uv run pytest --workers auto {args}"
+docs = "sh docs/generate_api_docs.sh"
+pyrefly = "uvx pyrefly check src/"
+
+[tool.ruff]
+target-version = "py310"
+lint.extend-select = [
+    "I",        # sort imports
+    "F",        # Pyflakes rules
+    "C4",       # Catch incorrect use of comprehensions, dict, list, etc
+    "ISC",      # Good use of string concatenation
+    "ICN",      # Use common import conventions
+    "RET",      # Good return practices
+#    "SIM",      # Common simplification rules
+    "TID",      # Some good import practices
+    "TC",       # Enforce importing certain types in a TYPE_CHECKING block
+#    "PTH",      # Use pathlib instead of os.path
+#    "A",   # detect shadowed builtins
+    "BLE", # disallow catch-all exceptions
+]
+
+[tool.coverage.report]
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "except ImportError",
+    "pass",
+]
+
+[tool.hatch.version]
+path = "src/archivey/__init__.py"
+validate-bump = false
+
+[tool.pyrefly]
+search-path = ["src"]
+project-includes = ["src"]
