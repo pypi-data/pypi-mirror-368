@@ -1,0 +1,91 @@
+[project]
+name = "aigarth-it"
+version = "0.1.0"
+description = "Aigarth Intelligent Tissue"
+authors = [
+    {email = "ambient@mailbox.org"}
+]
+license = {text = "Aigarth"}
+license-files = ["LICEN[CS]E*"]
+readme = "README.md"
+
+keywords = [ "Aigarth", "AI" ]
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: Other/Proprietary License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Artificial Life",
+    "Topic :: Software Development :: Libraries",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+]
+
+requires-python = ">=3.11"
+
+dependencies = [
+    "pydantic (>=2.11.7,<3.0.0)",
+    "packaging (>=25.0,<26.0)",
+    "sqlite-construct (>=0,<1)",
+    "sqlite-kvdb (>=0,<1)"
+]
+
+[project.urls]
+repository = "https://github.com/aigarth/aigarth-it"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+
+packages = [
+    { include = "aigarth_it", from = "src" },
+]
+
+[tool.poetry.group.dev.dependencies]
+isort = "^6.0.1"
+black = "^25.1.0"
+flake8 = "^7.3.0"
+Flake8-pyproject = "^1.2.3"
+ipython = "^9.4.0"
+
+[tool.poetry.group.test.dependencies]
+pytest = "^8.4.1"
+pytest-cov = "^6.2.1"
+
+[tool.black]
+line-length = 120
+target-version = ['py311', 'py312']
+include = '\.py$'
+
+[tool.isort]
+supported_extensions=["py"]
+line_length = 120
+ignore_comments = true
+honor_noqa = true
+no_inline_sort = true
+profile = "black"  # Requires the 'tool.black' section to be defined first
+
+[tool.flake8]
+ignore = [
+    "D203",  # Blank line required before class docstring
+    "E203",  # Whitespace before ':' (allow black formatting for slices)
+    "W503",  # Line break before binary operator
+] # cover Black's formatting specifics
+extend-exclude = [
+    ".git",
+    "__pycache__",
+    ".venv",
+]
+per-file-ignores = [
+    "__init__.py:F401" # imported but unused
+]
+max-line-length = 120
+max-complexity = 15

@@ -1,0 +1,688 @@
+"""Intellectual Capability Module (ICM) base definition."""
+import hashlib
+import logging
+import random
+import secrets
+from datetime import datetime, timezone
+from pathlib import Path
+from time import process_time
+from typing import Any, ClassVar
+from uuid import UUID, uuid4
+
+from pydantic import BaseModel, Field, field_validator, ValidationInfo, computed_field
+
+from sqlite_construct import DBReference, DBReferenceError, DB_SCHEME
+from sqlite_kvdb import SQLiteKVDB, SQLiteKVDBError
+
+from .common import int_to_bitstring, bitstring_to_trits, trits_to_bitstring, bitstring64_to_int, random_trit_vector
+from .dataset import dataset_meta_csv
+from .exceptions import AIgarthICMError, PYDANTIC_ERRORS
+from .neuron_cl import ICMClNeuron
+
+
+LOG = logging.getLogger(Path(__file__).stem)
+
+
+class ICM_GROUP:
+    """Groups of intellectual capabilities"""
+    ARITHMETIC_ADDITION = "ARITHMETIC_ADDITION"
+
+ICM_GROUPS = [t for t in ICM_GROUP.__dict__ if not t.startswith("_")]
+
+
+# class ICM_FFCYCLE_END_REASON:
+#     NO_OUTPUT_ZEROES = "All 'output' neurons got 'non-zero' state"
+#     TICK_CAP = "Tick cap reached"
+#     NO_NSTATE_SCHANGES = "None of ICM neurons changed their state"
+#
+#
+# class FFCycleStats(BaseModel):
+#     """ICM 'feedforward' cycle statistics container."""
+#     tick_count:int = 0
+#     end_reason:str = ICM_FFCYCLE_END_REASON.TICK_CAP
+#     duration_total:float = 0.0
+#     duration_tick:float = 0.0
+
+
+class Reflection(BaseModel):
+    """Reflection definition."""
+    trits: tuple[int, ...] = Field(frozen=True)
+    ffcycle_stats: FFCycleStats = Field(default_factory=FFCycleStats)
+
+
+class ICMHitFactors(BaseModel):
+    """ICM reflection 'hit factors'."""
+    gage_bitstring: str = ""   # "gage" value (bitstring)
+    hitbit_count:int = 0
+    hitbit_rate: float = 0.0    # hitbit_count / len(gage_bitstring) , interval [0, 1], positive
+    qmark_count: int = 0
+    qmark_rate: float = 0.0     # qmark_count / len(gage_bitstring) , interval [0, 1], negative
+    ffcycle_stats: FFCycleStats = Field(default_factory=FFCycleStats)
+    ffcycle_rate: float = 0.0   # 1 / ffcycle_stats.tick_count , range [1, 0), positive
+    perf_rate: float = 0.0  # aggregated performance rate of the individual ICM reflection operation
+                            # perf_rate = hitbit_rate - qmark_rate +ffcycle_rate
+
+    def model_post_init(self, __context: Any) -> None:
+        """"""
+        self.hitbit_rate = self.hitbit_count / len(self.gage_bitstring)
+        self.qmark_rate = self.qmark_count / len(self.gage_bitstring)
+        if self.ffcycle_stats.tick_count:
+            self.ffcycle_rate = 1 / self.ffcycle_stats.tick_count
+        else:
+            self.ffcycle_rate = 0.0
+        self.perf_rate = self.hitbit_rate - self.qmark_rate + self.ffcycle_rate
+
+
+class ICMHitFactorsAggregate(BaseModel):
+    """Aggregated ICM reflection 'hit factors'."""
+    allbit_count: int = 0
+    hitbit_count: int = 0
+    hitbit_rate: float = 0.0
+    qmark_count: int = 0
+    qmark_rate: float = 0.0
+    alltick_count: int = 0
+    ffcycle_rate: float = 0.0
+    perf_rate: float = 0.0
+
+    def model_post_init(self, __context: Any) -> None:
+        """"""
+        self.hitbit_rate = self.hitbit_count / self.allbit_count
+        self.qmark_rate = self.qmark_count / self.allbit_count
+        if self.alltick_count:
+            self.ffcycle_rate = 1 / self.alltick_count
+        else:
+            self.ffcycle_rate = 0.0
+        # TODO: Approach to compute ICM's 'general performance rate' is to be reviewed
+        self.perf_rate = self.hitbit_rate + self.qmark_rate + self.ffcycle_rate
+
+    def better_than(self, other:Any) -> bool | None:
+        """"""
+        if self.__class__ != other.__class__:
+            return False
+        # Figure out supremacy
+        if self.hitbit_count > other.hitbit_count:
+            return True
+        elif self.hitbit_count == other.hitbit_count:
+            if self.qmark_count > other.qmark_count:
+                # 'unknowns' are better that 'incorrects'
+                return True
+            if self.qmark_count == other.qmark_count:
+                # Equal effectiveness
+                return None
+            else:
+                return False
+        else:
+            return False
+        # TODO: Approach to compute ICM's 'general performance rate' is to be reviewed
+        # if self.perf_rate > other.perf_rate:
+        #     return True
+        # if self.perf_rate == other.perf_rate:
+        #     return None
+        # else:
+        #     return False
+
+
+class ICMVersion(BaseModel, validate_assignment=True):
+    """ICM version."""
+    # 'training_season' - id of training data set (created by dataset generation procedure, found as a part of dataset
+    #                     metadata).
+    # Schema: <data type (target intellectual capability group)>-<data source>-<YYYYMMDDHHmmss>-<record count>'
+    # Example: "ARITHMETIC_ADDITION-x.com-20250615193518-12"
+    training_season: str = Field(frozen=True)
+    # 'training_episode' - training 'episode' number (within a thraining seasonS)
+    training_episode: int = Field(default=0,frozen=True)
+    # 'training_dataset_hash' - dataset file digest
+    training_dataset_hash: str = Field(frozen=True)
+    # 'training_complete' - True, if the 'ultimate' training level achieved for the training dataset
+    training_complete: bool = Field(default=False)
+    # 'version_major' - to be incremented for ICM design/API changes (= ICM class version)
+    version_major: int = Field(default=1, frozen=True)
+    # 'version_minor' - to be incremented for each subsequent training season
+    version_minor: int = Field(default=0, frozen=True)
+    # 'version_micro' - to be incremented for every successful mutation within a 'training season'
+    # version_micro: int = Field(default=0, validate_default=True, frozen=True)
+    version_micro: int = Field(default=0, frozen=True)
+    # 'note' - free form note for the ICM version
+    note: str = Field(default="", frozen=True)
+    # 'timestamp' - ICM version object creation timestamp
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), frozen=True)
+    # TODO: Add to version information about ICM's internal structure and settings as of version object creation time.
+
+    @field_validator("training_episode", "version_major", "version_minor", "version_micro")
+    @classmethod
+    def nonzero_positive_int(cls, v: int) -> int:
+        """Verify that a value is non-zero positive integer."""
+        if v <= 0:
+            raise ValueError(f"Non-zero positive value is required: {v}")
+        return v
+
+    # @field_validator("version_micro")
+    # @classmethod
+    # def check_version_micro(cls, v: int, info: ValidationInfo) -> int:
+    #     return info.data["training_episode"]
+
+    # def __init__(self, **kwargs):
+    #     """Initialize ICMVersion instance."""
+    #     # now_utc = datetime.now(timezone.utc)
+    #     # kwargs["timestamp"] = now_utc.timestamp()
+    #     # if not kwargs.get("training_season"):
+    #     #     kwargs["training_season"] = f"NB-void-{now_utc.strftime('%Y%m%d%H%M%S')}-0"
+    #     super().__init__(**kwargs)
+
+    def __str__(self) -> str:
+        """Get ICM version string."""
+        # version = f"{self.version_major}.{self.training_episode}"
+        version = f"{self.version_major}.{self.version_minor}.{self.version_micro}"
+        return version
+
+
+class ICMMeta(BaseModel):
+    """ICM metadata."""
+    tds_hash_algorithm: ClassVar[str] = "blake2b"  # hashing algorithm to verify identity of training dataset files
+
+    group:str = Field(frozen=True)  # Group of intellectual capabilities
+    type: str = Field(frozen=True)  # ICM object class name
+    input_bitwidth:int = Field(default=1, frozen=True)
+    output_bitwidth:int = Field(default=1, frozen=True)
+    uuid:UUID = Field(frozen=True)      # auto-set
+    version_history: list[ICMVersion]   # auto-set
+
+    @field_validator("input_bitwidth", "output_bitwidth")
+    @classmethod
+    def bitwidth(cls, v: int) -> int:
+        """Verify that a bitwidth is non-zero positive integer."""
+        if v <= 0:
+            raise ValueError(f"Non-zero positive value is required: {v}")
+        return v
+
+    def __init__(self, **kwargs):
+        kwargs["uuid"] = uuid4()
+        now_utc = datetime.now(timezone.utc)
+        kwargs["version_history"] = [
+            ICMVersion(
+                training_season=f"NB-void-{now_utc.strftime('%Y%m%d%H%M%S')}-0",
+                training_dataset_hash="",
+                training_complete=True,
+                timestamp=now_utc
+            )
+        ]
+        super().__init__(**kwargs)
+
+    @property
+    def id(self) -> str:
+        """ICM id."""
+        return self.uuid.hex
+
+    @property
+    def version(self) -> ICMVersion:
+        """ICM version."""
+        return self.version_history[-1]
+
+    @property
+    def version_string(self) -> str:
+        """ICM version string."""
+        return str(self.version)
+
+    # def set_version(self, training_season:str, training_episode:int, training_dataset_fpath:Path, **kwargs) -> None:
+    def set_version(self, training_dataset_fpath: Path, training_episode: int) -> None:
+        """Set ICM version.
+
+        !IMPORTANT! To avoid ICM version properties auto-calculation errors please make sure you do no run concurrent
+                    training processes for the same ICM instance (UUID) across systems.
+
+        :param training_dataset_fpath:  training dataset file path
+        :param training_episode:        number of training episode (within a training season)
+        """
+        lm_prefix = f"{self.__class__.__name__}: Set version: "
+
+        training_season_prev = self.version_history[-1].training_season
+        training_dataset_hash_prev = self.version_history[-1].training_dataset_hash
+        version_minor_prev = self.version_history[-1].version_minor
+        version_micro_prev = self.version_history[-1].version_micro
+        training_complete_prev = self.version_history[-1].training_complete
+
+        # Compute digest for training dataset
+        # TODO: Convert this code into a dedicated helper function in 'common' module
+        try:
+            with open(training_dataset_fpath, "rb") as fh:
+                tds_digest = hashlib.file_digest(fh, self.tds_hash_algorithm).hexdigest()
+        except (OSError, ValueError) as e:
+            raise AIgarthICMError(
+                f"{lm_prefix}Compute training dataset digest: {str(training_dataset_fpath)}: {e.__class__.__name__}: "
+                f"{e}"
+            )
+
+        # Discover training season id
+        # TODO: Convert this code into a dedicated helper function in 'dataset' module
+        try:
+            training_season = dataset_meta_csv(training_dataset_fpath).id
+        except (OSError, ValueError) + PYDANTIC_ERRORS as e:
+            raise AIgarthICMError(
+                f"{lm_prefix}Discover training season id: {str(training_dataset_fpath)}: {e.__class__.__name__}: {e}"
+            )
+
+        # Compute value for the minor version number
+        if training_season == training_season_prev:
+            if tds_digest == training_dataset_hash_prev:
+                if training_complete_prev:
+                    raise AIgarthICMError(
+                        f"{lm_prefix}Training already complete for the season: id={training_season}, "
+                        f"digest={tds_digest}"
+                    )
+                else:
+                    version_minor = version_minor_prev
+            else:
+                raise AIgarthICMError(
+                    f"{lm_prefix}Training dataset digest mismatch for the season: id={training_season}, "
+                    f"digest={tds_digest}"
+                )
+        else:
+            version_minor = version_minor_prev + 1
+
+        # Verify value for 'training episode'
+        tds_current_episode = self.training_episode(training_dataset_fpath=training_dataset_fpath)
+        if training_episode <= tds_current_episode:
+            raise AIgarthICMError(
+                f"{lm_prefix}New value for training episode must be higher then the current one: {training_season=}, "
+                f" episode_current={tds_current_episode}, episode_new={training_episode}"
+            )
+
+        # Compute value for the version micro number
+        if tds_digest == training_dataset_hash_prev:
+            version_micro = version_micro_prev + 1
+        else:
+            version_micro = 1
+
+        version = ICMVersion(
+            training_season=training_season,
+            training_episode=training_episode,
+            training_dataset_hash=tds_digest,
+            version_minor=version_minor,
+            version_micro=version_micro,
+        )
+        self.version_history.append(version)
+
+    def training_episode(self, training_dataset_fpath: Path) -> int:
+        """Get the most recent registered training episode value for a specific training season (dataset).
+
+        !IMPORTANT! To avoid ICM 'base' training episode discovery errors please make sure you do no run concurrent
+                    training processes for the same ICM instance (UUID) across systems.
+
+        :param training_dataset_fpath:  training dataset file path
+        :return:                        'base' training episode value
+        """
+        lm_prefix = f"{self.__class__.__name__}: Get training episode: "
+
+
+        # Compute digest for training dataset
+        try:
+            with open(training_dataset_fpath, "rb") as fh:
+                tds_digest = hashlib.file_digest(fh, self.tds_hash_algorithm).hexdigest()
+        except (OSError, ValueError) as e:
+            raise AIgarthICMError(
+                f"{lm_prefix}Compute training dataset digest: {str(training_dataset_fpath)}: {e.__class__.__name__}: "
+                f"{e}"
+            )
+
+        # Discover training season id
+        try:
+            training_season = dataset_meta_csv(training_dataset_fpath).id
+        except (OSError, ValueError) + PYDANTIC_ERRORS as e:
+            raise AIgarthICMError(
+                f"{lm_prefix}Discover training season id: {str(training_dataset_fpath)}: {e.__class__.__name__}: {e}"
+            )
+
+        # Search version history for the most recent occurrence of the training period
+        for i in range(len(self.version_history) - 1, -1, -1):
+            v = self.version_history[i]
+            if v.training_season == training_season:
+                if v.training_dataset_hash == tds_digest:
+                    if v.training_complete:
+                        raise AIgarthICMError(
+                            f"{lm_prefix}Training already complete for the season: id={training_season}, "
+                            f"digest={tds_digest}"
+                        )
+                    else:
+                        return v.training_episode
+                else:
+                    raise AIgarthICMError(
+                        f"{lm_prefix}Training dataset digest mismatch for the season: id={training_season}, "
+                        f"digest={tds_digest}"
+                    )
+
+        # Training episode not in version history = start from scratch
+        return 0
+
+    def set_training_complete(self, training_complete: bool) -> None:
+        """Set the 'training complete' flag for the current ICM's version."""
+        self.version_history[-1].training_complete = training_complete
+
+
+class AIgarthICM:
+    """Generic AIgarth ICM type."""
+    pass
+
+
+class AIgarthICMCl(AIgarthICM):
+    """ 'Circle' intellectual capability module base class."""
+    FF_CYCLE_CAP_BASE = 1000000
+
+    def __init__(self, icm_group:str, input_bitwidth:int|None=None, output_bitwidth:int|None=None) -> None:
+        """Initialize ICM instance."""
+        self.lm_prefix = f"{self.__class__.__name__}: "
+
+        icm_meta_kwargs:dict = dict(group=icm_group, type=self.__class__.__name__)
+        if input_bitwidth:
+            icm_meta_kwargs["input_bitwidth"] = input_bitwidth
+        if output_bitwidth:
+            icm_meta_kwargs["output_bitwidth"] = output_bitwidth
+        self.meta = ICMMeta(**icm_meta_kwargs)
+
+        self.ff_cycle_cap = self.FF_CYCLE_CAP_BASE * self.meta.output_bitwidth
+
+        # 'Circle' ICM default initial (birth-time) configuration:
+        #   * structure consists of 'input' and 'output' neurons only
+        #   * all neurons have the only 'forward' input link assigned with randomly chosen weight
+        #   * 'input' and 'output' neurons are randomly distributed across the ICM's 'circle'
+        #
+        # NOTES:
+        #   * Number of 'input' and 'output' neurons is fixed throughout ICM's lifecycle.
+        #   * neuron individual input configurations (number of inputs, their weights and 'input skew') are supposed
+        #     to be changed (if/as necessary) individually for each neuron after the 'base' ICM is created.
+        self._neurons_i = [
+            ICMClNeuron(input_weights=random_trit_vector(size=1)) for _ in range(self.meta.input_bitwidth)
+        ]
+        self._neurons_o = [
+            ICMClNeuron(input_weights=random_trit_vector(size=1)) for _ in range(self.meta.output_bitwidth)
+        ]
+        self._circle = self._neurons_i[:] + self._neurons_o[:]
+        random.shuffle(self._circle)
+
+    def mutate(self, training_dataset_fpath:Path, training_episode:int) -> None:
+        """Mutate.
+
+        :param training_season:     ICM training season code name
+        :param training_episode:    ICM training episode number
+        """
+        LOG.info(
+            f"{self.lm_prefix}Mutate ICM: uuid={self.meta.id}, version={str(self.meta.version_string)}, "
+            f"neurons={len(self._circle)}: "
+            f"training_dataset={str(training_dataset_fpath)}, {training_episode=} ..."
+        )
+        # Identify a neuron's input weight to change
+        idx_all_weights = []
+        for ni, neuron in enumerate(self._circle):
+            # for wi, _ in enumerate(neuron.input_weights):
+
+            if len(neuron.input_weights) >= len(self._circle):
+                ii_margin_base, ii_margin_odd = divmod(len(neuron.input_weights) - (len(self._circle) - 1), 2)
+                ia_idx_start = ii_margin_base + ii_margin_odd
+                ia_idx_end = ia_idx_start + (len(self._circle) - 1)
+            else:
+                ia_idx_start, ia_idx_end = 0, len(neuron.input_weights)
+
+            # for wi, _ in enumerate(neuron.input_weights):
+            #     idx_all_weights.append((ni, wi))
+            for wi in range(ia_idx_start, ia_idx_end):
+                idx_all_weights.append((ni, wi))
+        idx_neuron, idx_weight = secrets.choice(idx_all_weights)
+        # Change input weight
+        weight_new = self._circle[idx_neuron]._input_weights[idx_weight] + secrets.choice((-1, 1))
+        if weight_new in (-1, 0, 1):
+            self._circle[idx_neuron]._input_weights[idx_weight] = weight_new
+            LOG.info(
+                f"{self.lm_prefix}Mutate ICM: uuid={self.meta.id}, version={str(self.meta.version_string)}: "
+                f"Change neuron's input weight: neuron_index={idx_neuron}, input_index={idx_weight}, "
+                f"new_weight={weight_new}, inputs={len(self._circle[idx_neuron].input_weights)}, "
+                f"neurons={len(self._circle)}"
+            )
+
+            zero_input_weights = [iw for iw in self._circle[idx_neuron]._input_weights if iw == 0]
+            if len(zero_input_weights) == len(self._circle[idx_neuron]._input_weights):
+                if not (self._circle[idx_neuron] in self._neurons_i or self._circle[idx_neuron] in self._neurons_o):
+                    # Remove the 'base' neuron, if removal condition met (all input weights are zero, and it's not a
+                    # member of input or output neuron groups)
+                    del self._circle[idx_neuron]
+                    LOG.info(
+                        f"{self.lm_prefix}Mutate ICM: uuid={self.meta.id}, version={str(self.meta.version_string)}: "
+                        f"Remove ineffective neuron: neuron_index={idx_neuron}, neurons={len(self._circle)}"
+                    )
+        else:
+            # Spawn a neuron
+            # Get a 'spawn model' neuron (the one to be cloned)
+            neuron_smodel, _ = self.get_neuron_spawn_model(idx_neuron, idx_weight)
+            # Clone the 'spawn  model' neuron
+            neuron_new = neuron_smodel.__class__(
+                input_weights = neuron_smodel.input_weights,
+                input_skew=neuron_smodel.input_skew,
+            )
+            # Insert (just cloned) new neuron into the 'circle' at a random position
+            # idx_neuron_new = secrets.choice(list(range(len(self._circle))))   # Select a random location
+            idx_neuron_new = idx_neuron + 1  # Select location adjacent to the 'base' neuron
+            self._circle.insert(idx_neuron_new, neuron_new)
+            LOG.info(
+                f"{self.lm_prefix}Mutate ICM: uuid={self.meta.id}, version={str(self.meta.version_string)}: "
+                f"Spawn a neuron: neuron_index_new={idx_neuron_new}, neurons={len(self._circle)}"
+            )
+
+        # Bump ICM version
+        self.meta.set_version(training_dataset_fpath=training_dataset_fpath, training_episode=training_episode)
+        LOG.info(f"{self.lm_prefix}Mutate ICM: uuid={self.meta.id}, version={str(self.meta.version_string)}: "
+                 f"Upgrade ICM version: version_new={str(self.meta.version_string)}, neurons={len(self._circle)}")
+
+        LOG.info(
+            f"{self.lm_prefix}Mutate ICM: uuid={self.meta.id}, version_new={str(self.meta.version_string)}, "
+            f"neurons={len(self._circle)}: "
+            f"training_dataset={str(training_dataset_fpath)}, {training_episode=}: OK"
+        )
+
+    # def get_neuron_spawn_model(self, circle_index:int, weights_index:int) -> tuple[ICMClNeuron, int]:
+    #     """Get a neuron to serve as a model for spawning a new neuron as a part of ICM mutation procedure.
+    #
+    #     :param circle_index:    index of a 'base' mutation neuron in the 'circle' (the one whose input's change
+    #                             initiated spawning a new neuron)
+    #     :param weights_index:   index of a 'base' mutation neuron's input in the 'weights' of the 'base' mutation neuron
+    #                             (the one whose change initiated spawning a new neuron)
+    #     :return:                'model' neuron for spawning a new neuron
+    #     """
+    #     neuron_base = self._circle[circle_index]
+    #     len_bw_gr = neuron_base.input_split_index
+    #
+    #     if weights_index < neuron_base.input_split_index:
+    #         idx_neuron_spawn_model = (circle_index - len_bw_gr + weights_index) % len(self._circle)
+    #     else:
+    #         idx_neuron_spawn_model = (circle_index + 1 + weights_index - len_bw_gr) % len(self._circle)
+    #
+    #     neuron_spawn_model = self._circle[idx_neuron_spawn_model]
+    #
+    #     return neuron_spawn_model, idx_neuron_spawn_model
+
+    # def get_neuron_feed(self, circle_index: int) -> tuple[int, ...]:
+    #     """Get 'feed' values for a neuron.
+    #
+    #     :param n: a neuron instance
+    #     :param circle_index: neuron's index (location) on the 'circle'
+    #     :return: list of neuron feed values
+    #     """
+    #     n = self._circle[circle_index]
+    #
+    #     oi_margin_base, oi_margin_odd = 0, 0
+    #     if len(n.input_weights) >= len(self._circle):
+    #         oi_margin_base, oi_margin_odd = divmod(len(n.input_weights) - (len(self._circle) - 1), 2)
+    #
+    #     len_bw_gr = n.input_split_index
+    #     len_fw_gr = len(n.input_weights) - n.input_split_index
+    #
+    #     len_bw_gr_active = len_bw_gr - oi_margin_base - oi_margin_odd
+    #     len_fw_gr_active = len_fw_gr - oi_margin_base
+    #
+    #     bw_feed_active = [
+    #         self._circle[i % len(self._circle)].state
+    #         for i in range(circle_index - len_bw_gr_active, circle_index)
+    #     ]
+    #     bw_feed = [0]*(len_bw_gr - len_bw_gr_active) + bw_feed_active
+    #
+    #     fw_feed_active = [
+    #         self._circle[i % len(self._circle)].state
+    #         for i in range(circle_index + 1, circle_index + 1 + len_fw_gr_active)
+    #     ]
+    #     fw_feed = fw_feed_active + [0]*(len_fw_gr - len_fw_gr_active)
+    #
+    #     feed = bw_feed + fw_feed
+    #
+    #     return tuple(feed)
+
+    # def feedforward(self, feed:tuple[int, ...]|None=None) -> tuple[tuple[int, ...], FFCycleStats]:
+    #     """Produce a 'forward' value from the 'feed' data.
+    #
+    #     :param feed:    set of balanced 'trit' values ([-1,0,+1]) fed to the ICM as input
+    #     :return:        ICM's output computed from the input values (set of balanced 'trit' values)
+    #     """
+    #     # Reset states of all neurons
+    #     for n in self._circle:
+    #         n.state = 0
+    #     # Assign ICM's 'feed' to initial states of 'input' neurons
+    #     len_init = min(len(feed), self.meta.input_bitwidth)
+    #     for i in range(len_init):
+    #         self._neurons_i[i].state = feed[i]
+    #
+    #     # Run 'feedforward' cycle
+    #     ffcycle_end_reason = ICM_FFCYCLE_END_REASON.TICK_CAP
+    #     ffcycle_start_timestamp = process_time()
+    #     for tick in range(self.ff_cycle_cap):  # Ticking break condition #2: Ticks upper limit was reached
+    #         no_n_state_changes = True
+    #         no_zero_out_n_states = True
+    #         # Compute 'next' state for all neurons (forward)
+    #         for i, n in enumerate(self._circle):
+    #             # Collect 'feed' for a neuron
+    #             n_feed = self.get_neuron_feed(i)
+    #             # Compute 'forward' for a neuron
+    #             n.feedforward(n_feed)
+    #         # Promote 'forward' to 'state' for all neurons
+    #         for n in self._circle:
+    #             n_state, changed = n.commit_state()
+    #             if changed:
+    #                 no_n_state_changes = False
+    #         # Ticking break condition #3: no neurons have changed their state
+    #         if no_n_state_changes:
+    #             ffcycle_end_reason = ICM_FFCYCLE_END_REASON.NO_NSTATE_SCHANGES
+    #             break
+    #         # Ticking break condition #1: all 'output' neurons got non-zero state
+    #         for n in self._neurons_o:
+    #             if n.state == 0:
+    #                 no_zero_out_n_states = False
+    #                 break
+    #         if no_zero_out_n_states:
+    #             ffcycle_end_reason = ICM_FFCYCLE_END_REASON.NO_OUTPUT_ZEROES
+    #             break
+    #
+    #     ffcycle_stop_timestamp = process_time()
+    #     # Extract ICM's 'forward' value from 'output' neurons
+    #     icm_forward = tuple([n.state for n in self._neurons_o])
+    #
+    #     ffcycle_duration_total = ffcycle_stop_timestamp - ffcycle_start_timestamp
+    #     ffcycle_tick_count = tick + 1
+    #     ffcycle_stats = FFCycleStats(
+    #         tick_count=ffcycle_tick_count,
+    #         end_reason=ffcycle_end_reason,
+    #         duration_total=ffcycle_duration_total,
+    #         duration_tick=ffcycle_duration_total / ffcycle_tick_count
+    #     )
+    #
+    #     return icm_forward, ffcycle_stats
+
+    def _get_storage_fname_stem(self, version_history_index:int=-1) -> str:
+        """Generate stem (part before the dot) of the ICM storage filename."""
+        # stem = f"{self.__class__.__name__}-{self.meta.uuid.hex}-{self.meta.version_string}"
+        if version_history_index == -1:
+            version_string = self.meta.version_string
+        else:
+            version_string = str(self.meta.version_history[version_history_index])
+
+        stem = f"{self.__class__.__name__}-{self.meta.uuid.hex}-{version_string}"
+
+        return stem
+
+    def get_storage_fname(self, version_history_index:int=-1) -> str:
+        """Generate ICM storage filename."""
+        storage_fname_stem = self._get_storage_fname_stem(version_history_index=version_history_index)
+        storage_fname = f"{storage_fname_stem}.sqlite3"
+
+        return storage_fname
+
+    @classmethod
+    def load_meta(cls, storage_fpath: Path, app_name: str, app_version: str) -> Any:
+        """Load metadata of a preserved ICM instance."""
+        lm_prefix = f"{cls.__name__}: "
+
+        try:
+            storage = SQLiteKVDB(
+                db_ref=DBReference(scheme=DB_SCHEME.SQLITE3, path=str(storage_fpath)),
+                app_codename=app_name,
+                app_version=app_version
+            )
+        except SQLiteKVDBError as e:
+            raise AIgarthICMError(f"{lm_prefix}Load instance metadata: {e.__class__.__name__}: {e}") from e
+
+        if meta := storage.get("meta"):
+            return meta
+        else:
+            raise AIgarthICMError(f"{lm_prefix}Load instance metadata: Metadata not found: {storage_fpath}")
+
+    @classmethod
+    def load(cls, storage_fpath:Path, app_name:str, app_version:str) -> Any:
+        """Load a preserved ICM instance."""
+        lm_prefix = f"{cls.__name__}: "
+
+        try:
+            storage = SQLiteKVDB(
+                db_ref=DBReference(scheme=DB_SCHEME.SQLITE3, path=str(storage_fpath)),
+                app_codename=app_name,
+                app_version=app_version
+            )
+        except SQLiteKVDBError as e:
+            raise AIgarthICMError(f"{lm_prefix}Load instance: {e.__class__.__name__}: {e}") from e
+
+        if meta := storage.get("meta"):
+            if meta.type == cls.__name__:
+                return storage["object"]
+            else:
+                raise AIgarthICMError(
+                    f"{lm_prefix}Load instance: Type mismatch: {meta.type} != {cls.__name__}: {storage_fpath}"
+                )
+        else:
+            raise AIgarthICMError(f"{lm_prefix}Load instance: Metadata not found: {storage_fpath}")
+
+    def save(self, storage_dpath:Path, app_name:str, app_version:str) -> Path:
+        """Save an ICM instance to a persistent storage.
+
+        :param storage_dpath:   storage directory path
+        :param app_name:        creator application name
+        :param app_version:     creator application version
+        :return:                icm storage file path
+        """
+        storage_fpath = Path(storage_dpath, self.get_storage_fname())
+
+        try:
+            storage = SQLiteKVDB(
+                db_ref=DBReference(scheme=DB_SCHEME.SQLITE3, path=str(storage_fpath)),
+                auto_commit=False,
+                app_codename=app_name,
+                app_version=app_version
+            )
+
+            storage["meta"] = self.meta
+            storage["object"] = self
+            storage.close()
+        except SQLiteKVDBError as e:
+            raise AIgarthICMError(f"{self.lm_prefix}Save instance: {e.__class__.__name__}: {e}") from e
+
+        return storage_fpath
+
+    def reflect(self, *args, **kwargs) -> Any:
+        """Apply an intellectual capability to a single input object."""
+        raise NotImplementedError("reflect() not implemented.")
+
+    def reflect_many(self, *args, **kwargs) -> Any:
+        """Apply an intellectual capability to a set of input objects."""
+        raise NotImplementedError("reflect_many() not implemented.")
