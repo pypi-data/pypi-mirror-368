@@ -1,0 +1,113 @@
+---
+# SPDX-FileCopyrightText: 2025 Tymoteusz Blazejczyk <tymoteusz.blazejczyk@tymonx.com>
+# SPDX-License-Identifier: Apache-2.0
+
+.python:
+    image: python:latest
+    needs: []
+    rules:
+        - if: $CI_COMMIT_REF_NAME
+          when: always
+        - when: never
+    before_script:
+        - pip install --upgrade pip
+        - pip install ${PIP_INSTALL:-}
+
+.ruff:
+    image: ghcr.io/astral-sh/ruff:debian-slim
+    needs: []
+    variables:
+        FORCE_COLOR: 1
+    rules:
+        - if: $CI_COMMIT_REF_NAME
+          when: always
+        - when: never
+
+pytest:
+    extends: .python
+    artifacts:
+        paths:
+            - '**/*.log'
+            - '**/*.xml'
+        reports:
+            junit: junit.xml
+            coverage_report:
+                coverage_format: cobertura
+                path: cobertura.xml
+    coverage: '/TOTAL.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
+    variables:
+        PIP_INSTALL: --editable .[test]
+    script:
+        - >-
+          pytest
+          --capture=no
+          --verbose
+          --color=yes
+          --code-highlight=yes
+          --cov
+          --cov-report=term
+          --cov-report=xml:cobertura.xml
+          --log-cli-level=INFO
+          --log-file=pytest.log
+          --log-file-level=DEBUG
+          --junit-xml=junit.xml
+
+pytest-windows:
+    extends: pytest
+    image: registry.gitlab.com/tymonx/pywine:latest
+
+reuse:
+    extends: .python
+    variables:
+        PIP_INSTALL: reuse
+    script:
+        - reuse lint
+
+pyright:
+    extends: .python
+    variables:
+        PIP_INSTALL: --editable . pyright pytest
+    script:
+        - pyright
+
+ruff-check:
+    extends: .ruff
+    script:
+        - ruff check --output-format=gitlab > code-quality-report.json || true
+        - ruff check
+    artifacts:
+        reports:
+            codequality: code-quality-report.json
+
+ruff-format:
+    extends: .ruff
+    script:
+        - ruff format --diff
+
+deploy-pypi-public:
+    extends: .python
+    variables:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: $PYPI_API_TOKEN
+        PIP_INSTALL: build twine
+    rules:
+        - if: $CI_COMMIT_TAG
+          when: always
+        - when: never
+    script:
+        - python -m build
+        - python -m twine upload dist/*
+
+deploy-pypi-gitlab:
+    extends: .python
+    variables:
+        TWINE_USERNAME: gitlab-ci-token
+        TWINE_PASSWORD: $CI_JOB_TOKEN
+        PIP_INSTALL: build twine
+    rules:
+        - if: $CI_COMMIT_TAG || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+          when: always
+        - when: never
+    script:
+        - python -m build
+        - python -m twine upload --repository-url "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi" dist/*
