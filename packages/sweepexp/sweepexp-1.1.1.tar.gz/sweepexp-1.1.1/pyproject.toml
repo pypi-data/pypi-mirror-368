@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sweepexp"
+version = "1.1.1"
+authors = [
+  { name="Silvano Gordian Rosenau", email="silvano.rosenau@uni-hamburg.de" },
+]
+description = "A python package for running parallel experiments across parameter grids with MPI."
+readme = "README.md"
+keywords = []
+requires-python = ">=3.10"
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Development Status :: 5 - Production/Stable",
+]
+dependencies = [
+  "lazypimp",
+  "xarray",
+  "dill",
+]
+license = {file = "LICENSE"}
+
+[project.optional-dependencies]
+full = ["zarr", "netCDF4"]
+
+[project.urls]
+Repository = "https://github.com/Gordi42/sweepexp"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = [
+  "--import-mode=importlib",
+]
+markers = [
+  "objects: mark tests to contain objects",
+  "serial",
+]
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = ["D105", "D107", "D211", "D212", "TD003"]
+exclude = ["docs/"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["D103", "S101", "ANN001", "ANN201", "ANN205", "INP001", "SLF001", "D101", "D102"]
+"__init__.py" = ["F401"]
