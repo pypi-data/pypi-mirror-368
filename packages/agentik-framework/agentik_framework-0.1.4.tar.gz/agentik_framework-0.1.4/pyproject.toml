@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentik-framework"
+version = "0.1.4"
+description = "Lightweight, Modular Agent Framework for AI planning, tools, and memory"
+authors = [
+    { name = "Vinay Joshi", email = "joshivinay822@gmail.com" },
+    { name = "Avinash Raghuvanshi", email = "avi95461@gmail.com" }
+]
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.8"
+
+# Core dependencies for running Agentik
+dependencies = [
+    "typer>=0.9",
+    "pydantic>=2.11",
+    "pyyaml>=6.0",
+    "requests>=2.31",
+    "openai>=1.0",
+    "colorama>=0.4",
+    "tiktoken>=0.9"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=6.0",
+    "black>=25.0",
+    "ruff>=0.12",
+    "build>=1.2",
+    "twine>=6.0",
+    "typing-inspection>=0.4",
+    "rich>=14.0",
+    "tqdm>=4.67"
+]
+
+[project.scripts]
+agentik = "agentik.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]            # Look from root
+include = ["agentik*"]   # Include all agentik.* submodules
+
+[tool.black]
+line-length = 88
+target-version = ["py310"]
+
+[tool.ruff]
+line-length = 88
+select = ["E", "F", "W"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+addopts = "-v --cov=agentik --cov-report=term-missing"
+testpaths = ["tests"]
