@@ -1,0 +1,181 @@
+Metadata-Version: 2.4
+Name: softmax-exploration
+Version: 0.1
+Summary: Softmax exploration functions for reinforcement learning
+Home-page: https://github.com/yourusername/softmax-exploration
+Author: Your Name
+Author-email: your.email@example.com
+Keywords: reinforcement-learning,softmax,exploration,boltzmann,q-learning
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: numpy>=1.19.0
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: keywords
+Dynamic: license-file
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+# Softmax Exploration Package
+
+A Python package for implementing softmax exploration strategies in reinforcement learning algorithms.
+
+## Installation
+
+```bash
+pip install softmax-exploration
+```
+
+## Features
+
+- **Softmax Action Selection**: Convert Q-values to action probabilities using softmax function
+- **Boltzmann Exploration**: Temperature-controlled exploration strategy
+- **Epsilon-Softmax**: Hybrid approach combining epsilon-greedy with softmax
+- **Adaptive Temperature**: Dynamic temperature scheduling for exploration decay
+- **Numerical Stability**: Robust implementation with overflow protection
+
+## Usage
+
+### Basic Softmax Exploration
+
+```python
+from softmax_exploration import softmax, softmax_action_selection
+
+# Q-values for each action
+q_values = [1.2, 0.8, 2.1, 0.5]
+
+# Get action probabilities
+probabilities = softmax(q_values, temperature=1.0)
+print(probabilities)
+# Output: [0.234, 0.156, 0.456, 0.154]
+
+# Select action using softmax
+action = softmax_action_selection(q_values, temperature=1.0)
+print(f"Selected action: {action}")
+```
+
+### Temperature Control
+
+```python
+# High temperature = more exploration
+probs_high_temp = softmax(q_values, temperature=2.0)
+print("High temperature (more exploration):", probs_high_temp)
+
+# Low temperature = more exploitation
+probs_low_temp = softmax(q_values, temperature=0.5)
+print("Low temperature (more exploitation):", probs_low_temp)
+```
+
+### Epsilon-Softmax Hybrid
+
+```python
+from softmax_exploration import epsilon_softmax
+
+# Combine epsilon-greedy with softmax
+action = epsilon_softmax(q_values, epsilon=0.1, temperature=1.0)
+print(f"Epsilon-softmax action: {action}")
+```
+
+### Adaptive Temperature Scheduling
+
+```python
+from softmax_exploration import adaptive_temperature
+
+# Temperature decreases over episodes
+for episode in [0, 10, 50, 100]:
+    temp = adaptive_temperature(episode)
+    print(f"Episode {episode}: Temperature = {temp:.3f}")
+```
+
+### Boltzmann Exploration
+
+```python
+from softmax_exploration import boltzmann_exploration
+
+# Boltzmann exploration (same as softmax)
+action = boltzmann_exploration(q_values, temperature=1.0)
+print(f"Boltzmann action: {action}")
+```
+
+## API Reference
+
+### `softmax(q_values, temperature=1.0)`
+Compute softmax probabilities for given Q-values.
+
+**Parameters:**
+- `q_values`: List or numpy array of Q-values
+- `temperature`: Temperature parameter (higher = more exploration)
+
+**Returns:** Probability distribution over actions
+
+### `softmax_action_selection(q_values, temperature=1.0, random_state=None)`
+Select an action using softmax exploration.
+
+**Parameters:**
+- `q_values`: List or numpy array of Q-values
+- `temperature`: Temperature parameter
+- `random_state`: Random state for reproducibility
+
+**Returns:** Selected action index
+
+### `epsilon_softmax(q_values, epsilon=0.1, temperature=1.0, random_state=None)`
+Hybrid exploration combining epsilon-greedy with softmax.
+
+**Parameters:**
+- `q_values`: List or numpy array of Q-values
+- `epsilon`: Probability of random action selection
+- `temperature`: Temperature parameter for softmax
+- `random_state`: Random state for reproducibility
+
+**Returns:** Selected action index
+
+### `adaptive_temperature(episode, initial_temp=10.0, decay_rate=0.995, min_temp=0.1)`
+Compute adaptive temperature for exploration scheduling.
+
+**Parameters:**
+- `episode`: Current episode number
+- `initial_temp`: Initial temperature value
+- `decay_rate`: Temperature decay rate
+- `min_temp`: Minimum temperature value
+
+**Returns:** Adaptive temperature value
+
+## Requirements
+
+- Python 3.6+
+- NumPy
+
+## Installation from Source
+
+```bash
+git clone https://github.com/yourusername/softmax-exploration.git
+cd softmax-exploration
+pip install -e .
+```
+
+## License
+
+This project is open source and available under the MIT License.
+
+## Contributing
+
+Feel free to contribute to this project by submitting issues or pull requests.
