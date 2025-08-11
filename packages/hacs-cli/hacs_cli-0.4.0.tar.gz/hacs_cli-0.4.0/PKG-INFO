@@ -1,0 +1,231 @@
+Metadata-Version: 2.4
+Name: hacs-cli
+Version: 0.4.0
+Summary: Command-line interface for Healthcare Agent Communication Standard (HACS)
+Project-URL: Homepage, https://github.com/solanovisitor/hacs-ai
+Project-URL: Documentation, https://github.com/solanovisitor/hacs-ai/blob/main/docs/
+Project-URL: Repository, https://github.com/solanovisitor/hacs-ai
+Project-URL: Issues, https://github.com/solanovisitor/hacs-ai/issues
+Project-URL: Changelog, https://github.com/solanovisitor/hacs-ai/blob/main/CHANGELOG.md
+Author-email: Solano Todeschini <solanovisitor@gmail.com>
+Maintainer-email: Solano Todeschini <solanovisitor@gmail.com>
+License: Apache-2.0
+Keywords: agents,ai,cli,fhir,healthcare
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Healthcare Industry
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Topic :: Scientific/Engineering :: Medical Science Apps.
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Typing :: Typed
+Requires-Python: >=3.11
+Requires-Dist: click>=8.1.0
+Requires-Dist: hacs-core>=0.4.0
+Requires-Dist: hacs-utils>=0.4.0
+Requires-Dist: rich>=13.0.0
+Requires-Dist: typer>=0.9.0
+Provides-Extra: all
+Requires-Dist: hacs-persistence>=0.4.0; extra == 'all'
+Requires-Dist: hacs-tools>=0.4.0; extra == 'all'
+Provides-Extra: dev
+Requires-Dist: pyright>=1.1.0; extra == 'dev'
+Requires-Dist: pytest-cov>=4.0.0; extra == 'dev'
+Requires-Dist: pytest>=7.0.0; extra == 'dev'
+Requires-Dist: ruff>=0.4.0; extra == 'dev'
+Provides-Extra: persistence
+Requires-Dist: hacs-persistence>=0.4.0; extra == 'persistence'
+Provides-Extra: tools
+Requires-Dist: hacs-tools>=0.4.0; extra == 'tools'
+Description-Content-Type: text/markdown
+
+# HACS CLI
+
+**Command-line interface for Healthcare Agent Communication Standard**
+
+*Currently in development - use MCP server for full functionality*
+
+## 🚧 **Development Status**
+
+The HACS CLI is **under development**. Current healthcare operations are available through:
+
+1. **MCP Server** - 25+ healthcare tools via JSON-RPC (Port 8000)
+2. **Setup Script** - `python setup.py` for deployment and configuration
+3. **LangGraph Agent** - Interactive AI workflows (Port 8001)
+
+## 🚀 **Current Functionality**
+
+### **Deployment & Setup**
+```bash
+# Interactive setup (primary interface)
+python setup.py
+
+# Deployment modes
+python setup.py --mode local     # Full development environment
+python setup.py --mode minimal   # Essential services only
+python setup.py --mode cloud     # Production configuration
+
+# Specialized operations
+python setup.py --migrate-only   # Database migration only
+python setup.py --validate-only  # Validate existing setup
+```
+
+### **Service Management**
+```bash
+# Docker Compose operations
+docker-compose up -d              # Start all services
+docker-compose down               # Stop services
+docker-compose logs hacs-mcp-server  # View logs
+
+# Health checks
+curl http://localhost:8000/       # MCP server
+curl http://localhost:8001/       # LangGraph agent
+```
+
+## 🛠️ **MCP Server Interface**
+
+All healthcare operations use the **Model Context Protocol** server:
+
+```bash
+# List available healthcare tools (25 tools)
+curl -X POST -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"tools/list","id":1}' \
+  http://localhost:8000/
+
+# Create patient record
+curl -X POST -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "tools/call",
+    "params": {
+      "name": "create_resource",
+      "arguments": {
+        "resource_type": "Patient",
+        "resource_data": {
+          "full_name": "John Smith",
+          "birth_date": "1980-05-15",
+          "gender": "male"
+        }
+      }
+    },
+    "id": 1
+  }' \
+  http://localhost:8000/
+```
+
+## 📋 **Planned CLI Features**
+
+Future development will include:
+
+- `hacs validate` - Resource validation
+- `hacs convert` - Format conversion (HACS ↔ FHIR)
+- `hacs memory` - Memory management commands
+- `hacs evidence` - Evidence and knowledge operations
+- `hacs auth` - Authentication and permissions
+- `hacs export` - Data export utilities
+
+## 🏥 **Healthcare Workflows**
+
+Use Python requests for programmatic access:
+
+```python
+import requests
+
+def call_hacs_tool(tool_name, arguments):
+    """Call HACS healthcare tools"""
+    response = requests.post('http://localhost:8000/', json={
+        "jsonrpc": "2.0",
+        "method": "tools/call",
+        "params": {
+            "name": tool_name,
+            "arguments": arguments
+        },
+        "id": 1
+    })
+    return response.json()
+
+# Clinical memory management
+memory_result = call_hacs_tool("create_memory", {
+    "content": "Patient shows improvement after medication adjustment",
+    "memory_type": "episodic",
+    "importance_score": 0.8
+})
+
+# Search clinical memories
+search_result = call_hacs_tool("search_memories", {
+    "query": "medication response",
+    "limit": 5
+})
+```
+
+## ⚙️ **Configuration**
+
+### **Environment Setup**
+```bash
+# Healthcare organization configuration
+export HACS_ORGANIZATION="your_health_system"
+export HEALTHCARE_SYSTEM_NAME="Your Health System"
+export DATABASE_URL="postgresql://hacs:password@localhost:5432/hacs"
+
+# LLM Provider (for AI operations)
+export ANTHROPIC_API_KEY="sk-ant-..."  # Recommended for healthcare
+export OPENAI_API_KEY="sk-..."         # Alternative
+```
+
+### **Virtual Environment**
+```bash
+# Activate HACS environment
+source .venv/bin/activate
+
+# Check environment status
+which python
+pip list | grep hacs
+```
+
+## 🔍 **Troubleshooting**
+
+### **Common Issues**
+```bash
+# Check MCP server status
+curl http://localhost:8000/
+
+# View server logs
+docker-compose logs hacs-mcp-server
+
+# Restart services
+docker-compose restart hacs-mcp-server
+```
+
+### **Health Checks**
+```bash
+# Complete system health check
+echo "📡 MCP Server:"
+curl -s http://localhost:8000/ && echo "✅ Running" || echo "❌ Not responding"
+
+echo "🗄️ PostgreSQL:"
+docker-compose exec postgres pg_isready -U hacs && echo "✅ Ready" || echo "❌ Not ready"
+```
+
+## 📊 **Current Tool Categories**
+
+Available via MCP server:
+
+- 🔍 **Resource Discovery & Development** (5 tools)
+- 📋 **Record Management** (8 tools)
+- 🧠 **Memory Management** (5 tools)
+- ✅ **Validation & Schema** (3 tools)
+- 🎨 **Advanced Tools** (3 tools)
+- 📚 **Knowledge Management** (1 tool)
+
+## 📄 **License**
+
+Apache-2.0 License - see [LICENSE](../../LICENSE) for details.
+
+---
+
+**For immediate healthcare AI development, use the MCP server interface** - it provides complete access to all HACS functionality through a standardized protocol.
