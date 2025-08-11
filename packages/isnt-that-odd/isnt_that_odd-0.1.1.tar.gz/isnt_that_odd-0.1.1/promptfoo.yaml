@@ -1,0 +1,120 @@
+# promptfoo configuration for testing even/odd determination
+description: Test prompts for determining if numbers are even or odd
+
+prompts:
+  - id: even_odd_prompt
+    raw: file://src/isnt_that_odd/prompts/even_odd.txt
+    label: Even/Odd Determination Prompt
+    vars:
+      number: "{{number}}"
+
+providers:
+  - id: xai:grok-3
+    config:
+      temperature: 0.0
+      max_tokens: 50
+
+tests:
+  - vars:
+      number: 2
+    assert:
+      - type: contains
+        value: '"is_even": true'
+      - type: contains
+        value: "true"
+    description: "Even number (2) should return true"
+
+  - vars:
+      number: 3
+    assert:
+      - type: contains
+        value: '"is_even": false'
+      - type: contains
+        value: "false"
+    description: "Odd number (3) should return false"
+
+  - vars:
+      number: 0
+    assert:
+      - type: contains
+        value: '"is_even": true'
+      - type: contains
+        value: "true"
+    description: "Zero (0) should return true (even)"
+
+  - vars:
+      number: -4
+    assert:
+      - type: contains
+        value: '"is_even": true'
+      - type: contains
+        value: "true"
+    description: "Negative even number (-4) should return true"
+
+  - vars:
+      number: -7
+    assert:
+      - type: contains
+        value: '"is_even": false'
+      - type: contains
+        value: "false"
+    description: "Negative odd number (-7) should return false"
+
+  - vars:
+      number: 10.5
+    assert:
+      - type: contains
+        value: '"is_even": true'
+      - type: contains
+        value: "true"
+    description: "Decimal number (10.5) should return true (integer part 10 is even)"
+
+  - vars:
+      number: 15.8
+    assert:
+      - type: contains
+        value: '"is_even": false'
+      - type: contains
+        value: "false"
+    description: "Decimal number (15.8) should return false (integer part 15 is odd)"
+
+  - vars:
+      number: 100
+    assert:
+      - type: contains
+        value: '"is_even": true'
+      - type: contains
+        value: "true"
+    description: "Large even number (100) should return true"
+
+  - vars:
+      number: 999
+    assert:
+      - type: contains
+        value: '"is_even": false'
+      - type: contains
+        value: "false"
+    description: "Large odd number (999) should return false"
+
+  - vars:
+      number: "42"
+    assert:
+      - type: contains
+        value: '"is_even": true'
+      - type: contains
+        value: "true"
+    description: "String number ('42') should return true"
+
+  - vars:
+      number: "17"
+    assert:
+      - type: contains
+        value: '"is_even": false'
+      - type: contains
+        value: "false"
+    description: "String number ('17') should return false"
+
+defaultTest:
+  options:
+    temperature: 0.0
+    max_tokens: 50
