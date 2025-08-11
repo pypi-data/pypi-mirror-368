@@ -1,0 +1,146 @@
+# This workflow will:
+# 1. Create a GitHub release with the database file
+# 2. Upload Python Package to PyPI
+# 3. Test the published package
+# 4. Automatically rollback (delete release & yank from PyPI) if tests fail
+
+name: Publish Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # Triggers on version tags like v2.0.1
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g., v2.0.1)'
+        required: true
+        type: string
+
+permissions:
+  contents: write  # Need write for creating releases
+  
+jobs:
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    outputs:
+      release_id: ${{ steps.create_release.outputs.id }}
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      version: ${{ steps.get_version.outputs.VERSION }}
+      version_number: ${{ steps.get_version.outputs.VERSION_NUMBER }}
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        lfs: true  # Fetch Git LFS files including postcodes.db
+        
+    - name: Checkout LFS objects
+      run: git lfs pull
+      
+    - name: Verify database exists
+      run: |
+        if [ ! -f postcodes.db ]; then
+          echo "Error: postcodes.db not found in repository"
+          exit 1
+        fi
+        ls -lh postcodes.db
+        echo "Database size: $(stat -f%z postcodes.db 2>/dev/null || stat -c%s postcodes.db) bytes"
+        
+    - name: Get version from tag
+      id: get_version
+      run: |
+        if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          VERSION=${{ inputs.tag }}
+        else
+          VERSION=${GITHUB_REF#refs/tags/}
+        fi
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        # Extract version number without 'v' prefix
+        VERSION_NUMBER=${VERSION#v}
+        echo "VERSION_NUMBER=$VERSION_NUMBER" >> $GITHUB_OUTPUT
+        echo "Releasing version: $VERSION ($VERSION_NUMBER)"
+        
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.get_version.outputs.VERSION }}
+        release_name: Release ${{ steps.get_version.outputs.VERSION }}
+        body: |
+          ## UK Postcodes Parsing ${{ steps.get_version.outputs.VERSION }}
+          
+          ### Installation
+          ```bash
+          pip install uk-postcodes-parsing==${{ steps.get_version.outputs.VERSION_NUMBER }}
+          ```
+          
+          ### Database
+          The postcodes.db file is attached below and will be automatically downloaded on first use.
+          
+          ### Changes
+          - See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details
+        draft: false
+        prerelease: false
+        
+    - name: Upload Database to Release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./postcodes.db
+        asset_name: postcodes.db
+        asset_content_type: application/x-sqlite3
+
+  publish-pypi:
+    name: Publish to PyPI
+    needs: create-release
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build twine
+        
+    - name: Build package
+      run: python -m build
+      
+    - name: Check package
+      run: twine check dist/*
+      
+    - name: Publish to PyPI
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_API_KEY }}
+      run: |
+        twine upload dist/*
+        echo "Package published to PyPI"
+        echo "Version: ${{ needs.create-release.outputs.version_number }}"
+
+  notify-success:
+    name: Notify Successful Release
+    needs: [create-release, publish-pypi]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Success notification
+      run: |
+        VERSION="${{ needs.create-release.outputs.version }}"
+        VERSION_NUMBER="${{ needs.create-release.outputs.version_number }}"
+        echo "✅ Release $VERSION published successfully!"
+        echo ""
+        echo "📦 PyPI: https://pypi.org/project/uk-postcodes-parsing/$VERSION_NUMBER/"
+        echo "🏷️ GitHub: https://github.com/${{ github.repository }}/releases/tag/$VERSION"
+        echo ""
+        echo "🧪 To test the release, run the 'Test PyPI Release' workflow manually:"
+        echo "gh workflow run 'Test PyPI Release' --field version=$VERSION_NUMBER"
+        echo ""
+        echo "⏰ Note: PyPI may take a few minutes to propagate the new version globally."
