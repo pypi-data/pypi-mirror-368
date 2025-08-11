@@ -1,0 +1,65 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "main" ]
+    tags:
+      - '*'
+  pull_request:
+    branches: [ "main" ]
+
+# jobs:
+
+#   build:
+
+#     runs-on: ubuntu-latest
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Available platforms
+        run: echo ${{ steps.buildx.outputs.platforms }}
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: '0'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+            username: ${{ secrets.DOCKERHUB_USERNAME }}
+            password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build wheel
+        run: uv build
+
+      - name: Configure docker
+        run: |
+          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+          docker buildx create --name multibuilder
+          docker buildx use multibuilder
+
+      - name: Set env variables
+        run: |
+          SIGNALBLAST_VERSION=$(uvx hatch version)
+          DOCKER_TAG="${SIGNALBLAST_VERSION//+/-}"
+          echo "the version is $SIGNALBLAST_VERSION"
+          echo "the docker version is $DOCKER_TAG"
+          echo "SIGNALBLAST_VERSION=$SIGNALBLAST_VERSION" >> "$GITHUB_ENV"
+          echo "DOCKER_TAG=$DOCKER_TAG" >> "$GITHUB_ENV"
+
+      - name: Build image
+        run: docker buildx build --build-arg SIGNALBLAST_VERSION=${SIGNALBLAST_VERSION} --platform linux/amd64,linux/arm64 -t eradorta/signalblast:${DOCKER_TAG} -t eradorta/signalblast:latest . --push

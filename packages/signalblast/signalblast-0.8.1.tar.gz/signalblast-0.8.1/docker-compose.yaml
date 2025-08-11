@@ -1,0 +1,43 @@
+services:
+  autoheal:
+    image: willfarrell/autoheal:latest
+    network_mode: none
+    restart: always
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  signal-cli-rest-api:
+    image: "bbernhard/signal-cli-rest-api:0.94"
+    ports:
+      - "8080:8080"
+    volumes:
+      - "$HOME/.local/share/signal-api:/home/.local/share/signal-cli"
+    environment:
+      - MODE=json-rpc
+    restart: always
+    labels:
+      autoheal: true
+
+  signalblast:
+    image: "eradorta/signalblast:$DOCKER_TAG"
+    build:
+      network: "host"
+      args:
+        SIGNALBLAST_VERSION: $SIGNALBLAST_VERSION
+    network_mode: "host"
+    volumes:
+      - "$HOME/.local/share/signal-api/:/home/user/.local/share/signal-api/"
+      - "./signalblast_data:/home/user/signalblast/signalblast-$SIGNALBLAST_VERSION/src/signalblast/data/"
+    environment:
+      - SIGNALBLAST_PHONE_NUMBER=$SIGNALBLAST_PHONE_NUMBER
+      - SIGNALBLAST_PASSWORD=$SIGNALBLAST_PASSWORD
+      - SIGNALBLAST_HEALTHCHECK_RECEIVER=$SIGNALBLAST_HEALTHCHECK_RECEIVER
+      - SIGNALBLAST_WELCOME_MESSAGE=$SIGNALBLAST_WELCOME_MESSAGE
+      - SIGNALBLAST_INSTRUCTIONS_URL=$SIGNALBLAST_INSTRUCTIONS_URL
+    depends_on:
+      signal-cli-rest-api:
+        condition: service_healthy
+    restart: always
+    labels:
+      autoheal: true
