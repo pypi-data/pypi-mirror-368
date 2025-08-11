@@ -1,0 +1,108 @@
+name: Unit tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  test-ubuntu-macos:
+    strategy:
+      matrix:
+        platform:
+          - macos-latest
+          - ubuntu-latest
+        python:
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
+          - "3.13"
+          - "pypy"
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          persist-credentials: false
+
+      - name: Install the latest version of uv and set the python version
+        uses: astral-sh/setup-uv@e92bafb6253dcd438e0484186d7669ea7a8ca1cc # v6.4.3
+        with:
+          enable-cache: true
+          cache-dependency-glob: pyproject.toml
+
+      - name: Install python
+        run: uv python install ${{ matrix.python }}
+
+      - name: test
+        run: make test INSTALL_EXTRA=test
+
+  test-windows:
+    strategy:
+      matrix:
+        windows:
+          - 'win64'
+        python:
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
+          - "3.13"
+
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          persist-credentials: false
+
+      - name: Install the latest version of uv and set the python version
+        uses: astral-sh/setup-uv@e92bafb6253dcd438e0484186d7669ea7a8ca1cc # v6.4.3
+        with:
+          enable-cache: true
+          cache-dependency-glob: pyproject.toml
+
+      # Split Python installation from virtual environment creation.
+      # setup-uv@v5's python-version parameter automatically creates and activates a venv, which conflicts with our
+      # Makefile's venv management.
+      # https://github.com/astral-sh/setup-uv/pull/194
+      - name: Install python
+        run: uv python install ${{ matrix.python }}
+
+      - uses: dawidd6/action-download-artifact@ac66b43f0e6a346234dd65d4d0c8fbb31cb316e5 # v11
+        with:
+          repo: pyca/infra
+          workflow: build-windows-openssl.yml
+          branch: main
+          workflow_conclusion: success
+          name: "openssl-${{ matrix.windows }}"
+          path: "C:/openssl-${{ matrix.windows }}/"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure
+        shell: bash
+        run: |
+          echo "OPENSSL_DIR=C:/openssl-${{ matrix.windows }}" >> $GITHUB_ENV
+          echo "OPENSSL_NO_VENDOR=1" >> $GITHUB_ENV
+
+      - name: test
+        run: |
+          # We need to do this in CI because setup-uv@v5 automatically creates a new venv and it prevents us from 
+          # installing our dependencies in the Makefile.
+          touch pyproject.toml
+          make test INSTALL_EXTRA=test
+        shell: bash
+
+  all-tests-pass:
+    if: always()
+
+    needs: [test-ubuntu-macos, test-windows]
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: check test jobs
+        uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe # v1.2.2
+        with:
+          jobs: ${{ toJSON(needs) }}
