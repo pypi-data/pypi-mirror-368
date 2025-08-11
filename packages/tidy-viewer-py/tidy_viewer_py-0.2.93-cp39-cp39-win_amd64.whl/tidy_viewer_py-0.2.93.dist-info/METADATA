@@ -1,0 +1,150 @@
+Metadata-Version: 2.4
+Name: tidy-viewer-py
+Version: 0.2.93
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Programming Language :: Rust
+Classifier: Operating System :: OS Independent
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Text Processing :: General
+Requires-Dist: maturin>=1.9.3
+Requires-Dist: pandas>=2.0.3
+Requires-Dist: polars>=1.8.2
+Requires-Dist: pyarrow>=17.0.0
+Requires-Dist: pytest>=8.3.5
+Requires-Dist: pytest>=7.0 ; extra == 'dev'
+Requires-Dist: pytest-benchmark ; extra == 'dev'
+Requires-Dist: pandas>=1.0 ; extra == 'dev'
+Requires-Dist: pyarrow>=10.0 ; extra == 'dev'
+Requires-Dist: ruff ; extra == 'dev'
+Requires-Dist: mypy ; extra == 'dev'
+Provides-Extra: dev
+License-File: LICENSE
+Summary: A cross-platform data pretty printer that uses column styling to maximize viewer enjoyment. Supports CSV, Parquet, Pandas, and Polars DataFrames.
+Keywords: table,formatting,terminal,pretty-print,csv,parquet
+Author-email: Alex Hallam <alexhallam6.28@gmail.com>
+License: MIT OR Apache-2.0
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown; charset=UTF-8; variant=GFM
+Project-URL: Homepage, https://github.com/yourusername/tidy-viewer-py
+Project-URL: Repository, https://github.com/yourusername/tidy-viewer-py
+Project-URL: Issues, https://github.com/yourusername/tidy-viewer-py/issues
+
+# Tidy Viewer Py
+
+Beautiful terminal table formatting powered by Rust. A Python package that provides fast, feature-rich table pretty-printing with automatic column width optimization, data type detection, and gorgeous color themes.
+
+## Features
+
+- 🚀 **Blazing fast** - Rust-powered performance
+- 🎨 **Beautiful themes** - Nord, Gruvbox, Dracula, One Dark, and more
+- 📊 **Smart formatting** - Automatic column width optimization
+- 🔢 **Type detection** - Intelligent handling of numbers, dates, and missing values
+- 📁 **Multiple formats** - CSV, Parquet, and pandas DataFrames
+- 🌈 **Colored output** - Customizable color themes
+- 📏 **Configurable** - Fine-tune every aspect of the output
+
+## Installation
+
+```bash
+pip install tidy-viewer-py
+```
+
+## Quick Start
+
+### CSV File Pretty Printing
+
+```python
+import tidy_viewer_py as tv
+import pandas as pd
+url = "https://raw.githubusercontent.com/mwaskom/seaborn-data/master/iris.csv"
+pd.read_csv(url).to_csv("iris.csv", index=False)  # Save to csv for demo
+filename = "iris.csv"
+tv.print_csv(filename)
+```
+
+### Pandas DataFrames Pretty Printing
+
+```python
+import pandas as pd
+import tidy_viewer_py as tv
+df = pd.read_csv(filename)
+tv.print_dataframe(df)
+```
+
+### Polars DataFrames Pretty Printing
+
+```python
+
+import polars as pl
+
+df_pl = pl.read_csv(filename)
+tv.print_polars_dataframe(df_pl)
+```
+
+### Method Chaining API
+
+```python
+import tidy_viewer_py as tv
+
+tv.tv().color_theme("gruvbox").max_rows(10).print_dataframe(df)
+```
+
+## Configuration Options
+
+```python
+options = tv.FormatOptions(
+    # Display options
+    max_rows=25,              # Maximum rows to display (None for all)
+    max_col_width=20,         # Maximum column width
+    min_col_width=2,          # Minimum column width
+    
+    # Styling
+    use_color=True,           # Enable/disable colored output
+    color_theme="nord",       # Color theme
+    
+    # Data formatting
+    delimiter=",",            # CSV delimiter
+    significant_figures=3,    # Number of significant figures
+    preserve_scientific=False,# Preserve scientific notation
+    max_decimal_width=13,     # Max width before scientific notation
+    
+    # Table elements
+    no_dimensions=False,      # Hide table dimensions
+    no_row_numbering=False,   # Hide row numbers
+    title="My Table",         # Table title
+    footer="End of data",     # Table footer
+)
+```
+
+## Color Themes
+
+Available themes:
+- `nord` (default) - Arctic, north-bluish color palette
+- `gruvbox` - Retro groove color scheme
+- `dracula` - Dark theme with vibrant colors
+- `one_dark` - Atom One Dark inspired
+- `solarized_light` - Precision colors for readability
+
+
+### Building from Source
+
+Requirements:
+- Python 3.8+
+- Rust 1.70+
+- uv (recommended) or pip
+
+```bash
+git clone https://github.com/yourusername/tidy-viewer-py
+cd tidy-viewer-py
+uv pip install .
+```
