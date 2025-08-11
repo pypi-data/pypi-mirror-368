@@ -1,0 +1,18 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.4
+    hooks:
+      - id: ruff
+        args: ["--select=TID252"]
+        types: [python]
+        files: ^(src/flow/.*\.py|examples/.*\.py)$
+
+  - repo: local
+    hooks:
+      - id: check-private-cross-access
+        name: disallow self.<other>._private across src/
+        entry: python3 scripts/check_private_cross_access.py
+        language: system
+        files: ^src/flow/.*\.py$
+
+
