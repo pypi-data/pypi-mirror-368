@@ -1,0 +1,30 @@
+# linsecure
+
+**linsecure** is a lightweight CLI tool that scans a Linux system for basic security misconfigurations like SSH settings, open ports, outdated packages, and more.
+
+
+## Features
+- Detects weak SSH configurations
+- Checks for firewall status
+- Scans world-writable files and sudo misconfigs
+- Now supports **dynamic SSH check options**
+- Generates clean `.txt` reports
+- Easy to run: one command, zero setup
+- Easily extensible for future modules
+
+## ✅ Requirements
+
+- Python **3.7+**
+- **Linux** environment (Ubuntu, Debian, WSL, etc.)
+## Installation
+
+```bash
+pip install linsecure
+
+## Usage
+python3 -m linsecure.cli  --ssh-check config ports --output ~/linsecure_report.txt
+
+
+
+
+
