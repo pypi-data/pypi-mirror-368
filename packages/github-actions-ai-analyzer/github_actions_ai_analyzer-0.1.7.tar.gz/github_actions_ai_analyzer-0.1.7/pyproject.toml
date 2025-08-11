@@ -1,0 +1,157 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "github-actions-ai-analyzer"
+version = "0.1.7"
+description = "GitHub Actionsのエラーログを解析し、AIによる改善案生成と品質向上を支援するライブラリ"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "Scott LZ", email = "scottlz0310@gmail.com"}
+]
+maintainers = [
+    {name = "Scott LZ", email = "scottlz0310@gmail.com"}
+]
+keywords = [
+    "github-actions",
+    "ci-cd",
+    "error-analysis",
+    "ai",
+    "automation",
+    "logging",
+    "debugging",
+    "devops",
+    "quality-improvement",
+    "ai-quality",
+    "continuous-improvement"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Testing",
+    "Topic :: System :: Logging",
+    "Topic :: System :: Monitoring",
+    "Topic :: Utilities",
+    "Typing :: Typed",
+]
+
+dependencies = [
+    "pyyaml>=6.0",
+    "requests>=2.28.0",
+    "click>=8.0.0",
+    "rich>=12.0.0",
+    "pydantic>=2.0.0",
+    "regex>=2022.0.0",
+    "jinja2>=3.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-benchmark>=4.0.0",
+    "black>=22.0.0",
+    "isort>=5.0.0",
+    "flake8>=5.0.0",
+    "mypy>=1.0.0",
+    "types-PyYAML>=6.0.0",
+    "pre-commit>=2.0.0",
+    "bandit>=1.7.0",
+    "safety>=2.0.0",
+    "pip-tools>=7.0.0",
+    "twine>=4.0.0",
+    "build>=0.10.0",
+    "commitizen>=3.0.0",
+]
+
+ai-quality = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "flake8>=6.0.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "mypy>=1.0.0",
+    "types-PyYAML>=6.0.0",
+]
+
+[project.scripts]
+gh-actions-analyzer = "github_actions_ai_analyzer.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/scottlz0310/Github-Actions-AI-Analyzer"
+Repository = "https://github.com/scottlz0310/Github-Actions-AI-Analyzer"
+Documentation = "https://github.com/scottlz0310/Github-Actions-AI-Analyzer#readme"
+Issues = "https://github.com/scottlz0310/Github-Actions-AI-Analyzer/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.black]
+line-length = 79
+target-version = ['py38']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 79
+known_first_party = ["github_actions_ai_analyzer"]
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[tool.flake8]
+max-line-length = 79
+extend-ignore = ["E203", "W503", "C901"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--cov=src/github_actions_ai_analyzer",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+]
