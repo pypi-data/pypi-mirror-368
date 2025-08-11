@@ -1,0 +1,35 @@
+"""
+{{ agent_name }} Agent
+
+This agent handles {{ agent_name.lower() }}-related tasks and messages.
+"""
+
+import logging
+from pydantic import BaseModel
+from typing import Dict, Any
+
+from eggai import Agent, Channel
+from eggai.schemas import BaseMessage, Message
+from {{ project_name }}.models import ChatMessage
+
+logger = logging.getLogger(__name__)
+
+
+async def create_{{ agent_function }}() -> Agent:
+    """Create and configure the {{ agent_name }} agent."""
+    agent = Agent("{{ agent_name }}")
+
+    @agent.subscribe(channel=Channel("human.in"), data_type=ChatMessage)
+    async def handle_chat_message(message: ChatMessage) -> None:
+        """Handle chat messages from console and respond to human channel."""
+        # TODO: Implement your chat logic here
+        response_text = f"Hello! You said: '{message.data}'. This is {{ agent_name }} responding."
+        await Channel("human.out").publish(ChatMessage(
+            source="{{ agent_name }}",
+            data=response_text
+        ))
+        
+        logger.info(f"{{ agent_name }} responded to chat message")
+    await agent.start()
+    logger.info("{{ agent_name }} started successfully")
+    return agent
