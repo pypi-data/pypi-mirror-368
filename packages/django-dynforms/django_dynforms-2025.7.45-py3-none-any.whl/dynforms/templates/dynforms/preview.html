@@ -1,0 +1,84 @@
+{% load dynforms %}
+{% load icons %}
+
+<div id="df-form-preview" class="bg-light-subtle {% if form.form_type.help_bar %}extended-help{% endif %}">
+    {% with form_type.get_pages as form_pages %}
+        {% if form_type.header %}
+            <!-- Header -->
+            <div class="df-form-header">
+                <h1 class="df-form-title">{{ form_type.name }}</h1>
+                <div class="df-form-description">{{ form_type.description }}</div>
+            </div>
+        {% endif %}
+        <!-- Nav tabs -->
+        <ul class="nav nav-tabs" role="tablist">
+            {% for page in form_pages %}
+                <li class="nav-item" >
+                    <a href="#df-page-{{ page.number }}"
+                       class="nav-link {% if page.number == active_page %}active{% endif %}"
+                       data-bs-toggle="tab">{{ page.name }}
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+
+        <!-- Tab panes -->
+        <div class="tab-content" >
+            {% for page in form_pages %}
+                <div class="tab-pane df-page {% if page.number == active_page %}active{% endif %}"
+                     id="df-page-{{ page.number }}" data-page-number="{{ page.number }}">
+                    <div class="df-container row sortable-list">
+                        {% for field in page.fields %}
+                            <div class="df-field {{ field.width_styles }}"
+                                 data-field-page="{{ page.number }}"
+                                 data-field-width="{{ field.width_styles }}"
+                                 data-field-type="{{ field.field_type }}" data-field-pos="{{ field.index }}">
+                                {% include "dynforms/field.html" %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endwith %}
+</div>
+
+<!-- Footer -->
+<div id="df-footer" class="border-top bg-secondary-subtle d-flex align-items-center">
+    <div id="df-footer-content" class="d-flex flex-row align-items-center justify-content-start w-100 gap-2">
+        <button type="button" id="test-form"
+                onclick="window.location.href='{% url 'dynforms-run' pk=form_type.pk %}'"
+                class="btn btn-success">Test
+        </button>
+        <button type="button" id="check-form"
+                class="btn btn-primary">Check
+        </button>
+        <div id="footer-warnings" class="ms-1">
+            {% include 'dynforms/warnings.html' %}
+        </div>
+        <div class="vr ms-auto"></div>
+        {% if form_type.wizard %}
+            <button disabled type="button" class="df-switch-page btn btn-outline-secondary" id="df-form-prev-page"
+                    >{% svg_icon "chevron-left" size="md" %} Previous</button>
+            <button disabled type="button" class="df-switch-page btn btn-outline-secondary" id="df-form-next-page"
+                    >Next {% svg_icon "chevron-right" size="md" %}</button>
+        {% endif %}
+        {% for name, label in form_type.actions %}
+            <button type="button" id="{{ name }}-action" disabled class="btn btn-outline-secondary disabled"
+                    name="{{ name }}">{{ label }}
+            </button>
+        {% endfor %}
+    </div>
+    <script>
+        $("#check-form").click(function () {
+            $.ajax({
+                type: "GET",
+                url: "{% url 'dynforms-check' pk=form_type.pk %}",
+                success: function (data) {
+                    $("#footer-warnings").html(data);
+                }
+            });
+        });
+    </script>
+    {% include "dynforms/form-rules.html" %}
+</div>
