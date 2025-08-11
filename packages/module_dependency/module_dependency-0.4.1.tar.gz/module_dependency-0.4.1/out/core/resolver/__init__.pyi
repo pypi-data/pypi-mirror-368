@@ -1,0 +1,3 @@
+from dependency.core.declaration import Provider as Provider
+
+def resolve_dependency_layers(unresolved_providers: list[Provider]) -> list[list[Provider]]: ...
