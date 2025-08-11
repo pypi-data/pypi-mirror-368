@@ -1,0 +1,256 @@
+Metadata-Version: 2.4
+Name: social-magic
+Version: 0.1.0
+Summary: A Python library for social media content enhancement
+Home-page: https://github.com/socialmagic/social-magic
+Author: SocialMagic Team
+Author-email: SocialMagic Team <contact@socialmagic.dev>
+Project-URL: Homepage, https://github.com/socialmagic/social-magic
+Project-URL: Bug Reports, https://github.com/socialmagic/social-magic/issues
+Project-URL: Source, https://github.com/socialmagic/social-magic
+Project-URL: Documentation, https://github.com/socialmagic/social-magic#readme
+Keywords: sentiment analysis,image detection,story generation,social media
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Text Processing :: Linguistic
+Classifier: Topic :: Multimedia :: Graphics
+Classifier: Topic :: Internet :: WWW/HTTP :: Dynamic Content
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+Requires-Dist: vaderSentiment>=3.3.0
+Requires-Dist: emoji>=2.0.0
+Requires-Dist: Pillow>=8.0.0
+Requires-Dist: imagehash>=4.3.0
+Dynamic: author
+Dynamic: home-page
+Dynamic: requires-python
+
+# SocialMagic 🪄
+
+A powerful Python library for social media content enhancement with three magical features:
+
+- **Text Sentiment → Emoji** - Automatically add emojis based on text sentiment
+- **Fake Image Detection** - Detect similar/manipulated images using perceptual hashing  
+- **Micro Story Generator** - Generate engaging short stories for any theme
+
+## 🚀 Installation
+
+```bash
+pip install socialmagic
+```
+
+Or install from source:
+
+```bash
+git clone https://github.com/socialmagic/socialmagic.git
+cd socialmagic
+pip install -r requirements.txt
+pip install .
+```
+
+## 📖 Usage
+
+### 1. Text Sentiment to Emoji (emojify)
+
+Analyze text sentiment and automatically append appropriate emojis:
+
+```python
+from socialmagic import emojify
+
+# Basic usage
+result = emojify("I love this product!")
+print(result)  # "I love this product! 😍"
+
+result = emojify("This is terrible")
+print(result)  # "This is terrible 😢"
+
+result = emojify("It's okay, nothing special")
+print(result)  # "It's okay, nothing special 😐"
+
+# Custom emoji mapping
+custom_emojis = {
+    'positive': ['🎉', '🌟', '✨'],
+    'negative': ['💔', '😞', '🌧️'],
+    'neutral': ['🤔', '😶', '📝']
+}
+
+result = emojify("Amazing work!", emoji_map=custom_emojis)
+print(result)  # "Amazing work! 🎉"
+```
+
+### 2. Fake/Manipulated Image Detection (fakebuster)
+
+Detect similar images using perceptual hashing to identify potential fakes:
+
+```python
+from socialmagic import is_similar
+
+# Compare two images with default 90% threshold
+is_fake = is_similar("original.jpg", "suspicious.jpg")
+print(f"Images are similar: {is_fake}")
+
+# Custom threshold (0-100)
+is_fake = is_similar("image1.jpg", "image2.jpg", threshold=85)
+print(f"Images are 85%+ similar: {is_fake}")
+
+# Get exact similarity percentage
+from socialmagic.fakebuster import get_similarity_percentage
+similarity = get_similarity_percentage("img1.jpg", "img2.jpg")
+print(f"Similarity: {similarity}%")
+```
+
+### 3. Micro Story Generator (storygen)
+
+Generate engaging short stories for any theme and protagonist:
+
+```python
+from socialmagic import generate_story
+
+# Generate stories for different themes
+thriller = generate_story("thriller", "Alice")
+print(f"Thriller: {thriller}")
+
+comedy = generate_story("comedy", "Bob")
+print(f"Comedy: {comedy}")
+
+inspiration = generate_story("inspirational", "Maria")
+print(f"Inspirational: {inspiration}")
+
+scifi = generate_story("sci-fi", "Captain Nova")
+print(f"Sci-Fi: {scifi}")
+
+# Unknown themes use generic templates
+mystery = generate_story("mystery", "Detective Holmes")
+print(f"Mystery: {mystery}")
+
+# Get available themes
+from socialmagic.storygen import get_available_themes
+themes = get_available_themes()
+print(f"Available themes: {themes}")
+
+# Add custom templates
+from socialmagic.storygen import add_custom_template
+add_custom_template("horror", "As {protagonist} entered the abandoned house, the door slammed shut behind them...")
+
+horror_story = generate_story("horror", "Sarah")
+print(f"Horror: {horror_story}")
+```
+
+## 🎯 Features
+
+### Emojify Module
+- **Sentiment Analysis**: Uses VADER sentiment analysis for accurate emotion detection
+- **Smart Emoji Selection**: Randomly selects from appropriate emoji sets
+- **Custom Emoji Maps**: Define your own emoji collections for different sentiments
+- **Multiple Languages**: Works with any text that VADER can analyze
+
+### FakeBuster Module  
+- **Perceptual Hashing**: Uses advanced image hashing for robust comparison
+- **Adjustable Threshold**: Configure sensitivity from 0-100%
+- **Error Handling**: Graceful handling of missing files and corrupted images
+- **Batch Processing**: Compare multiple images efficiently
+
+### StoryGen Module
+- **Multiple Themes**: Built-in support for thriller, comedy, inspirational, and sci-fi
+- **Flexible Templates**: Easy to add custom story templates
+- **Random Selection**: Ensures variety in generated content
+- **Generic Fallback**: Handles unknown themes gracefully
+
+## 🧪 Testing
+
+Run the test suite to verify everything works:
+
+```bash
+# Run all tests
+python -m pytest tests/
+
+# Run specific module tests
+python tests/test_emojify.py
+python tests/test_fakebuster.py
+python tests/test_storygen.py
+```
+
+## 📋 Requirements
+
+- Python 3.7+
+- vaderSentiment
+- emoji  
+- Pillow
+- imagehash
+
+## 🔧 Development
+
+1. Clone the repository
+2. Install dependencies: `pip install -r requirements.txt`
+3. Run tests: `python -m pytest tests/`
+4. Make your changes
+5. Run tests again to ensure everything works
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+
+## 📞 Support
+
+If you encounter any issues or have questions, please file an issue on the GitHub repository.
+
+## 🌟 Examples
+
+### Complete Social Media Enhancement
+
+```python
+from socialmagic import emojify, is_similar, generate_story
+
+# Enhance a social media post
+post_text = "Just finished my morning workout"
+enhanced_post = emojify(post_text)
+print(f"Enhanced post: {enhanced_post}")
+
+# Check if an image is potentially fake
+if is_similar("user_upload.jpg", "known_fake.jpg", threshold=90):
+    print("⚠️ Potential fake image detected!")
+
+# Generate engaging content
+story = generate_story("inspirational", "fitness enthusiast")
+print(f"Motivational story: {story}")
+```
+
+### Batch Image Analysis
+
+```python
+from socialmagic.fakebuster import is_similar, get_similarity_percentage
+import os
+
+def analyze_image_folder(folder_path, reference_image):
+    results = []
+    for filename in os.listdir(folder_path):
+        if filename.lower().endswith(('.jpg', '.jpeg', '.png')):
+            image_path = os.path.join(folder_path, filename)
+            similarity = get_similarity_percentage(reference_image, image_path)
+            results.append((filename, similarity))
+    
+    return sorted(results, key=lambda x: x[1], reverse=True)
+
+# Find similar images
+similar_images = analyze_image_folder("./images", "reference.jpg")
+for filename, similarity in similar_images[:5]:
+    print(f"{filename}: {similarity}% similar")
+```
+
+---
+
+Made with ❤️ by the SocialMagic Team
