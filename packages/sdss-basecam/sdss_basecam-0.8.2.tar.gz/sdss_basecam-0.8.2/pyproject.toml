@@ -1,0 +1,98 @@
+[project]
+name = "sdss-basecam"
+version = "0.8.2"
+description = "A base library for camera wrapping and actor."
+authors = [{ name = "José Sánchez-Gallego", email = "gallegoj@uw.edu" }]
+license = "BSD-3-Clause"
+readme = "README.md"
+
+requires-python = ">=3.8,<4"
+
+dependencies = [
+    "astropy>=5.2",
+    "sdss-clu>=2.5.3",
+    "sdsstools>=1.9.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/sdss/basecam"
+Repository = "https://github.com/sdss/basecam"
+Documentation = "https://sdss-basecam.readthedocs.io/en/latest/"
+
+[dependency-groups]
+dev = [
+    "ipython>=8.0.0",
+    "matplotlib>=3.1.1",
+    "flake8>=3.7.9",
+    "doc8>=0.8.0",
+    "pytest>=6.0.0",
+    "pytest-asyncio>=0.10.0",
+    "pytest-cov>=2.8.1",
+    "pytest-mock>=1.13.0",
+    "pytest-sugar>=0.9.2",
+    "isort>=5.0.0",
+    "coverage[toml]>=5.0",
+    "ipdb>=0.12.3",
+    "sphinx>=3.0.0",
+    "asynctest>=0.13.0",
+    "sphinx-autodoc-typehints>=1.12.0",
+    "sphinx-jsonschema>=1.16.7",
+    "sphinx-click>=2.5.0",
+    "sphinx-copybutton>=0.5.0",
+    "furo>=2021.7.5-beta.38",
+    "myst-parser>=0.15.1",
+    "ruff>=0.5.2",
+    "nox>=2021.6.12",
+    "sphinx-autobuild>=2021.3.14",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = 'py312'
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+unfixable = ["F841"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F403", "F401", "E402"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["ifoo"]
+lines-after-imports = 2
+section-order = ["future", "standard-library", "typing", "third-party", "sdss", "first-party", "local-folder"]
+
+[tool.ruff.lint.isort.sections]
+typing = ["typing"]
+sdss = ["sdsstools", "clu"]
+
+[tool.pytest.ini_options]
+addopts = "--cov basecam --cov-report xml --cov-report html --cov-report term"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.coverage.run]
+branch = true
+omit = [
+    "*/__init__.py",
+    "*/actor/commands/__doc_parser.py"
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "class Poller",  # Already tested in jaeger
+    "def __repr__",
+    "raise NotImplementedError",
+    "async def _post_process_internal"
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.sdist]
+only-include = ["basecam"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["basecam"]
