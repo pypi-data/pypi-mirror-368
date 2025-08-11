@@ -1,0 +1,99 @@
+# SearchMind
+
+`searchmind` is a simple, easy-to-use Python client for the unofficial Snapzion Search API. It allows you to get search engine results programmatically with just one line of code.
+
+## Features
+
+-   Very simple API: `searchmind.search("your query")`
+-   Handles network and API errors gracefully.
+-   Lightweight with minimal dependencies (`requests`).
+-   Fully typed for modern IDE support.
+
+## Installation
+
+To use this library, you first need to install it. You can install it via pip:
+
+```bash
+# You would normally install from PyPI, but for this local project:
+pip install .
+```
+
+You will also need the `requests` library.
+```bash
+pip install requests
+```
+
+## Quick Start
+
+Using `searchmind` is incredibly simple. Just import the `search` function and call it with your query.
+
+```python
+import searchmind
+
+try:
+    # Perform a search
+    response = searchmind.search("artificial intelligence trends")
+
+    # The results are in the 'organic_results' key
+    results = response.get("organic_results", [])
+
+    if not results:
+        print("No results found.")
+    else:
+        # Print each result in a user-friendly format
+        print(f"Found {len(results)} results:\n")
+        for result in results:
+            print(f"Position: {result.get('position')}")
+            print(f"  Title: {result.get('title')}")
+            print(f"  Link: {result.get('link')}")
+            print(f"  Snippet: {result.get('snippet')}")
+            if 'date' in result:
+                print(f"  Date: {result.get('date')}")
+            print("-" * 20)
+
+except searchmind.APIError as e:
+    print(f"An API error occurred: {e}")
+except searchmind.NetworkError as e:
+    print(f"A network error occurred: {e}")
+except Exception as e:
+    print(f"An unexpected error occurred: {e}")
+```
+
+### Example Output
+
+```
+Found 9 results:
+
+Position: 1
+  Title: [PDF] Trends – Artificial Intelligence (AI) - BOND
+  Link: https://www.bondcap.com/report/pdf/Trends_Artificial_Intelligence.pdf
+  Snippet: We set out to compile foundational trends related to AI. A starting collection of several disparate datapoints turned into this beast.
+--------------------
+Position: 2
+  Title: The Top Artificial Intelligence Trends - IBM
+  Link: https://www.ibm.com/think/insights/artificial-intelligence-trends
+  Snippet: What we'll see next · AI benchmark saturation and diversification · Transcending transformers · Embodied AI and world models · Privacy vs. personalized AI · AI ...
+--------------------
+... and so on
+```
+
+## API Reference
+
+### `searchmind.search(query, timeout=15)`
+
+Performs a search using the Snapzion Search API.
+
+-   **Parameters:**
+    -   `query` (str): The search term you want to look up.
+    -   `timeout` (int, optional): The number of seconds to wait for a server response. Defaults to 15.
+-   **Returns:**
+    -   `dict`: A dictionary containing the parsed JSON response from the API.
+-   **Raises:**
+    -   `TypeError`: If the `query` is not a string.
+    -   `ValueError`: If the `query` is empty.
+    -   `searchmind.NetworkError`: For connection timeouts or other network issues.
+    -   `searchmind.APIError`: If the API returns a non-200 status code or invalid JSON.
+
+## Contributing
+
+Contributions are welcome! If you find a bug or have a feature request, please open an issue on the GitHub repository.
