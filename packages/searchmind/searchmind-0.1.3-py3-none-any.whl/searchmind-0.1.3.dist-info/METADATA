@@ -1,0 +1,110 @@
+Metadata-Version: 2.4
+Name: searchmind
+Version: 0.1.3
+Summary: A simple Python client for the Snapzion Search API, packaged as SearchMind.
+Project-URL: Homepage, https://github.com/Niansuh/SearchMind
+Project-URL: Bug Tracker, https://github.com/Niansuh/SearchMind/issues
+Author-email: Niansuh <contact@typegpt.net>
+License-File: LICENSE
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Requires-Python: >=3.8
+Requires-Dist: requests>=2.25.0
+Description-Content-Type: text/markdown
+
+# SearchMind: A Python Client for Snapzion Search
+
+![PyPI Version](https://img.shields.io/pypi/v/searchmind) ![License](https://img.shields.io/pypi/l/searchmind)
+
+A simple Python client for the [Snapzion Search API](https://search.snapzion.com/docs).
+
+**SearchMind** is a lightweight wrapper that makes it easy to fetch search results and format them for use in other applications, especially for providing real-time web context to Large Language Models (LLMs) like those from OpenAI.
+
+## Features
+
+-   Simple and intuitive API: `client.search("your query")`.
+-   Built-in helper to format results into a clean string for LLM prompts.
+-   Uses `requests.Session` for efficient connection pooling.
+-   Proper error handling with custom `SearchMindError` exceptions.
+-   Fully type-hinted for better editor support and code quality.
+
+## Installation
+
+```bash
+pip install searchmind
+```
+
+## Quick Start
+
+Getting search results is straightforward.
+
+```python
+from searchmind import SearchMindClient, SearchMindError
+
+# 1. Initialize the client
+client = SearchMindClient()
+
+# 2. Perform a search
+try:
+    results = client.search("latest trends in renewable energy")
+    
+    # The result is a list of dictionaries
+    for item in results:
+        print(f"[{item['position']}] {item['title']}")
+        print(f"   Link: {item['link']}\n")
+
+except SearchMindError as e:
+    print(f"An error occurred: {e}")
+```
+
+## Usage with LLMs (e.g., OpenAI API)
+
+The primary goal of this library is to act as a web search tool for LLMs. The `format_for_llm` utility creates a perfectly formatted context string.
+
+```python
+from searchmind import SearchMindClient, format_for_llm, APIError
+# from openai import OpenAI # Hypothetical usage
+
+# 1. Initialize the SearchMind client
+search_client = SearchMindClient()
+
+# 2. Define your query
+user_query = "What are the main AI trends for 2025 according to recent articles?"
+
+# 3. Get search results
+try:
+    print(f"Searching for: '{user_query}'...")
+    search_results = search_client.search(user_query)
+
+    # 4. Format the results into a single string for the LLM
+    search_context = format_for_llm(search_results)
+
+    print("\n--- Formatted Context for LLM ---\n")
+    print(search_context)
+    
+    # 5. Use the context in a prompt to an LLM
+    # client = OpenAI(api_key="your-openai-key")
+    #
+    # response = client.chat.completions.create(
+    #   model="gpt-4o",
+    #   messages=[
+    #     {"role": "system", "content": "You are a helpful assistant. Answer the user's question based *only* on the provided search context. Cite your sources using the [number] and URL."},
+    #     {"role": "user", "content": f"Question: {user_query}\n\nSearch Context:\n---\n{search_context}\n---"}
+    #   ]
+    # )
+    #
+    # print("\n--- LLM Response ---\n")
+    # print(response.choices[0].message.content)
+
+except APIError as e:
+    print(f"An error occurred while searching: {e}")
+```
+
+## Contributing
+
+Contributions are welcome! Please open an issue or submit a pull request on our [GitHub repository](https://github.com/Niansuh/SearchMind).
+
+## License
+
+This project is licensed under the MIT License.
