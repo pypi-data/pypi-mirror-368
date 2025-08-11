@@ -1,0 +1,165 @@
+Metadata-Version: 2.4
+Name: onlinesimru
+Version: 2.1.1
+Summary: Wrapper for automatic reception of SMS-messages by onlinesim.ru
+Author-email: s00d <suppport@onlinesim.ru>
+Maintainer-email: s00d <suppport@onlinesim.ru>
+License: Apache-2.0
+Project-URL: Homepage, https://github.com/s00d/onlinesim-python-api
+Project-URL: Documentation, https://github.com/s00d/onlinesim-python-api/wiki
+Project-URL: Repository, https://github.com/s00d/onlinesim-python-api
+Project-URL: Bug Tracker, https://github.com/s00d/onlinesim-python-api/issues
+Project-URL: Download, https://github.com/s00d/onlinesim-python-api/archive/master.zip
+Keywords: sms,receive,onlinesim-ru,autoreg
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Operating System :: OS Independent
+Classifier: Environment :: Console
+Classifier: Development Status :: 4 - Beta
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Topic :: Communications
+Classifier: Topic :: Internet
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: httpx
+Requires-Dist: dacite
+Requires-Dist: pydantic<3.0.0,>=1.10.0
+Dynamic: license-file
+
+# Onlinesim Python API
+
+Wrapper for automatic reception of SMS-messages by onlinesim.ru
+
+[![N|Solid](https://img.shields.io/pypi/pyversions/onlinesimru.svg)](https://pypi.python.org/pypi/onlinesimru)
+![Python publish](https://github.com/s00d/onlinesim-python-api/workflows/Python%20publish/badge.svg)
+
+### Installation
+You can install or upgrade package with:
+```
+$ pip install onlinesimru --upgrade
+```
+Or you can install from source with:
+```
+$ git clone https://github.com/s00d/onlinesim-python-api
+$ cd onlinesim-python-api
+$ python setup.py install
+```
+...or install from source buth with pip
+```
+$ pip install git+https://github.com/s00d/onlinesim-python-api
+```
+### Example
+
+```python
+from onlinesimru import FreeNumbersService, RentNumbersService, ProxyService, UserService, NumbersService
+
+
+def main():
+    client = UserService('YOUR_TOKEN')
+    balance = client.balance()
+    print(balance)
+
+
+main()
+```
+
+### Example2
+
+```python
+from onlinesimru import FreeNumbersService, RentNumbersService, ProxyService, UserService, NumbersService
+
+
+def main():
+    numbers = NumbersService('YOUR_TOKEN')
+    input('Press enter if you sms was sent')
+
+    tzid = numbers.get('service')
+    print(tzid)
+    code = numbers.wait_code(tzid)
+    print(code)
+
+
+main()
+```
+
+### Example3
+
+```python
+# multiple driver using
+from onlinesimru import Driver
+
+
+def main():
+    driver = Driver('YOUR_TOKEN')
+
+    tzid = driver.numbers().get('service')
+    print(tzid)
+    code = driver.numbers().wait_code(tzid)
+    print(code)
+
+
+main()
+```
+
+### Example4 - Custom Domain
+
+```python
+# Using custom domain for API endpoints
+from onlinesimru import Driver
+
+
+def main():
+    # Use custom domain
+    driver = Driver('YOUR_TOKEN', base_url='https://custom-onlinesim.com')
+    
+    # Or use local development server
+    driver_local = Driver('YOUR_TOKEN', base_url='http://localhost:8000')
+    
+    # Standard usage remains the same
+    tzid = driver.numbers().get('service')
+    print(tzid)
+
+
+main()
+```
+
+## Documentation
+
+All documentation is in the wiki of this project - **[Documentation](https://github.com/s00d/onlinesim-python-api/wiki)**
+
+## Testing
+
+The project includes comprehensive test coverage. All tests are located in the `tests/` directory.
+
+### Running Tests
+
+```bash
+# Install test dependencies
+pip install pytest pytest-cov pytest-mock
+
+# Run all tests
+python -m pytest tests/ -v
+
+# Run specific test files
+python -m pytest tests/test_basic_api.py -v
+python -m pytest tests/integration_tests.py -v
+
+# Run tests with coverage
+python -m pytest tests/ --cov=onlinesimru --cov-report=html
+```
+
+For more detailed testing information, see [tests/README.md](tests/README.md).
+
+## Bugs
+
+If you have any problems, please create Issues [here](https://github.com/s00d/onlinesim-python-api/issues)  
