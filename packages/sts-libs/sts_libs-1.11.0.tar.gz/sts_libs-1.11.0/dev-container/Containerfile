@@ -1,0 +1,13 @@
+# Containerfile for running sts tests with local changes
+FROM sts-base:latest
+
+# Install required packages without updating metadata (already cached)
+RUN dnf install -y --setopt=metadata_expire=-1 python3-hatchling git uv && dnf clean all
+
+# Set up working directory
+WORKDIR /sts
+
+# Usage instructions as comments
+# Don't build directly - use build-container.sh instead
+# Run tests: podman run --rm -v $(pwd):/sts:Z sts-dev uv tool run --with-editable /sts --with pytest-coverage pytest sts_libs/tests
+# Get a shell: podman run --rm -it -v $(pwd):/sts:Z sts-dev bash

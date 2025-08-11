@@ -1,0 +1,65 @@
+include:
+  - remote: 'https://gitlab.com/renovate-bot/renovate-runner/-/raw/main/templates/renovate.gitlab-ci.yml'
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_SCHEDULE_DESC == "Renovate"
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  PRE_COMMIT_HOME: "$CI_PROJECT_DIR/.cache/pre-commit"
+
+cache:
+  key: "$CI_COMMIT_REF_SLUG"
+  paths:
+    - .cache/pip/
+    - .cache/pre-commit/
+
+test-libs:
+  image: quay.io/mhoyer/sts-ci:latest  # TODO move to sts namespace
+  script:
+    - pre-commit run --all-files --show-diff-on-failure
+    - hatch run check  # pyright
+    - hatch run test  # pytest with coverage
+
+# https://docs.pypi.org/trusted-publishers/
+publish-libs:
+  image: fedora:latest
+  id_tokens:
+    PYPI_ID_TOKEN:
+      aud: pypi
+  needs:
+    - test-libs
+  script:
+    # Retrieve the OIDC token from GitLab CI/CD, and exchange it for a PyPI API token
+    - dnf install -y hatch jq python3-pip
+    - python3 -m pip install id
+    - oidc_token=$(python3 -m id PYPI)
+    - resp=$(curl -X POST https://pypi.org/_/oidc/mint-token -d "{\"token\":\"${oidc_token}\"}")
+    - api_token=$(jq --raw-output '.token' <<< "${resp}")
+    - hatch build
+    - hatch publish -u __token__ -a "${api_token}"
+  cache:
+    key: "publish-$CI_COMMIT_TAG"
+    paths:
+      - .cache/pip/
+  rules:
+    - if: $CI_COMMIT_TAG && $CI_PROJECT_PATH == "rh-kernel-stqe/sts"
+
+pages:
+  image: fedora:latest
+  script:
+    - dnf install -y python3-pip git
+    - pip install -e ".[docs]"  # Install package with docs dependencies
+    - mkdocs build --site-dir public
+  artifacts:
+    paths:
+      - public
+  cache:
+    key: "pages-$CI_COMMIT_REF_SLUG"
+    paths:
+      - .cache/pip/
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH  # Only deploy docs from main branch

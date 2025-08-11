@@ -1,0 +1,51 @@
+summary: iscsi offload 8to9 upgrade testing
+discover:
+  - name: iscsi-offload
+    how: fmf
+    test:
+        - /tests/sts-prepare
+        - /tests/iscsi/login-logout-stress
+        - /tests/iscsi/read_debugfs
+provision+:
+  how: beaker
+/qedi:
+  summary: iSCSI tests using interfaces using qedi driver
+  environment:
+    ISCSI_SETUP_VARS: qedi
+  provision+:
+    hardware:
+      hostname: storageqe-86.lab.eng.brq2.redhat.com
+/intel:
+  summary: iSCSI tests using interfaces using intel driver
+  environment:
+    ISCSI_SETUP_VARS: intel
+  provision+:
+    hardware:
+      hostname: storageqe-82.lab.eng.brq2.redhat.com
+/cxgb4i:
+  summary: iSCSI tests using interfaces using cxgb4i driver
+  environment:
+    ISCSI_SETUP_VARS: cxgb4i
+  provision+:
+    hardware:
+      hostname: storageqe-87.lab.eng.brq2.redhat.com
+  adjust+:
+    - when: distro == rhel-8
+      environment:
+        ISCSI_SETUP_VARS: cxgb4i_noipv4
+      because: |
+        'RHEL9 and newer append ".ipv4.0 to the default iSCSI ifaces"'
+/be2iscsi:
+  summary: iSCSI tests using interfaces using be2iscsi driver
+  environment:
+    ISCSI_SETUP_VARS: be2iscsi
+  provision+:
+    hardware:
+      hostname: storageqe-84.lab.eng.brq2.redhat.com
+/bnx2i:
+  summary: iSCSI tests using interfaces using bnx2i driver
+  environment:
+    ISCSI_SETUP_VARS: bnx2i
+  provision+:
+    hardware:
+      hostname: storageqe-83.lab.eng.brq2.redhat.com

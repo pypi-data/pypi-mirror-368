@@ -1,0 +1,72 @@
+specfile_path: python-sts-libs.spec
+
+upstream_package_name: sts-libs
+downstream_package_name: sts-libs
+
+upstream_project_url: https://gitlab.com/rh-kernel-stqe/sts
+
+srpm_build_deps:
+  - hatch
+  - python3-hatch-vcs
+
+actions:
+  create-archive:
+    - hatch build -t sdist
+    - bash -c "ls dist/sts_libs-*.tar.gz"
+  get-current-version:
+    - hatch version
+
+jobs:
+  # Build pull requests
+  - job: copr_build
+    trigger: pull_request
+    targets:
+      - fedora-latest
+      - epel-9
+
+  # Release to copr
+  - job: copr_build
+    trigger: release
+    preserve_project: true
+    targets:
+      - fedora-all
+      - fedora-all-aarch64
+      - fedora-all-ppc64le
+      - fedora-all-s390x
+      - epel-9
+      - epel-9-aarch64
+      - epel-9-ppc64le
+      - epel-9-s390x
+      - epel-10
+      - epel-10-aarch64
+      - epel-10-ppc64le
+      - epel-10-s390x
+
+  # Run tests on pull requests
+  - job: tests
+    trigger: pull_request
+    targets:
+      - fedora-latest
+      - epel-9
+    tmt_plan: /plans/sts-ci/
+
+  # EPEL8 Release to copr
+  - job: copr_build
+    trigger: release
+    targets:
+      - epel-8
+      - epel-8-aarch64
+      - epel-8-ppc64le
+      - epel-8-s390x
+    owner: mhoyer
+    project: "python-testinfra-sts-libs-el8-py3.12"
+    bootstrap: "off"
+    srpm_build_deps:
+      - python3.12-flit-core
+      - python3.12-pip
+    actions:
+      create-archive:
+        - python3.12 -m pip install build
+        - mv sts_libs/python3.12-sts-libs-el8.spec ./python-sts-libs.spec
+        - python3.12 -m build --sdist .
+        - bash -c "ls dist/sts_libs-*.tar.gz"

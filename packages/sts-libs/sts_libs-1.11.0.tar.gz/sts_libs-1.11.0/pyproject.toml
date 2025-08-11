@@ -1,0 +1,207 @@
+[build-system]
+build-backend = 'hatchling.build'
+requires = ['hatchling', 'hatch-vcs']
+
+[project]
+name = 'sts-libs'
+description = 'Library for pytest-based Linux storage tests'
+readme = 'sts_libs/README.md'
+requires-python = '>=3.9'
+dynamic = ['version']
+authors = [
+  {name = 'Martin Hoyer', email = 'mhoyer@redhat.com'},
+  {name = 'Filip Suba', email = 'fsuba@redhat.com'},
+  {name = 'Zhaojuan Guo', email = 'zguo@redhat.com'},
+  {name = 'Bruno Goncalves', email = 'bgoncalv@redhat.com'},
+  {name = 'Jakub Krysl', email = 'jkrysl@redhat.com'},
+]
+maintainers = [
+  {name = 'Martin Hoyer', email = 'mhoyer@redhat.com'},
+  {name = 'Filip Suba', email = 'fsuba@redhat.com'},
+  {name = 'Zhaojuan Guo', email = 'zguo@redhat.com'},
+]
+license = 'GPL-3.0-or-later'
+classifiers = [
+  'Programming Language :: Python :: 3 :: Only',
+  'Programming Language :: Python :: 3.9',
+  'Topic :: Software Development :: Testing',
+  'Topic :: Software Development :: Quality Assurance',
+  'Intended Audience :: Developers',
+  'Operating System :: POSIX :: Linux',
+  'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
+  'Framework :: Hatch',
+]
+dependencies = [
+  'pytest-testinfra>=10.1, <11',
+]
+
+[project.optional-dependencies]
+docs = [
+  'mkdocs~=1.6.1',
+  'mkdocs-material~=9.5.44',
+  'mkdocstrings~=0.27.0',
+  'mkdocstrings-python~=1.12.0',
+]
+
+[project.urls]
+Repository = 'https://gitlab.com/rh-kernel-stqe/sts/'
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.targets.wheel]
+packages = ['sts_libs/src/sts']
+
+[tool.hatch.envs.default]
+dependencies = [
+  "ruff",
+  "pyright",
+  "pre-commit",
+  "pytest",
+  "pytest-mock",
+  "pytest-cov",
+]
+
+[tool.hatch.envs.docs]
+template = "docs"
+features = ["docs"]
+
+[tool.hatch.envs.docs.scripts]
+build = "mkdocs build"
+serve = "mkdocs serve"
+deploy = "mkdocs gh-deploy"
+
+[tool.hatch.envs.default.scripts]
+format = ['ruff check --fix', 'ruff format']
+lint = ['ruff check', 'ruff format --check']
+check = 'pyright'
+test = 'pytest'
+all = ['format', 'check']
+container-build = 'cd dev-container && ./build.sh'
+container-test = 'cd dev-container && ./run.sh test'
+container-shell = 'cd dev-container && ./run.sh shell'
+
+[tool.ruff]
+line-length = 120
+namespace-packages = ['sts_libs']
+src = ['sts_libs/src']
+
+lint.select = [
+  'F',  # Pyflakes
+  'E',  # pycodestyle error
+  'W',  # pycodestyle warning
+  #'C90',  # mccabe
+  'I',  # isort
+  'N',  # pep8-naming
+  'D',  # pydocstyle
+  'UP',  # pyupgrade
+  'YTT',  # flake8-2020
+  'ANN',  # flake8-annotations
+  'ASYNC', # flake8-async
+  #'S',  # flake8-bandit
+  'BLE',  # flake8-blind-except
+  'FBT',  # flake8-boolean-trap
+  'B',  # flake8-bugbear
+  'A',  # flake8-builtins
+  'COM',  # flake8-commas
+  'C4',  # flake8-comprehensions
+  'DTZ',  # flake8-datetimez
+  'T10',  # flake8-debugger
+  'EM103',  # flake8-errmsg dot-format-in-exception
+  'FA',  # flake8-future-annotations
+  'ISC',  # flake8-implicit-str-concat
+  'ICN',  # flake8-import-conventions
+  'LOG',  # flake8-logging
+  'G',  # flake8-logging-format
+  'INP',  # flake8-no-pep420
+  'PIE',  # flake8-pie
+  'T20',  # flake8-print
+  'PT',  # flake8-pytest-style
+  'Q',  # flake8-quotes
+  'RSE',  # flake8-raise
+  'RET',  # flake8-return
+  'SLF',  # flake8-self
+  'SLOT',  # flake8-slots
+  'SIM',  # flake8-simplify
+  'TID',  # flake8-tidy-imports
+  'TCH',  # flake8-type-checking
+  'INT',  # flake8-gettext
+  'ARG',  # flake8-unused-arguments
+  'PTH',  # flake8-use-pathlib
+  'PGH',  # pygrep-hooks
+  'PL',  # Pylint
+  'TRY',  # tryceratops
+  'FLY',  # flynt
+  'PERF',  # perflint
+  'FURB',  # refurb
+  'RUF',  # Ruff-specific rules
+]
+lint.ignore = [
+  'D417',  # Missing argument descriptions -> Do not use docstring description for well type-annotated args
+  'G004',  # Logging statement uses f-string -> Up for discussion
+  'TRY003',  # Avoid specifying long messages outside the exception class
+  # Conflicts with formatter
+  'COM812',  # Trailing comma missing
+  'ISC001',  # Explicitly concatenated string
+  'PLR091',  # Too many
+  'PLR2004',  # Magic value used in comparison
+  'LOG015',  # TODO! Logger initialization
+]
+
+format.quote-style = "single"
+format.docstring-code-format = true
+
+[tool.ruff.lint.per-file-ignores]
+'tests/*' = ['INP001', 'D']
+'sts_libs/tests/*' = ['ANN401', 'SLF001', 'FBT', 'E501']
+'.scripts/*' = ['INP001']
+
+[tool.ruff.lint.flake8-builtins]
+builtins-ignorelist = ['id']
+
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = 'single'
+
+[tool.ruff.lint.pydocstyle]
+convention = 'google'
+
+[tool.pytest.ini_options]
+addopts = [
+  '--verbose',
+  '--cov=sts_libs/src/sts',
+  '--cov-report=term-missing',
+  '--cov-report=html',
+  '--cov-branch',
+]
+testpaths = ['sts_libs/tests']
+
+[tool.coverage.run]
+branch = true
+source = ['sts_libs/src/sts']
+
+[tool.coverage.report]
+exclude_lines = [
+  'pragma: no cover',
+  'def __repr__',
+  'if TYPE_CHECKING:',
+  'raise NotImplementedError',
+  'return NotImplemented',
+  'raise ImportError',
+  'if __name__ == "__main__":',
+]
+omit = ['_test.py']
+
+[tool.coverage.html]
+directory = 'coverage_html'
+
+[tool.pyright]
+pythonVersion = "3.9"
+pythonPlatform = "Linux"
+include = ["sts_libs/src/sts", "tests"]
+
+[tool.yamlfix]
+explicit_start = 'false'       # '---' at the beggining of the file
+line_length = 80
+preserve_quotes = 'true'       # otherwise can remove necessary quotes
+whitelines = 1                 # allow no more than n whiteline(s)
+sequence_style = 'keep_style'  # 'block_style' to force idented lists

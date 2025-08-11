@@ -1,0 +1,41 @@
+prepare:
+  - how: feature
+    epel: enabled
+    order: 40
+  - how: install
+    copr: "packit/gitlab.com-rh-kernel-stqe-sts-releases"
+    package: python3-sts-libs
+    order: 50
+adjust:
+  - when: distro == rhel-10, centos-stream-10  # TODO Remove once #46 is fixed
+    prepare:
+     - how: install
+       package: python3-pip
+       order: 40
+     - how: shell
+       order: 50
+       script:
+         - python3 -m pip install --user pipx
+         - python3 -m pipx ensurepath
+         - python3 -m pipx install pytest
+         - python3 -m pipx inject pytest sts-libs pytest-variables[yaml]
+    because: "https://gitlab.com/rh-kernel-stqe/sts/-/issues/46"
+  - when: distro ~= rhel-8
+    prepare:
+      - how: feature
+        epel: enabled
+        order: 40
+      - how: install
+        # Using different copr repo due to the custom el8 testinfra package there
+        copr: "mhoyer/python-testinfra-sts-libs-el8-py3.12"
+        package: python3.12-sts-libs
+        order: 50
+      - how: shell
+        script: "ln -s /usr/bin/pytest-3.12 /usr/local/bin/pytest"
+  - when: distro < rhel-8.8
+    enabled: false
+    because: "sts tests require RHEL-8.8"
+execute:
+  how: tmt
+report:
+  how: html
