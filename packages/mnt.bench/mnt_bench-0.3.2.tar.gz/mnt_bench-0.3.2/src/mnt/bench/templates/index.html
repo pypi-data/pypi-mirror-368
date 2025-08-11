@@ -1,0 +1,1389 @@
+<!doctype html>
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+
+    <!-- Bootstrap CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
+      crossorigin="anonymous"
+    />
+
+    <style>
+      .disabled-checkbox {
+        opacity: 0.5; /* Make the checkbox semi-transparent */
+        pointer-events: none; /* Disable mouse events on the checkbox */
+      }
+
+      table {
+        border-collapse: collapse;
+        width: 50%;
+        margin: 20px 0;
+      }
+
+      th,
+      td {
+        border: 1px solid #dddddd;
+        text-align: left;
+        padding: 12px; /* Increased padding for better spacing */
+      }
+
+      #pipeline-img {
+        width: 100%;
+        height: auto; /* Maintain aspect ratio */
+        display: block; /* Remove extra space beneath image */
+      }
+
+      .disabled-checkbox + label {
+        color: #808080; /* Change label color to gray */
+      }
+
+      a:active {
+        text-decoration: none;
+      }
+    </style>
+
+    <title>MNT Bench</title>
+    <link
+      rel="shortcut icon"
+      href="{{ url_for('static', filename='favicon.ico') }}"
+    />
+  </head>
+  <body onload="disable_all()">
+    <!-- Image and text -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+      <a class="navbar-brand" href="/mntbench">
+        <img
+          src="{{ url_for('static', filename='tum_logo.svg') }}"
+          alt=""
+          width="50"
+          height="24"
+          class="d-inline-block align-text-top"
+        />
+        MNT Bench
+      </a>
+      <button
+        class="navbar-toggler"
+        type="button"
+        data-toggle="collapse"
+        data-target="#navbarNavAltMarkup"
+        aria-controls="navbarNavAltMarkup"
+        aria-expanded="false"
+        aria-label="Toggle navigation"
+      >
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+        <div class="navbar-nav">
+          <a class="nav-item nav-link active" href="index">Benchmarks</a>
+          <a class="nav-item nav-link" href="description"
+            >Level and File Descriptions</a
+          >
+          <a
+            class="nav-item nav-link"
+            href="https://www.cda.cit.tum.de/research/fcn/"
+            target="_blank"
+            >More on our Work</a
+          >
+          <a class="nav-item nav-link" href="legal">Legal Information</a>
+        </div>
+      </div>
+    </nav>
+
+    <div class="col-md-12" style="height: 80px"></div>
+    <p align="center">
+      <img src="{{ url_for('static', filename='mnt_dark.svg')}}" width="20%" />
+    </p>
+    <div class="container">
+      <h1>Welcome to the Munich Nanotech Benchmark Library (MNT Bench)!</h1>
+      <p>
+        The development and improvement of physical design tools for
+        <em>nanotechnologies</em>, such as
+        <em>Silicon Dangling Bonds</em> (SiDBS), is critical to the success of
+        this emerging technology. Furthermore, simulation and fabrication
+        heavily rely on the usage of area-efficient layouts. To compare the
+        results of new physical design algorithms and provide the most optimal
+        layouts found thus far, this benchmark suite offers common benchmark
+        functions in the field combined with the best state-of-the-art layouts
+        w.r.t. to area. In addition to layouts using different gate sets, such
+        as the
+        <em
+          >QCA ONE<a
+            href="https://ieeexplore.ieee.org/document/7538997/"
+            target="_blank"
+            style="text-decoration: none"
+            >&#128196;</a
+          ></em
+        >
+        gate library for <em>Quantum-dot Cellular Automata</em> (QCA) or
+        <em
+          >Bestagon<a
+            href="https://www.cda.cit.tum.de/files/eda/2022_dac_hexagons_are_the_bestagons.pdf"
+            target="_blank"
+            style="text-decoration: none"
+            >&#128196;</a
+          ></em
+        >
+        for <em>Silicon Dangling Bonds</em> (SiDBS), the following benchmark
+        library also differentiates between different underlying clocking
+        schemes such as
+        <em
+          >2DDWave<a
+            href="https://ieeexplore.ieee.org/document/1717097"
+            target="_blank"
+            style="text-decoration: none"
+            >&#128196;</a
+          ></em
+        >,
+        <em
+          >USE<a
+            href="https://ieeexplore.ieee.org/document/7219390"
+            target="_blank"
+            style="text-decoration: none"
+            >&#128196;</a
+          ></em
+        >,
+        <em
+          >RES<a
+            href="https://www.tandfonline.com/doi/abs/10.1080/21681724.2019.1570551"
+            target="_blank"
+            style="text-decoration: none"
+            >&#128196;</a
+          ></em
+        >,
+        <em
+          >ESR<a
+            href="https://link.springer.com/content/pdf/10.1007/s10470-020-01760-4.pdf"
+            target="_blank"
+            style="text-decoration: none"
+            >&#128196;</a
+          ></em
+        >
+        , or
+        <em
+          >ROW<a
+            href="https://ieeexplore.ieee.org/document/573740"
+            target="_blank"
+            style="text-decoration: none"
+            >&#128196;</a
+          ></em
+        >. Furthermore, all layouts have been verified using
+        <a href="https://github.com/cda-tum/fiction" target="_blank"
+          ><em>fiction</em></a
+        >'s equivalence checker<a
+          href="https://www.cda.cit.tum.de/files/eda/2020_dac_verification_for_field-coupled_nanocomputing_circuits.pdf"
+          target="_blank"
+          style="text-decoration: none"
+          >&#128196;</a
+        >.
+      </p>
+      <p>
+        All layouts can be downloaded as fiction gate-level layouts files (<span
+          style="font-family: monospace"
+          >.fgl</span
+        >), which can be parsed and generated by
+        <a href="https://github.com/cda-tum/fiction" target="_blank"
+          ><em>fiction</em></a
+        >.
+      </p>
+      <p>
+        The respective publications for the gate libraries, benchmarks, clocking
+        schemes, physical design algorithms, and optimization algorithms can be
+        found by clicking the corresponding paper (&#128196;) symbol.
+      </p>
+      <p>
+        In order to create a benchmark set according to your needs, simply fill
+        out the form below.
+      </p>
+    </div>
+    <form
+      method="POST"
+      class="form-inline"
+      role="form"
+      action="download"
+      id="benchmark_form"
+      onchange="checks_on_change()"
+    >
+      <div class="container">
+        <div class="row">
+          <h4>Benchmark Selection</h4>
+          <p class="text-justify">
+            Please select the desired benchmarks from the set of all available
+            ones or select all
+            <input
+              class="form-check-input"
+              type="checkbox"
+              value="true"
+              id="all_benchmarks"
+              name="all_benchmarks"
+              onchange="toggleAllSelection()"
+            />.
+          </p>
+        </div>
+        <div class="row border border-secondary">
+          <div class="row"></div>
+          <div class="row d-flex"></div>
+          <div class="col-md-6">
+            <h6 style="margin-bottom: 0px">
+              Trindade16<a
+                href="https://ieeexplore.ieee.org/document/7724048"
+                target="_blank"
+                style="text-decoration: none"
+                >&#128196;</a
+              >
+              Benchmarks
+              <input
+                class="form-check-input"
+                type="checkbox"
+                value="true"
+                id="trindade16_benchmarks"
+                name="trindade16_benchmarks"
+                onchange="toggleTrindade16Selection()"
+              />:
+            </h6>
+
+            {% for benchmark_trindade in trindade %}
+
+            <div>
+              <div class="col-md-12">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  value="{{ benchmark_trindade.name }}"
+                  id="selectBench_{{ benchmark_trindade.id }}"
+                  name="selectBench_{{ benchmark_trindade.id }}"
+                />
+                {{ benchmark_trindade.name }}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+
+          <div class="col-md-6">
+            <h6 style="margin-bottom: 0px">
+              Fontes18<a
+                href="https://ieeexplore.ieee.org/document/8351001"
+                target="_blank"
+                style="text-decoration: none"
+                >&#128196;</a
+              >
+              Benchmarks
+              <input
+                class="form-check-input"
+                type="checkbox"
+                value="true"
+                id="fontes18_benchmarks"
+                name="fontes18_benchmarks"
+                onchange="toggleFontes18Selection()"
+              />:
+            </h6>
+
+            {% for benchmark_fontes in fontes %}
+
+            <div>
+              <div class="col-md-12">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  value="{{ benchmark_fontes.name }}"
+                  id="selectBench_{{ benchmark_fontes.id }}"
+                  name="selectBench_{{ benchmark_fontes.id }}"
+                />
+                {{ benchmark_fontes.name }}
+              </div>
+            </div>
+
+            {% endfor %}
+          </div>
+
+          <div class="col-md-6">
+            <h6 style="margin-bottom: 0px">
+              ISCAS85<a
+                href="https://www.researchgate.net/publication/273775783_A_neutral_netlist_of_10_combinational_benchmark_circuits_and_a_targeted_translator_in_FORTRAN"
+                target="_blank"
+                style="text-decoration: none"
+                >&#128196;</a
+              >
+              Benchmarks
+              <input
+                class="form-check-input"
+                type="checkbox"
+                value="true"
+                id="iscas85_benchmarks"
+                name="iscas85_benchmarks"
+                onchange="toggleISCAS85Selection()"
+              />:
+            </h6>
+
+            {% for benchmark_iscas in iscas %}
+
+            <div>
+              <div class="col-md-12">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  value="{{ benchmark_iscas.name }}"
+                  id="selectBench_{{ benchmark_iscas.id }}"
+                  name="selectBench_{{ benchmark_iscas.id }}"
+                />
+                {{ benchmark_iscas.name }}
+              </div>
+            </div>
+
+            {% endfor %}
+          </div>
+
+          <div class="col-md-6">
+            <h6 style="margin-bottom: 0px">
+              EPFL<a
+                href="https://www.epfl.ch/labs/lsi/page-102566-en-html/benchmarks/"
+                target="_blank"
+                style="text-decoration: none"
+                >&#128196;</a
+              >
+              Benchmarks
+              <input
+                class="form-check-input"
+                type="checkbox"
+                value="true"
+                id="epfl_benchmarks"
+                name="epfl_benchmarks"
+                onchange="toggleEPFLSelection()"
+              />:
+            </h6>
+
+            {% for benchmark_epfl in epfl %}
+
+            <div>
+              <div class="col-md-12">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  value="{{ benchmark_epfl.name }}"
+                  id="selectBench_{{ benchmark_epfl.id }}"
+                  name="selectBench_{{ benchmark_epfl.id }}"
+                />
+                {{ benchmark_epfl.name }}
+              </div>
+            </div>
+
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="col-md-12" style="height: 20px"></div>
+        <h4>Technology Selection</h4>
+        <p class="text-justify" style="margin: 0px">
+          Next, technological specifications for the selected benchmarks must be
+          chosen. The gate library defines the selection of gates that can be
+          used, while the clocking scheme defines the underlying arrangement of
+          clock zones on the layout. For details, see
+          <a href="description" target="_blank">the level description</a>.
+        </p>
+      </div>
+
+      <div class="col-md-12" style="height: 20px"></div>
+      <div class="container">
+        <div class="row">
+          <div
+            class="col border border-secondary"
+            style="width: 25%; min-width: 200px; margin: 1px"
+          >
+            <h6>Abstraction Level</h6>
+            <p class="text-justify" style="margin: 0px">
+              Select the abstraction level:
+            </p>
+            <div class="row">
+              <div class="col-md-12 align-items-center">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="network"
+                  name="network"
+                  value="true"
+                />
+                <label for="network"
+                  >Network (<span style="font-family: monospace">.v</span
+                  >)</label
+                >
+              </div>
+
+              <div class="col-md-12 align-items-center">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="gate"
+                  name="gate"
+                  value="true"
+                />
+                <label for="gate"
+                  >Gate-level (<span style="font-family: monospace">.fgl</span
+                  >)</label
+                >
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="col border border-secondary"
+            style="width: 25%; min-width: 200px; margin: 1px"
+          >
+            <h6>Gate Library</h6>
+            <p class="text-justify" style="margin: 0px">
+              Select the used gate library:
+            </p>
+            <div class="row">
+              <div class="col-md-12 align-items-center">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="one"
+                  name="one"
+                  value="true"
+                />
+                <label for="one"
+                  >QCA ONE
+                  <a
+                    href="https://ieeexplore.ieee.org/document/7538997/"
+                    target="_blank"
+                    style="text-decoration: none"
+                    >&#128196;</a
+                  ></label
+                >
+              </div>
+
+              <div class="col-md-12 align-items-center">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="bestagon"
+                  name="bestagon"
+                  value="true"
+                />
+                <label for="bestagon"
+                  >Bestagon<a
+                    href="https://dl.acm.org/doi/10.1145/3489517.3530525"
+                    target="_blank"
+                    style="text-decoration: none"
+                    >&#128196;</a
+                  ></label
+                >
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="col border border-secondary"
+            style="width: 25%; min-width: 200px; margin: 1px"
+          >
+            <h6>Clocking Scheme</h6>
+
+            <p class="text-justify" style="margin: 0px">
+              Select the underlying clocking scheme:
+            </p>
+            <div class="row">
+              <div class="col-md-12 align-items-center">
+                <div class="form-group">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    value="true"
+                    id="twoddwave"
+                    name="twoddwave"
+                  />
+                  <label for="twoddwave"
+                    >2DDWave<a
+                      href="https://ieeexplore.ieee.org/document/1717097"
+                      target="_blank"
+                      style="text-decoration: none"
+                      >&#128196;</a
+                    ></label
+                  >
+                </div>
+                <div class="form-group">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    value="true"
+                    id="use"
+                    name="use"
+                  />
+                  <label for="use"
+                    >USE<a
+                      href="https://ieeexplore.ieee.org/document/7219390"
+                      target="_blank"
+                      style="text-decoration: none"
+                      >&#128196;</a
+                    ></label
+                  >
+                </div>
+                <div class="form-group">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    value="true"
+                    id="res"
+                    name="res"
+                  />
+                  <label for="res"
+                    >RES<a
+                      href="https://www.tandfonline.com/doi/abs/10.1080/21681724.2019.1570551"
+                      target="_blank"
+                      style="text-decoration: none"
+                      >&#128196;</a
+                    ></label
+                  >
+                </div>
+                <div class="form-group">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    value="true"
+                    id="esr"
+                    name="esr"
+                  />
+                  <label for="esr"
+                    >ESR<a
+                      href="https://link.springer.com/content/pdf/10.1007/s10470-020-01760-4.pdf"
+                      target="_blank"
+                      style="text-decoration: none"
+                      >&#128196;</a
+                    ></label
+                  >
+                </div>
+                <div class="form-group">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    value="true"
+                    id="row"
+                    name="row"
+                  />
+                  <label for="row"
+                    >ROW<a
+                      href="https://ieeexplore.ieee.org/document/573740"
+                      target="_blank"
+                      style="text-decoration: none"
+                      >&#128196;</a
+                    ></label
+                  >
+                </div>
+                <p class="text-justify" style="margin: 0px">
+                  Choose Best to automatically select the best clocking scheme,
+                  physical design algorithm and optimizations w.r.t. layout
+                  area:
+                </p>
+                <div class="form-group">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    value="true"
+                    id="best-layout"
+                    name="best-layout"
+                  />
+                  <label for="best-layout">Best</label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="col border border-secondary"
+            style="width: 25%; min-width: 200px; margin: 1px"
+          >
+            <h6>Physical Design Algorithm</h6>
+
+            <p class="text-justify" style="margin: 0px">
+              Select the physical design algorithm used to create the chosen
+              layouts:
+            </p>
+            <div class="row">
+              <div class="col-md-12 align-items-center">
+                <div class="form-group">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    value="true"
+                    id="exact"
+                    name="exact"
+                    onchange="toggleExactSelection()"
+                  />
+                  <label for="exact"
+                    >Exact<a
+                      href="https://www.cda.cit.tum.de/files/eda/2018_date_exact_design_exploration_qca.pdf"
+                      target="_blank"
+                      style="text-decoration: none"
+                      >&#128196;</a
+                    ></label
+                  >
+                </div>
+                <div class="form-group">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    value="true"
+                    id="ortho"
+                    name="ortho"
+                    onchange="toggleOrthoSelection()"
+                  />
+                  <label for="ortho"
+                    >Ortho<a
+                      href="https://www.cda.cit.tum.de/files/eda/2019_aspdac_scalable_design_field_coupled_nanocomputing_circuits.pdf"
+                      target="_blank"
+                      style="text-decoration: none"
+                      >&#128196;</a
+                    >(+45°)<a
+                      href="https://www.cda.cit.tum.de/files/eda/2023_ieeenano_45_degree_sidb_design.pdf"
+                      target="_blank"
+                      style="text-decoration: none"
+                      >&#128196;</a
+                    ></label
+                  >
+                </div>
+                <div class="form-group">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    value="true"
+                    id="nanoplacer"
+                    name="nanoplacer"
+                    onchange="toggleNanoPlaceRSelection()"
+                  />
+                  <label for="nanoplacer"
+                    >NanoPlaceR<a
+                      href="https://www.cda.cit.tum.de/files/eda/2023_dac_late_breaking_results_from_hybrid_design_automation_for_field_coupled_nanotechnologies.pdf"
+                      target="_blank"
+                      style="text-decoration: none"
+                      >&#128196;</a
+                    ><a
+                      href="https://www.cda.cit.tum.de/files/eda/2024_isqed_thinking_outside_the_clock_physical_design_for_field-coupled_nanocomputing_with_deep_reinforcement_learning.pdf"
+                      target="_blank"
+                      style="text-decoration: none"
+                      >&#128196;</a
+                    ></label
+                  >
+                </div>
+                <div class="form-group">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    value="true"
+                    id="gold"
+                    name="gold"
+                    onchange="toggleGoldSelection()"
+                  />
+                  <label for="gold"
+                    >Gold<a
+                      href="https://www.cda.cit.tum.de/files/eda/2024_ieee_nano_a_star_is_born.pdf"
+                      target="_blank"
+                      style="text-decoration: none"
+                      >&#128196;</a
+                    ><a
+                      href="https://www.cda.cit.tum.de/files/eda/2025_lascas_physical_design_for_fcn_with_discretionary_cost_objectives.pdf"
+                      target="_blank"
+                      style="text-decoration: none"
+                      >&#128196;</a
+                    ></label
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="col border border-secondary"
+            style="width: 25%; min-width: 200px; margin: 1px"
+          >
+            <h6>Optimization Algorithm</h6>
+
+            <p class="text-justify" style="margin: 0px">
+              If Ortho or NanoPlaceR has been chosen, please also select the
+              applied optimization algorithms:
+            </p>
+            <div class="row">
+              <div class="col-md-12 align-items-center">
+                <div class="form-group">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    value="true"
+                    id="post-layout"
+                    name="post-layout"
+                  />
+                  <label for="post-layout"
+                    >Post-Layout Optimization<a
+                      href="https://www.cda.cit.tum.de/files/eda/2025_tcad_efficient_and_scalable_post-layout_optimization_for_fcn.pdf"
+                      target="_blank"
+                      style="text-decoration: none"
+                      >&#128196;</a
+                    >
+                    <a
+                      href="https://www.cda.cit.tum.de/files/eda/2023_nanoarch_post-layout_optimization_for_fcn.pdf"
+                      target="_blank"
+                      style="text-decoration: none"
+                      >&#128196;</a
+                    ><a
+                      href="https://www.cda.cit.tum.de/files/eda/2024_dac_wiring_reduction_for_field-coupled_nanotechnologies.pdf"
+                      target="_blank"
+                      style="text-decoration: none"
+                      >&#128196;</a
+                    ></label
+                  >
+                </div>
+                <div class="form-group">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    value="true"
+                    id="input-ordering"
+                    name="input-ordering"
+                  />
+                  <label for="input-ordering"
+                    >Input Ordering<a
+                      href="https://www.cda.cit.tum.de/files/eda/2023_isvlsi_versatile_signal_distribution_networks.pdf"
+                      target="_blank"
+                      style="text-decoration: none"
+                      >&#128196;</a
+                    ></label
+                  >
+                </div>
+                <p class="text-justify" style="margin: 0px">
+                  If gold has been chosen, please also select the cost
+                  objective:
+                  <span
+                    style="border-bottom: 1px dotted; cursor: help"
+                    title="For exact and NanoPlaceR, only layout area is possible for the cost objective. For ortho, no cost objective is possible."
+                  >
+                    &#10067;
+                  </span>
+                </p>
+                <div class="form-group">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    value="true"
+                    id="area"
+                    name="area"
+                  />
+                  <label for="area">Layout Area</label>
+                </div>
+                <div class="form-group">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    value="true"
+                    id="wires"
+                    name="wires"
+                  />
+                  <label for="wires">Number of Wires</label>
+                </div>
+                <div class="form-group">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    value="true"
+                    id="crossings"
+                    name="crossings"
+                  />
+                  <label for="crossings">Number of Crossings</label>
+                </div>
+                <div class="form-group">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    value="true"
+                    id="acp"
+                    name="acp"
+                  />
+                  <label for="acp">Area-Crossing Product</label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="container">
+        <div class="row">
+          <!-- Existing boxes -->
+
+          <!-- Box 1 -->
+          <div
+            class="col border border-secondary"
+            style="width: 20%; min-width: 200px; margin: 1px"
+          >
+            <img
+              src="{{ url_for('static', filename='abstraction_level.png')}}"
+              style="width: 100%; height: 100%; object-fit: cover"
+            />
+          </div>
+
+          <!-- Box 2 -->
+          <div
+            class="col border border-secondary"
+            style="width: 20%; min-width: 200px; margin: 1px"
+          >
+            <img
+              src="{{ url_for('static', filename='gate_library.png')}}"
+              style="width: 100%; height: 100%; object-fit: cover"
+            />
+          </div>
+
+          <!-- Box 3 -->
+          <div
+            class="col border border-secondary"
+            style="width: 20%; min-width: 200px; margin: 1px"
+          >
+            <img
+              src="{{ url_for('static', filename='clocking_scheme.png')}}"
+              style="width: 100%; height: 100%; object-fit: cover"
+            />
+          </div>
+
+          <!-- Box 4 -->
+          <div
+            class="col border border-secondary"
+            style="width: 20%; min-width: 200px; margin: 1px"
+          >
+            <img
+              src="{{ url_for('static', filename='physical_design_algorithm.png')}}"
+              style="width: 100%; height: 100%; object-fit: cover"
+            />
+          </div>
+
+          <!-- Box 5 -->
+          <div
+            class="col border border-secondary"
+            style="width: 20%; min-width: 200px; margin: 1px"
+          >
+            <img
+              src="{{ url_for('static', filename='optimization_algorithm.png')}}"
+              style="width: 100%; height: 100%; object-fit: cover"
+            />
+          </div>
+        </div>
+
+        <div class="col-md-12" style="height: 20px"></div>
+        <h4>Download</h4>
+        <p class="text-justify"></p>
+        <div class="d-flex">
+          <div class="same_row">Number of selected benchmarks: &nbsp;</div>
+          <div class="same_row" id="num_benchmarks">0</div>
+          <div class="same_row">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+          <div class="same_row">File Size (compressed): &nbsp;</div>
+          <div class="same_row" id="size_compressed">0</div>
+          <div class="same_row">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+          <div class="same_row">File Size (uncompressed): &nbsp;</div>
+          <div class="same_row" id="size_uncompressed">0</div>
+          <div class="same_row">&nbsp;</div>
+        </div>
+        After the download button is clicked, all benchmark functions provided
+        as <span style="font-family: monospace">.v</span> files and selected
+        layouts provided as
+        <span style="font-family: monospace">.fgl</span> files are downloaded as
+        a <em>.zip</em> archive. Details of the
+        <a href="description" target="_blank">file format</a> are provided.
+        Alternatively, a pre-generated archive with <em>all</em> benchmarks can
+        be <a href="get_pre_gen">downloaded</a>.
+        <div class="col-md-12" style="height: 20px"></div>
+        <div class="text-center">
+          <button
+            type="submit"
+            class="btn btn-primary btn-lg mx-auto text-center"
+            id="downloadButton"
+            disabled
+            name="button"
+            value="submit"
+          >
+            Download selected Benchmarks
+          </button>
+        </div>
+        <h6>Overview of Selected Benchmarks:</h6>
+        <div class="form-inline">
+          <div class="form-group">
+            <label for="format" style="margin-right: 10px"
+              >Select format:</label
+            >
+            <select name="format" id="format" class="form-control-sm">
+              <option value="csv">CSV</option>
+              <option value="excel">Excel</option>
+              <option value="json">JSON</option>
+            </select>
+            <button
+              type="submit"
+              class="btn btn-primary btn-sm ml-2"
+              id="downloadTableButton"
+              disabled
+              name="button"
+              value="submitTable"
+            >
+              Download Table
+            </button>
+          </div>
+        </div>
+        {% for table in tables %}
+        <div class="data-table">{{ table|safe }}</div>
+        {% endfor %}
+      </div>
+    </form>
+
+    <div class="col-md-12" style="height: 20px"></div>
+
+    <div class="container">
+      <h4>Reference</h4>
+      <p class="text-justify">
+        For a more detailed description of MNT Bench, we are referring to the
+        corresponding paper
+        <a
+          href="{{ url_for('static', filename='mntbench_technical_report.pdf') }}"
+          target="_blank"
+          >"MNT Bench: Benchmarking Software and Layout Libraries for
+          Field-coupled Nanocomputing"</a
+        >. Our implementation is available on
+        <a href="https://github.com/cda-tum/mnt-bench" target="_blank">GitHub</a
+        >.
+
+        <strong
+          >In case you are using MNT Bench in your work, we would be thankful if
+          you referred to it by citing the following publication:</strong
+        >
+      </p>
+
+      <p>
+        @inproceedings{hofmann2024mntbench, <br />
+        &nbsp; author={Hofmann, Simon and Walter, Marcel and Wille, Robert},<br />
+        &nbsp; booktitle = &#123;&#123;2024 Design, Automation and Test in
+        Europe (DATE)}},<br />
+        &nbsp; title=&#123;&#123;&#123;MNT Bench}}: Benchmarking Software and
+        Layout Libraries for Field-coupled Nanocomputing},<br />
+        &nbsp; year={2024},<br />
+        }
+      </p>
+
+      <p>
+        If you use any of the algorithms in your work, please consider citing
+        them as shown on
+        <a
+          href="https://fiction.readthedocs.io/en/latest/publications.html"
+          target="_blank"
+          >this page</a
+        >.
+      </p>
+
+      <p>
+        In case you have any problems or questions feel free to contact us via
+        <a href="mailto:nanotech.cda@xcit.tum.de">nanotech.cda@xcit.tum.de</a>.
+        More on our work on nanotechnologies is summarized on
+        <a href="https://www.cda.cit.tum.de/research/fcn" target="_blank"
+          >this page</a
+        >.
+      </p>
+    </div>
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script
+      src="https://code.jquery.com/jquery-3.3.1.min.js"
+      integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+      integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+      integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+      crossorigin="anonymous"
+    ></script>
+
+    <script>
+      function toggleAllSelection() {
+          var ids = {{trindade | length}}+{{fontes | length }}+{{iscas | length }}+{{epfl | length }}
+          for (let i = 1; i <= ids; i++) {
+              document.getElementById("selectBench_" + i).checked = all_benchmarks.checked
+          }
+      }
+
+      function toggleTrindade16Selection() {
+          var start = 1
+          var ids = {{trindade | length}}
+          for (let i = start; i <= ids; i++) {
+              document.getElementById("selectBench_" + i).checked = trindade16_benchmarks.checked
+          }
+      }
+
+      function toggleFontes18Selection() {
+          var start = {{trindade | length}}+1
+          var ids = {{trindade | length}}+{{fontes | length }}
+          for (let i = start; i <= ids; i++) {
+              document.getElementById("selectBench_" + i).checked = fontes18_benchmarks.checked
+          }
+      }
+
+      function toggleISCAS85Selection() {
+          var start = {{trindade | length}}+{{fontes | length }}+1
+          var ids = {{trindade | length}}+{{fontes | length }}+{{iscas | length }}
+          for (let i = start; i <= ids; i++) {
+              document.getElementById("selectBench_" + i).checked = iscas85_benchmarks.checked
+          }
+      }
+
+      function toggleEPFLSelection() {
+          var start = {{trindade | length}}+{{fontes | length }}+{{iscas | length }}+1
+          var ids = {{trindade | length}}+{{fontes | length }}+{{iscas | length }}+{{epfl | length }}
+          for (let i = start; i <= ids; i++) {
+              document.getElementById("selectBench_" + i).checked = epfl_benchmarks.checked
+          }
+      }
+
+      function toggleExactSelection(){
+        setCheckboxState("ortho", false, false, true);
+        setCheckboxState("nanoplacer", false, false, true);
+        setCheckboxState("gold", false, false, true);
+      }
+
+      function toggleOrthoSelection(){
+        setCheckboxState("exact", false, false, true);
+        setCheckboxState("nanoplacer", false, false, true);
+        setCheckboxState("gold", false, false, true);
+      }
+
+      function toggleNanoPlaceRSelection(){
+        setCheckboxState("exact", false, false, true);
+        setCheckboxState("ortho", false, false, true);
+        setCheckboxState("gold", false, false, true);
+      }
+
+      function toggleGoldSelection(){
+        setCheckboxState("exact", false, false, true);
+        setCheckboxState("ortho", false, false, true);
+        setCheckboxState("nanoplacer", false, false, true);
+      }
+
+      function checks_on_change() {
+          enable_level()
+          check_col_if_all_selected()
+          check_col_if_trindade16_selected()
+          check_col_if_fontes18_selected()
+          check_col_if_iscas85_selected()
+          check_col_if_epfl_selected()
+          get_num_benchs()
+      }
+
+      function setCheckboxState(id, checked, disabled, update) {
+          var checkboxElement = document.getElementById(id);
+          if (update) {
+              checkboxElement.checked = checked;
+          }
+          checkboxElement.disabled = disabled;
+          if (disabled) {
+              checkboxElement.classList.add("disabled-checkbox");
+          } else {
+              checkboxElement.classList.remove("disabled-checkbox");
+          }
+      }
+
+      function enable_level() {
+          var ids = {{trindade | length}}+{{fontes | length }}+{{iscas | length }}+{{epfl | length }}
+          var at_least_one = false;
+          for (let i = 1; i <= ids; i++) {
+              if (document.getElementById("selectBench_" + i).checked) {
+                  at_least_one = true;
+              }
+          }
+          if (at_least_one){
+            setCheckboxState("network", false, false, false);
+            setCheckboxState("gate", false, false, false);
+            enable_gate_library_selection();
+          }
+          else {
+            disable_all();
+          }
+      }
+
+      function enable_gate_library_selection(){
+          if (document.getElementById("gate").checked) {
+              setCheckboxState("one", false, false, false);
+              setCheckboxState("bestagon", false, false, false);
+              enable_clocking_scheme_selection();
+          }
+          else {
+              disable_gate_libraries();
+              disable_clocking_scheme_selection(one=true, bestagon=true);
+              disable_physical_design_algorithm_selection();
+              disable_optimization_algorithm_selection();
+              disable_cost_objective_selection();
+          }
+      }
+
+      function enable_clocking_scheme_selection(){
+          if (document.getElementById("one").checked) {
+              setCheckboxState("twoddwave", false, false, false);
+              setCheckboxState("use", false, false, false);
+              setCheckboxState("res", false, false, false);
+              setCheckboxState("esr", false, false, false);
+              setCheckboxState("best-layout", false, false, false);
+              enable_physical_design_algorithm_selection();
+          }
+          else {
+              disable_clocking_scheme_selection(one=true, bestagon=false);
+          }
+          if (document.getElementById("bestagon").checked) {
+              setCheckboxState("row", false, false, false);
+              setCheckboxState("best-layout", false, false, false);
+              enable_physical_design_algorithm_selection();
+          }
+          else {
+              disable_clocking_scheme_selection(one=false, bestagon=true);
+          }
+
+          if (!document.getElementById("one").checked && !document.getElementById("bestagon").checked){
+              disable_clocking_scheme_selection(one=true, bestagon=true, best=true);
+              disable_physical_design_algorithm_selection();
+              disable_optimization_algorithm_selection();
+              disable_cost_objective_selection();
+          }
+      }
+
+      function enable_physical_design_algorithm_selection(){
+          if (!document.getElementById("best-layout").checked){
+            var ortho_or_gold_possible = (document.getElementById("twoddwave").checked || document.getElementById("row").checked) && !(document.getElementById("use").checked || document.getElementById("res").checked || document.getElementById("esr").checked);
+            var exact_or_nanoplacer_possible = document.getElementById("twoddwave").checked || document.getElementById("row").checked || document.getElementById("use").checked || document.getElementById("res").checked || document.getElementById("esr").checked;
+            if (exact_or_nanoplacer_possible && !ortho_or_gold_possible) {
+                  setCheckboxState("nanoplacer", false, false, false);
+                  setCheckboxState("ortho", false, true, true);
+                  setCheckboxState("gold", false, true, true);
+                  setCheckboxState("exact", false, false, false);
+                  enable_optimization_algorithm_selection();
+                  enable_cost_objective_selection();
+            }
+            else if (exact_or_nanoplacer_possible && ortho_or_gold_possible) {
+                setCheckboxState("exact", false, false, false);
+                setCheckboxState("ortho", false, false, false);
+                setCheckboxState("gold", false, false, false);
+                setCheckboxState("nanoplacer", false, false, false);
+                enable_optimization_algorithm_selection();
+                enable_cost_objective_selection();
+            }
+            else {
+                disable_physical_design_algorithm_selection();
+                disable_optimization_algorithm_selection();
+                disable_cost_objective_selection();
+            }
+          }
+          else {
+              disable_clocking_scheme_selection(one=true, bestagon=true);
+              disable_physical_design_algorithm_selection();
+              disable_optimization_algorithm_selection();
+              disable_cost_objective_selection();
+          }
+      }
+
+      function enable_optimization_algorithm_selection(){
+        if (document.getElementById("ortho").checked){
+          setCheckboxState("post-layout", false, false, false);
+          setCheckboxState("input-ordering", false, false, false);
+        }
+        else if (document.getElementById("nanoplacer").checked){
+          setCheckboxState("post-layout", false, false, false);
+          setCheckboxState("input-ordering", false, true, true);
+        }
+        else if (document.getElementById("gold").checked){
+          setCheckboxState("post-layout", false, false, false);
+          setCheckboxState("input-ordering", false, true, true);
+        }
+        else {
+          disable_optimization_algorithm_selection();
+        }
+      }
+
+      function enable_cost_objective_selection(){
+        if (document.getElementById("gold").checked){
+          setCheckboxState("area", false, false, false);
+          setCheckboxState("wires", false, false, false);
+          setCheckboxState("crossings", false, false, false);
+          setCheckboxState("acp", false, false, false);
+        }
+        else if (document.getElementById("exact").checked){
+          setCheckboxState("area", true, true, true);
+        }
+        else if (document.getElementById("nanoplacer").checked){
+          setCheckboxState("area", true, true, true);
+        }
+        else {
+          disable_cost_objective_selection();
+        }
+      }
+
+      function disable_all(){
+        disable_levels();
+        disable_gate_libraries();
+        disable_clocking_scheme_selection(one=true, bestagon=true, best=true);
+        disable_physical_design_algorithm_selection();
+        disable_optimization_algorithm_selection();
+        disable_cost_objective_selection();
+      }
+
+      function disable_levels() {
+          setCheckboxState("network", false, true, true);
+          setCheckboxState("gate", false, true, true);
+      }
+
+      function disable_gate_libraries() {
+          setCheckboxState("one", false, true, true);
+          setCheckboxState("bestagon", false, true, true);
+      }
+
+      function disable_clocking_scheme_selection(one, bestagon, best){
+          if (one) {
+              setCheckboxState("twoddwave", false, true, true);
+              setCheckboxState("use", false, true, true);
+              setCheckboxState("res", false, true, true);
+              setCheckboxState("esr", false, true, true);
+          }
+
+          if (bestagon) {
+              setCheckboxState("row", false, true, true);
+          }
+
+          if (best) {
+              setCheckboxState("best-layout", false, true, true);
+          }
+      }
+
+      function disable_physical_design_algorithm_selection(){
+        setCheckboxState("exact", false, true, true);
+        setCheckboxState("ortho", false, true, true);
+        setCheckboxState("nanoplacer", false, true, true);
+        setCheckboxState("gold", false, true, true);
+      }
+
+      function disable_optimization_algorithm_selection(){
+        setCheckboxState("post-layout", false, true, true);
+        setCheckboxState("input-ordering", false, true, true);
+      }
+
+      function disable_cost_objective_selection(){
+        setCheckboxState("area", false, true, true);
+        setCheckboxState("wires", false, true, true);
+        setCheckboxState("crossings", false, true, true);
+        setCheckboxState("acp", false, true, true);
+      }
+
+      function get_num_benchs() {
+          const form = document.getElementById("benchmark_form");
+          const formData = new FormData(form);
+
+          fetch('./get_num_benchmarks', {
+              method: 'POST',
+              body: formData,
+              dataType: 'json',
+          }).then(response => response.json())
+              .then(response => {
+                  document.getElementById("num_benchmarks").innerHTML = response.num_selected;
+                  document.getElementById("size_compressed").innerHTML = response.size_compressed;
+                  document.getElementById("size_uncompressed").innerHTML = response.size_uncompressed;
+
+                  // Check if the 'table' property exists in the response
+                  if (response.table) {
+                      // Replace the content of the first table with the received table
+                      const tables = document.getElementsByClassName("data-table");
+                      if (tables.length > 0) {
+                          tables[0].innerHTML = response.table;
+                      }
+                  }
+
+                  if (num_benchmarks.innerHTML > 0) {
+                      downloadButton.disabled = false;
+                      downloadTableButton.disabled = false;
+                  } else {
+                      downloadButton.disabled = true;
+                      downloadTableButton.disabled = true;
+                  }
+              });
+      }
+
+      function check_col_if_all_selected() {
+          var ids = {{trindade | length}}+{{fontes | length }}+{{iscas | length }}+{{epfl | length }}
+          var check_all_selected = true;
+          for (let i = 1; i <= ids; i++) {
+              if (!document.getElementById("selectBench_" + i).checked) {
+                  all_benchmarks.checked = false;
+                  check_all_selected = false;
+              }
+          }
+          if (check_all_selected) {
+              all_benchmarks.checked = true;
+          }
+      }
+
+      function check_col_if_trindade16_selected() {
+          var start = 1
+          var ids = {{trindade | length}}
+          var check_trindade16_selected = true;
+          for (let i = start; i <= ids; i++) {
+              if (!document.getElementById("selectBench_" + i).checked) {
+                  trindade16_benchmarks.checked = false;
+                  check_trindade16_selected = false;
+              }
+          }
+          if (check_trindade16_selected) {
+              trindade16_benchmarks.checked = true;
+          }
+      }
+
+      function check_col_if_fontes18_selected() {
+          var start = {{trindade | length}}+1
+          var ids = {{trindade | length}}+{{fontes | length }}
+          var check_fontes18_selected = true;
+          for (let i = start; i <= ids; i++) {
+              if (!document.getElementById("selectBench_" + i).checked) {
+                  fontes18_benchmarks.checked = false;
+                  check_fontes18_selected = false;
+              }
+          }
+          if (check_fontes18_selected) {
+              fontes18_benchmarks.checked = true;
+          }
+      }
+
+      function check_col_if_iscas85_selected() {
+          var start = {{trindade | length}}+{{fontes | length }}+1
+          var ids = {{trindade | length}}+{{fontes | length }}+{{iscas | length }}
+          var check_iscas85_selected = true;
+          for (let i = start; i <= ids; i++) {
+              if (!document.getElementById("selectBench_" + i).checked) {
+                  iscas85_benchmarks.checked = false;
+                  check_iscas85_selected = false;
+              }
+          }
+          if (check_iscas85_selected) {
+              iscas85_benchmarks.checked = true;
+          }
+      }
+
+      function check_col_if_epfl_selected() {
+          var start = {{trindade | length}}+{{fontes | length }}+{{iscas | length }}+1
+          var ids = {{trindade | length}}+{{fontes | length }}+{{iscas | length }}+{{epfl | length }}
+          var check_epfl_selected = true;
+          for (let i = start; i <= ids; i++) {
+              if (!document.getElementById("selectBench_" + i).checked) {
+                  epfl_benchmarks.checked = false;
+                  check_epfl_selected = false;
+              }
+          }
+          if (check_epfl_selected) {
+              epfl_benchmarks.checked = true;
+          }
+      }
+    </script>
+  </body>
+</html>
