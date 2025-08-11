@@ -1,0 +1,146 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "timbal"
+dynamic = ["version"]
+description = "A strongly opinionated framework for building and orchestrating agentic AI applications"
+readme = "README.md"
+authors = [{ name = "Timbal", email = "team@timbal.ai" }]
+license.file = "LICENSE"
+urls."Source" = "https://github.com/timbal-ai/timbal"
+
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Information Technology",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Internet",
+]
+requires-python = ">=3.12"
+
+dependencies = [
+    "anthropic>=0.45.0",
+    "fastapi>=0.115.8",
+    "openai>=1.60.0",
+    "openpyxl>=3.1.5",
+    "pandas>=2.2.3",
+    "pydantic>=2.10.6",
+    # PyMuPDF 1.26.1 does not have a wheel for aarch64 (2025-06-12) and would try to build from source otherwise.
+    "pymupdf==1.26.0",
+    "python-docx>=1.1.2",
+    "python-dotenv>=1.0.1",
+    "requests>=2.32.3",
+    "structlog>=25.1.0",
+    "uuid7>=0.1.0",
+    "uvicorn>=0.34.0",
+    "watchfiles>=1.1.0",
+    "websockets>=15.0.1",
+]
+
+[project.optional-dependencies]
+all = [
+    "slack-sdk>=3.35.0",
+    "o365>=2.1.2",
+    "google-api-python-client>=2.169.0",
+    "google-auth-oauthlib>=1.2.2",
+    "psycopg2>=2.9.10",
+    "mysql-connector-python>=9.3.0",
+    "sshtunnel>=0.4.0",
+]
+slack = [
+    "slack-sdk>=3.35.0",
+]
+sharepoint = [
+    "o365>=2.1.2",
+]
+gdrive = [
+    "google-api-python-client>=2.169.0",
+    "google-auth-oauthlib>=1.2.2",
+]
+gmail = [
+    "google-api-python-client>=2.169.0",
+    "google-auth-oauthlib>=1.2.2",
+]
+pg = [
+    "psycopg2>=2.9.10",
+    "sshtunnel>=0.4.0",
+]
+mysql = [
+    "mysql-connector-python>=9.3.0",
+    "sshtunnel>=0.4.0",
+]
+
+[dependency-groups]
+dev = [
+    "pyngrok>=7.2.3",
+    "pytest>=8.3.4",
+    "pytest-asyncio>=0.25.2",
+    "ruff>=0.9.3",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["python/timbal"]
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+    "/**/.*",
+    "/**/__pycache__",
+    "/.git",
+    "/.github",
+    "/dist",
+    "/examples",
+    "/cli",
+    "/docs", 
+    "/sandbox",
+]
+
+[tool.hatch.envs.default]
+path = "python"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "python/timbal/_version.py"
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+extend-select = [
+    "UP", # pyupgrade
+    # "D", # pydocstyle
+    "I", # isort
+    "B", # bugbear rules
+    "F401", # unused imports
+    "E722", # bare except statements
+    "ARG", # unused arguments
+    "T201", # print statements
+    "T203", # print statements
+    "TC004", # Prevents misuse of TYPE_CHECKING
+    "TID251", # Enforces import conventions
+]
+ignore = [
+    "B006", # mutable defaults
+    "B008", # function calls in argument defaults
+]
+unfixable = [
+    "T201", # print statements
+    "T203", # print statements
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
