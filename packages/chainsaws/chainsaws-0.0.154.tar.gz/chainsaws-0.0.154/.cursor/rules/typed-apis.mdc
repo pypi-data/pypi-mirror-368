@@ -1,0 +1,24 @@
+---
+alwaysApply: true
+---
+
+# Typed API Conventions
+
+- 고수준 API에서 노출하는 dict는 반드시 TypedDict로 정의.
+- 요청/응답 스키마는 `*_models.py`에 정의하고 퍼블릭 모듈에서 import.
+- boto3 raw dict는 low-level에서만 반환하고, high-level에서는 TypedDict로 정규화.
+- 퍼블릭 API의 타입 주석은 구체적으로 유지(Any 지양).
+
+예:
+
+- SSM
+  - Put: `PutParameterResult = { Version: int, Tier?: "Standard"|"Advanced"|"Intelligent-Tiering" }`
+  - Get: `GetParameterResult`는 `get_parameter()['Parameter']` 키 집합을 반영
+- DynamoDB
+  - 시스템 키 제거 후 `_id` 포함 등 앱 친화 형태로 반환
+
+체크리스트:
+
+- 새 dict 반환 → TypedDict 추가
+- README 스니펫과 시그니처/필드 일치
+- low-level은 비즈니스 로직 금지, high-level에서 정규화
