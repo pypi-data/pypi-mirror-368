@@ -1,0 +1,62 @@
+[build-system]
+requires = ["setuptools>=64", "setuptools-scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "recsys-pipeliner"
+dynamic = ["version"]
+requires-python = ">= 3.11"
+
+dependencies = [
+    "boto3",
+    "multi-model-server>=1.1.11",
+    "numpy",
+    "pandas~=2.2.3",
+    "pydantic",
+    "sagemaker-inference>=1.10.1",
+    "sagemaker-training>=5.1.0",
+    "sagemaker~=2.245.0",
+    "scikit-learn~=1.6.1",
+    "scipy",
+]
+
+[project.scripts]
+serve = "recsys_pipeliner.containers.sklearn.serving:main"
+
+[dependency-groups]
+dev = ["pytest", "pytest-cov", "pytest-mock"]
+
+[project.optional-dependencies]
+jupyter = [
+    "matplotlib",
+    "matspy",
+    "sagemaker[local]~=2.245.0",
+    "seaborn",
+    "ipykernel",
+    "python-dotenv",
+]
+torch = ["torch"]
+
+[tool.setuptools_scm]
+version_file = "src/recsys_pipeliner/_version.py"
+version_scheme = "python-simplified-semver"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+exclude = ["tests", "notebooks"]
+
+[tool.pytest.ini_options]
+testpaths = "tests"
+addopts = ["--cov=src", "--cov-report=html"]
+
+[tool.coverage.run]
+branch = true
+source = ["src"]
+omit = ["src/recsys_pipeliner/_version.py"]
+
+[tool.coverage.report]
+fail_under = 95
+skip_empty = true
+include_namespace_packages = true
+omit = ["src/recsys_pipeliner/containers/sklearn/*"]
+exclude_lines = ["if __name__ == .__main__.:"]
