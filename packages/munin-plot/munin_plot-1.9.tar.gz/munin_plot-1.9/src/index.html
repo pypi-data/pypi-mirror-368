@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en" class="h-100">
+<!--
+  Copyright (C) 2018-2021 Arthur de Jong
+
+  Permission is hereby granted, free of charge, to any person obtaining a
+  copy of this software and associated documentation files (the "Software"),
+  to deal in the Software without restriction, including without limitation
+  the rights to use, copy, modify, merge, publish, distribute, sublicense,
+  and/or sell copies of the Software, and to permit persons to whom the
+  Software is furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+  DEALINGS IN THE SOFTWARE.
+-->
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="author" content="Arthur de Jong">
+  <title>Graphs</title>
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" sizes="180x180">
+  <link rel="icon" href="favicon-32x32.png" sizes="32x32" type="image/png">
+  <link rel="icon" href="favicon-16x16.png" sizes="16x16" type="image/png">
+  <link rel="icon" href="favicon.ico">
+</head>
+<body class="d-flex flex-column h-100">
+
+  <nav class="navbar navbar-expand-md navbar-light bg-light fixed-top">
+    <span class="navbar-brand">
+      <img src="logo.png" width="50" height="30" class="d-inline-block align-top" alt="munin-plot">
+      munin-plot
+    </span>
+    <div class="btn-group d-none">
+      <button class="btn btn-outline-secondary" type="button" id="clearGraphs" title="Close all graphs">
+        <i class="fa fa-eraser"></i>
+      </button>
+      <div class="btn-group dropdown" id="dashboards">
+        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+          <i class="fa fa-tachometer-alt"></i>
+          <span>Dashboards</span>
+        </button>
+        <div class="dropdown-menu"></div>
+      </div>
+      <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#loadDashboard" title="Load dashboard" id="loadDashboardBtn"><i class="fa fa-file-import"></i></button>
+      <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#saveDashboard" title="Save dashboard"><i class="fa fa-save"></i></button>
+    </div>
+    <div id="reportrange" class="dropdown-toggle btn btn-outline-secondary ms-auto d-none">
+      <span></span>
+      <i class="fa fa-calendar"></i>
+    </div>
+  </nav>
+
+  <div class="container-fluid">
+    <div class="row loadingrow"><div class="col-2"></div><div class="col-8"><div class="loading"></div><h3>LOADING</h3></div></div>
+    <div class="row">
+      <div class="col-12">
+
+        <ul id="draggablelist" class="list-unstyled">
+        </ul>
+
+        <!-- template use for generating new graphs -->
+        <ul id="template">
+          <li class="card">
+            <div class="card-leftheader text-secondary fa-width-auto">
+              <span class="draghandle" title="drag to re-order"><i class="fa fa-arrows-alt"></i></span>
+              <span class="sizesm sizeactive" title="small graph"></span>
+              <span class="sizemd" title="medium graph"></span>
+              <span class="sizelg" title="large graph"></span>
+              <span class="closegraph" title="close"><i class="fa fa-window-close"></i></span>
+            </div>
+            <div class="card-rightbody">
+              <div class="container-fluid px-0">
+                <div class="row small">
+                  <div class="col graphtitle"></div>
+                  <div class="col text-end">
+                    <span class="selectall mx-2 text-secondary" title="Select all"><i class="fa-solid fa-circle-check fa-xs"></i></span>
+                    <span class="selecttoggle mx-2 text-secondary" title="Toggle selection"><i class="fa-solid fa-circle-half-stroke fa-xs"></i></span>
+                    <span class="selectnone mx-2 text-secondary" title="Select none"><i class="fa-regular fa-circle fa-xs"></i></span>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="myplot col col-8">
+                    <div class="loading loading-small"></div>
+                  </div>
+                  <div class="mylegend col col-4">
+                    <table class="table table-sm table-hover">
+                      <thead>
+                        <th colspan="2">data</th>
+                        <th>min</th>
+                        <th>avg</th>
+                        <th>max</th>
+                      </thead>
+                      <tbody></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </li>
+        </ul>
+
+      </div>
+    </div>
+
+    <div class="row addgraph">
+      <div class="col col-1">
+        <button class="btn btn-success" type="button" data-bs-toggle="collapse" data-bs-target="#addgraph" aria-expanded="false" aria-controls="addgraph"><i class="fa fa-plus"></i></button>
+      </div>
+      <div class="col col-8">
+        <div class="collapse" id="addgraph">
+          <div class="card card-body">
+            <div class="row">
+              <div class="col col-12">
+                <div class="input-group input-group-sm">
+                  <div class="input-group-prepend">
+                    <label for="graphfilter" class="input-group-text"><i class="fa fa-search"></i></label>
+                  </div>
+                  <input id="graphfilter" class="form-control"></input>
+                  <select id="hostselect" class="form-control">
+                    <option value="">All hosts</option>
+                  </select>
+                  <select id="categoryselect" class="form-control">
+                    <option value="">All categories</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col col-12">
+                <div id="graphselect" class="list-group">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="modal fade" id="loadDashboard" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <form class="needs-validation" novalidate>
+          <div class="modal-header">
+            <h5 class="modal-title">Load dashboard</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <input type="file" id="loadDashboardFile" class="d-none">
+              <button type="button" class="btn btn-secondary" title="Upload file" id="loadDashboardFileBtn"><i class="fa fa-file-upload"></i></button>
+            </div>
+            <div class="form-group">
+              <textarea class="form-control text-nowrap" id="loadDashboardData" rows="5" placeholder="Paste JSON here"></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-sm btn-primary" id="loadDashboardGo" title="Load dashboard">Load</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="saveDashboard" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <form class="needs-validation" novalidate>
+          <div class="modal-header">
+            <h5 class="modal-title">Save dashboard</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group row">
+              <label class="col-2 col-form-label" for="saveDashboardName">Name</label>
+              <div class="col-10">
+                <input type="text" class="form-control" id="saveDashboardName" placeholder="Optional name for dashboard">
+              </div>
+            </div>
+            <div class="form-group row">
+              <div class="col-10 offset-sm-2 custom-control custom-checkbox">
+                <input type="checkbox" class="custom-control-input" id="saveDashboardDateRange">
+                <label class="custom-control-label" for="saveDashboardDateRange">Include date selection</label>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-sm btn-primary" id="saveDashboardUrl" title="Copy data to clipboard"><i class="fa fa-link"></i></button>
+            <button type="button" class="btn btn-sm btn-primary" id="saveDashboardClipboard" title="Copy data to clipboard"><i class="fa fa-copy"></i></button>
+            <button type="button" class="btn btn-sm btn-primary" id="saveDashboardFile" title="Download as file"><i class="fa fa-file-download"></i></button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer mt-auto py-2 bg-light">
+    <div class="container">
+      <small class="text-muted">
+        Generated with <a href="https://arthurdejong.org/munin-plot/" class="text-muted">munin-plot</a>
+        <a href="munin-plot.zip" class="text-muted"><i class="fa fa-file-archive" title="munin-plot source code"></i></a>
+      </small>
+    </div>
+  </footer>
+
+</body>
+</html>
