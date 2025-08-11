@@ -1,0 +1,551 @@
+<!-- templates/blocks/carousel_responsivo_snippet.html -->
+{% load wagtailcore_tags wagtailimages_tags %}
+
+<section class="carousel-responsivo" 
+         data-autoplay="{{ value.autoplay }}" 
+         data-interval="{{ value.intervalo_autoplay }}"
+         style="--carousel-height-desktop: {{ value.altura_desktop }}; --carousel-height-mobile: {{ value.altura_mobile }};">
+    
+    {% if value.titulo_secao %}
+    <div class="container">
+        <h2 class="carousel-responsivo__title">{{ value.titulo_secao }}</h2>
+    </div>
+    {% endif %}
+    
+    <div class="carousel-responsivo__container" id="carousel-{{ value.id }}">
+        <!-- Slides -->
+        <div class="carousel-responsivo__slides" role="region" aria-label="Carrossel de imagens">
+            {% for slide in value.slides.all %}
+                <div class="carousel-responsivo__slide carousel-responsivo__slide--{{ slide.posicao_texto }} carousel-responsivo__slide--{{ slide.cor_tema }}"
+                     {% if forloop.first %}data-active="true"{% endif %}>
+                    
+                    <!-- Imagem Responsiva -->
+                    {% if slide.imagem_desktop and slide.imagem_mobile %}
+                        {% image slide.imagem_desktop fill-1920x600 as img_desktop %}
+                        {% image slide.imagem_mobile fill-768x600 as img_mobile %}
+                        <picture class="carousel-responsivo__picture">
+                            <source media="(min-width: 768px)" srcset="{{ img_desktop.url }}">
+                            <img src="{{ img_mobile.url }}" 
+                                 alt="{{ slide.titulo }}" 
+                                 class="carousel-responsivo__image"
+                                 loading="{% if forloop.first %}eager{% else %}lazy{% endif %}">
+                        </picture>
+                    {% elif slide.imagem_desktop %}
+                        {% image slide.imagem_desktop fill-1920x600 as img_desktop %}
+                        <img src="{{ img_desktop.url }}" 
+                             alt="{{ slide.titulo }}" 
+                             class="carousel-responsivo__image"
+                             loading="{% if forloop.first %}eager{% else %}lazy{% endif %}">
+                    {% endif %}
+                    
+                    <!-- Overlay -->
+                    <div class="carousel-responsivo__overlay"></div>
+                    
+                    <!-- Conteúdo -->
+                    <div class="carousel-responsivo__content">
+                        <div class="container">
+                            <div class="carousel-responsivo__text-wrapper">
+                                <h3 class="carousel-responsivo__slide-title">{{ slide.titulo }}</h3>
+                                
+                                {% if slide.subtitulo %}
+                                <p class="carousel-responsivo__slide-subtitle">{{ slide.subtitulo }}</p>
+                                {% endif %}
+                                
+                                {% if slide.texto %}
+                                <div class="carousel-responsivo__slide-text">
+                                    {{ slide.texto|linebreaks }}
+                                </div>
+                                {% endif %}
+                                
+                                {% if slide.link_texto and slide.link_final %}
+                                <div class="carousel-responsivo__slide-actions">
+                                    <a href="{{ slide.link_final }}" 
+                                       class="carousel-responsivo__slide-button"
+                                       {% if slide.link_url %}target="_blank" rel="noopener"{% endif %}>
+                                        {{ slide.link_texto }}
+                                        <span class="carousel-responsivo__slide-button-icon" aria-hidden="true">→</span>
+                                    </a>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Navegação -->
+        {% if value.mostrar_navegacao and value.slides.count > 1 %}
+        <button class="carousel-responsivo__nav carousel-responsivo__nav--prev" 
+                aria-label="Slide anterior">
+            <span aria-hidden="true">‹</span>
+        </button>
+        <button class="carousel-responsivo__nav carousel-responsivo__nav--next" 
+                aria-label="Próximo slide">
+            <span aria-hidden="true">›</span>
+        </button>
+        {% endif %}
+        
+        <!-- Indicadores -->
+        {% if value.mostrar_indicators and value.slides.count > 1 %}
+        <div class="carousel-responsivo__indicators" role="tablist">
+            {% for slide in value.slides.all %}
+            <button class="carousel-responsivo__indicator"
+                    role="tab"
+                    aria-label="Ir para slide {{ forloop.counter }}"
+                    data-slide="{{ forloop.counter0 }}"
+                    {% if forloop.first %}aria-selected="true"{% endif %}>
+                <span class="sr-only">Slide {{ forloop.counter }}</span>
+            </button>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- templates/blocks/carousel_responsivo_com_opcoes.html -->
+{% load wagtailcore_tags %}
+
+<div class="carousel-wrapper 
+            carousel-wrapper--margin-top-{{ value.margem_superior }}
+            carousel-wrapper--margin-bottom-{{ value.margem_inferior }}
+            {% if value.largura_maxima %}carousel-wrapper--max-width{% endif %}">
+    
+    {% include 'blocks/carousel_responsivo_snippet.html' with value=value.carousel %}
+    
+</div>
+
+<!-- CSS Global (coloque em seu arquivo CSS principal ou base.html) -->
+<style>
+/* Carrossel Responsivo - Snippet */
+.carousel-responsivo {
+    position: relative;
+    width: 100%;
+    margin-bottom: 2rem;
+}
+
+.carousel-responsivo__title {
+    text-align: center;
+    margin-bottom: 2rem;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--enap-primary-color, #1976d2);
+}
+
+.carousel-responsivo__container {
+    position: relative;
+    width: 100%;
+    height: var(--carousel-height-mobile);
+    overflow: hidden;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+@media (min-width: 768px) {
+    .carousel-responsivo__container {
+        height: var(--carousel-height-desktop);
+    }
+}
+
+.carousel-responsivo__slides {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.carousel-responsivo__slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.6s ease-in-out;
+    display: flex;
+    align-items: center;
+}
+
+.carousel-responsivo__slide[data-active="true"] {
+    opacity: 1;
+}
+
+.carousel-responsivo__picture {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+.carousel-responsivo__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+}
+
+.carousel-responsivo__overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        135deg, 
+        rgba(0, 0, 0, 0.6) 0%, 
+        rgba(0, 0, 0, 0.3) 50%, 
+        rgba(0, 0, 0, 0.1) 100%
+    );
+    z-index: 2;
+}
+
+.carousel-responsivo__content {
+    position: relative;
+    z-index: 3;
+    width: 100%;
+    padding: 2rem 0;
+}
+
+.carousel-responsivo__text-wrapper {
+    max-width: 600px;
+    color: white;
+}
+
+.carousel-responsivo__slide--left .carousel-responsivo__text-wrapper {
+    margin-left: 0;
+    text-align: left;
+}
+
+.carousel-responsivo__slide--center .carousel-responsivo__text-wrapper {
+    margin: 0 auto;
+    text-align: center;
+}
+
+.carousel-responsivo__slide--right .carousel-responsivo__text-wrapper {
+    margin-left: auto;
+    text-align: right;
+}
+
+.carousel-responsivo__slide-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+}
+
+@media (min-width: 768px) {
+    .carousel-responsivo__slide-title {
+        font-size: 2.5rem;
+    }
+}
+
+.carousel-responsivo__slide-subtitle {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    opacity: 0.95;
+    line-height: 1.4;
+}
+
+@media (min-width: 768px) {
+    .carousel-responsivo__slide-subtitle {
+        font-size: 1.25rem;
+    }
+}
+
+.carousel-responsivo__slide-text {
+    font-size: 0.875rem;
+    margin-bottom: 1.5rem;
+    opacity: 0.9;
+}
+
+@media (min-width: 768px) {
+    .carousel-responsivo__slide-text {
+        font-size: 1rem;
+    }
+}
+
+.carousel-responsivo__slide-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--enap-primary-color, #1976d2);
+    text-decoration: none;
+    border-radius: 0.375rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.carousel-responsivo__slide-button:hover {
+    background: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.carousel-responsivo__slide-button-icon {
+    transition: transform 0.3s ease;
+}
+
+.carousel-responsivo__slide-button:hover .carousel-responsivo__slide-button-icon {
+    transform: translateX(4px);
+}
+
+/* Navegação */
+.carousel-responsivo__nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 48px;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 50%;
+    color: var(--enap-primary-color, #1976d2);
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+}
+
+.carousel-responsivo__nav:hover {
+    background: white;
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.carousel-responsivo__nav--prev {
+    left: 1rem;
+}
+
+.carousel-responsivo__nav--next {
+    right: 1rem;
+}
+
+/* Indicadores */
+.carousel-responsivo__indicators {
+    position: absolute;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0.5rem;
+    z-index: 4;
+}
+
+.carousel-responsivo__indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.carousel-responsivo__indicator[aria-selected="true"] {
+    background: white;
+    border-color: white;
+}
+
+.carousel-responsivo__indicator:hover {
+    border-color: white;
+    transform: scale(1.2);
+}
+
+/* Wrapper Styles */
+.carousel-wrapper {
+    width: 100%;
+}
+
+/* Margens superiores */
+.carousel-wrapper--margin-top-none {
+    margin-top: 0;
+}
+
+.carousel-wrapper--margin-top-small {
+    margin-top: 1rem;
+}
+
+.carousel-wrapper--margin-top-medium {
+    margin-top: 2rem;
+}
+
+.carousel-wrapper--margin-top-large {
+    margin-top: 4rem;
+}
+
+/* Margens inferiores */
+.carousel-wrapper--margin-bottom-none {
+    margin-bottom: 0;
+}
+
+.carousel-wrapper--margin-bottom-small {
+    margin-bottom: 1rem;
+}
+
+.carousel-wrapper--margin-bottom-medium {
+    margin-bottom: 2rem;
+}
+
+.carousel-wrapper--margin-bottom-large {
+    margin-bottom: 4rem;
+}
+
+/* Largura máxima */
+.carousel-wrapper--max-width {
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0 1rem;
+}
+
+@media (min-width: 768px) {
+    .carousel-wrapper--max-width {
+        padding: 0 2rem;
+    }
+}
+
+.carousel-wrapper--max-width .carousel-responsivo__container {
+    border-radius: 0.75rem;
+}
+
+/* Utilitários */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+@media (min-width: 768px) {
+    .container {
+        padding: 0 2rem;
+    }
+}
+</style>
+
+<!-- JavaScript (coloque em seu arquivo JS principal ou base.html) -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const carousels = document.querySelectorAll('.carousel-responsivo__container');
+    
+    carousels.forEach(function(carousel) {
+        const slides = carousel.querySelectorAll('.carousel-responsivo__slide');
+        const indicators = carousel.querySelectorAll('.carousel-responsivo__indicator');
+        const prevBtn = carousel.querySelector('.carousel-responsivo__nav--prev');
+        const nextBtn = carousel.querySelector('.carousel-responsivo__nav--next');
+        const carouselSection = carousel.closest('.carousel-responsivo');
+        
+        if (slides.length <= 1) return; // Não inicializar se houver apenas 1 slide
+        
+        let currentSlide = 0;
+        let autoplayTimer = null;
+        
+        const autoplay = carouselSection.dataset.autoplay === 'true';
+        const interval = parseInt(carouselSection.dataset.interval) * 1000;
+        
+        function showSlide(index) {
+            // Remove active state from current slide
+            slides[currentSlide].setAttribute('data-active', 'false');
+            if (indicators[currentSlide]) {
+                indicators[currentSlide].setAttribute('aria-selected', 'false');
+            }
+            
+            // Set new current slide
+            currentSlide = index;
+            
+            // Add active state to new slide
+            slides[currentSlide].setAttribute('data-active', 'true');
+            if (indicators[currentSlide]) {
+                indicators[currentSlide].setAttribute('aria-selected', 'true');
+            }
+        }
+        
+        function nextSlide() {
+            const next = (currentSlide + 1) % slides.length;
+            showSlide(next);
+        }
+        
+        function prevSlide() {
+            const prev = (currentSlide - 1 + slides.length) % slides.length;
+            showSlide(prev);
+        }
+        
+        function startAutoplay() {
+            if (autoplay && slides.length > 1) {
+                autoplayTimer = setInterval(nextSlide, interval);
+            }
+        }
+        
+        function stopAutoplay() {
+            if (autoplayTimer) {
+                clearInterval(autoplayTimer);
+                autoplayTimer = null;
+            }
+        }
+        
+        // Event listeners
+        if (nextBtn) {
+            nextBtn.addEventListener('click', function() {
+                stopAutoplay();
+                nextSlide();
+                startAutoplay();
+            });
+        }
+        
+        if (prevBtn) {
+            prevBtn.addEventListener('click', function() {
+                stopAutoplay();
+                prevSlide();
+                startAutoplay();
+            });
+        }
+        
+        indicators.forEach(function(indicator, index) {
+            indicator.addEventListener('click', function() {
+                stopAutoplay();
+                showSlide(index);
+                startAutoplay();
+            });
+        });
+        
+        // Pause autoplay on hover
+        carousel.addEventListener('mouseenter', stopAutoplay);
+        carousel.addEventListener('mouseleave', startAutoplay);
+        
+        // Keyboard navigation
+        carousel.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowLeft') {
+                stopAutoplay();
+                prevSlide();
+                startAutoplay();
+            } else if (e.key === 'ArrowRight') {
+                stopAutoplay();
+                nextSlide();
+                startAutoplay();
+            }
+        });
+        
+        // Start autoplay
+        startAutoplay();
+    });
+});
+</script>

@@ -1,0 +1,201 @@
+<!-- enap_designsystem/blocks/suap/suap_courses_block.html -->
+
+<section class="suap-courses-block">
+    {% if bloco_suap.title %}
+        <h2 class="suap-courses-title">{{ bloco_suap.title }}</h2>
+    {% endif %}
+    
+    {% if bloco_suap.description %}
+        <p class="suap-courses-description">{{ bloco_suap.description }}</p>
+    {% endif %}
+
+    {% if cursos_suap %}
+        <div class="suap-courses-grid container">
+            {% for curso in cursos_suap %}
+                <a href="{{ curso.url}}" class="suap-course-card" target="_blank" rel="noopener noreferrer">
+                    <div class="course-content">
+                        <div>
+                        {% if curso.incricoes %}
+                            <span class="course-modality">
+                                <i class="icon-screen"></i>
+                                {{ curso.incricoes }}
+                            </span>
+                        {% endif %}
+
+                        {% if curso.descricao %}
+                            <h3 class="course-title">{{ curso.descricao }}</h3>
+                        {% endif %}
+                        
+                        {% if curso.breve_descricao %}
+                            <p class="course-description">{{ curso.breve_descricao|truncatewords:20 }}</p>
+                        {% endif %}
+                        </div>
+                        <div class="course-meta">
+                            
+                            {% if curso.carga_horaria %}
+                                <span class="course-duration">
+                                    <i class="mdi mdi-clock-outline"></i>
+                                    {{ curso.carga_horaria }}h
+                                </span>
+                            {% endif %}
+                            
+                            {% if curso.modalidade %}
+                                <span class="course-modality">
+                                    <i class="mdi mdi-laptop"></i>
+                                    {{ curso.modalidade }}
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="suap-courses-empty">
+            <p>Nenhum curso disponível no momento.</p>
+        </div>
+    {% endif %}
+</section>
+
+<style>
+.suap-courses-block {
+    margin: 2rem 0;
+}
+
+.suap-courses-title {
+    font-size: 2.5rem;
+    font-weight: 600;
+    color: #434A54;
+    margin-bottom: 0.5rem;
+    text-align: center;
+}
+
+.suap-courses-description {
+    font-size: 1.1rem;
+    color: #666;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+}
+
+.suap-courses-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 4rem;
+    max-width: 1180px;
+}
+
+.suap-course-card {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    height: auto;
+}
+
+.suap-course-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.course-image img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+.course-content {
+    padding: 1.5rem;
+    display: flex;
+    height: 370px;
+    justify-content: space-between;
+    flex-direction: column;
+    flex-wrap: nowrap;
+}
+
+.course-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: inherit;
+    line-height: 1.4;
+}
+
+a:hover {
+    color: #006969;
+}
+
+a:active {
+    color: #025257;
+}
+
+.course-description {
+    color: #666;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+}
+
+.course-meta {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column;
+    font-size: 0.9rem;
+}
+
+.course-meta span {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #555;
+}
+
+.course-meta i {
+    width: 18px;
+    height: 24px;
+}
+
+.course-actions {
+    text-align: center;
+}
+
+.btn {
+    max-width: 200px;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.suap-courses-empty {
+    text-align: center;
+    padding: 3rem;
+    color: #666;
+    font-style: italic;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+    .suap-courses-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .course-meta {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .suap-courses-title {
+        font-size: 1.5rem;
+    }
+
+    .course-content{
+        height: auto;
+    }
+}
+</style>
