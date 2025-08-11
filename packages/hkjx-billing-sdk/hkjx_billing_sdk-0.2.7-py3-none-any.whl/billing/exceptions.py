@@ -1,0 +1,2 @@
+class BillingException(Exception):
+    pass
