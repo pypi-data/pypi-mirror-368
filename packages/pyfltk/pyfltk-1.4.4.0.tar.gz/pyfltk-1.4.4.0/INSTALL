@@ -1,0 +1,147 @@
+Installing from source:
+----------------------
+
+I.   General Notes
+II.  UNIX
+III. MS-Windows
+
+I. General Notes:
+-----------------
+
+If your platform comes without OpenGL or Forms support, or you just get
+into troubles using the default setup script, it is possible to disable 
+Forms and OpenGl support from the pyFltk build. The following command 
+line switches are provided for this:
+
+--disable-gl		: will disable OpenGL support
+--disable-forms		: will disable Forms support
+
+In general, however, setup.py will take the proper settings from your Fltk 
+installation, to be used for the compilation of pyFltk.
+
+II. UNIX:
+---------
+
+We've only tested it under GNU/Linux Debian 12 .
+
+Installation:
+sudo apt install python3-fltk
+
+Building from source:
+    1) Pre-requisites
+    1.1) Install cmake V3.25 (or later)
+    1.2) Install g++ V12 (or later)
+    1.3) Install swig-4.2 (or later) 
+    1.5) Download fltk-1.4.x (or later)
+    1.6) Download pyFltk-1.4.x (or later)
+
+    2) Building fltk (as shared libraries using CMake)
+    2.1) Extract fltk to some local directory, e.g. ~\fltk-1.4.x
+    2.2) Open a terminal and navigate to ~\fltk-1.4.x (or wherever you installed fltk)
+    2.3) mkdir build
+    2.4) cd build
+    2.5) cmake -D FLTK_BUILD_SHARED_LIBS=ON -D CMAKE_POSITION_INDEPENDENT_CODE=ON -D CMAKE_BUILD_TYPE=Release .. 
+    2.6) make
+    2.7) sudo make install
+
+    3) Building pyFltk
+    3.1) Extract pyFltk to some local directory, e.g. ~\pyFltk-1.4.x
+    3.2) Open a command prompt and change to directory ~\pyFltk-1.4.x (or wherever you installed pyFltk)
+    3.3) python3 setup.py swig 
+    3.4) python3 setup.py build 
+    3.5)
+        Option #1.
+
+        sudo python3 setup.py install     
+
+        This will build the wrapper and install it to /usr/local.
+     
+        Option #2. (Recommended)
+
+        Build a wheel file
+     
+        sudo apt-get install python3-wheel
+        or 
+        pip3 install wheel
+
+        python3 setup.py bdist_wheel
+
+        Now the dist/ dir should contain the .whl file which can be installed using 'pip3 install xxx.whl'
+        Note: you may have to setup a virtual environment or use --break-system-packages
+        The benefit of installing with pip is that the library can be uninstalled easily with 'pip3 list' and 'pip3 uninstall xxx'
+     
+        You should then be able to change directory to fltk/test/ and run the demos 
+        by typing:  python3 demos.py
+
+	
+
+III. MS-Windows:
+----------------
+
+
+MS-Visual C++ under Windows10:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Since Python 3.4, the preferred way of building extensions is with the Microsoft compiler. For this to work you will need the the Microsoft Visaul C++ compiler V14 or later, which can be installed as a free version.
+See https://wiki.python.org/moin/WindowsCompilers for how to install this.
+
+    1) Pre-requisites
+    1.1) Install Visual Studio 2019 Community edition (or later)
+    1.2) Install Python V3.12 64bit (or later)
+    1.3) Install swigwin-4.2.x or later
+    1.4) Add swigwin install directory to user or system path
+    1.5) Download fltk-1.4.x (or later)
+    1.6) Download pyFltk-1.4.x (or later)
+
+    2) Building fltk (using CMake)
+    2.1) Extract fltk to some local directory, e.g. C:\work\fltk-1.4.x
+    2.2) Start Visual Studio and select "Open a local folder"
+    2.3) Navigate to C:\work\fltk-1.4.x (or wherever you installed fltk) and press select
+    2.4) Visual Studio will now initialize the CMake environment, this might take a few moments
+    2.5) Create a Release configuration by selecting "Manage Configurations", press "+" and select "x64 Release"
+    2.6) Build the project for the x64-Release: "Build" -- "Build All"
+    2.7) After compilation finished, install the project by selecting "Build" -- "Install FLTK"
+
+    3) Building pyFltk
+    3.1) Extract pyFltk to some local directory, e.g. C:\work\pyFltk-1.4.x
+    3.2) Open a powershell command prompt and change to directory C:\work\pyFltk-1.4.x (or wherever you installed pyFltk)
+    3.3) Set the following environment variable by typing: set FLTK_HOME=C:\work\fltk-1.4.x\out\install\x64-Release
+    3.4) Install the wrapper by typing:
+        pip install wheel
+        pip install setuptools
+        python setup.py swig 
+        (make sure the swig installation directory is in your path in Windows)
+        python setup.py build
+        python setup.py bdist_wheel
+        cd dist
+        pip3 install xxx.whl
+        (where xxx.whl is the newly created wheel filename) 
+     3.5) open a new powershell instance and you should then be able to switch to test/ and run the demos 
+     by typing:  python demos.py
+
+
+MinGW
+~~~~~
+
+Since Python3.4 we do not support MinGW anymore, please use the approch with MS Visual C++ instead.
+
+IV. MacOS
+---------
+
+Installation:
+install Homebrew package manager from brew.sh
+brew install fltk
+pip3 install setuptools
+pip3 install pyfltk
+
+V. Other Platforms:
+---------------------
+
+Proceed according to the above outline.
+We would be glad about any feedback if you succeeded with building
+pyFltk on any other platform.
+
+Robert Arkiletian
+Andreas Held
+pyfltk.sourceforge.net
+
