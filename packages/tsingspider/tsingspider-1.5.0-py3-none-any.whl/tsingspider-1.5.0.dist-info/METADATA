@@ -1,0 +1,71 @@
+Metadata-Version: 2.4
+Name: tsingspider
+Version: 1.5.0
+Summary: A spider library of several data sources
+Project-URL: github, https://github.com/TsingJyujing/DataSpider
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: beautifulsoup4>=4.13.4
+Requires-Dist: bencodepy>=0.9.5
+Requires-Dist: lxml>=6.0.0
+Requires-Dist: m3u8>=6.0.0
+Requires-Dist: pycryptodomex>=3.23.0
+Requires-Dist: pytest>=8.4.1
+Requires-Dist: pytz>=2025.2
+Requires-Dist: requests>=2.32.4
+Dynamic: license-file
+
+# DataSpider
+
+![Upload Python Package](https://github.com/TsingJyujing/DataSpider/workflows/Upload%20Python%20Package/badge.svg)
+
+A spider framework with several internal spiders.
+
+## Thanks
+
+Thanks [JetBrains](https://www.jetbrains.com/?from=yifan.yuan) provided FREE [PyCharm](https://www.jetbrains.com/pycharm/?from=yifan.yuan) Professional for this project.
+
+[<img src=".jetbrains/jetbrains.png" width="180">](https://www.jetbrains.com/?from=yifan.yuan)
+
+## Install
+
+```bash
+pip install --upgrade tsingspider
+```
+
+## Features
+
+- Light-weight: do not have to start browser simulator, won't cost lots of resources
+    - But not all the website can download in this way
+- Lazy: won't download anything before you actually use the data
+- Useful Utilities
+    - Support HLS download
+    - Support cookies from firefox
+    - Support Proxies
+    - Generate magnet link from torrent data
+
+## Write Your Own Spider
+
+To define a resource, you can use `LazySoup` or `LazyContent`.
+`LazyContent` is for binary data, basically all kinds of the data are binary.
+`LazySoup` is for the XML format resource, widely be used for downloading web-page.
+
+For example:
+
+```python
+from tsing_spider.util import LazySoup, LazyContent
+
+class YourOwnSpider(LazySoup):
+    def __init__(self, url:str):
+        LazySoup.__init__(self, url)
+
+    @property
+    def some_info(self) -> str:
+        """
+        Extract information from self.soup
+        the data will be downloaded at the first time of using it
+        """
+        pass
+```
+
