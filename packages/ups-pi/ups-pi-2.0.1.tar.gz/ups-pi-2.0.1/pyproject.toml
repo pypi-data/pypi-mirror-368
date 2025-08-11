@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=65.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ups-pi"
+version = "2.0.1"
+description = "uart-based ups power management for raspberry pi"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [{name = "ethan", email = "ethan@gtfo.dev"}]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: System :: Hardware",
+    "Topic :: System :: Power (UPS)",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "pyserial>=3.5",
+]
+
+[project.optional-dependencies]
+gpio = ["RPi.GPIO>=0.7.0"]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0", 
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+]
+
+
+[project.scripts]
+ups-pi = "ups_pi.cli:main"
+ups-pi-service = "ups_pi.service:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
