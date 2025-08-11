@@ -1,0 +1,186 @@
+{% from 'navigation.tmpl' import match %}
+
+{% set (trademark, header) = TrademarkTransaction.TrademarkTransactionBody.TransactionContentBag.TransactionData | get_trademark_root %}
+{% set status = trademark | translate_status %}
+{% set comma = ',' %}
+{% set kind = trademark.MarkCategory | translate_kind %}
+{% set appyear = header.ApplicationNumber.ApplicationNumberText | get_appyear %}
+
+gbdStatus: {{ status }}
+st13: {{ header.ApplicationNumber.ApplicationNumberText | st13('KR', appdate=appyear) }}
+registrationOfficeCode: KR # division marks donot have RegistrationOfficeCode
+type: TRADEMARK
+
+{% if not status == 'Delete' %}
+kind:  {{ kind }}
+
+designatedCountries:
+  - KR
+filingPlace: {{ trademark.FilingPlace }}
+
+markFeature: {{ trademark | translate_feature(status) }}
+applicationNumber:  {{ header.ApplicationNumber.ApplicationNumberText}}
+applicationDate: {{ header.ApplicationDate | convertdate('%Y-%m-%d') }}
+registrationNumber: {{ header.RegistrationNumber }}
+registrationDate: {{ header.RegistrationDate | convertdate('%Y-%m-%d') }}
+applicationLanguageCode: ko
+expiryDate: {{ trademark.ExpiryDate | convertdate('%Y-%m-%d') }}
+terminationDate: {{ trademark.TerminationDate | convertdate('%Y-%m-%d') }}
+officeStatus: {{ trademark.KRMarkCurrentStatusCode }}
+statusDate: {{ trademark.MarkCurrentStatusDate | convertdate('%Y-%m-%d') }}
+
+markDescriptionDetails:
+  {% call(description) match('MarkRepresentation.MarkDescriptionBag.MarkDescriptionText', trademark) %}
+  - languageCode: {{ description | guess_language(trademark.ApplicationLanguageCode) }}
+    text: {{ description }}
+  {% endcall %}
+
+{% call(wspec) match('MarkRepresentation.MarkReproduction.KRWordMarkSpecification', trademark) %}
+wordMarkSpecification:
+  {% set (verbal, signif) = wspec | get_mark_names %}
+  markVerbalElement:
+    - languageCode: {{ verbal | guess_language(trademark.ApplicationLanguageCode) }}
+      text: {{ verbal }}
+  markSignificantVerbalElement:
+    - languageCode: {{ signif | guess_language(trademark.ApplicationLanguageCode) }}
+      text: {{ signif }}
+{% endcall %}
+
+markImageDetails:
+  {% call(img) match('MarkRepresentation.MarkReproduction.MarkImageBag.MarkImage', trademark) %}
+  - name: {{ img.ImageFileName }}
+    {% if img.MarkImageCategory.KRCategoryCodeBag.CategoryCode %}
+    classification:
+      kind: Vienna
+      code:
+        {% call(vienna) match('MarkImageCategory.KRCategoryCodeBag.CategoryCode', img) %}
+        - {{ vienna }}
+        {% endcall %}
+    {% endif %}
+    {% endcall %}
+
+markSoundDetails:
+  {% call(sound) match('MarkRepresentation.MarkReproduction.MarkSoundBag.MarkSound', trademark) %}
+  - filename: {{ sound.MarkSoundFileName}}
+    fileformat: {{ sound.SoundFileFormatCategory }}
+  {% endcall %}
+
+markVideoDetails:
+  {% call(video) match('MarkRepresentation.MarkReproduction.MarkMultimediaBag.MarkMultimedia', trademark) %}
+  - filename: {{ video.FileName }}
+    fileformat: {{ video.MarkMultimediaFileFormatCategory }}
+  {% endcall %}
+
+{% set (nice_class, domestic_class) = trademark.GoodsServicesBag.GoodsServices | get_classification %}
+
+{% if (nice_class | length) > 0 %}
+goodsServicesClassification:
+  kind: Nice
+  version: {{ (nice_class | first).ClassificationVersion }}
+  class:
+  {% for nice in nice_class %}
+  {% if not nice.ClassDescriptionBag.ClassDescription.ClassNumber == '00' %}
+    - code: {{ nice.ClassDescriptionBag.ClassDescription.ClassNumber | int }}
+      terms:
+        ko:
+        {% for gsline in nice.ClassDescriptionBag.ClassDescription.GoodsServicesDescriptionText | remove_trailing('.') | split_terms(separator=comma) %}
+          - {{ gsline }}
+        {% endfor %}
+  {% endif %}
+  {% endfor %}
+{% endif %}
+
+{% if (domestic_class | length) > 0 %}
+nationalGoodsServicesClassification:
+  kind: KIPO
+  version: {{ (domestic_class | first).ClassificationVersion }}
+  class:
+  {% for domestic in domestic_class %}
+    - code: {{ domestic.ClassDescriptionBag.ClassDescription.ClassNumber }}
+      terms:
+        ko:
+        {% for gsline in domestic.ClassDescriptionBag.ClassDescription.GoodsServicesDescriptionText | remove_trailing('.') | split_terms(separator=comma) %}
+          - {{ gsline }}
+        {% endfor %}
+  {% endfor %}
+{% endif %}
+
+goodsServicesUnclassified:
+  {% call(goodsServices) match('GoodsServicesBag.GoodsServices', trademark) %}
+  {% if goodsServices.ClassificationKindCode == 'Nice' %}
+  {% call(nice) match('ClassDescriptionBag.ClassDescription', goodsServices) %}
+  {% if nice.ClassNumber == '00' %}
+    ko:
+    {% for gsline in nice.GoodsServicesDescriptionText | remove_trailing('.') | split_terms %}
+      - {{ gsline }}
+    {% endfor %}
+  {% endif %}
+  {% endcall %}
+  {% endif %}
+  {% endcall %}
+
+priorities:
+{% call(priority) match('PriorityBag.Priority', trademark) %}
+  - countryCode: {{ priority.PriorityCountryCode }}
+    number: {{ priority.ApplicationNumber.ApplicationNumberText | remove_trailing('-') }}
+    date: {{ priority.PriorityApplicationFilingDate }}
+{% endcall %}
+
+publications:
+{% call(publication) match('PublicationBag.Publication', trademark) %}
+  - identifier: {{ publication.PublicationIdentifier }}
+    date: {{ publication.PublicationDate }}
+{% endcall %}
+
+applicants:
+{% call(applicant) match('ApplicantBag.Applicant', trademark) %}
+  - identifier: {{ applicant.LegalEntityName }}
+    {% call(contact) match('Contact', applicant) %}
+    fullName:
+      - text: {{ contact.Name.PersonName.PersonFullName }}
+        languageCode: {{ contact.Name.PersonName.PersonFullName | guess_language(trademark.ApplicationLanguageCode) }}
+    fullAddress:
+      {% call(adrline) match('PostalAddressBag.PostalAddress', contact) %}
+      - text: {{ adrline.PostalAddressText}}
+        languageCode: {{ adrline.PostalAddressText | guess_language(trademark.ApplicationLanguageCode) }}
+      {% endcall %}
+    countryCode: {{ applicant.NationalityCode | remove_numerics }}
+  {% endcall %}
+{% endcall %}
+
+# happens with Division marks
+{% if not trademark.ApplicantBag %}
+applicants:
+{% call(applicant) match('Registrant', trademark) %}
+  - identifier: {{ applicant.LegalEntityName }}
+    {% call(contact) match('Contact', applicant) %}
+    fullName:
+      - text: {{ contact.Name.PersonName.PersonFullName }}
+        languageCode: {{ contact.Name.PersonName.PersonFullName | guess_language(trademark.ApplicationLanguageCode) }}
+    fullAddress:
+      {% call(adrline) match('PostalAddressBag.PostalAddress', contact) %}
+      - text: {{ adrline.PostalAddressText}}
+        languageCode: {{ adrline.PostalAddressText | guess_language(trademark.ApplicationLanguageCode) }}
+      {% endcall %}
+    countryCode: {{ applicant.NationalityCode | remove_numerics }}
+  {% endcall %}
+{% endcall %}
+{% endif %}
+
+representatives:
+{% call(representative) match('RepresentativeBag.Representative', trademark) %}
+  {% call(contact) match('Contact', representative) %}
+  - fullName:
+      - text: {{ contact.Name.PersonName.PersonFullName }}
+        languageCode: {{ contact.Name.PersonName.PersonFullName | guess_language(trademark.ApplicationLanguageCode) }}
+    fullAddress:
+      {% call(adrline) match('PostalAddressBag.PostalAddress', contact) %}
+      - text: {{ adrline.PostalAddressText}}
+        languageCode: {{ adrline.PostalAddressText | guess_language(trademark.ApplicationLanguageCode) }}
+      {% endcall %}
+    countryCode: {{ representative.NationalityCode }}
+    kind: {{ representative.RepresentativeCategory | remove_numerics}}
+  {% endcall %}
+{% endcall %}
+
+{% endif %}

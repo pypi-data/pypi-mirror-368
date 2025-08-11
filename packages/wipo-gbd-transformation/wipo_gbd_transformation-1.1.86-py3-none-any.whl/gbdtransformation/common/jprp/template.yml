@@ -1,0 +1,51 @@
+kind: {{tm.master.group_t_flg |first|to_str|translate_kind}}
+
+applicationNumber: {{tm.master.app_num|first}}
+applicationDate: {{tm.master.app_dt|first|to_str|convertdate('%Y%m%d') }}
+
+registrationNumber: {{tm.master.reg_num|first}}
+registrationDate: {{tm.master.set_reg_dt|first|to_str|convertdate('%Y%m%d')}}
+
+markFeature: {{ tm.master.special_t_id | first| make_feature }}
+
+reference:
+{% if tm.refs.intl_reg_num %}
+  office: WO
+  registration:
+    - number: {{ tm.refs.intl_reg_num }}
+      date: {{ tm.refs.intl_reg_dt|convertdate('%Y%m%d') }}
+{% endif %}
+
+
+{% if tm.goods.size > 0 %}
+goodsServicesClassification:
+  class:
+  {% for g in tm.goods.itertuples() %}
+    - code: {{ g.desig_goods_or_desig_wrk_class | int }}
+      term:
+      {% for term in g.desg_gds_name_desg_wrk_name|to_str|split_terms('，') %}
+        - {{ term }}
+      {% endfor %}
+  {% endfor %}
+{% endif %}
+
+{% if tm.holders.size > 0 %}
+applicants:
+{% for hol in tm.holders.itertuples() %}
+  - identifier: {{ hol.right_person_appl_id| int }}
+    fullName: {{hol.right_person_name | try_to_8bit }}
+    fullAddress: {{hol.right_person_addr | try_to_8bit }}
+{% endfor %}
+{% endif %}
+
+{% if tm.reps.size > 0 %}
+representatives:
+{% for rep in tm.reps.itertuples() %}
+  - identifier: {{rep.atty_appl_id | int }}
+    kind: {{ rep.atty_typ| representative_type }}
+    fullName: {{ rep.atty_name | try_to_8bit }}
+{% endfor %}
+{% endif %}
+
+extra:
+  divisionNumber: {{tm.master.split_num|first}}

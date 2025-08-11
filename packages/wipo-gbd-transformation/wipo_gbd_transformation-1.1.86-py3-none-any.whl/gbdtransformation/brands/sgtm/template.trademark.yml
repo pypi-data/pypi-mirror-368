@@ -1,0 +1,148 @@
+{% from 'navigation.tmpl' import match %}
+
+{% set status = Trademark.mark_status | first | translate_status(prev_status=Trademark.previous_status)%}
+
+gbdStatus: {{ status}}
+st13: {{ Trademark.tm_no | first | st13('SG', appdate=Trademark.application_date | first | convertdate('%d/%m/%Y')) }}
+registrationOfficeCode: SG
+type: TRADEMARK
+
+{% if not status == 'Delete' %}
+kind: {{ Trademark.application_type | first | translate_kind }}
+
+markFeature: {{ Trademark | translate_feature }}
+designatedCountries:
+  - SG
+
+reference:
+{% if Trademark.ir_no %}
+  office: WO
+  registration:
+    - number: {{ Trademark.ir_no }}
+      date: {{ Trademark.ir_date | first | convertdate('%d/%m/%Y') }}
+{% endif %}
+
+applicationNumber: {{ Trademark.tm_no | first }}
+applicationDate: {{ Trademark.application_date | first | convertdate('%d/%m/%Y') }}
+publicationDate: {{ Trademark.publication_date | first | convertdate('%d/%m/%Y') }}
+
+{% if Trademark.registration_completion_date %}
+registrationNumber: {{ Trademark.tm_no | first }}
+registrationDate: {{ Trademark.registration_completion_date | first |convertdate('%d/%m/%Y') }}
+{% endif %}
+
+applicationLanguageCode: en
+expiryDate: {{ Trademark.expiry_date | first |convertdate('%d/%m/%Y') }}
+
+{% if status  == 'Ended' %}
+terminationDate: {{ Trademark.status_date | first |convertdate('%d/%m/%Y') }}
+{% endif %}
+
+officeStatus: {{ Trademark.mark_status | first }}
+statusDate: {{ Trademark.status_date | first | convertdate('%d/%m/%Y') }}
+
+markDisclaimerDetails:
+{% call(desc) match('clause_details.clause', Trademark) %}
+  - text: {{ desc | remove_trailing('.') }}
+    languageCode: {{ desc | guess_language('en') }}
+{% endcall %}
+
+wordMarkSpecification:
+  {% set (mark_name, mark_signif) = Trademark | get_mark_names %}
+  markVerbalElement:
+    - text: {{ mark_name }}
+      languageCode: {{ mark_name | guess_language('en') }}
+  markSignificantVerbalElement:
+    - text: {{ mark_signif }}
+      languageCode: {{ mark_signif | guess_language('en') }}
+  {% call(indx) match('mark_index', Trademark) %}
+  markTranslation:
+  {% call(desc) match('translation', indx) %}
+    - text: {{ desc }}
+      languageCode: {{ desc | guess_language('en') }}
+  {% endcall %}
+  markTransliteration: {{ indx.transliteration }}
+  {% endcall %}
+
+markImageDetails:
+  - name: {{ Trademark.logo_details.file_name}}
+    colourIndicator: {{ Trademark.mark_lodge_in_color == 'Y' }}
+    {% call(desc) match('mark_index.device_description', Trademark) %}
+    description:
+      - text: {{ desc }}
+        languageCode: {{ desc | guess_language('en') }}
+    {% endcall %}
+
+{% call(nc_gs) match('classes_details', Trademark) %}
+goodsServicesClassification:
+  kind: Nice
+  version: {{ ASK_THE_OFFICE }}
+  class:
+  {% call(nice) match('class_details', nc_gs) %}
+    - code: {{ nice.class_no | int }}
+      terms:
+      {% if nice.goods_services | has_value %}
+      {% call(desc) match('goods_services', nice) %}
+        {{ desc | guess_language('en') | field_name }}:
+        {% for gsline in desc | remove_trailing('.') | split_terms %}
+          - {{ gsline | lower }}
+        {% endfor %}
+      {% endcall %}
+      {% endif %}
+    {% endcall %}
+{% endcall %}
+
+priorities:
+{% call(nice) match('classes_details.class_details', Trademark) %}
+{% call(prio) match('priority_claims', nice) %}
+{% if prio.country | has_value %}
+  - countryCode: {{ prio.country | get_priority_country_code }}
+    countryName: {{ prio.country }}
+    date: {{ prio.date | convertdate('%d/%m/%Y') }}
+    comment: "Nice class {{nice.class_no | int}} {{ prio.goods_services | field_name | get_prio_gs }}"
+{% endif %}
+{% endcall %}
+{% endcall %}
+
+applicants:
+  {% call(applicant) match('company_details', Trademark) %}
+  - identifier: {{ applicant.company_code }}
+    kind: Legal entity
+    fullName:
+      - languageCode: {{ applicant.company_name | guess_language('en') }}
+        text: {{ applicant.company_name}}
+    fullAddress:
+      - languageCode: {{ applicant | format_applicant_address | guess_language('en') }}
+        text: {{ applicant | format_applicant_address }}
+    countryCode: {{ applicant.country | get_country_code }}
+  {% endcall %}
+
+representatives:
+  {% call(agent) match('agent_afs_details.agent_details', Trademark) %}
+  - identifier: {{ agent.agent_code }}
+    kind: {{ agent.type }}
+    fullName:
+      - languageCode: {{ agent.agent_name or agent.co_name | guess_language('en') }}
+        text: {{ agent.agent_name or agent.co_name }}
+    {% set (cc, addr) =  agent | format_representative_address %}
+    fullAddress:
+      - languageCode: {{ addr | guess_language('en') }}
+        text: {{ addr }}
+    countryCode: {{ cc }}
+  {% endcall %}
+  {% call(agent) match('agent_afs_details.afs_details', Trademark) %}
+  {% if agent.agent_name or agent.co_name | has_value %}
+  - identifier: {{ agent.agent_code }}
+    kind: {{ agent.type }}
+    fullName:
+      - languageCode: {{ agent.agent_name or agent.co_name | guess_language('en') }}
+        text: {{ agent.agent_name or agent.co_name }}
+    {% set (cc, addr) =  agent | format_representative_address %}
+    fullAddress:
+      - languageCode: {{ addr | guess_language('en') }}
+        text: {{ addr }}
+    countryCode: {{ cc }}
+  {% endif %}
+  {% endcall %}
+
+{% endif %}

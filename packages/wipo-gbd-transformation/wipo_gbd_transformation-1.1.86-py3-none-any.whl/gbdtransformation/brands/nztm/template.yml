@@ -1,0 +1,161 @@
+# NZTM Error File
+# /data/brands/collections/nztm/13/29/111329.xml.gz
+# --------------------------------------------------
+
+{% from 'navigation.tmpl' import match %}
+{% set TradeMark = TradeMarkInformationResponse.TradeMarkInformation.TradeMark %}
+
+{% set status = TradeMark.MarkCurrentStatusCode | translate_status %}
+
+st13: {{ TradeMark.ApplicationNumber | st13(TradeMark.RegistrationOfficeCode, appdate=TradeMark.ApplicationDate) }}
+gbdStatus: {{ status }}
+registrationOfficeCode: {{ TradeMark.RegistrationOfficeCode }}
+type: TRADEMARK
+
+{% if not status == 'Delete' %}
+kind: {{ TradeMark.KindMark | translate_kind(TradeMark.InternationalRegistrationNumber) }}
+
+markFeature: {{ TradeMark.MarkFeatureDetails.MarkFeature | translate_feature}}
+designatedCountries:
+  - {{ TradeMark.RegistrationOfficeCode }}
+
+reference:
+  {% call(ref) match('InternationalRegistrationNumber', TradeMark)%}
+  office: WO
+  registration:
+    - number: {{ ref }}
+  {% endcall %}
+
+applicationNumber: {{ TradeMark.ApplicationNumber }}
+applicationDate: {{ TradeMark.ApplicationDate | convertdate('%Y-%m-%d') }}
+registrationNumber: {{ TradeMark | get_registration_nb(status)}}
+registrationDate: {{ TradeMark.RegistrationDate }}
+
+applicationLanguageCode: 'en'
+expiryDate:  {{ TradeMark.ExpiryDate }}
+officeStatus: {{ TradeMark.MarkCurrentStatusCode }}
+terminationDate: {{ TradeMark.MarkCurrentStatusDate | get_termination(status) }}
+statusDate: {{ TradeMark.MarkCurrentStatusDate }}
+
+markDisclaimerDetails:
+  {% call(desc) match('MarkDisclaimerDetails.MarkDisclaimer', TradeMark) %}
+  - text: {{ desc }}
+    languageCode: {{ desc | guess_language(desc._languageCode, 'en') }}
+  {% endcall %}
+  {% call(desc) match('MarkConditionDetails.MarkCondition', TradeMark) %}
+  - text: {{ desc }}
+    languageCode: {{ desc | guess_language(desc._languageCode, 'en') }}
+  {% endcall %}
+
+markDescriptionDetails:
+  {% call(desc) match('MarkDescriptionDetails.MarkDescription', TradeMark) %}
+  - text: {{ desc }}
+    languageCode: {{ desc | guess_language(desc._languageCode, 'en') }}
+  {% endcall %}
+
+wordMarkSpecification:
+  markVerbalElement:
+    {% if TradeMark.WordMarkDetails.WordMarkSpecification %}
+    {% call(desc) match('WordMarkDetails.WordMarkSpecification.MarkVerbalElementText', TradeMark) %}
+    - text: {{ desc }}
+      languageCode: {{ desc | guess_language(desc._languageCode, 'en') }}
+    {% endcall %}
+    {% else %}
+    {% call(desc) match('MarkTitle', TradeMark) %}
+    - text: {{ desc }}
+      languageCode: {{ desc | guess_language('en') }}
+    {% endcall %}
+    {% endif %}
+  markTranslation:
+    {% call(desc) match('MarkTranslation', TradeMark) %}
+    - text: {{ desc }}
+      languageCode: {{ desc | guess_language(desc._languageCode, 'en') }}
+    {% endcall %}
+  markTransliteration: {{TradeMark.MarkTransliteration}}
+
+markImageDetails:
+  {% call(img) match('MarkImageDetails.MarkImage', TradeMark) %}
+  - name: {{ img.MarkImageFilename }}
+    classification:
+      {% call(classif) match('MarkImageCategory', img) %}
+      kind: Vienna
+      version: {{ classif.CategoryVersion if not classif.CategoryVersion == 'Unknown' else None }}
+      code:
+      {% call(code) match('CategoryCodeDetails.CategoryCode', classif) %}
+        - {{ code | sanitize_vienna}}
+      {% endcall %}
+      {% endcall %}
+  {% endcall %}
+markSoundDetails:
+  {% call(sound) match('MarkSoundDetails.MarkSound', TradeMark) %}
+  - filename: {{ sound.MarkSoundFilename }}
+    fileformat: {{ sound.MarkSoundFileFormat }}
+  {% endcall %}
+
+{% call(nc_gs) match('GoodsServicesDetails.GoodsServices', TradeMark) %}
+goodsServicesClassification:
+  kind: Nice
+  version: {{ ASK_THE_OFFICE }}
+  class:
+    {% call(nice) match('ClassDescriptionDetails.ClassDescription', nc_gs) %}
+    - code: {{ nice.ClassNumber | int }}
+      terms:
+      {% if nice.GoodsServicesDescription | has_value %}
+      {% call(desc) match('GoodsServicesDescription', nice) %}
+        {{ desc | guess_language(desc._languageCode, default='en') | field_name }}:
+        {% for gsline in desc | remove_trailing('.') | split_terms %}
+          - {{ gsline | lower }}
+        {% endfor %}
+      {% endcall %}
+      {% endif %}
+    {% endcall %}
+{% endcall %}
+
+priorities:
+  {% call(priority) match('PriorityDetails.Priority', TradeMark) %}
+    - countryCode: {{ priority.PriorityCountryCode }}
+      number: {{ priority.PriorityNumber }}
+      date: {{ priority.PriorityDate }}
+  {% endcall %}
+
+applicants:
+  {% call(applicant) match('ApplicantDetails.Applicant', TradeMark) %}
+  - identifier: {{ applicant.ApplicantKey.Identifier }}
+    kind: {{ applicant.ApplicantLegalEntity }}
+    fullName:
+      - languageCode: en
+        text: {{ applicant.ApplicantAddressBook.FormattedNameAddress.Name.FreeFormatName.FreeFormatNameDetails.FreeFormatNameLine }}
+    fullAddress:
+      {% set addr,cc =  applicant.ApplicantAddressBook | format_addressbook %}
+      - languageCode: {{ addr | guess_language('en') }}
+        text: {{ addr }}
+    countryCode: {{ cc }}
+  {% endcall %}
+
+representatives:
+  {% call(representative) match('RepresentativeDetails.Representative', TradeMark) %}
+  - identifier: {{ representative.RepresentativeKey.Identifier }}
+    kind: {{ representative.RepresentativeLegalEntity }}
+    fullName:
+      - languageCode: en
+        text: {{ representative.RepresentativeAddressBook.FormattedNameAddress.Name.FreeFormatName.FreeFormatNameDetails.FreeFormatNameLine }}
+    fullAddress:
+      {% set addr,cc =  representative.RepresentativeAddressBook | format_addressbook %}
+      - languageCode: {{ addr | guess_language('en') }}
+        text: {{ addr }}
+    countryCode: {{ cc or representative.RepresentativeIncorporationCountryCode }}
+  {% endcall %}
+
+correspondence:
+  {% call(corr) match('AddressForService', TradeMark) %}
+  fullAddress:
+    - languageCode: en
+      text: {{ corr | format_address }}
+  countryCode: {{ corr.AddressCountryCode }}
+  {% endcall %}
+
+extra:
+  oppositionStartDate: {{ TradeMark.OppositionPeriodStartDate }}
+  oppositionEndDate: {{ TradeMark.OppositionPeriodEndDate }}
+
+{% endif %}

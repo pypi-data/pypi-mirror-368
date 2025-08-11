@@ -1,0 +1,88 @@
+{% from 'navigation.tmpl' import match %}
+{% set status, gbd_status, status_date = DATABASE.SIXTER | get_status_and_date %}
+type: EMBLEM
+kind:
+  - {{DATABASE.SIXTER.NATURE.TYPE | translate_kind}}
+gbdStatus: {{ gbd_status }}
+officeStatus: {{ status }}
+statusDate: {{ status_date }}
+
+markFeature: {{ DATABASE.SIXTER | get_feature }}
+
+registrationOfficeCode: SIXTER
+designatedCountries:
+  - XX
+
+reference:
+  office: {{ DATABASE.SIXTER.STATE_ORG }}
+
+st13: {{ DATABASE.SIXTER | st13_sixter }}
+
+registrationNumber: {{ DATABASE.SIXTER | reg_number }}
+registrationDate: {{ DATABASE.SIXTER._DATE | convertdate('%Y%m%d') }}
+
+{% call(sign) match('PROTECTED_SIGN', DATABASE.SIXTER) %}
+wordMarkSpecification:
+  markVerbalElement:
+    {% call(text) match('TEXT', sign) %}
+    - text: {{ text }}
+      languageCode: {{ (sign._LANG or 'EN') | lower }}
+    {% endcall %}
+{% endcall %}
+
+markDesriptionDetails:
+  {% call(desc) match('DETAILSGR.DETAIL', DATABASE.SIXTER) %}
+  - text: {{ desc.TEXT }}
+    languageCode: {{ desc.TEXT._LANG | lower }}
+  {% endcall %}
+
+markImageDetails:
+  - name: {{DATABASE.SIXTER.PROTECTED_SIGN.IMAGE }}
+    {% if DATABASE.SIXTER.VIENNA %}
+    classification:
+      kind: Vienna #mostly
+      version: 7 #mostly
+      code:
+      {% call(desc) match('VIENNA.VIECLA', DATABASE.SIXTER) %}
+        - {{ desc | split_vienna }}
+      {% endcall %}
+    {% endif %}
+
+goodsServicesUnclassified:
+{% call(unclassified) match('NATURE.GOODSGR.GOODS', DATABASE.SIXTER) %}
+  - {{ unclassified._LANG | lower |  field_name }}:
+    - {{ unclassified | sanitize_text | split_terms }}
+{% endcall %}
+
+{% if DATABASE.SIXTER.ORGANIZATION %}
+applicants:
+  {% call(Applicant) match('ORGANIZATION', DATABASE.SIXTER) %}
+  - fullName:
+    {% call(nameline) match('NAME', Applicant) %}
+    - text: {{ nameline.__value}}
+      languageCode: {{ nameline._LANG | lower }}
+    {% endcall %}
+    {% if Applicant.ADDRESS %}
+    fullAddress:
+      - text: {{ Applicant | get_addr }}
+        languageCode: en
+    {% endif %}
+    countryCode: {{ Applicant.COUNTRY | upper }}
+  {% endcall %}
+{% else %}
+applicants:
+  - countryCode: {{ DATABASE.SIXTER.STATE_ORG | upper }}
+{% endif %}
+
+extra:
+  objections:
+    {% call(obj) match('OBJECTIONSGR.OBJECTIONS', DATABASE.SIXTER) %}
+    - countryCode: {{ obj.STATE }}
+      date: {{ obj.DATE | convertdate('%Y%m%d') }}
+    {% endcall %}
+  circulars:
+    {% call(obj) match('CIRCULAR', DATABASE.SIXTER) %}
+    - number: {{obj.NUMBER}}
+      pdf: {{ obj.NUMBER | to_link }}
+      date: {{ obj.DATE | convertdate('%Y%m%d') }}
+    {% endcall %}
