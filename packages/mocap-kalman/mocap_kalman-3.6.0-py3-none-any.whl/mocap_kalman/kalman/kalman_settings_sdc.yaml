@@ -1,0 +1,76 @@
+inputs:
+  fps: 60
+  rig_name: MoveMo
+  run_type: monocular
+  camera_data_dir: /home/marco/data/monocular/internal/take_69855/calib_mono/
+  poses2d_dir: /home/marco/data/monocular/internal/take_69855/pose_2d
+  poses3d_dir: /home/marco/data/monocular/internal/take_69855/pose_3d
+
+outputs:
+  blender_export: true
+  blender_export_debug: true
+  output_dir: /home/marco/data/monocular/internal/take_69855/kalman_output
+
+kinematic_type: urdf
+kinematic_name: moveai_direct
+kinematic_symmetric_bone_lengths: true
+kinematic_scale_to: live_actor
+kinematic_base_class: kinematics.rbdl_base_kinematics.Kinematics_Rbdl
+kinematic_offset_class: kinematics.rbdl_offset_kinematics.OffsetKinematics_Rbdl
+
+poses2d_adapter: adapters.data_adapters.VitPoseAdapterMonocular
+poses2d_offsets: kinematics.offset_structures.ViTOffsets
+poses3d_adapter: adapters.data_adapters.MetrabsPoseAdapter
+poses3d_offsets: kinematics.offset_structures.MetrabsOffsets
+bone_orient_structures: kinematics.bone_structures.MetrabsBones
+contact_offsets: kinematics.offset_structures.FootContactOffsets
+
+state_modifiers:
+- modifiers.state_modifiers.JointLimitsModifier
+- modifiers.state_modifiers.QuaternionsModifier
+measurement_modifiers:
+- modifiers.measurement_modifiers.JacobianDampingModifier
+
+stages: # observations: [POSES_2D, POSES_3D, BONE_ORIENTATIONS, SPINE, TRAJECTORY_CONTACT, PLANAR_CONTACT]
+- name: first stage
+  transition: transition.transition.SimpleStationaryTransitionModel
+  Q_matrix: parameters.Q_matrices.Q_Moveai_11_sdc
+  Q_factor: 3.5
+  observations:
+  - POSES_2D
+  - POSES_3D
+  - SPINE
+  - BONE_ORIENTATIONS
+  smooth_state: true
+
+- name: second stage
+  transition: transition.transition.SimpleTransitionModel
+  Q_matrix: parameters.Q_matrices.Q_Moveai_11_sdc
+  Q_factor: 1
+  observations:
+  - POSES_2D
+  - POSES_3D
+  - SPINE
+  - TRAJECTORY_CONTACT
+  - PLANAR_CONTACT
+  - BONE_ORIENTATIONS
+  smooth_state: true
+
+contact_dynamics:
+  use_plane_constraint: false
+  adjust_heel: true
+  stability_std_threshold: 0.1
+  contact_factor_threshold: 35
+  friction_coeff: 0.6
+  alpha: 0.001
+  lambda: 0
+  tanh_param_k: 1
+  tanh_param_n: 0.25
+
+smoother_settings:
+  state_smoother_type: polynomial #  ['polynomial', 'butterworth']
+  polynomial_window: 0.4 # in seconds
+  polynomial_order: 5
+  state_frequency_cutoff: 5 # in Hz
+  derivative_frequency_cutoff: 4 # in Hz
+  filter_order: 4
