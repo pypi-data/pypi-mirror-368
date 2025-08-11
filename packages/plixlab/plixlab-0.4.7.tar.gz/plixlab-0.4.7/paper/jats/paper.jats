@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE article PUBLIC "-//NLM//DTD JATS (Z39.96) Journal Publishing DTD v1.2 20190208//EN"
+                  "JATS-publishing1.dtd">
+<article xmlns:mml="http://www.w3.org/1998/Math/MathML" xmlns:xlink="http://www.w3.org/1999/xlink" dtd-version="1.2" article-type="other">
+<front>
+<journal-meta>
+<journal-id></journal-id>
+<journal-title-group>
+<journal-title>Journal of Open Source Software</journal-title>
+<abbrev-journal-title>JOSS</abbrev-journal-title>
+</journal-title-group>
+<issn publication-format="electronic">2475-9066</issn>
+<publisher>
+<publisher-name>Open Journals</publisher-name>
+</publisher>
+</journal-meta>
+<article-meta>
+<article-id pub-id-type="publisher-id">0</article-id>
+<article-id pub-id-type="doi">N/A</article-id>
+<title-group>
+<article-title>PlixLab: A Python package for browser-based interactive
+presentations</article-title>
+</title-group>
+<contrib-group>
+<contrib contrib-type="author">
+<contrib-id contrib-id-type="orcid">https://orcid.org/0000-0003-0026-8237</contrib-id>
+<name>
+<surname>Romano</surname>
+<given-names>Giuseppe</given-names>
+</name>
+<xref ref-type="aff" rid="aff-1"/>
+</contrib>
+<aff id="aff-1">
+<institution-wrap>
+<institution>Massachusetts Institute of Technology, Cambridge MA, United
+States</institution>
+<institution-id institution-id-type="ROR">042nb2s44</institution-id>
+</institution-wrap>
+</aff>
+</contrib-group>
+<pub-date date-type="pub" publication-format="electronic" iso-8601-date="2025-03-16">
+<day>16</day>
+<month>3</month>
+<year>2025</year>
+</pub-date>
+<volume>¿VOL?</volume>
+<issue>¿ISSUE?</issue>
+<fpage>¿PAGE?</fpage>
+<permissions>
+<copyright-statement>Authors of papers retain copyright and release the
+work under a Creative Commons Attribution 4.0 International License (CC
+BY 4.0)</copyright-statement>
+<copyright-year>1970</copyright-year>
+<copyright-holder>The article authors</copyright-holder>
+<license license-type="open-access" xlink:href="https://creativecommons.org/licenses/by/4.0/">
+<license-p>Authors of papers retain copyright and release the work under
+a Creative Commons Attribution 4.0 International License (CC BY
+4.0)</license-p>
+</license>
+</permissions>
+<kwd-group kwd-group-type="author">
+<kwd>Python</kwd>
+<kwd>visualization</kwd>
+<kwd>presentations</kwd>
+<kwd>browser</kwd>
+</kwd-group>
+</article-meta>
+</front>
+<body>
+<sec id="summary">
+  <title>Summary</title>
+  <p>Disseminating scientific results increasingly requires
+  interactivity with figures and data. For example, enabling the
+  rotation of a molecule within a presentation slide allows biologists
+  to illustrate molecular docking mechanisms critical to drug discovery.
+  In computational fluid dynamics, key insights are often encoded in
+  spatial maps; allowing presenters to interactively explore these maps
+  can lead to more engaging and effective communication. Despite these
+  needs, mainstream presentation tools primarily support static content.
+  <monospace>PlixLab</monospace> addresses this gap by combining the
+  power of Python with modern JavaScript visualization libraries.
+  <monospace>PlixLab</monospace> is a Python-based framework that
+  generates JSON-encoded data, which is rendered interactively in the
+  browser.</p>
+</sec>
+<sec id="statement-of-need">
+  <title>Statement of need</title>
+  <p><monospace>PlixLab</monospace> is a Python library for creating
+  browser-based interactive presentations. It supports a range of
+  plugins, including interfaces to <monospace>3jmol</monospace>
+  (<xref alt="Rego &amp; Koes, 2015" rid="ref-rego20153dmol" ref-type="bibr">Rego
+  &amp; Koes, 2015</xref>) for protein visualization,
+  <monospace>plotlyjs</monospace>
+  (<xref alt="Plotly, Inc, 2023" rid="ref-plotlyjs" ref-type="bibr">Plotly,
+  Inc, 2023</xref>) and <monospace>Bokeh</monospace>
+  (<xref alt="Bokeh Development Team, 2018" rid="ref-Bokeh" ref-type="bibr">Bokeh
+  Development Team, 2018</xref>) for dynamic plots, and web embedding
+  for integrating full scientific web applications directly into slides.
+  Notably, when embedding a JupyterLite application
+  (<xref alt="JupyterLite Contributors, 2021" rid="ref-jupyterlite" ref-type="bibr">JupyterLite
+  Contributors, 2021</xref>), <monospace>PlixLab</monospace> enables the
+  use of an in-slide REPL or even a full
+  <monospace>Jupyter Notebook</monospace>
+  (<xref alt="Kluyver et al., 2016" rid="ref-kluyver2016jupyter" ref-type="bibr">Kluyver
+  et al., 2016</xref>), with Python running locally in the browser via
+  <monospace>Pyodide</monospace>
+  (<xref alt="Pyodide development team, 2021" rid="ref-pyodide_2021" ref-type="bibr">Pyodide
+  development team, 2021</xref>). These capabilities make
+  <monospace>PlixLab</monospace> a unified platform for building
+  data-centric presentations, eliminating the need to juggle multiple
+  tools. Standard presentation features, such as animations, can also be
+  implemented programmatically.</p>
+  <fig>
+    <caption><p>Real-time update flow in PlixLab. When a Python file is
+    modified, the server sends an SSE (1–2) to the browser, which opens
+    a WebSocket (3) to receive binarized JSON data (4) and re-render the
+    presentation (5), enabling seamless
+    hot-reloading..<styled-content id="figU003Aexample"></styled-content></p></caption>
+    <graphic mimetype="application" mime-subtype="pdf" xlink:href="figure.pdf" />
+  </fig>
+  <p>The graphical user interface (GUI), written in JavaScript, offers
+  three navigation modes: single-slide view, grid view, and fullscreen
+  presentation mode. To streamline slide development,
+  <monospace>PlixLab</monospace> includes hot-reload functionality (see
+  <xref alt="[fig:example]" rid="figU003Aexample">[fig:example]</xref>).
+  When a user modifies the Python source file, a local server is
+  triggered, which uses Server-Sent Events (SSE) to notify the browser
+  client. The client then opens a WebSocket connection to receive the
+  updated binary JSON data and renders the new content. This design
+  avoids inefficient client-side polling, resulting in a responsive and
+  seamless development experience.</p>
+</sec>
+</body>
+<back>
+<ref-list>
+  <title></title>
+  <ref id="ref-plotlyjs">
+    <element-citation>
+      <person-group person-group-type="author">
+        <string-name>Plotly, Inc</string-name>
+      </person-group>
+      <article-title>Plotly.js: Open-source JavaScript charting library behind Plotly and Dash</article-title>
+      <year iso-8601-date="2023">2023</year>
+      <uri>https://github.com/plotly/plotly.js</uri>
+    </element-citation>
+  </ref>
+  <ref id="ref-jupyterlite">
+    <element-citation>
+      <person-group person-group-type="author">
+        <string-name>JupyterLite Contributors</string-name>
+      </person-group>
+      <article-title>JupyterLite: JupyterLab distribution that runs in the browser</article-title>
+      <publisher-name>https://github.com/jupyterlite/jupyterlite</publisher-name>
+      <year iso-8601-date="2021">2021</year>
+    </element-citation>
+  </ref>
+  <ref id="ref-rego20153dmol">
+    <element-citation publication-type="article-journal">
+      <person-group person-group-type="author">
+        <name><surname>Rego</surname><given-names>Nicholas</given-names></name>
+        <name><surname>Koes</surname><given-names>David</given-names></name>
+      </person-group>
+      <article-title>3Dmol. Js: Molecular visualization with WebGL</article-title>
+      <source>Bioinformatics</source>
+      <publisher-name>Oxford University Press</publisher-name>
+      <year iso-8601-date="2015">2015</year>
+      <volume>31</volume>
+      <issue>8</issue>
+      <fpage>1322</fpage>
+      <lpage>1324</lpage>
+    </element-citation>
+  </ref>
+  <ref id="ref-Bokeh">
+    <element-citation>
+      <person-group person-group-type="author">
+        <string-name>Bokeh Development Team</string-name>
+      </person-group>
+      <article-title>Bokeh: Python library for interactive visualization</article-title>
+      <publisher-name>https://github.com/bokeh/bokeh</publisher-name>
+      <year iso-8601-date="2018">2018</year>
+    </element-citation>
+  </ref>
+  <ref id="ref-pyodide_2021">
+    <element-citation publication-type="software">
+      <person-group person-group-type="author">
+        <string-name>Pyodide development team</string-name>
+      </person-group>
+      <article-title>Pyodide/pyodide</article-title>
+      <publisher-name>Zenodo</publisher-name>
+      <year iso-8601-date="2021-08">2021</year><month>08</month>
+      <uri>https://doi.org/10.5281/zenodo.5156931</uri>
+      <pub-id pub-id-type="doi">10.5281/zenodo.5156931</pub-id>
+    </element-citation>
+  </ref>
+  <ref id="ref-kluyver2016jupyter">
+    <element-citation publication-type="chapter">
+      <person-group person-group-type="author">
+        <name><surname>Kluyver</surname><given-names>Thomas</given-names></name>
+        <name><surname>Ragan-Kelley</surname><given-names>Benjamin</given-names></name>
+        <name><surname>Pérez</surname><given-names>Fernando</given-names></name>
+        <name><surname>Granger</surname><given-names>Brian</given-names></name>
+        <name><surname>Bussonnier</surname><given-names>Matthias</given-names></name>
+        <name><surname>Frederic</surname><given-names>Jonathan</given-names></name>
+        <name><surname>Kelley</surname><given-names>Kyle</given-names></name>
+        <name><surname>Hamrick</surname><given-names>Jessica</given-names></name>
+        <name><surname>Grout</surname><given-names>Jason</given-names></name>
+        <name><surname>Corlay</surname><given-names>Sylvain</given-names></name>
+        <name><surname>others</surname></name>
+      </person-group>
+      <article-title>Jupyter notebooks–a publishing format for reproducible computational workflows</article-title>
+      <source>Positioning and power in academic publishing: Players, agents and agendas</source>
+      <publisher-name>IOS press</publisher-name>
+      <year iso-8601-date="2016">2016</year>
+      <uri>https://ebooks.iospress.nl/doi/10.3233/978-1-61499-649-1-87</uri>
+      <fpage>87</fpage>
+      <lpage>90</lpage>
+    </element-citation>
+  </ref>
+</ref-list>
+</back>
+</article>
