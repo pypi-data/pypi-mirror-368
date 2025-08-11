@@ -1,0 +1,78 @@
+{
+  "name": "routelit-client",
+  "version": "0.5.1",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/routelit/routelit-react-client.git"
+  },
+  "private": false,
+  "main": "./dist/routelit-client.umd.js",
+  "module": "./dist/routelit-client.es.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b && vite build",
+    "build:lib:prod": "NODE_OPTIONS='--experimental-global-webcrypto' BUILD_TARGET=lib vite build --mode production",
+    "build:lib:dev": "NODE_OPTIONS='--experimental-global-webcrypto' BUILD_TARGET=lib vite build --mode development",
+    "build:types": "npx tsc -p tsconfig.lib.json",
+    "build:lib:all": "npm run build:lib:prod && npm run build:lib:dev",
+    "build:lib": "rm -rf dist && npm run build:lib:all && npm run build:types",
+    "build:prod": "NODE_OPTIONS='--experimental-global-webcrypto' BUILD_TARGET=prod vite build --mode production",
+    "prepublishOnly": "npm run build:lib",
+    "coverage": "NODE_OPTIONS='--experimental-global-webcrypto' vitest run --coverage",
+    "dev": "vite",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "test": "NODE_OPTIONS='--experimental-global-webcrypto' vitest run",
+    "test:watch": "NODE_OPTIONS='--experimental-global-webcrypto' vitest"
+  },
+  "dependencies": {
+    "immer": "^10.1.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-markdown": "^10.1.0",
+    "rehype-raw": "^7.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.21.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@types/node": "^22.14.1",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-react": "^4.3.4",
+    "@vitest/coverage-v8": "^1.3.1",
+    "eslint": "^9.21.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint-plugin-react-refresh": "^0.4.19",
+    "globals": "^15.15.0",
+    "jsdom": "^26.1.0",
+    "typescript": "~5.7.2",
+    "typescript-eslint": "^8.24.1",
+    "vite": "^5.4.19",
+    "vite-plugin-dts": "^4.5.3",
+    "vitest": "^1.3.1"
+  },
+  "peerDependencies": {
+    "react": ">=19.0.0",
+    "react-dom": ">=19.0.0"
+  },
+  "files": [
+    "dist"
+  ],
+  "types": "./dist/client.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/client.d.ts",
+      "import": {
+        "development": "./dist/routelit-client.es.dev.js",
+        "production": "./dist/routelit-client.es.js",
+        "default": "./dist/routelit-client.es.js"
+      },
+      "require": {
+        "development": "./dist/routelit-client.umd.dev.js",
+        "production": "./dist/routelit-client.umd.js",
+        "default": "./dist/routelit-client.umd.js"
+      }
+    }
+  }
+}
