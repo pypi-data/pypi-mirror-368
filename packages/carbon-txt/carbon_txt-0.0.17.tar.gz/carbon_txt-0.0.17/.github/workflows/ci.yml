@@ -1,0 +1,55 @@
+name: Run tests
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "**"
+    paths-ignore:
+      - "**.md"
+      - ".gitignore"
+  # make our tests run when we have external PRs
+  pull_request:
+    paths-ignore:
+      - "**.md"
+      - ".gitignore"
+
+defaults:
+  run:
+    working-directory: ./
+
+jobs:
+  run_tests:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: [3.11, 3.12]
+
+    steps:
+      - uses: actions/checkout@v4
+
+        # https://github.com/marketplace/actions/setup-just
+      - uses: extractions/setup-just@v2
+        name: install just
+
+        # https://docs.astral.sh/uv/guides/integration/github/
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.5.0"
+          enable-cache: true
+
+      - name: Use Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install tooling for managing dependencies
+        run: uv sync
+
+      - name: Run tests
+        run: just ci
+        env:
+          SECRET_KEY: "test"
