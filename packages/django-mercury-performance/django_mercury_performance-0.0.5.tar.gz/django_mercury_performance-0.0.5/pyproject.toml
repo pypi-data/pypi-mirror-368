@@ -1,0 +1,319 @@
+[build-system]
+requires = ["setuptools>=75.0", "wheel", "setuptools-scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "django-mercury-performance"
+version = "0.0.5"
+description = "A performance testing framework for Django that helps you understand and fix performance issues, not just detect them"
+readme = "README.md"
+license = {text = "GPL-3.0-or-later"}
+authors = [
+    {name = "Django Mercury Team", email = "mathewstormdev@gmail.com"}
+]
+maintainers = [
+    {name = "Mathew Storm", email = "mathewstormdev@gmail.com"}
+]
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Framework :: Django",
+    "Framework :: Django :: 5.0",
+    "Framework :: Django :: 5.1",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: C",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Software Development :: Testing :: Unit",
+    "Topic :: Software Development :: Quality Assurance",
+]
+keywords = [
+    "django",
+    "performance",
+    "testing",
+    "monitoring",
+    "optimization",
+    "n+1",
+    "queries",
+    "profiling",
+    "mercury",
+    "rest-framework",
+    "api",
+    "benchmarking"
+]
+
+dependencies = [
+    "Django>=3.2,<6.0",
+    "djangorestframework>=3.12.0",
+    "psutil>=5.8.0",
+    "memory-profiler>=0.60.0",
+    "colorlog>=6.6.0",
+    "jsonschema>=4.0.0",
+]
+
+[project.optional-dependencies]
+rich = ["rich>=12.0.0"]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=3.0.0",
+    "black>=22.0.0",
+    "isort>=5.10.0",
+    "mypy>=0.950",
+    "rich>=12.0.0",
+    "flake8>=4.0.0",
+    "ruff>=0.1.0",
+    "coverage>=6.0.0",
+    "twine>=5.0.0",
+    "setuptools>=70.0",
+    "build>=1.0.0",
+]
+docs = [
+    "sphinx>=4.5.0",
+    "sphinx-rtd-theme>=1.0.0",
+]
+debug = [
+    "django-debug-toolbar>=3.2.0",
+    "django-silk>=4.3.0",
+]
+
+[project.urls]
+Homepage = "https://pypi.org/project/django-mercury-performance/"
+Documentation = "https://github.com/80-20-Human-In-The-Loop/Django-Mercury-Performance-Testing/wiki"
+Repository = "https://github.com/80-20-Human-In-The-Loop/Django-Mercury-Performance-Testing"
+"Bug Tracker" = "https://github.com/80-20-Human-In-The-Loop/Django-Mercury-Performance-Testing/issues"
+Changelog = "https://github.com/Django-Mercury/Performance-Testing/blob/main/CHANGELOG.md"
+
+[project.scripts]
+mercury-test = "django_mercury.cli.mercury_test:main"
+mercury-analyze = "django_mercury.python_bindings.cli:main"
+
+[tool.setuptools]
+packages = [
+    "django_mercury", 
+    "django_mercury.python_bindings", 
+    "django_mercury.c_core",
+    "django_mercury.cli",
+    "django_mercury.cli.educational",
+    "django_mercury.documentation",
+    "django_mercury.examples"
+]
+include-package-data = true
+
+[tool.setuptools.package-data]
+"django_mercury" = [
+    "*.md",
+    "py.typed",
+]
+"django_mercury.c_core" = [
+    "*.c",
+    "*.h",
+    "Makefile",
+    "BUILD.md",
+]
+"django_mercury.python_bindings" = ["*.py"]
+"django_mercury.documentation" = ["*.md"]
+"django_mercury.examples" = ["*.py"]
+
+[tool.black]
+line-length = 100
+target-version = ['py310', 'py311', 'py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+    \.git
+  | \.venv
+  | venv
+  | build
+  | dist
+  | \.egg-info
+  | migrations
+  | __pycache__
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+skip = ["venv", ".venv", "migrations"]
+known_django = ["django", "rest_framework"]
+sections = ["FUTURE", "STDLIB", "DJANGO", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+exclude = [
+    "venv/",
+    ".venv/",
+    "build/",
+    "dist/",
+    "tests/",
+    "migrations/",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+addopts = [
+    "--verbose",
+    "--tb=short",
+    "--strict-markers",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by black)
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+]
+exclude = [
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    "venv",
+    ".venv",
+    "*.egg-info",
+    "migrations",
+]
+
+[tool.coverage.run]
+source = ["django_mercury"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+    "*/migrations/*",
+    "*/venv/*",
+    "*/.venv/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.cibuildwheel]
+# Build for Python 3.10-3.12
+build = "cp310-* cp311-* cp312-*"
+
+# Skip 32-bit builds, PyPy, and musllinux for now
+skip = [
+    "*-win32",        # Skip 32-bit Windows
+    "*-manylinux_i686",  # Skip 32-bit Linux
+    "pp*",            # Skip PyPy
+    "*-musllinux_*",  # Skip musllinux (Alpine)
+]
+
+# Build verbosity
+build-verbosity = 1
+
+# Environment variables - suppress warnings during build
+environment = {DJANGO_MERCURY_SUPPRESS_WARNING="1", DJANGO_MERCURY_PURE_PYTHON="0"}
+
+# Build settings - try C extensions but fall back to pure Python if needed
+environment-pass = ["DJANGO_MERCURY_PURE_PYTHON"]
+
+# Pre-build: ensure setuptools is installed and check versions
+before-build = [
+    "python -m pip install --upgrade pip 'setuptools>=75.0' wheel",
+    "python -c \"import sys; print(f'Building for Python {sys.version}'); import setuptools; print(f'setuptools: {setuptools.__version__}')\""
+]
+
+# Simple test that doesn't depend on Django configuration - just test basic imports
+test-command = [
+    "python -c \"import django_mercury; print(f'[PASS] django-mercury {django_mercury.__version__} imported successfully')\"",
+    "python -c \"from django_mercury.python_bindings.loader import get_implementation_info; print(f'[INFO] Implementation: {get_implementation_info()}')\""
+]
+
+# Don't test on emulated architectures (too slow)
+test-skip = ["*-macosx_arm64", "*-macosx_universal2:arm64", "*linux_aarch64"]
+
+# Linux-specific configuration
+[tool.cibuildwheel.linux]
+# Use manylinux_2_34 container for GLIBC 2.34+ support
+# This supports Ubuntu 22.04+, RHEL 9+, Debian 12+
+manylinux-x86_64-image = "quay.io/pypa/manylinux_2_34_x86_64:latest"
+manylinux-i686-image = "quay.io/pypa/manylinux_2_34_i686:latest"
+manylinux-aarch64-image = "quay.io/pypa/manylinux_2_34_aarch64:latest"
+
+# Environment variables
+environment = {DJANGO_MERCURY_SUPPRESS_WARNING="1"}
+
+# Install system dependencies for C compilation in manylinux container
+before-all = [
+    "dnf install -y gcc make",  # Use dnf for RHEL 9+ based containers
+    "python -m pip install --upgrade pip setuptools wheel",
+    "python -c \"import sys; print(f'Python: {sys.version}')\"",
+    # Verify we're in manylinux_2_34 container
+    "cat /etc/redhat-release || echo 'Not in RHEL-based container'",
+    "ldconfig -p | grep 'libc.so.6' | head -1",  # Show GLIBC version
+]
+
+# Pre-build: install build dependencies
+before-build = [
+    "python -m pip install --upgrade pip 'setuptools>=75.0' wheel",
+]
+
+# Use auditwheel to create proper manylinux_2_34 wheels
+# This gives us GLIBC 2.34+ support with proper platform tags
+repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel} --plat manylinux_2_34_x86_64 || echo 'Note: auditwheel repair failed, wheel requires GLIBC 2.34+'"
+
+# macOS-specific configuration  
+[tool.cibuildwheel.macos]
+# Build for both Intel and Apple Silicon
+archs = ["x86_64", "arm64", "universal2"]
+
+# Set deployment target for compatibility
+environment = {MACOSX_DEPLOYMENT_TARGET="10.9", DJANGO_MERCURY_SUPPRESS_WARNING="1"}
+
+# Windows-specific configuration
+[tool.cibuildwheel.windows]
+# Only build 64-bit
+archs = ["AMD64"]
+
+# Environment variables for Windows - enable C extensions
+environment = {DJANGO_MERCURY_SUPPRESS_WARNING="1", DJANGO_MERCURY_PURE_PYTHON="0"}
+
+# Build C libraries before Python extension
+# Note: Windows requires 'python -m pip' to upgrade pip itself
+# Using setuptools >=75 with metadata fix script
+before-build = "python -m pip install --upgrade pip \"setuptools>=75.0\" wheel delvewheel && python setup.py build_ext --inplace"
+
+# Repair wheels to include dependencies
+repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
