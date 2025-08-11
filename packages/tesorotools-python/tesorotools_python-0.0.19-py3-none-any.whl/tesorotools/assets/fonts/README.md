@@ -1,0 +1,1 @@
+Archivos *.otf de fuentes. No los incluimos en el control de versiones.
