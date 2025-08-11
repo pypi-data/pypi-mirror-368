@@ -1,0 +1,117 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "obk"
+version = "0.10.0"
+description = "This is a pre-release/alpha version for initial feedback and CI testing. Not for production use."
+authors = [{ email = "hello@evenflow.dev" }]
+readme = "README.md"
+requires-python = ">=3.11"
+
+dependencies = [
+    "typer>=0.12",
+    "dependency-injector>=4.41",
+    "xmlschema>=3.2",
+    "tzdata>=2024.1",
+    "packaging>=24.0",
+    "colorama>=0.4.6",
+    "platformdirs>=4.2",
+	"sqlalchemy>=2.0",
+]
+
+[project.urls]
+Homepage = "https://www.obkcli.com/"
+Repository = "https://www.github.com/bynbb/obk"
+
+[project.scripts]
+obk = "obk.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/obk"]
+include = [
+  "src/obk/xsd/*.xsd",
+  "src/obk/templates/*.xml",
+  "src/obk/py.typed",
+]
+
+[tool.hatch.envs.default]
+dependencies = [
+  "pytest",
+  "ruff",
+  "black",
+  "mypy",
+  "toml"
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest >=7.0.0",
+    "pytest-cov >=4.0.0",
+    "pytest-mock >=3.10.0",
+    "python-dotenv >=1.0.0",
+    "toml",
+]
+qa = [
+    "mypy>=1.10",
+    "ruff>=0.5",
+]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unreachable = true
+warn_unused_ignores = true
+disallow_any_generics = true
+no_implicit_optional = true
+show_error_codes = true
+strict_optional = true
+
+[[tool.mypy.overrides]]
+module = "dependency_injector.*"
+ignore_missing_imports = true
+
+
+[[tool.mypy.overrides]]
+module = "obk.application.*"
+strict = true
+
+[[tool.mypy.overrides]]
+module = "obk.domain.*"
+strict = true
+
+[[tool.mypy.overrides]]
+module = "obk.infrastructure.*"
+warn_return_any = true
+
+[[tool.mypy.overrides]]
+module = "obk.presentation.*"
+warn_return_any = true
+
+[[tool.mypy.overrides]]
+module = "xmlschema.*"
+ignore_missing_imports = true
+
+
+[tool.ruff]
+line-length = 100
+src = ["src"]  
+
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ANN"]
+
+
+[tool.ruff.lint.isort]
+known-first-party = ["obk"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["ANN", "E501"]
+"src/obk/presentation/cli/main.py" = ["B008"]   # Typer's Option in defaults
+"src/obk/validation.py" = ["B023", "E501"]      # Keep existing validation structure
+
+# --- Added by patch-ruff-mypy.ps1 ---
+[[tool.mypy.overrides]]
+module = ["sqlalchemy", "sqlalchemy.*"]
+ignore_missing_imports = true
