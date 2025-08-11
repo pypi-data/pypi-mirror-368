@@ -1,0 +1,237 @@
+Metadata-Version: 2.4
+Name: test-genie
+Version: 1.0.0
+Summary: AI-Powered Test Case Generation for Developers
+Author-email: TestGenie Team <team@testgenie.dev>
+License: MIT
+Project-URL: Homepage, https://github.com/testgenie/testgenie
+Project-URL: Repository, https://github.com/testgenie/testgenie
+Project-URL: Documentation, https://docs.testgenie.dev
+Project-URL: Issues, https://github.com/testgenie/testgenie/issues
+Keywords: testing,ai,test-generation,cli
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: click>=8.1.7
+Requires-Dist: requests>=2.31.0
+Requires-Dist: pathlib2>=2.3.7
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0.0; extra == "dev"
+Requires-Dist: black>=22.0.0; extra == "dev"
+Requires-Dist: flake8>=5.0.0; extra == "dev"
+Requires-Dist: mypy>=1.0.0; extra == "dev"
+Dynamic: license-file
+
+# TestGenie
+
+AI-Powered Test Case Generation for Developers
+
+## Overview
+
+TestGenie is a comprehensive platform that generates high-quality test cases for your code using advanced AI models. It supports both online (API-based) and offline (local Ollama models) modes.
+
+## Features
+
+- **Multi-language Support**: Python, JavaScript, TypeScript, Java, Go, and more
+- **Multiple Testing Frameworks**: pytest, unittest, Jest, Mocha, and others
+- **Online Mode**: Use cloud-based AI models via API
+- **Offline Mode**: Work locally with Ollama models for privacy
+- **CLI Tool**: Command-line interface for quick test generation
+- **Web Dashboard**: Beautiful web interface for test generation
+- **Project-wide Generation**: Generate tests for entire projects
+
+## Project Structure
+
+```
+test_genie/
+├── backend/                 # FastAPI backend
+│   ├── app/
+│   │   ├── api/             # API routes
+│   │   ├── core/            # Auth, config, logging
+│   │   ├── models/          # Pydantic + DB schemas
+│   │   ├── services/        # Business logic
+│   │   ├── db.py            # DB session
+│   │   ├── deps.py          # Auth/permission dependencies
+│   │   └── main.py          # FastAPI app entrypoint
+│   ├── alembic/             # Migrations
+│   └── requirements.txt     # Backend dependencies
+
+├── cli/                     # Python CLI tool
+│   ├── commands/
+│   │   ├── online.py        # Calls backend API
+│   │   ├── offline.py       # Calls local model via Ollama
+│   │   └── utils.py
+│   ├── auth.py              # Handles token caching/login
+│   ├── config.py            # Loads ~/.testgenie/config.json
+│   ├── main.py              # Entry point for CLI
+│   └── requirements.txt     # CLI-specific deps
+
+├── frontend/                # Next.js website
+│   ├── pages/               # Sign up / login / dashboard
+│   ├── components/
+│   ├── lib/                 # API utilities, stripe helpers
+│   ├── styles/
+│   ├── public/
+│   ├── next.config.js
+│   └── package.json
+
+├── models/                  # Local model config + installer
+│   ├── install.py           # Installs Ollama + pulls mistral
+│   ├── run.py               # Starts/queries model server
+│   └── prompts.py           # LLM prompts for test case generation
+
+├── shared/                  # Code shared across CLI/backend
+│   ├── prompt_builder.py
+│   └── file_utils.py
+
+├── tests/                   # Tests for backend + CLI
+│   ├── cli/
+│   ├── backend/
+│   └── offline/
+
+├── docker-compose.yml       # For local dev (Postgres + API)
+├── env.example              # Sample env file
+├── .gitignore
+├── LICENSE
+├── README.md
+└── pyproject.toml           # CLI build config
+```
+
+## Quick Start
+
+### 1. Clone the Repository
+
+```bash
+git clone <repository-url>
+cd test_genie
+```
+
+### 2. Set Up Environment
+
+```bash
+# Copy environment file
+cp env.example .env
+
+# Edit .env with your configuration
+nano .env
+```
+
+### 3. Start with Docker (Recommended)
+
+```bash
+# Start all services
+docker-compose up -d
+
+# Access the application
+# Frontend: http://localhost:3000
+# Backend API: http://localhost:8000
+```
+
+### 4. Manual Setup
+
+#### Backend Setup
+
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+
+# Run the backend
+python -m app.main
+```
+
+#### Frontend Setup
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+#### CLI Setup
+
+```bash
+cd cli
+pip install -r requirements.txt
+
+# Install the CLI globally
+pip install -e .
+```
+
+## Usage
+
+### CLI Usage
+
+```bash
+# Online mode (requires backend)
+test_genie online generate path/to/file.py --framework pytest
+
+# Offline mode (requires Ollama)
+test_genie offline generate path/to/file.py --framework pytest
+
+# Install Ollama and models
+test_genie offline install
+
+# Login to API
+test_genie login
+```
+
+### Web Dashboard
+
+1. Open http://localhost:3000
+2. Sign up or log in
+3. Paste your code and select language/framework
+4. Generate tests instantly
+
+## Development
+
+### Running Tests
+
+```bash
+# Backend tests
+cd backend
+pytest
+
+# CLI tests
+cd cli
+pytest
+
+# Frontend tests
+cd frontend
+npm test
+```
+
+### Database Migrations
+
+```bash
+cd backend
+alembic upgrade head
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests
+5. Submit a pull request
+
+## License
+
+MIT License - see LICENSE file for details
+
+## Support
+
+For support and questions:
+- Create an issue on GitHub
+- Check the documentation
