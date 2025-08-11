@@ -1,0 +1,98 @@
+Metadata-Version: 2.4
+Name: easyi2l
+Version: 0.0.9
+Summary: A better way to use IP2Location in Python
+Project-URL: Homepage, https://github.com/ozeliurs/EasyI2L
+Project-URL: Issues, https://github.com/ozeliurs/EasyI2L/issues
+Author-email: Ozeliurs <ozeliurs@gmail.com>
+License: MIT License
+        
+        Copyright (c) [year] [fullname]
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE.
+License-File: LICENSE
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Requires-Python: >=3.8
+Requires-Dist: ip2location
+Requires-Dist: python-dotenv
+Requires-Dist: requests
+Requires-Dist: tqdm
+Description-Content-Type: text/markdown
+
+# EasyI2L - Easy IP2Location Wrapper
+
+`easyi2l` is a Python wrapper around the [IP2LOCATION](https://www.ip2location.com/) library. It allows you to automatically download and load the IP2LOCATION database, simplifying the process of working with IP geolocation data.
+
+## Features
+
+- **Automatic Download**: Fetches the IP2LOCATION database directly using your IP2LOCATION token.
+- **Database Loading**: Automatically loads the downloaded database for immediate use.
+- **Simple API**: Retrieve IP geolocation data with minimal setup.
+
+## Installation
+
+Install the package via pip:
+
+```bash
+pip install easyi2l
+```
+
+## Usage
+
+Before using the package, ensure you have the `IP2LOCATION_TOKEN` environment variable set. You can obtain a token from [IP2Location LITE](https://lite.ip2location.com/).
+
+### Example
+
+Here's a simple example of how to use `easyi2l`:
+
+```python
+from pathlib import Path
+
+from easyi2l import EasyI2L, DBType
+
+
+# Download to the default folder
+db = EasyI2L.download(DBType.DB11LITEBIN).load()
+
+# Or specify a custom download folder
+# db = EasyI2L.download(DBType.DB11LITEBIN, folder=Path("./ipdb")).load()
+
+# Retrieve all data for an IP address
+print(db.get_all("1.1.1.1"))
+```
+
+### Environment Setup
+
+You need to set the `IP2LOCATION_TOKEN` environment variable for the package to function correctly. The package uses `load_dotenv` from the `dotenv` module to load this variable from a `.env` file in your working directory.
+
+Create a `.env` file with the following content:
+
+```plaintext
+IP2LOCATION_TOKEN=your_token_here
+```
+
+## Contributing
+
+Feel free to open issues or submit pull requests to improve the library.
+
+## License
+
+This project is licensed under the MIT License.
