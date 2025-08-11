@@ -1,0 +1,76 @@
+## 📝 Tasklist Simple
+
+**Tasklist Simple** is a command-line application developed in Python as part of the final project for the *CSD110 – Introduction to Programming* course at Sault College. The tool allows users to manage tasks directly from the terminal in a simple and efficient way.
+
+## Project Overview
+
+The program was designed to reinforce key programming concepts such as:
+
+- Function-based code organization  
+- File handling for persistent data storage  
+- Command-line argument parsing using `argparse`  
+- Error handling with `try/except` blocks  
+- Interactive user input via a menu system
+
+All tasks are stored in a plain text file (`tasks.txt`), making the tool lightweight and easy to use.
+
+## How to Run the Program
+
+This project uses **Poetry** for dependency management and execution. To run the program:
+
+1. Install dependencies and run the tool:
+   ```bash
+   poetry install
+   poetry run tasklist
+   ```
+
+## Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `--add "Task name"` | Adds a new task |
+| `--complete "Task name"` | Marks a task as completed |
+| `--remove "Task name"` | Removes a task |
+| `--show` | Displays all tasks |
+| `--clear` | Deletes all tasks |
+| `--version` | Shows the program version |
+| `--menu` | Opens an interactive menu for task management |
+
+## Example Usage
+
+```bash
+poetry run tasklist --add "Finish final report"
+poetry run tasklist --show
+poetry run tasklist --menu
+```
+
+## Error Handling
+
+The program includes basic validation to ensure a smooth user experience:
+
+- Prevents duplicate tasks  
+- Handles invalid inputs gracefully  
+- Uses `try/except` to avoid crashes during file operations
+
+## Reflections
+Throughout the development of Tasklist Simple, I was able to apply several programming concepts learned during the course, such as function design, file handling, and error management. One of the most valuable aspects of this project was learning how to structure a command-line tool that feels intuitive and reliable.
+I also explored how to use Poetry for dependency management and script execution, which helped me understand how professional Python projects are organized. The process of debugging and refining the tool taught me the importance of clear error messages and user-friendly feedback.
+To support the development and improve the structure of both the code and the report, I used Microsoft Copilot. The AI helped me brainstorm ideas, clarify the role of each function, and refine the README file to make it more natural and informative. This conversation was part of my learning process and contributed to the final result.
+
+## Challenge and Resolution
+One challenge I encountered during development was preventing duplicate tasks from being added to the list. Initially, the program would accept any input and save it directly to the file, which led to repeated entries.
+To solve this, I added a validation step in the add_task() function that checks whether the task already exists before saving it. If a duplicate is detected, the program displays a warning message and skips the addition. This not only improved the user experience but also made the tool more robust and reliable.
+
+## Author
+
+Barbara Hanna Silva dos Santos  
+Student ID: 24041304  
+Sault College – CSD110 – Introduction to Programming  
+Professor: Eric Knutson  
+Date: August 12, 2025
+
+
+
+
+
+
