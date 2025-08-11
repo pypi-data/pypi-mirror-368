@@ -1,0 +1,173 @@
+# Christofy 🧠📦
+
+**Christofy** is a lightweight and modular PyTorch-based image classification package designed for both training and prediction. Built on top of ResNet18, it supports both binary and multi-class classification with clean abstractions and an easy-to-use API. Now featuring a powerful RAG (Retrieval-Augmented Generation) system and Vision Analysis capabilities with Ollama integration!
+
+---
+
+## 🚀 Features
+
+- ✅ Train image classifiers using CNN (ResNet18)
+- ✅ Binary and multi-class classification support
+- ✅ Predict the class of a single image using saved model
+- ✅ Modular structure: clean separation between training and prediction
+- ✅ RAG pipeline with Ollama integration for text analysis
+- ✅ Support for multiple file formats (PDF, DOCX, CSV, Excel, TXT, JSON)
+- ✅ Vision Analysis with multimodal AI models
+- ✅ Conversation mode for interactive image analysis
+- ✅ Batch processing for multiple images
+- ✅ Graph-based image segmentation
+- ✅ Ready to be installed as a Python package
+
+---
+
+## 📚 Usage
+
+### Image Classification
+
+```python
+import christofy
+
+# Train a model
+christofy.train_model(
+    data_dir="path/to/dataset",
+    learning_rate=0.001,
+    epochs=10,
+    batch_size=32,
+    output_dir="output"
+)
+
+# Make predictions
+predicted_class = christofy.predict_image(
+    model_path="output/model.pth",
+    image_path="path/to/image.jpg"
+)
+```
+
+### RAG Pipeline
+
+```python
+from christofy import run_rag_pipeline
+
+# Example usage
+response = run_rag_pipeline(
+    data="path/to/documents",  # Can be file, directory, or text
+    query="Your question here?",
+    model="llama2",              # Your local Ollama model
+    embedding_model="nomic-embed-text",  # For embeddings
+    temperature=0.7
+)
+
+print(response)
+```
+
+### Supported File Formats for RAG
+- PDF files (requires PyPDF2 or pdfplumber)
+- Word documents (DOCX) (requires python-docx)
+- CSV and Excel files (requires pandas)
+- Text files (TXT)
+- JSON files
+
+### Vision Analysis
+
+```python
+from christofy import vision_spell
+
+# Basic usage
+vision_spell("image.jpg", "What do you see?")
+
+# With model selection
+vision_spell("image.jpg", "What do you see?", model="llava:13b")
+
+# Full parameters
+vision_spell(
+    image_path="image.jpg",
+    question="What do you see?",
+    model="llava",
+    temperature=0.7,
+    max_tokens=None,
+    system_prompt=None,
+    conversation_mode=False
+)
+
+# Conversation mode
+chat = vision_spell("image.jpg", "What do you see?", conversation_mode=True)
+chat.ask("What colors are present?")
+chat.ask("Is this indoors or outdoors?")
+
+# Export conversation
+chat.export_conversation("json")
+chat.export_conversation("txt")
+
+# Batch processing
+from christofy import batch_vision_analysis
+
+batch_vision_analysis(
+    image_paths=["img1.jpg", "img2.png"],
+    questions="What do you see?",
+    model="llava"
+)
+
+# Utility functions
+from christofy import list_vision_models, get_system_info, show_module_info
+
+# Alternative function name
+from christofy import vision
+vision("image.jpg", "What do you see?")
+```
+
+### Image Segmentation
+
+```python
+from christofy import segmenter
+
+# Basic usage with default parameters
+segmenter("image.jpg")
+
+# With custom parameters
+segmenter(
+    image_path="image.jpg",
+    sigma=0.5,           # Standard deviation for Gaussian smoothing
+    merge_threshold=500,  # Threshold for merging segments
+    min_size=50          # Minimum segment size
+)
+```
+
+### Requirements
+- Python 3.9+
+- PyTorch
+- Ollama (for RAG and Vision functionality)
+- Pillow (for Vision functionality)
+- scikit-image (for Segmentation functionality)
+- matplotlib (for Segmentation visualization)
+- Additional dependencies based on file formats
+
+### Installation
+
+```bash
+pip install christofy
+```
+
+For PDF support:
+```bash
+pip install PyPDF2  # or pdfplumber
+```
+
+For DOCX support:
+```bash
+pip install python-docx
+```
+
+For CSV/Excel support:
+```bash
+pip install pandas openpyxl
+```
+
+---
+
+## 📝 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
