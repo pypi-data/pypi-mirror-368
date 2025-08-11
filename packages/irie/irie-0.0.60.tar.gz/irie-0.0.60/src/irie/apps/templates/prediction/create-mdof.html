@@ -1,0 +1,141 @@
+{% extends "layouts/base.html" %}
+
+{% block title %} Form {% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center py-4">
+      <div class="d-block mb-4 mb-md-0">
+          <nav aria-label="breadcrumb" class="d-none d-md-inline-block">
+              <ol class="breadcrumb breadcrumb-dark breadcrumb-transparent">
+                  <li class="breadcrumb-item">
+                      <a href="/">
+                          <svg class="icon icon-xxs" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                      </a>
+                  </li>
+                  <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">BRACE<sup>2</sup></a></li>
+                  <li class="breadcrumb-item">Inventory</li>
+                  <li class="breadcrumb-item active" aria-current="page">New Predictor</li>
+              </ol>
+          </nav>
+          <h1 class="h4">New Predictor</h1>
+
+      </div>
+      <div class="btn-toolbar mb-2 mb-md-0">
+        {% if True %}
+          <a href="#" class="btn btn-sm btn-gray-800 d-inline-flex align-items-center">
+              <svg class="icon icon-xs me-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+              New Predictor
+          </a>
+        {% endif %}
+      </div>
+  </div>
+<div class="row">
+  <div class="container">
+    <div class="form-group"></div>
+    <form action="/docs/form-submission.html" method="get">
+        <input id="input" type="hidden" name="type" value="{{ runner. }}">
+        <div id='editor-container'></div>
+        <input id="submit" class="btn btn-primary" width="100" type="submit">
+    </form>
+    <br>
+    <h2>Get params</h2>
+    <pre id="get-params"></pre>
+</div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script src="https://cdn.jsdelivr.net/npm/@json-editor/json-editor@latest/dist/jsoneditor.min.js"></script>
+<script>
+  var params = {}
+  for (const [key, value] of new URLSearchParams(window.location.search).entries()) {
+    params[key] = value
+    console.log(key, value)
+  }
+  document.querySelector('#get-params').textContent = JSON.stringify(params, null, 2)
+  var config = {
+    use_name_attributes: false,
+    theme: 'bootstrap4',
+    disable_edit_json: true,
+    disable_properties: true,
+    disable_collapse: true,
+    schema: {
+      'title': 'Generic System ID',
+      'type': 'object',
+      'required': [
+        'name',
+        'decimation',
+        'favorite_color',
+        'method',
+        // 'location',
+        'channels'
+      ],
+      'properties': {
+        'name': {
+          'type': 'string',
+          'title': 'Name',
+          'description': 'Predictor name',
+          'minLength': 2,
+          // 'default': 'Jeremy Dorn'
+        },
+        'decimation': {
+          'type': 'integer',
+          'title': 'Decimation',
+          'default': 1,
+          'minimum': 1,
+          'maximum': 8
+        },
+        'method': {
+          'type': 'string',
+          'enum': [
+            'Fourier Spectrum',
+            'Response Spectrum',
+            'SRIM'
+          ]
+        },
+        'channels': {
+          'type': 'array',
+          'format': 'table',
+          'title': 'Channels',
+          'uniqueItems': true,
+          'items': {
+            'type': 'object',
+            'title': 'Channel',
+            'properties': {
+              'type': {
+                'type': 'string',
+                'enum': [
+                  'output',
+                  'input'
+                ],
+                'default': 'output'
+              },
+              'id': {
+                'type': 'integer'
+              }
+            }
+          },
+          'default': [
+            {
+              'type': 'output',
+              'id': 1
+            }
+          ]
+        },
+        'favorite_color': {
+          'type': 'string',
+          'format': 'color',
+          'title': 'favorite color',
+          'default': '#ffa500'
+        }
+      }
+    }
+  }
+
+  var editor = new JSONEditor(document.querySelector('#editor-container'), config)
+
+  editor.on('change', function () {
+    document.querySelector('#input').value = JSON.stringify(editor.getValue())
+  })
+</script>
+{% endblock %}

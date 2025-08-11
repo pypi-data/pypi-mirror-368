@@ -1,0 +1,394 @@
+{% extends "layouts/base.html" %}
+{% load get %}
+{% load nbi %}
+{% block title %} {{ asset.calid }} Digital Twin{% endblock %} 
+{% block meta %}
+<meta name="description" content="{% if asset.id|divisibleby:2 %}Live-updating digital twin for health assessment of the {{ asset.name }} ({{ asset.calid }}).{% else %}Digital twin profile for real-time health monitoring of the {{ asset.name }} ({{ asset.calid }}) bridge{% endif %}">
+{% endblock %}
+{% block stylesheets %}
+{% if asset.rendering %}
+<!-- <meta name="viewport" content="width=device-width, initial-scale=1.0"> -->
+<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
+{% endif %}
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js" charset="utf-8"></script>
+<style>
+.crop {
+  width: 100%; /* 200px;*/
+  height: auto ; /* 150px; */
+  overflow: hidden;
+}
+.crop img {
+    width: 100%;
+    height: auto;
+    margin: -200px 0 -100px -100px;
+}
+</style>
+<style>
+@media print {
+  @page {
+    size: 8.5in 11in;
+  }
+  #event-table, #rendering, #structureProfile {
+    display:    none;
+    visibility: hidden;
+    max-width:  0;
+  }
+  #page {
+    width: 100%; 
+    margin-left:   0;
+    margin-right:  0;
+    margin-top:    0.5in;
+    margin-bottom: 0.75in;
+    float: none !important;
+  }
+  html, body {
+    margin:  0 !important;
+    padding: 0 !important;
+    height: 99%;
+    width: 100%;
+    float: none !important;
+  }
+  body {
+    font: 10pt "Computer Modern", Georgia, "Times New Roman", Times, serif;
+    line-height: 1.1;
+    background: #fff !important;
+    color: #000;
+  }
+  h1 {
+    font-size: 16pt;
+  }
+  h2, h3, h4 {
+    font-size: 14pt;
+  }
+  main, div.print {
+    visibility: visible;
+    width: auto; /* 100%; */
+    font-size: 10pt;
+    margin: 0; /* 0.50in 0.5in 0.5in 0.5in; */
+    float: none ! important;
+    page-break-inside:auto ;
+    /* height: 900px; */
+  }
+  tr    { page-break-inside:avoid; page-break-after:auto }
+  thead { display:table-header-group }
+  tfoot { display:table-footer-group }
+  table {
+    border-bottom: 2px solid black;
+    border-top: 2px solid black;
+    font-size: 8pt;
+    visibility: visible;
+    width: 100%; 
+    margin: 0; 
+    float: none;
+    page-break-inside:auto ; 
+    page-break-after:auto;
+  }
+  hr, img, nav, footer, .button, #rendering, #event-table {
+    visibility: hidden;
+    display: none;
+    max-height: 0;
+    max-width: 0;
+  }
+  details > summary {
+    list-style: none;
+  }
+  details > summary::marker {
+    display:none;
+  }
+  .ssid-data {
+    visibility: visible;
+    display: block;
+  }
+}
+.ct-series-a .ct-point, .ct-series-a .ct-line, .ct-series-a .ct-bar, .ct-series-a .ct-slice-donut{
+  stroke: #506690;
+}
+.ct-series-b .ct-point, .ct-series-b .ct-line, .ct-series-b .ct-bar, .ct-series-b .ct-slice-donut {
+  stroke: #61DAFB;
+}
+</style>
+{% endblock stylesheets %}
+
+{% block content %}
+<div class="print">
+    <div class="col-10 mb-4 d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center py-4">
+      <div class="d-block mb-4 mb-md-0">
+          <nav aria-label="breadcrumb" class="d-none d-md-inline-block">
+            <ol class="breadcrumb breadcrumb-dark breadcrumb-transparent">
+              <li class="breadcrumb-item">
+                <a href="{% url 'dashboard' %}">
+                  <svg class="icon icon-xxs" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                </a>
+              </li>
+              <li class="breadcrumb-item" aria-current="page"><a href="{% url 'asset_table' %}">Inventory</a></li>
+              <li class="breadcrumb-item active"><code>{{ asset.calid }}</code></li>
+            </ol>
+          </nav>
+          <h1 class="h4"><samp>{{ asset.id }}</samp> / {{ asset.name }}</h1>
+      </div>
+      <div class="btn-toolbar mb-2 mb-md-0">
+        <a role="button" 
+           href="/inventory/{{ asset.calid }}/predictors/"
+           class="btn btn-sm btn-outline-primary d-inline-flex align-items-center mx-1">
+              Predictors
+        </a>
+        <a role="button" 
+           href="{% url 'asset_sensors' calid=asset.calid %}"
+           class="btn btn-sm btn-outline-primary d-inline-flex align-items-center mx-1">
+              Sensors
+        </a>
+      </div>
+    </div>
+    {% if asset.nbi_data.NBI_BRIDGE %}
+    <div class="col-10">
+      <p>
+      {% if asset.id|divisibleby:3 %}
+        The {{asset.name}} is a structure in 
+        {{ asset.nbi_data.NBI_BRIDGE|get:"Highway Agency District"|nbi }} 
+        of the California inventory.
+        The structure was constructed in {{asset.nbi_data.NBI_BRIDGE|get:"Year Built"}}. 
+      {% elif asset.id|divisibleby:4 %}
+        The {{asset.name}} was constructed in {{asset.nbi_data.NBI_BRIDGE|get:"Year Built"}} 
+        and belongs to {{ asset.nbi_data.NBI_BRIDGE|get:"Highway Agency District"|nbi }}. 
+      {% else %}
+        <em>{{asset.name}}</em> is a structure in 
+        {{ asset.nbi_data.NBI_BRIDGE|get:"Highway Agency District"|nbi }} 
+        of California that was built in {{asset.nbi_data.NBI_BRIDGE|get:"Year Built"}}. 
+      {% endif %}
+      {% if asset.id|divisibleby:2 %}
+        The superstructure is in 
+        <em>{{ asset.nbi_data.NBI_BRIDGE|get:"Superstructure Condition Rating"|nbi }}</em>.
+      {% else %}
+        The condition of the superstructure is classified as being in 
+        <em>{{ asset.nbi_data.NBI_BRIDGE|get:"Superstructure Condition Rating"|nbi }}</em>.
+      {% endif %}
+      The structure has been configured with {{asset.predictors|length}} predictors. 
+      </p>
+      <p>
+      {% if asset.cgs_data %}
+        {% if asset.id|divisibleby:3 %}The superstructure consists of {% else %}The superstructure's construction is {% endif %}
+        {{ asset.cgs_data.2|get:"Superstructure Type"|lower }}
+        {{asset.cgs_data.2|get:"Remarks"}}
+        More information about the structure instrumentation is availiable from
+        <a rel="nofollow noreferrer" href="https://www.strongmotioncenter.org/cgi-bin/CESMD/stationhtml.pl?stationID={{asset.cesmd}}&network=CGS">CESMD</a>. 
+      {% else %}
+        {% if asset.id|divisibleby:3 %}
+        The structure has not been instrumented.
+        {% else %}
+        No {% if asset.id|divisibleby:2 %}direct{% endif %} sensor data is available for this structure.
+        {% endif %}
+      {% endif %}
+      </p>
+    </div>
+    {% endif %}
+    
+    {# BRIDGE RENDERING #}
+    <details id="asset-sensors" open><summary><h3>Geometry</h3></summary>
+      {% if asset.rendering %}
+      <div id="rendering" class="row">
+        <div class="col-10 mb-4">
+          <div class="card h-100 bg-white-100 border-1 rounded-0 shadow">
+            <div class="card-header d-sm-flex flex-row align-items-center flex-0">
+              {% comment %}
+              <button 
+                class="btn btn-primary position-absolute top-0 end-0 m-2" 
+                onclick="openFullViewer('{{ asset.rendering }}')">
+                Full Screen
+              </button>
+              {% endcomment %}
+            </div>
+
+            <div class="card-body align-items-center">
+              <model-viewer 
+                id="viewer"
+                src="{{ asset.rendering }}" 
+                alt="3D Model of {{ asset.name }}" 
+                camera-controls
+                interaction-prompt="none"
+                camera-orbit="0deg 75deg 2m" 
+                field-of-view="30deg"
+                style="width: 100%; height: 400px;">
+              </model-viewer>
+            </div>
+            <div class="card-footer">
+              Powered by <a href="https://veux.io/">veux</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    {% if asset.cesmd %}
+    <div id="sensors" class="row">
+      <div class="col-10 mb-4">
+        <div class="card h-100 bg-white-100 border-1 rounded-0 shadow">
+          <div class="card-header d-sm-flex flex-row align-items-center flex-0">
+          </div>
+          <div class="card-body align-items-center p-2">
+            <img src="{{ ASSETS_ROOT }}/inventory/ll{{ asset.cesmd|slice:"2:" }}.svg">
+          </div>
+          <div class="card-footer">
+            <span class="small">
+              Source: <a rel="nofollow noreferrer" href="https://www.strongmotioncenter.org/cgi-bin/CESMD/stationhtml.pl?stationID={{asset.cesmd}}&network=CGS">CGS</a></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    </details>
+    
+
+    {% if asset.cesmd or hazus %}
+    <details id="event-table" open><summary><h3>Health History</h3></summary>
+      {% if asset.cesmd %}
+      <div class="row">
+        <div class="col-10 mb-4">
+          <a role="button" 
+            href="{% url 'asset_evals' calid=asset.calid %}"
+            class="btn btn-sm btn-outline-primary d-inline-flex align-items-center mx-1">
+                All Events
+          </a>
+      {% include 'includes/asset-event-table.html' with evaluations=evaluations calid=asset.calid %}
+        </div>
+      </div>
+      {% endif %}
+
+      {# Hazus #}
+      <div class="row">
+        <div class="col-10 mb-4">
+          <div class="card bg-white-100 border-1 rounded-0 shadow ">
+            <div class="card-header">
+              <h4>Hazus Fragility</h4>
+            </div>
+            <div class="card-body  d-flex align-items-center justify-content-center">
+              {% include "prediction/hazus/history.html" with hazus=hazus %}
+            </div>
+            <div class="card-footer">
+              <span class="small">Source: <a rel="nofollow noreferrer" href="https://www.fema.gov/flood-maps/tools-resources/flood-map-products/hazus/user-technical-manuals">FEMA</a></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </details>
+    <hr>
+    {% endif %}
+
+    {# STRUCTURE PROFILE #}
+
+    {# CSMIP SUMMARY TABLES #}
+    <details open><summary><h3>Structure Details</h3></summary>
+
+    <div class="row">
+      <div class="col-10 mb-4">
+        {% for table in tables %}
+        <div class="card bg-white-100 border-1 rounded-0 shadow table-wrapper table-responsive">
+          <div class="card-body shadow table-wrapper table-responsive">
+            <table class="table table-hover" style="display: block;">
+              <caption>{{asset.calid}} Table {{forloop.counter}}</caption>
+              <tbody>
+                {% for key,val in table.items %}
+                {% if val %}
+                <tr>
+                  <th scope="row" style="text-align:left; width:40%;">{{ key }}</th>
+                  <!-- The inline style here ensures that 
+                        there are line breaks in rows with long text -->
+                  <td style="width: 60%; white-space: normal !important;word-wrap: break-word;">{{ val }}</td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <div class="card-footer">
+            <span class="small">Source: <a rel="nofollow noreferrer" href="https://infobridge.fhwa.dot.gov/">InfoBridge</a></span>
+          </div>
+        </div>
+        <br>
+        {% endfor %}
+      </div> <!-- col -->
+    </div><!-- row -->
+    </details>
+
+
+</div>
+{% endblock content %}
+
+<script>
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+</script>
+{% block javascripts %}
+<script>
+  const table_keys = [
+    {% for method in evaluations.0.evaluation %}
+            "{{ method }}",
+    {% endfor %}];
+  for (const key of table_keys) {
+    let elem = document.querySelector(`#ssid-set-${key}`);
+    elem.onclick = () => {
+      // Unhide
+      [...document.querySelectorAll(`.ssid-method-${key}`)].map((x) => {
+        console.log(x);
+        x.style.display = null;
+      });
+      document.querySelector("#ssid-name").textContent = elem.innerText;
+      // Hide rest
+      for (const oth of table_keys) {
+        if (oth != key)
+          [...document.querySelectorAll(`.ssid-method-${oth}`)].map((x) => {
+            console.log(x);
+            x.style.display = 'none';
+          });
+      }
+    };
+  }
+</script>
+
+<script>
+  {% include "prediction/hazus/history.js" %}
+</script>
+<script type="text/javascript">
+  function printTables() {
+    var myWindow = window.open('','','width=200,height=100')
+    myWindow.document.write("This is 'myWindow'")
+    myWindow.print();
+  }
+</script>
+<script>
+  function openFullViewer(src) {
+    // Construct the HTML for the full-screen viewer
+    const fullViewerHTML = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Full Viewer</title>
+        <style>
+          body { margin: 0; padding: 0; overflow: hidden; }
+          model-viewer { width: 100vw; height: 100vh; }
+        </style>
+      </head>
+      <body>
+        <model-viewer 
+          src="${src}" 
+          alt="3D Model" 
+          auto-rotate 
+          camera-controls
+          style="width: 100%; height: 100%;">
+        </model-viewer>
+        <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"><\/script>
+      </body>
+      </html>
+    `;
+
+    // Open a new tab
+    const newTab = window.open();
+
+    // Write the HTML into the new tab
+    newTab.document.open();
+    newTab.document.write(fullViewerHTML);
+    newTab.document.close();
+  }
+</script>
+
+{% endblock javascripts %}

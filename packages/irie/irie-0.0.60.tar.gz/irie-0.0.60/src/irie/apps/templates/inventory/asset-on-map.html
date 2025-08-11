@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Asset Map</title>
+  <meta property="og:description" content="Use a custom style layer with babylon.js to add a 3D model to the map." />
+  <meta charset='utf-8'>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel='stylesheet' href='https://unpkg.com/maplibre-gl@5.2.0/dist/maplibre-gl.css' />
+  <script src='https://unpkg.com/maplibre-gl@5.2.0/dist/maplibre-gl.js'></script>
+  <style>
+      body { margin: 0; padding: 0; }
+      html, body, #map { height: 100%; margin: 0}
+  </style>
+  {% if viewer == "three" %}
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+    }
+  }
+  </script>
+  {% else %}
+  <script src="https://unpkg.com/babylonjs@5.42.2/babylon.js"></script>
+  <script src="https://unpkg.com/babylonjs-loaders@5.42.2/babylonjs.loaders.min.js"></script>
+  {% endif %}
+</head>
+<body>
+    <div id="map" data-location="{{ location }}"
+    {% if render_src %}
+                  data-render-source="{{ render_src }}"
+    {% else %}
+                  data-render-inline="{{ render_glb }}"
+    {% endif %}
+    >
+    </div>
+
+
+{% if viewer == "three" %}
+<script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+{% else %}
+<script>
+{% endif %}
+{% include "inventory/asset-on-map.js" with viewer=viewer %}
+</script>
+
+</body>
+</html>

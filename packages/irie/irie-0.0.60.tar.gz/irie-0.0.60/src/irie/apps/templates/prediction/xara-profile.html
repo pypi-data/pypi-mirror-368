@@ -1,0 +1,125 @@
+{% extends "layouts/base.html" %}
+{% load predictor %}
+{% block title %} {{ asset.calid }} | {{ runner.name }} {% endblock %} 
+{% block stylesheets %}
+<!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.8.2/css/all.min.css" integrity="sha512-rqQltXRuHxtPWhktpAZxLHUVJ3Eombn3hvk9PHjV/N5DMUYnzKPC1i3ub0mEXgFzsaZNeJcoE0YHq0j/GFsdGg==" crossorigin="anonymous" referrerpolicy="no-referrer" /> -->
+<script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.172.0/examples/jsm/"
+    }
+  }
+</script>
+<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+{% endblock stylesheets %}
+
+{% block content %}
+
+<div class="col-10 mb-4 d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center py-4">
+  <div class="d-block mb-4 mb-md-0">
+      <nav aria-label="breadcrumb" class="d-none d-md-inline-block">
+        <ol class="breadcrumb breadcrumb-dark breadcrumb-transparent">
+          <li class="breadcrumb-item">
+            <a href="{% url 'dashboard' %}">
+              <svg class="icon icon-xxs" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+            </a>
+          </li>
+          <li class="breadcrumb-item" aria-current="page"><a href="{% url 'asset_table' %}">Inventory</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'asset_profile' asset.calid %}"><code>{{ asset.calid }}</code></a></li>
+          <li class="breadcrumb-item"><a href="{% url 'asset_predictors' asset.calid %}">Predictors</a></li>
+          <li class="breadcrumb-item active"><code>{{ predictor.id }}</code></li>
+        </ol>
+      </nav>
+      <h1 class="fs-2 lh-2 me-3"><code>{{ asset.calid }}</code> {{ asset.name }}</h1>
+  </div>
+</div>
+
+{% include "prediction/veux/navigator.html" with members=members sections=sections sensors=sensors %}
+
+{% endblock content %}
+
+{% block javascripts %}
+
+<script>
+{% include "prediction/veux/navigator.js" %}
+
+const VIEWER = new VeuxNavigator(`/inventory/{{asset.calid}}/predictors/{{predictor.id}}`,
+                              document.querySelector('#tab-link-container'),
+                              document.getElementById('tab-content-container'),
+                              document.getElementById('property-viewer'));
+
+function handleMemberSelection(elem) {
+    VIEWER.select(elem);
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    VIEWER.initTabs('tab1', '.tab-link');
+});
+
+</script>
+
+<script>
+  const select  = document.getElementById('table-switcher');
+  const tables  = Object.fromEntries(
+    Array.from(document.querySelectorAll('table')).map(t => [t.id, t])
+  );
+
+  select.addEventListener('change', e => {
+    const chosen = e.target.value;
+    for (const [id, tbl] of Object.entries(tables)) {
+      tbl.hidden = id !== chosen;        // HTML `hidden` handles show/hide
+    }
+  });
+</script>
+
+<script type="module">
+  {% include "sensors/render-sensors.js" %}
+
+  document.addEventListener('DOMContentLoaded', () => {
+      const container = document.getElementById("main-viewer");
+
+      // const modelPath = "{# predictor.render_file.url|safe #}";
+      const modelPath = "/inventory/{{asset.calid}}/predictors/{{predictor.id}}/render/";
+
+      const scene = createSensorRenderer(container, modelPath);
+  
+      const arrowObjects = [];
+
+      // Loop through each sensor form and create an arrow
+      document.querySelector('#sensors').querySelectorAll('tr').forEach((row) => {
+          const x  = parseFloat(row.dataset.sensorX)  || 0;
+          const y  = parseFloat(row.dataset.sensorY)  || 0;
+          const z  = parseFloat(row.dataset.sensorZ)  || 0;
+          const dx = parseFloat(row.dataset.sensorDx) || 0;
+          const dy = parseFloat(row.dataset.sensorDy) || 0;
+          const dz = parseFloat(row.dataset.sensorDz) || 0;
+          console.log(x, y, z, dx, dy, dz);
+          console.log(row)
+
+          // Create a direction vector from dx,dy,dz
+          const direction = new THREE.Vector3(dx, dy, dz);
+          const length = direction.length() || 0.1; // arrow length
+          direction.normalize();
+
+          const origin = new THREE.Vector3(x, y, z);
+          const color = 0xff0000;
+          const arrow = createArrow(
+                                      origin,
+                                      direction, 
+                                      length,
+                                      color,
+                                      0.3*length, // head length 
+                                      0.2*length, // head width
+                                      0.1*length  // shaft radius
+                                  );
+
+          scene.add(arrow);
+          arrowObjects.push(arrow);
+      });
+      
+  });
+  </script>
+{% if predictor.render_file %}
+{% endif %}
+{% endblock javascripts %}

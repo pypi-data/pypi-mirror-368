@@ -1,0 +1,137 @@
+<div class="">
+    <div class="row align-right">
+  <!-- Left Side: Sensor Form -->
+      <div class="col-md-4" >
+        <div class="card bg-white-100 border-1 rounded-0 shadow">
+          <div class="card-header d-sm-flex flex-row align-items-center flex-0">
+            <h5 class="mb-0 me-2">Components </h5>
+
+            <select id="table-switcher" 
+                    class="form-select form-select-sm me-2">
+              <option value="members" >Members</option>
+              <option value="sections">Sections</option>
+              <option value="sensors" >Sensors</option>
+            </select>
+          </div>
+          <div class="card-body">
+            <div class="table-response">
+              <table id="members" 
+                    class="table align-items-center table-flush">
+                <thead class="thead-light">
+                <tr>
+                  <th class="border-bottom" scope="col">Name</th>
+                  <th class="border-bottom" scope="col">Type</th>
+                </tr>
+                </thead>
+                <tbody>
+                  {% for member in members %}
+                  <tr id="veux-member-{{member.id}}" 
+                      data-render="section={{ member.section }}"
+                      data-name="{{ member.name }}"
+                      style="cursor: pointer;" 
+                      onClick="handleMemberSelection(this)">
+                  <td><code>{{ member.name }}</code></td>
+                  <td>{{ member.type }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+              <div>
+                <table id="sections" hidden
+                      class="table align-items-center table-flush">
+                  <thead class="thead-light">
+                    <tr>
+                      <th class="border-bottom" scope="col">Name</th>
+                      <th class="border-bottom" scope="col">Type</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for member in sections %}
+                    <tr id="veux-member-{{member.id}}" 
+                        data-render="section={{ member.name }}"
+                        data-analysis="section={{ member.name }}"
+                        data-name="{{ member.name }}"
+                        style="cursor: pointer;" 
+                        onClick="handleMemberSelection(this)">
+                    <td><code>{{ member.name }}</code></td>
+                    <td>{{ member.type }}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+
+              <table id="sensors"
+                     class="table align-items-center table-flush" hidden>
+                <thead class="thead-light">
+                <tr>
+                  <th class="border-bottom" scope="col">#</th>
+                  <th class="border-bottom" scope="col">Node</th>
+                  <th class="border-bottom" scope="col">Type</th>
+                </tr>
+                </thead>
+                <tbody>
+                  {% for sensor in sensors %}
+                  <tr id="sensor-{{sensor.id}}"
+                      data-sensor-x="{{  sensor.sensor.x }}"
+                      data-sensor-y="{{  sensor.sensor.y }}"
+                      data-sensor-z="{{  sensor.sensor.z }}"
+                      data-sensor-dx="{{ sensor.sensor.dx }}"
+                      data-sensor-dy="{{ sensor.sensor.dy }}"
+                      data-sensor-dz="{{ sensor.sensor.dy }}">
+                    <td><code>{{ sensor.id }}</code></td>
+                    <td>{{ sensor.node }}</td>
+                    <td>{{ sensor.role }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+              <nav>
+                <ul class="pagination" id="pagination"></ul>
+              </nav>
+            </div>
+          </div>
+        </div>
+
+        <div id="veux-properties" class="card bg-white-100 border-1 rounded-0 shadow mt-3">
+          <div class="card-header">
+            <h5 class="mb-0">Properties</h5>
+          </div>
+          <div class="card-body">
+            <div id="property-viewer" class="text-center">
+              <p>Select a member or sensor to view properties.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+  <!-- Right Side: Rendering -->
+      <div class="col-md-8">
+        <div id="rendering" class="card bg-white-100 border-1 rounded-0 shadow">
+          <div class="card-header">
+            <ul id="tab-link-container" class="nav nav-tabs" id="myTab" role="tablist">
+              <li class="nav-item" role="presentation">
+                <a class="nav-link tab-link active" 
+                    id="tab1-tab" 
+                    data-bs-toggle="tab" href="#"
+                    data-tab="tab1" 
+                    role="tab">Model</a>
+              </li>
+            </ul>
+          </div>
+          <div class="card-body text-center" style="background-color: #f0f0f0;">
+            <div id="tab-content-container">
+              <div id="tab1-content" class="tab-content">
+                <div id="main-viewer"
+                    style="width: 100%; height: 300px; background-color: #f0f0f0; margin: 0 auto;">
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer text-center">
+              Powered by <a href="https://veux.io/">veux</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>

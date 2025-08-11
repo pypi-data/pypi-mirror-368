@@ -1,0 +1,179 @@
+{% extends "layouts/base.html" %}
+{% load indexing %}
+{% block stylesheets %}
+{% endblock %}
+{% block title %} Dashboard {% endblock %} 
+
+{% block content %}
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center py-4">
+    <div class="d-block mb-4 mb-md-0">
+        <nav aria-label="breadcrumb" class="d-none d-md-inline-block">
+          <ol class="breadcrumb breadcrumb-dark breadcrumb-transparent">
+            <li class="breadcrumb-item">
+              <a href="/">
+                <svg class="icon icon-xxs" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+              </a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
+          </ol>
+        </nav>
+        <h2 class="h4">Dashboard</h2>
+    </div>
+
+    {# BUTTONS #}
+    <div class="btn-toolbar mb-2 mb-md-0">
+      <a href="#" 
+         onClick="fetchAndDownloadText('/summarize/', 'report.tex')"
+         class="btn btn-sm btn-gray-800 d-inline-flex align-items-center">
+        <svg class="icon icon-xs me-2" fill="none" 
+            stroke="currentColor" viewBox="0 0 24 24" 
+            xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+            Save Report
+      </a>
+
+      <div class="btn-group ms-2 ms-lg-3">
+        <!-- <button type="button" class="btn btn-sm btn-outline-gray-600">Share</button> -->
+        <span class="d-inline-block" 
+            tabindex="0" 
+            data-bs-toggle="tooltip" 
+            data-bs-placement="left" 
+            title="Disabled">
+          <button 
+            type="button" 
+            class="btn btn-sm btn-outline-gray-600" 
+            style="pointer-events: none;" 
+        >Export</button>
+        </span>
+        <!-- 
+        <span class="d-inline-block" tabindex="0" data-bs-toggle="tooltip" title="Disabled tooltip">
+            <button class="btn btn-primary" style="pointer-events: none;" type="button" disabled>Export</button>
+        </span> 
+        -->
+      </div>
+    </div>
+  </div>
+
+    <div class="row">
+      <div class="col-xl-4">
+        <div class="card border-0 shadow">
+          <div class="card-header">
+            <div class="row align-items-center">
+            <div class="col">
+                <h2 class="fs-5 fw-bold mb-0">Recent Events</h2>
+                <p>Most recent first</p>
+            </div>
+            <div class="col text-end">
+                <a href="{% url 'event_table' %}" class="btn btn-sm btn-primary">See all</a>
+            </div>
+            </div>
+          </div>
+          <div class="table-responsive">
+                <table class="table align-items-center table-flush">
+                    <thead class="thead-light">
+                    <tr>
+                        <th class="border-bottom" scope="col">Bridge</th>
+                        <th class="border-bottom" scope="col">Peak Accel. (g)</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for evaluation, event in recent_evaluations %}
+                    <tr style="cursor: pointer;" 
+                        onClick="window.location='{% url 'asset_event_summary' event=event.id cesmd=event.cesmd %}';">
+                        <td><code>{{ calid|index:event.cesmd }}</code></td>
+                     
+                        <td class="fw-bolder text-gray-800">
+                        {{ event.pga|floatformat:2 }}
+                    {% comment %}
+                    {% with station_name_list=event.motion_data.station_name.split %}
+                        {% if "interchange" in station_name_list|last|lower %}
+                        {{ event.motion_data.station_name|slice:"2:"|title }}
+                        {% else %}
+                        {{ station_name_list|slice:"1:-1"|join:" "|title }}
+                        {% endif %}
+                    {% endwith %}
+                    {% endcomment %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+          </div>
+        </div>
+        </div>
+
+        {% comment %}
+        <div class="col-12 col-xl-4">
+            <div class="col-12 px-0 mb-4">
+                <div class="card border-0 shadow">
+                    <div class="card-header d-flex flex-row align-items-center flex-0 border-bottom">
+                        <div class="d-block">
+                            <div class="h6 fw-normal text-gray mb-2">Total orders</div>
+                            <h2 class="h3 fw-extrabold">452</h2>
+                            <div class="small mt-2">                               
+                                <span class="fas fa-angle-up text-success"></span>                                   
+                                <span class="text-success fw-bold">18.2%</span>
+                            </div>
+                        </div>
+                        <div class="d-block ms-auto">
+                            <div class="d-flex align-items-center text-end mb-2">
+                                <span class="dot rounded-circle bg-gray-800 me-2"></span>
+                                <span class="fw-normal small">July</span>
+                            </div>
+                            <div class="d-flex align-items-center text-end">
+                                <span class="dot rounded-circle bg-secondary me-2"></span>
+                                <span class="fw-normal small">August</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body p-2">
+                        <div class="ct-chart-ranking ct-golden-section ct-series-a"></div>
+                    </div>
+                </div>
+            </div> 
+        {% endcomment %}
+
+        <div class="col-xl-8">
+          <div class="card bg-white-100 border-0 shadow">
+            <div class="card-body p-2">
+              {{ asset_map|safe }}
+            </div>
+          </div>
+        </div>
+    </div>
+
+{% endblock content %}
+
+{% block javascripts %}
+<script>
+function fetchAndDownloadText(url, filename) {
+    fetch(url)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Failed to fetch: ${response.statusText}`);
+            }
+            return response.text();
+        })
+        .then(text => {
+            console.log(text);
+            // Create a Blob from the fetched text
+            const blob = new Blob([text], { type: 'text/plain' });
+            // Create a temporary anchor element
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            // Append the anchor to the document and trigger the download
+            document.body.appendChild(link);
+            link.click();
+            // Remove the anchor from the document
+            document.body.removeChild(link);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to download the file.');
+        });
+}
+
+</script>
+{% endblock javascripts %}
+

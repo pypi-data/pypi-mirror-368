@@ -1,0 +1,141 @@
+<!-- 
+===----------------------------------------------------------------------===#
+
+         STAIRLab -- STructural Artificial Intelligence Laboratory
+
+===----------------------------------------------------------------------===#
+
+Claudio Perez, Summer 2023 
+-->
+
+{% extends "layouts/base.html" %}
+{% load predictor %}
+{% block title %} {{ asset.calid }} Predictors {% endblock %} 
+{% block stylesheets %}
+<style>
+  .accordion-button::after {
+    content: '+'; 
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="col-10 mb-4 d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center py-4">
+  <div class="d-block mb-4 mb-md-0">
+      <nav aria-label="breadcrumb" class="d-none d-md-inline-block">
+        <ol class="breadcrumb breadcrumb-dark breadcrumb-transparent">
+          <li class="breadcrumb-item">
+            <a href="{% url 'dashboard' %}">
+              <svg class="icon icon-xxs" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+            </a>
+          </li>
+          <li class="breadcrumb-item" aria-current="page"><a href="{% url 'asset_table' %}">Inventory</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'asset_profile' asset.calid %}"><code>{{ asset.calid }}</code></a></li>
+          <li class="breadcrumb-item active">Predictors</li>
+        </ol>
+      </nav>
+      <h1><code>{{ asset.calid }}</code> Predictors</h1>
+  </div>
+</div>
+
+  <div class="py-4 align-right">
+    <a role="button" class="button btn btn-outline-primary"
+    href="/inventory/{{ asset.calid }}" class="me-1">Back to Structure</a>
+
+    {% for runner in runners %}
+    {% if runner.name.lower == 'systemidrunner' %}
+    {% include 'prediction/new-runner.html' with runner=runner form=form %}
+    {% endif %}
+    {% endfor %}
+
+    <a role="button" class="button btn btn-outline-primary" disabled
+       href="/inventory/{{ asset.calid }}/predictors/create/model/" class="me-1">New Model</a>
+
+  </div>
+<div class="col-10">
+
+  <div class="row row-cols-1 row-cols-md-2 g-4">
+    {% for predictor in asset.predictors.values %}
+    <div class="col">
+      <div class="card">
+        <div class="card-header d-sm-flex flex-row align-items-center flex-0">
+          <h6 class="accordion-header" style="display:inline" id="{{forloop.counter}}">
+            <a href="./{{predictor.id}}" >
+              {{predictor.name}}
+            </a> <!-- (<code>{{ predictor.platform }}</code>) -->
+          </h6>
+        </div>
+
+        <div class="card-footer">
+          {% if predictor.active %}
+          <button class="btn btn-outline-success" type="button">Active</button>
+          {% else %}
+          <button class="btn btn-outline-dark" type="button">Inctive</button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% endblock %}
+
+{% block javascripts %}
+
+<script src="https://cdn.jsdelivr.net/npm/@json-editor/json-editor@latest/dist/jsoneditor.min.js"></script>
+<script>
+
+  const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+  for (const element of document.querySelectorAll("form")) {
+    let editor_elem = element.querySelector(`#${element.id}-editor`);
+    let config = {
+      use_name_attributes: false,
+      theme: 'bootstrap5',
+      disable_edit_json: true,
+      disable_properties: true,
+      // disable_collapse: true,
+      schema: JSON.parse(editor_elem.dataset.schema)
+    };
+
+    let editor = new JSONEditor(editor_elem, config)
+
+    editor.on('change', function () {
+      element.querySelector('#editor-input').value = JSON.stringify(editor.getValue())
+    });
+
+
+    element.addEventListener('submit', async function (event) {
+      event.preventDefault(); // Prevent the default form submission
+
+      // Get the form data
+      // const formData = new FormData(event.target);
+      // const data = Object.fromEntries(formData.entries());
+
+      // Send the data to the API
+      try {
+        const response = await fetch(`./create?runner=${editor_elem.dataset.protocol}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken,
+          },
+          body: JSON.stringify(editor.getValue()),
+        });
+
+        // Handle the response
+        if (response.ok) {
+          document.getElementById('status').textContent = 'Form submitted successfully!';
+        } else {
+          document.getElementById('status').textContent = 'Error submitting the form.';
+        }
+      } catch (error) {
+        document.getElementById('status').textContent = 'An error occurred while submitting the form.';
+      }
+    });
+
+  }
+</script>
+{% endblock %}
+

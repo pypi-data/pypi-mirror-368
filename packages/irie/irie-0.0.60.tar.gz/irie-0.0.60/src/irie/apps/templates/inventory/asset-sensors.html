@@ -1,0 +1,94 @@
+<!-- 
+===----------------------------------------------------------------------===#
+
+         STAIRLab -- STructural Artificial Intelligence Laboratory
+
+===----------------------------------------------------------------------===#
+
+Claudio Perez, Summer 2023 
+Chrystal Chern, Spring 2025
+
+-->
+
+{% extends "layouts/base.html" %}
+{% block title %} {{ asset.calid }} Sensors {% endblock %} 
+
+{% block content %}
+  <div class="col-10 mb-4 d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center py-4">
+    <div class="d-block mb-4 mb-md-0">
+        <nav aria-label="breadcrumb" class="d-none d-md-inline-block">
+          <ol class="breadcrumb breadcrumb-dark breadcrumb-transparent">
+            <li class="breadcrumb-item">
+              <a href="{% url 'dashboard' %}">
+                <svg class="icon icon-xxs" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+              </a>
+            </li>
+            <li class="breadcrumb-item" aria-current="page"><a href="{% url 'asset_table' %}">Inventory</a></li>
+            <li class="breadcrumb-item"><code>{{ asset.calid }}</code></li>
+            <li class="breadcrumb-item active" aria-current="page">Sensors</li>
+          </ol>
+        </nav>
+        <h1><code>{{ asset.calid }}</code> Sensors</h1>
+    </div>
+    <div class="btn-toolbar mb-2 mb-md-0">
+      <a role="button" class="button btn btn-outline-primary"
+      href="{% url 'asset_profile' calid=asset.calid %}" class="me-1">Back to Structure</a>
+      <a role="button" class="button btn btn-outline-primary"
+      href="{% url 'sensor_upload' calid=asset.calid %}" class="me-1">
+      <svg class="icon icon-xs me-2" fill="none" 
+          stroke="currentColor" viewBox="0 0 24 24" 
+          xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+          Add SensorGroup</a>
+    </div>
+  </div>
+
+
+  <div class="col-lg-10">
+    {% for group in groups %}
+    <div class="card shadow-lg mb-4">
+      <div class="card-header bg-dark fw-bold d-flex justify-content-between align-items-center">
+        <span>{{ group.name }}</span>
+        <span class="badge bg-gray px-2 py-1 fs-6">Datum: {{ group.datum.name }}</span>
+        <a class="btn" href="{% url 'sensor_edit' calid=asset.calid group_id=group.id %}">
+          <svg class="icon icon-xs me-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 4h2a2 2 0 012 2v2m-4-4l-6.586 6.586a2 2 0 00-.586 1.414V18a2 2 0 002 2h5.586a2 2 0 001.414-.586L20 12m-4-4l-6.586 6.586a2 2 0 00-.586 1.414V18a2 2 0 002 2h5.586a2 2 0 001.414-.586L20 12"></path></svg>
+          Edit
+        </a>
+      </div>
+        <div class="card-body">
+          <table class="table table-striped table-hover table-bordered">
+            <thead class="table-dark">
+              <tr>
+                <th>Sensor</th>
+                <th>x</th>
+                <th>y</th>
+                <th>z</th>
+                <th>dx</th>
+                <th>dy</th>
+                <th>dz</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for sensor in group.sensors.all %}
+              <tr>
+                <td class="fw-bold">{{ sensor.name }}</td>
+                <td>{{ sensor.x }}</td>
+                <td>{{ sensor.y }}</td>
+                <td>{{ sensor.z }}</td>
+                <td>{{ sensor.dx }}</td>
+                <td>{{ sensor.dy }}</td>
+                <td>{{ sensor.dz }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}
+
+{% block javascripts %}
+
+{% endblock %}
+

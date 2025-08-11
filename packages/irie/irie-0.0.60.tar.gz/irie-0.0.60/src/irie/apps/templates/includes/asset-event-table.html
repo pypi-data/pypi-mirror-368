@@ -1,0 +1,90 @@
+<div class="card border-0 shadow table-wrapper table-responsive">
+  <div class="card-header">
+    <div class="row align-items-center">
+      <div class="col">
+        <h2 class="fs-5 fw-bold">Recent Events</h2>
+      </div>
+      <div class="col text-end">
+        <div class="align-right">
+          <div class="dropdown">
+            <button class="btn btn-outline-dark d d-inline-flex align-items-center me-2 dropdown-toggle" 
+                    data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              <svg class="icon icon-xs me-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+              {% for method in evaluations.0.evaluation %}
+              {% if forloop.counter0 == 0 %}
+              <span id="ssid-name">
+                {{ method }}
+              </span>
+              {% endif %}
+              {% endfor %}
+            </button>
+            <div class="dropdown-menu dashboard-dropdown dropdown-menu-start mt-2 py-1">
+            {% for method in evaluations.0.evaluation %}
+              <a id="ssid-set-{{ method }}" class="dropdown-item d-flex align-items-center">{{ method }}</a>
+            {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-body">
+  <table class="table table-hover">
+    <thead>
+    <tr>
+      <th>Date</th>
+      <th>PGA (g)</th>
+      <th>Strongest Period (s)</th>
+      <th>First Period (s)</th>
+      {% comment %}
+      <th>Deviations</th>
+      {% endcomment %}
+    </tr>
+    </thead>
+    <tbody>
+    {% for item in evaluations %}
+      <tr style="cursor: pointer;" onClick="window.location='/evaluations/{{ item.event.id }}/{{ item.event.cesmd }}/';">
+        <td>{{ item.event.motion_data.event_date }}</a></td>
+        <td>{{ item.pga|floatformat:2 }}</td>
+        {% for method,data in item.evaluation.items %}
+          <td class="ssid-data ssid-method-{{ method }}" {% if forloop.counter0 %} style="display:none"{%endif%}>{{ data.nearest_mean.period|floatformat:2 }}</td>
+          <td class="ssid-data ssid-method-{{ method }}" {% if forloop.counter0 %} style="display:none"{%endif%}>{{ data.maximum|floatformat:2 }}</td>
+          {% if False %}
+          <td class="ssid-data ssid-method-{{ method }}" {% if forloop.counter0 %} style="display:none"{%endif%}>{# .distance|floatformat:3 #}</td>
+          {% endif %}
+        {% endfor %}
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+      <div class="card-footer px-3 border-0 d-flex flex-column flex-lg-row align-items-center justify-content-between">
+        <nav aria-label="Table page navigation">
+            <ul class="pagination mb-0">
+              <li class="page-item {% if not evaluations.has_previous %}disabled{% endif %}">
+                {% if evaluations.has_previous %}
+                  <a class="page-link" href="?page={{ evaluations.previous_page_number }}&{{ page_query }}">Previous</a>
+                {% else %}
+                  <a class="page-link disabled" href="#">Previous</a>
+                {% endif %}
+              </li>
+              {% for page in evaluations.paginator.page_range %}
+                {% if page <= evaluations.number|add:3 and page >= evaluations.number|add:-3 %}
+                  <li class="page-item {% if page == evaluations.number %}active{% endif %}">
+                    <a class="page-link" href="?page={{ page }}&{{ page_query }}">{{ page }}</a>
+                  </li>
+                {% endif %}
+              {% endfor %}
+              <li class="page-item {% if not evaluations.has_next %}disabled{% endif %}">
+                {% if evaluations.has_next %}
+                  <a class="page-link" href="?page={{ evaluations.next_page_number }}&{{ page_query }}">Next</a>
+                {% else %}
+                  <a class="page-link disabled" href="#">Next</a>
+                {% endif %}
+              </li>
+            </ul>
+        </nav>
+        <div class="fw-normal small mt-4 mt-lg-0">Showing <b>{{ evaluations|length }}</b> out of <b>{{ evaluations.paginator.count }}</b> entries</div>
+      </div>
+  </div>
