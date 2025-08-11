@@ -1,0 +1,139 @@
+agent:
+  system:
+    base: |
+      You are an AI agent with:
+      Title: {title}
+      Goal: {goal}
+      Description: {description}
+
+      Make decisions based on your title, goal, and description.
+
+  job_analysis: |
+    As {title} with the goal of {goal}, analyze:
+    {job_description}
+
+    Return as JSON:
+    {{
+      "alignment": "How this aligns with title/goal",
+      "challenges": ["challenges"],
+      "required_tools": ["tools"],
+      "required_knowledge": ["knowledge"],
+      "execution_plan": ["steps"],
+      "success_criteria": ["measurable_outcomes"],
+      "estimated_complexity": "1-10",
+      "estimated_time": "minutes"
+    }}
+
+  tool_selection: |
+    Available tools: {tools}
+    Job: {job_description}
+
+    Return as JSON:
+    {{
+      "selected_tools": ["tools"],
+      "tool_justification": {"tool": "reason"},
+      "execution_sequence": ["order"],
+      "fallback_tools": ["alternates"],
+      "risk_assessment": {"tool": "risks"}
+    }}
+
+  step_planning: |
+    Job: {job_description}
+    Completed Steps: {completed_steps}
+    Last Result: {last_result}
+
+  expected_result: |
+    Generate a JSON output in the following format. The "steps" array must include at least one `"action": "job"` step. Also if Tools exists then at least one `"action": "tool"` step. Do not skip the job step.
+
+    {{
+      "steps": [
+        {{
+          "action": "tool",
+          "tool_name": "tool_name",
+          "parameters": {"param": "value"},
+          "description": "description",
+          "validation_criteria": ["criteria"]
+        }},
+        {{
+          "action": "job",
+          "description": "description",
+          "validation_criteria": ["criteria"]
+        }}
+      ],
+      "job_complete": false
+    }}
+
+  result_evaluation: |
+    Job: {job_description}
+    Result: {result}
+
+    Return a JSON output in the below format. The JSON must include all the fields :
+    {{
+      "success": true/false,
+      "quality_score": "1-10",
+      "matches_requirements": true/false,
+      "goal_alignment": "1-10",
+      "job_result": ["job_result"],
+      "evaluation_result": ["evaluation_result"],
+      "improvements": ["suggestions"],
+      "next_actions": ["actions"],
+      "reasoning": "detailed evaluation"
+    }}
+
+orchestrator:
+  job_analysis: |
+    Analyze job: {job_description}
+    Format: {{
+      "requires_decomposition": true/false,
+      "complexity": "low/medium/high",
+      "dependencies": [],
+      "estimated_resources": {{
+        "time": "minutes",
+        "agents": 1,
+        "tools": []
+      }},
+      "priority": 1
+    }}
+
+  job_decomposition: |
+    Decompose job: {job_description}
+    Format: {{
+      "subtasks": [
+        {{
+          "description": "subtask description",
+          "priority": "low/medium/high",
+          "dependencies": []
+        }}
+      ]
+    }}
+
+  agent_selection: |
+    Job: {job_description}
+    Agents: {agents_list}
+    Format: {{
+      "selected_agent": "agent_title",
+      "capability_match": 1,
+      "risk_factors": []
+    }}
+
+  execution_strategy: |
+    Job: {job_description}
+    Load: {current_jobs}
+    Max Concurrent: {max_concurrent}
+    Format: {{
+      "parallel_execution": false,
+      "priority": 1,
+      "max_agents": 1
+    }}
+
+  result_evaluation: |
+    Job: {job_description}
+    Result: {result}
+    Format: {{
+      "success": true/false,
+      "quality": {{
+        "completeness": 1,
+        "accuracy": 1
+      }},
+      "requires_retry": false
+    }}
