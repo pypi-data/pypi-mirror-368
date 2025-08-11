@@ -1,0 +1,145 @@
+Metadata-Version: 2.3
+Name: mcpcc
+Version: 0.1.4
+Summary: Add your description here
+Author: liujingjing
+Author-email: liujingjing <>
+Requires-Dist: mcp[cli]>=1.12.3
+Requires-Dist: openpyxl>=3.1.5
+Requires-Dist: pandas>=2.3.1
+Requires-Dist: requests>=2.32.4
+Requires-Python: >=3.13
+Description-Content-Type: text/markdown
+
+# MCPCC - Excel读取MCP服务器
+
+这是一个使用FastMCP构建的MCP服务器，专门用于读取Excel文件并返回JSON格式数据。
+
+## 功能特性
+
+- **read_excel_to_json工具**: 读取Excel文件并转换为JSON格式
+  - 支持指定工作表名称
+  - 自动检测文件存在性
+  - 返回结构化的JSON数据，包含行数、列名、数据内容
+- **greeting资源**: 动态生成个性化问候语
+
+## 安装依赖
+
+确保使用Python 3.13+，并安装以下依赖：
+
+```bash
+# 基础MCP依赖
+pip install "mcp[cli]>=1.12.3"
+
+# Excel处理依赖
+pip install pandas openpyxl
+```
+
+## Excel工具使用方法
+
+### 工具参数
+
+- `file_path` (必需): Excel文件的完整路径
+- `sheet_name` (可选): 工作表名称，如果不提供则读取第一个工作表
+
+### 返回格式
+
+```json
+{
+  "success": true,
+  "sheet_name": "Sheet1",
+  "rows": 3,
+  "columns": ["姓名", "年龄", "城市", "工资"],
+  "data": [
+    {"姓名": "张三", "年龄": 25, "城市": "北京", "工资": 8000},
+    {"姓名": "李四", "年龄": 30, "城市": "上海", "工资": 12000},
+    {"姓名": "王五", "年龄": 35, "城市": "广州", "工资": 15000}
+  ]
+}
+
+## 运行和调试方法
+
+### 1. 直接运行服务器
+
+```bash
+# 方法1: 使用Python模块
+python -m mcpcc
+
+# 方法2: 使用运行脚本
+python run_server.py
+```
+
+服务器将在stdio模式下运行，等待JSON-RPC消息。
+
+### 2. 调试模式
+
+运行调试脚本来测试服务器功能：
+
+```bash
+python debug_server.py
+```
+
+### 3. 客户端测试
+
+使用测试客户端与服务器交互：
+
+```bash
+python test_client.py
+```
+
+### 4. VS Code调试
+
+项目已配置了VS Code调试选项：
+
+1. 打开VS Code
+2. 按F5或转到"运行和调试"面板
+3. 选择以下配置之一：
+   - **Run MCP Server**: 运行服务器
+   - **Debug MCP Server**: 调试模式运行
+   - **Test MCP Client**: 运行客户端测试
+
+## 手动测试JSON-RPC消息
+
+如果要手动测试，可以向运行中的服务器发送JSON-RPC消息：
+
+```json
+// 初始化
+{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05", "capabilities": {}}}
+
+// 列出工具
+{"jsonrpc": "2.0", "id": 2, "method": "tools/list"}
+
+// 调用add工具
+{"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "add", "arguments": {"a": 5, "b": 3}}}
+
+// 读取资源
+{"jsonrpc": "2.0", "id": 4, "method": "resources/read", "params": {"uri": "greeting://World"}}
+```
+
+## 项目结构
+
+```
+mcpcc/
+├── src/mcpcc/__init__.py    # 主服务器代码
+├── debug_server.py          # 调试脚本
+├── test_client.py           # 客户端测试
+├── run_server.py            # 简单运行脚本
+├── .vscode/launch.json      # VS Code调试配置
+└── pyproject.toml           # 项目配置
+```
+
+## 开发建议
+
+1. **添加新工具**: 在`__init__.py`中使用`@mcp.tool()`装饰器
+2. **添加新资源**: 使用`@mcp.resource()`装饰器定义资源模式
+3. **调试**: 使用`debug_server.py`快速测试功能
+4. **集成测试**: 使用`test_client.py`进行完整的客户端-服务器测试
+
+## 故障排除
+
+如果遇到问题：
+
+1. 确保Python路径正确设置
+2. 检查依赖是否正确安装
+3. 使用调试脚本测试基本功能
+4. 查看终端输出了解详细错误信息
