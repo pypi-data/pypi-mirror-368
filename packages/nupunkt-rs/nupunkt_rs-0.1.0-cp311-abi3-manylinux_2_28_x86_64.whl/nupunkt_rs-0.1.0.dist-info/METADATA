@@ -1,0 +1,455 @@
+Metadata-Version: 2.4
+Name: nupunkt-rs
+Version: 0.1.0
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Science/Research
+Classifier: Intended Audience :: Legal Industry
+Classifier: Intended Audience :: Financial and Insurance Industry
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Rust
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Programming Language :: Python :: Implementation :: PyPy
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Classifier: Topic :: Text Processing :: Linguistic
+Classifier: Natural Language :: English
+Classifier: Operating System :: OS Independent
+Requires-Dist: pytest>=8.3.2 ; extra == 'tests'
+Requires-Dist: pytest-benchmark>=5.1.0 ; extra == 'tests'
+Requires-Dist: pytest-cov>=6.0.0 ; extra == 'tests'
+Requires-Dist: pytest>=8.3.2 ; extra == 'dev'
+Requires-Dist: pytest-benchmark>=5.1.0 ; extra == 'dev'
+Requires-Dist: pytest-cov>=6.0.0 ; extra == 'dev'
+Requires-Dist: maturin>=1.8 ; extra == 'dev'
+Requires-Dist: memory-profiler>=0.61.0 ; extra == 'dev'
+Requires-Dist: psutil>=7.0.0 ; extra == 'dev'
+Provides-Extra: tests
+Provides-Extra: dev
+License-File: LICENSE
+Summary: High-performance Rust implementation of nupunkt sentence/paragraph tokenization
+Keywords: nlp,natural language processing,tokenization,sentence boundary detection,paragraph detection,punkt,text processing,linguistics,rust
+Home-Page: https://aleainstitute.ai
+Author-email: ALEA Institute <hello@aleainstitute.ai>
+License: MIT
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown; charset=UTF-8; variant=GFM
+Project-URL: Homepage, https://github.com/alea-institute/nupunkt-rs
+Project-URL: Source, https://github.com/alea-institute/nupunkt-rs
+Project-URL: Bug Tracker, https://github.com/alea-institute/nupunkt-rs/issues
+Project-URL: Documentation, https://github.com/alea-institute/nupunkt-rs
+
+# nupunkt-rs
+
+[![CI](https://github.com/alea-institute/nupunkt-rs/actions/workflows/CI.yml/badge.svg)](https://github.com/alea-institute/nupunkt-rs/actions/workflows/CI.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Rust](https://img.shields.io/badge/rust-stable-orange.svg)](https://www.rust-lang.org/)
+
+High-performance Rust implementation of [nupunkt](https://github.com/alea-institute/nupunkt), a modern reimplementation of the Punkt sentence tokenizer optimized for high-precision legal and financial text processing. This project provides the same accurate sentence segmentation as the original Python nupunkt library, but with **3x faster performance** thanks to Rust's efficiency.
+
+Based on the research paper: **[Precise Legal Sentence Boundary Detection for Retrieval at Scale: NUPunkt and CharBoundary](https://arxiv.org/abs/2504.04131)** (Bommarito et al., 2025)
+
+## Features
+
+- **🚀 High Performance**: 30M+ characters/second (3x faster than Python nupunkt)
+- **🎯 High Precision**: 91.1% precision on legal text benchmarks  
+- **⚡ Runtime Adjustable**: Tune precision/recall balance at inference time without retraining
+- **📚 Legal-Optimized**: Pre-trained model handles complex legal abbreviations and citations
+- **🐍 Python API**: Drop-in replacement for Python nupunkt with PyO3 bindings
+- **🧵 Thread-Safe**: Safe for parallel processing
+
+## Installation
+
+### From PyPI (Coming Soon)
+
+```bash
+# pip
+pip install nupunkt-rs
+
+# uv
+uv pip install nupunkt-rs
+```
+
+### From Source
+
+1. **Prerequisites**:
+   - Python 3.11+
+   - Rust toolchain (install from [rustup.rs](https://rustup.rs/))
+   - maturin (`pip install maturin`)
+
+2. **Clone and Install**:
+```bash
+git clone https://github.com/alea-institute/nupunkt-rs.git
+cd nupunkt-rs
+
+# pip
+pip install maturin
+maturin develop --release
+
+# uv
+uvx maturin develop --release --uv
+```
+
+## Quick Start
+
+### Why nupunkt-rs for Legal & Financial Documents?
+
+Most tokenizers fail on legal and financial text, breaking incorrectly at abbreviations like "v.", "U.S.", "Inc.", "Id.", and "Fed." This library is specifically optimized for high-precision tokenization of complex professional documents.
+
+```python
+import nupunkt_rs
+
+# Real Supreme Court text with complex citations and abbreviations
+legal_text = """As we explained in Daubert v. Merrell Dow Pharmaceuticals, Inc., 509 U.S. 579, 597 (1993), Rule 702's requirement that an expert's testimony pertain to "scientific knowledge" establishes a standard of evidentiary reliability. This Court addressed the application of this standard to technical, as opposed to scientific, expert testimony in Kumho Tire Co. v. Carmichael, 526 U.S. 137 (1999). There, we explained that the gatekeeping inquiry must be tied to the facts of a particular case. Id. at 150."""
+
+# Most tokenizers would incorrectly break at "v.", "Inc.", "U.S.", "Co.", and "Id."
+# nupunkt-rs handles all of these correctly:
+sentences = nupunkt_rs.sent_tokenize(legal_text)
+print(f"Correctly identified {len(sentences)} sentences:")
+for i, sent in enumerate(sentences, 1):
+    print(f"\n{i}. {sent}")
+
+# Output:
+# Correctly identified 3 sentences:
+#
+# 1. As we explained in Daubert v. Merrell Dow Pharmaceuticals, Inc., 509 U.S. 579, 597 (1993), Rule 702's requirement that an expert's testimony pertain to "scientific knowledge" establishes a standard of evidentiary reliability.
+#
+# 2. This Court addressed the application of this standard to technical, as opposed to scientific, expert testimony in Kumho Tire Co. v. Carmichael, 526 U.S. 137 (1999).
+#
+# 3. There, we explained that the gatekeeping inquiry must be tied to the facts of a particular case. Id. at 150.
+```
+
+### Fine-Tuning Precision with the `precision_recall` Parameter
+
+The `precision_recall` parameter (0.0-1.0) gives you exact control over the precision/recall trade-off. For legal and financial documents, you typically want higher precision (0.3-0.5) to avoid breaking at abbreviations.
+
+```python
+# Longer legal text to show the impact
+long_legal_text = """As we explained in Daubert v. Merrell Dow Pharmaceuticals, Inc., 509 U.S. 579, 597 (1993), Rule 702's requirement that an expert's testimony pertain to "scientific knowledge" establishes a standard of evidentiary reliability. This Court addressed the application of this standard to technical, as opposed to scientific, expert testimony in Kumho Tire Co. v. Carmichael, 526 U.S. 137 (1999). There, we explained that the gatekeeping inquiry must be tied to the facts of a particular case. Id. at 150. This Court further noted that Rule 702 was amended in response to Daubert and this Court's subsequent cases. See Fed. Rule Evid. 702, Advisory Committee Notes to 2000 Amendments. The amendment affirms the trial court's role as gatekeeper but provides that "all types of expert testimony present questions of admissibility for the trial court." Ibid. Consequently, whether the specific expert testimony on the question at issue focuses on specialized observations, the specialized translation of those observations into theory, a specialized theory itself, or the application of such a theory in a particular case, the expert's testimony often will rest "upon an experience confessedly foreign in kind to [the jury's] own." Hand, Historical and Practical Considerations Regarding Expert Testimony, 15 Harv. L. Rev. 40, 54 (1901). For this reason, the trial judge, in all cases of proffered expert testimony, must find that it is properly grounded, well-reasoned, and not speculative before it can be admitted. The trial judge must determine whether the testimony has "a reliable basis in the knowledge and experience of [the relevant] discipline." Daubert, 509 U. S., at 592."""
+
+# Compare different precision levels
+print(f"High recall (PR=0.1): {len(nupunkt_rs.sent_tokenize(long_legal_text, precision_recall=0.1))} sentences")
+print(f"Balanced (PR=0.5):    {len(nupunkt_rs.sent_tokenize(long_legal_text, precision_recall=0.5))} sentences")  
+print(f"High precision (PR=0.9): {len(nupunkt_rs.sent_tokenize(long_legal_text, precision_recall=0.9))} sentences")
+
+# Output:
+# High recall (PR=0.1): 8 sentences
+# Balanced (PR=0.5):    7 sentences  
+# High precision (PR=0.9): 5 sentences
+
+# Show the actual sentences at balanced setting (recommended for legal text)
+sentences = nupunkt_rs.sent_tokenize(long_legal_text, precision_recall=0.5)
+print("\nBalanced output (PR=0.5) - Recommended for legal documents:")
+for i, sent in enumerate(sentences, 1):
+    # Show that abbreviations are correctly preserved
+    if "v." in sent or "U.S." in sent or "Id." in sent or "Fed." in sent:
+        print(f"\n{i}. ✓ Correctly preserves legal abbreviations:")
+        print(f"   {sent[:100]}...")
+```
+
+**Recommended `precision_recall` settings:**
+- **Legal documents**: 0.3-0.5 (preserves "v.", "Id.", "Fed.", "U.S.", "Inc.")
+- **Financial reports**: 0.4-0.6 (preserves "Inc.", "Ltd.", "Q1", monetary abbreviations)
+- **Scientific papers**: 0.4-0.6 (preserves "et al.", "e.g.", "i.e.", technical terms)
+- **General text**: 0.5 (default, balanced)
+- **Social media**: 0.1-0.3 (more aggressive breaking for informal text)
+
+### Paragraph Tokenization
+
+For documents with multiple paragraphs, you can tokenize at both paragraph and sentence levels:
+
+```python
+import nupunkt_rs
+
+text = """First paragraph with legal citations.
+See Smith v. Jones, 123 U.S. 456 (2020).
+
+Second paragraph with more detail.
+The court in Id. at 457 stated clearly."""
+
+# Get paragraphs as lists of sentences
+paragraphs = nupunkt_rs.para_tokenize(text)
+print(f"Found {len(paragraphs)} paragraphs")
+# Each paragraph is a list of properly segmented sentences
+
+# Or get paragraphs as joined strings
+paragraphs_joined = nupunkt_rs.para_tokenize_joined(text)
+# Each paragraph is a single string with sentences joined
+```
+
+#### Advanced Approach (Using Tokenizer Class)
+
+```python
+import nupunkt_rs
+
+# Create a tokenizer with the default model
+tokenizer = nupunkt_rs.create_default_tokenizer()
+
+# Default (0.5) - balanced mode
+text = "The meeting is at 5 p.m. tomorrow. We'll discuss Q4."
+print(tokenizer.tokenize(text))
+# Output: ['The meeting is at 5 p.m. tomorrow.', "We'll discuss Q4."]
+
+# High recall (0.1) - more breaks, may split at abbreviations
+tokenizer.set_precision_recall_balance(0.1)
+print(tokenizer.tokenize(text))
+# May split after "p.m."
+
+# High precision (0.9) - fewer breaks, preserves abbreviations
+tokenizer.set_precision_recall_balance(0.9) 
+print(tokenizer.tokenize(text))
+# Won't split after "p.m."
+```
+
+### Common Use Cases
+
+#### Processing Multiple Documents
+
+```python
+import nupunkt_rs
+
+# Process multiple documents efficiently
+documents = [
+    "First doc. Two sentences.",
+    "Second document here.",
+    "Third doc. Also two sentences."
+]
+
+# Use list comprehension for batch processing
+all_sentences = [nupunkt_rs.sent_tokenize(doc) for doc in documents]
+print(all_sentences)
+# Output: [['First doc.', 'Two sentences.'], ['Second document here.'], ['Third doc.', 'Also two sentences.']]
+```
+
+#### Getting Character Positions
+
+```python
+import nupunkt_rs
+
+# Get sentence boundaries as character positions
+tokenizer = nupunkt_rs.create_default_tokenizer()
+text = "First sentence. Second sentence."
+spans = tokenizer.tokenize_spans(text)
+print(spans)
+# Output: [(0, 15), (16, 32)]
+
+# Extract sentences using spans
+for start, end in spans:
+    print(f"'{text[start:end]}'")
+# Output: 'First sentence.' 'Second sentence.'
+```
+
+### Command-Line Interface
+
+```bash
+# Quick tokenization with default model
+echo "Dr. Smith arrived. He was late." | nupunkt tokenize
+
+# Adjust precision/recall from command line
+nupunkt tokenize --pr-balance 0.8 "Your text here."
+
+# Process a file
+nupunkt tokenize --input document.txt --output sentences.txt
+```
+
+## Advanced Usage
+
+### Understanding Tokenization Decisions
+
+Get detailed insights into why breaks occur or don't occur:
+
+```python
+# Get detailed analysis of each token
+analysis = tokenizer.analyze_tokens(text)
+
+for token in analysis.tokens:
+    if token.has_period:
+        print(f"Token: {token.text}")
+        print(f"  Break decision: {token.decision}")
+        print(f"  Confidence: {token.confidence:.2f}")
+        
+# Explain a specific position
+explanation = tokenizer.explain_decision(text, 28)  # Position of period after "Dr."
+print(explanation)
+```
+
+### Getting Sentence Boundaries as Spans
+
+```python
+# Get character positions instead of text
+spans = tokenizer.tokenize_spans(text)
+# Returns: [(start1, end1), (start2, end2), ...]
+
+for start, end in spans:
+    print(f"Sentence: {text[start:end]}")
+```
+
+### Training Custom Models
+
+For domain-specific text, you can train your own model:
+
+```python
+trainer = nupunkt_rs.Trainer()
+
+# Optional: Load domain-specific abbreviations
+trainer.load_abbreviations_from_json("legal_abbreviations.json")
+
+# Train on your corpus
+params = trainer.train(your_text_corpus, verbose=True)
+
+# Save model for reuse
+params.save("my_model.npkt.gz")
+
+# Load and use later
+params = nupunkt_rs.Parameters.load("my_model.npkt.gz")
+tokenizer = nupunkt_rs.SentenceTokenizer(params)
+```
+
+## Performance
+
+Benchmarks on commodity hardware (Linux, Intel x86_64):
+
+| Text Size | Processing Time | Speed |
+|-----------|----------------|--------|
+| 1 KB | < 0.1ms | ~10 MB/s |
+| 100 KB | ~3ms | ~30 MB/s |
+| 1 MB | ~33ms | ~30 MB/s |
+| 10 MB | ~330ms | ~30 MB/s |
+
+The tokenizer maintains consistent speed regardless of text size, processing approximately **30 million characters per second**.
+
+Memory usage is minimal - the default model uses about 12 MB of RAM, compared to 85+ MB for NLTK's Punkt implementation.
+
+## API Reference
+
+### Main Functions
+
+- **`sent_tokenize(text, model_params=None, precision_recall=None)`** → List of sentences
+  - `text`: The text to tokenize
+  - `model_params`: Optional custom model parameters
+  - `precision_recall`: Optional PR balance (0.0=recall, 1.0=precision, default=0.5)
+
+- **`para_tokenize(text, model_params=None, precision_recall=None)`** → List of paragraphs (each as list of sentences)
+  - Same parameters as `sent_tokenize`
+
+- **`para_tokenize_joined(text, model_params=None, precision_recall=None)`** → List of paragraphs (each as single string)
+  - Same parameters as `sent_tokenize`
+
+- **`create_default_tokenizer()`** → Returns a `SentenceTokenizer` with default model
+- **`load_default_model()`** → Returns default `Parameters`
+- **`train_model(text, verbose=False)`** → Train new model on text
+
+### Main Classes
+
+- **`SentenceTokenizer`**: The main class for tokenizing text
+  - `tokenize(text)` → List of sentences
+  - `tokenize_spans(text)` → List of (start, end) positions
+  - `tokenize_paragraphs(text)` → List of paragraphs (each as list of sentences)
+  - `tokenize_paragraphs_flat(text)` → List of paragraphs (each as single string)
+  - `set_precision_recall_balance(0.0-1.0)` → Adjust behavior
+  - `analyze_tokens(text)` → Detailed token analysis
+  - `explain_decision(text, position)` → Explain break decision at position
+  
+- **`Parameters`**: Model parameters
+  - `save(path)` → Save model to disk (compressed)
+  - `load(path)` → Load model from disk
+
+- **`Trainer`**: For training custom models (advanced users only)
+  - `train(text, verbose=False)` → Train on text corpus
+  - `load_abbreviations_from_json(path)` → Load custom abbreviations
+
+## Development
+
+### Running Tests
+
+```bash
+# Rust tests
+cargo test
+
+# Python tests
+pytest python/tests/
+
+# With coverage
+cargo tarpaulin
+pytest --cov=nupunkt_rs
+```
+
+### Code Quality
+
+```bash
+# Format code
+cargo fmt
+black python/
+
+# Lint
+cargo clippy -- -D warnings
+ruff check python/
+
+# Type checking
+mypy python/
+```
+
+### Building Documentation
+
+```bash
+# Rust docs
+cargo doc --open
+
+# Python docs
+cd docs && make html
+```
+
+## Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+### Areas for Contribution
+
+- Additional language support
+- Performance optimizations
+- More abbreviation lists
+- Documentation improvements
+- Test coverage expansion
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+## Citation
+
+If you use nupunkt-rs in your research, please cite the original nupunkt paper:
+
+```bibtex
+@article{bommarito2025precise,
+  title={Precise Legal Sentence Boundary Detection for Retrieval at Scale: NUPunkt and CharBoundary},
+  author={Bommarito, Michael J and Katz, Daniel Martin and Bommarito, Jillian},
+  journal={arXiv preprint arXiv:2504.04131},
+  year={2025}
+}
+```
+
+For the Rust implementation specifically:
+
+```bibtex
+@software{nupunkt-rs,
+  title = {nupunkt-rs: High-performance Rust implementation of nupunkt},
+  author = {ALEA Institute},
+  year = {2025},
+  url = {https://github.com/alea-institute/nupunkt-rs}
+}
+```
+
+## Acknowledgments
+
+- Original Punkt algorithm by Kiss & Strunk (2006)
+
+## Support
+
+- **Issues**: [GitHub Issues](https://github.com/alea-institute/nupunkt-rs/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/alea-institute/nupunkt-rs/discussions)
+- **Email**: hello@aleainstitute.ai
+
