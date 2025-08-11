@@ -1,0 +1,171 @@
+Metadata-Version: 2.3
+Name: brigid
+Version: 0.13.0
+Summary: Static site generator.
+License: BSD-3-Clause
+Keywords: blog,blog-engine,site,markdown,cms,content management system,personal site
+Author: Aliaksei Yaletski (Tiendil)
+Author-email: a.eletsky@gmail.com
+Requires-Python: >=3.12,<4.0
+Classifier: Environment :: Web Environment
+Classifier: Framework :: AsyncIO
+Classifier: Framework :: FastAPI
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: End Users/Desktop
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Natural Language :: English
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Topic :: Internet :: WWW/HTTP
+Classifier: Topic :: Internet :: WWW/HTTP :: Dynamic Content
+Classifier: Topic :: Internet :: WWW/HTTP :: Dynamic Content :: News/Diary
+Classifier: Topic :: Internet :: WWW/HTTP :: HTTP Servers
+Classifier: Topic :: Internet :: WWW/HTTP :: WSGI :: Application
+Classifier: Topic :: Internet :: WWW/HTTP :: WSGI :: Server
+Classifier: Topic :: Office/Business :: News/Diary
+Classifier: Topic :: Text Processing :: Markup
+Classifier: Topic :: Text Processing :: Markup :: HTML
+Classifier: Topic :: Text Processing :: Markup :: Markdown
+Requires-Dist: beautifulsoup4 (==4.12.*)
+Requires-Dist: fastapi (==0.115.*)
+Requires-Dist: feedgenerator (==2.1.*)
+Requires-Dist: html5lib (==1.1.*)
+Requires-Dist: jinja2 (==3.1.*)
+Requires-Dist: markdown (==3.5.*)
+Requires-Dist: pillow (==10.2.*)
+Requires-Dist: pydantic (==2.10.*)
+Requires-Dist: pydantic-settings (==2.6.*)
+Requires-Dist: pymdown-extensions (==10.7.*)
+Requires-Dist: python-frontmatter (==1.1.*)
+Requires-Dist: sentry-sdk (==1.39.*)
+Requires-Dist: structlog (==24.1.*)
+Requires-Dist: toml (==0.10.*)
+Requires-Dist: typer (==0.9.*)
+Project-URL: Repository, https://github.com/Tiendil/brigid
+Description-Content-Type: text/markdown
+
+# Brigid
+
+A simple blog engine—but not simpler than it should be.
+
+## **Demo**
+
+- My blog: [tiendil.org](https://tiendil.org/) — see it in action with all features.
+- Sources of the blog: [tiendil-org-content](https://github.com/Tiendil/tiendil-org-content) — see how the content is organized.
+
+Or run the project from the root of this repository:
+
+```bash
+poetry install
+
+./bin/dev-server.sh
+```
+
+## Features
+
+- **Monolithic design** — install and run. No need to look for plugins or themes.
+- **Extensive tag support** for navigating and organizing content.
+- **Markdown as a source code** for posts.
+- **Multi-language support** by design.
+- **Plugins** — allow using custom CSS, scripts, and HTML templates.
+
+### Extensive tag support
+
+- Powerful tag filtering for posts. Especially useful if your blog is also your knowledge base.
+- Similar post suggestions based on common tags & links (configurable).
+- Post collections: for instance, if you want an always-up-to-date list of posts tagged `travels` and `best`.
+- Post series: for example, if you want a dedicated set of posts marked by a special tag like `my-cool-experiments-with-chatgpt`.
+- Prev/Next post navigation for series of posts.
+
+### Markdown as a source
+
+- Every page is a Markdown file.
+- Each Markdown file has a TOML frontmatter with metadata.
+- In addition to standard Markdown features, Brigid supports custom blocks:
+    - Lists of posts in a collection.
+    - Contents of a post series.
+    - Image / gallery.
+    - YouTube video.
+    - Spoilers / details.
+    - Info blocks (admonitions).
+    - Tables.
+    - Including content from other files (snippets).
+
+### Multi-language support
+
+- Cross-linking between posts/pages in different languages.
+- SEO support for multi-language content.
+- Configurable translations.
+- Configurable per-language site menu.
+- Auto-detect language by headers and redirect users to the right entry point, e.g. `my-cool-blog.org` -> `my-cool-blog.org/<language>/`
+- Auto-marking links to posts that are not translated yet. For example, if you have a post in German and want to link to your English post that currently lacks a German translation (but might have one later).
+
+### Plugins
+
+For examples check [brigid.plugins](./brigid/plugins) directory.
+
+### Other features
+
+- Mobile-friendly.
+- SEO-friendly.
+- No default cookies.
+- Custom headers/footers with JS code.
+- Last posts block on the post page.
+- Configurable redirects on the content side—no need to inject them in your reverse proxy configs.
+
+## How to run
+
+Set environment variables:
+
+```bash
+BRIGID_ENVIRONMENT="prod"
+
+# Path to your content directory.
+# You can find examples here:
+# - ./test-content
+# - https://github.com/Tiendil/tiendil-org-content/tree/main/content
+BRIGID_LIBRARY_DIRECTORY="<path-to-your-content-dir>"
+
+# Optional: Brigid will store files here for your reverse proxy to serve.
+BRIGID_API_CACHE_DIRECTORY="<path-to-your-cache-dir>"
+
+# Python list of allowed origins for CORS:
+BRIGID_ORIGINS="[\"https://my-site.org\"]"
+
+```
+
+Install and run the server:
+
+```bash
+pip install brigid uvicorn
+
+uvicorn brigid.application.application:app \
+    --host 0.0.0.0 \
+    --port 8000 \
+    --workers 4
+```
+
+That’s it! You’ll have a server running on port 8000.
+
+Consider the following for production deployment:
+
+- Process Management: Use a process manager like systemd, supervisord, or Docker to ensure reliable, long-term operation.
+- Reverse Proxy: Set up a reverse proxy such as Nginx or Caddy to enhance performance and security.
+
+### Design principles
+
+A subjective list of design principles I follow in this project:
+
+- One solid, stable, simple, up-to-date solution. Just install and run.
+- Markdown won ⇒ use Markdown as the primary source for posts.
+- TOML won ⇒ use TOML for metadata and frontmatter instead of YAML.
+- No unnecessary or unused features.
+- Designed for non-trivial posts: long, multi-language, with images, tables, code, etc.
+- Server-side rendering is good — use it as the primary approach.
+- Use minimal JS only when truly required.
+- No CSS experiments—only stable, verified solutions.
+
