@@ -1,0 +1,114 @@
+# yaml config for gcn10py driver
+# all keys are required unless marked "optional"
+
+aoi:
+  # path to area of interest vector file
+  # accepted: .gpkg (preferred), .shp, .geojson, any ogr-readable
+  
+  path: ./aoi.gpkg
+  # optional layer name inside gpkg (omit for first/only layer)
+layer: area         # optional
+
+blocks:
+  # path to blocks shapefile used by gcn10; must be an esri shapefile (.shp)
+  # note: current script expects shapefile, not gpkg, for blocks
+  path: ./shps/esa_extent_blocks.shp
+  
+  # attribute name holding integer block ids (e.g., "ID")
+  id_field: ID
+
+run:
+  # path to gcn10 c executable config file (the one your c code reads)
+  gcn10_config: ./config.txt
+  
+  # how to invoke the python wrapper/cli when not using api
+  # typical: "gcn10py" (if installed in path) or full path to the cli
+  cli_cmd: gcn10         # ignored if use_api: true
+
+  # mpi launcher: "mpirun", "mpiexec", or "srun" (slurm)
+  launcher: mpirun
+  
+  # number of mpi processes to launch
+  nproc: 4 
+  
+  # extra launcher args; examples:
+  # ["--bind-to","core"], ["--map-by","socket"], ["-oversubscribe"]
+  launcher_args: []        # optional
+  
+  # pass -o to gcn10 to overwrite existing outputs
+  overwrite: true
+  
+  # call python api (from gcn10py import run) instead of the cli
+  # set true if you prefer in-process invocation without a separate subprocess
+  use_api: false
+
+io:
+  # where final clipped mosaics are written
+  output_dir: ./cn_out
+  
+  # working directory for temp files like generated block list
+  tmp_dir: ./tmp
+  
+  # keep temp files (e.g., auto-generated block list) after run
+  keep_intermediate: false
+
+mosaic:
+  # directory template where gcn10 writes per-block rasters for each drainage case
+  # this must match your c/cli output layout, e.g., "cn_rasters_drained"
+  raster_dir_template: cn_rasters_{drainage}
+  
+  # glob pattern for per-block rasters; placeholders are substituted
+  # must match your file naming
+  # expected example: cn_{hc}_{arc}_{blockid}.tif
+  raster_glob_template: cn_{hc}_{arc}_*.tif
+  
+  # filename for final clipped mosaics
+  output_filename_template: cn_{hc}_{arc}_{drainage}.tif
+
+gdal:
+  # nodata value to use for mosaics and clips (integer or float)
+  dst_nodata: 255
+  
+  # extra warp keyword args passed to gdal.Warp (all optional)
+  # common keys:
+  #   resampleAlg: nearest|bilinear|cubic|cubicspline|lanczos|average|min|max|mode|med|q1|q3
+  #   multithread: "true"
+  #   xRes / yRes: numeric target resolution
+  #   dstSRS: "EPSG:xxxx" (force output srs)
+  #   creationOptions: ["TILED=YES","COMPRESS=LZW","BIGTIFF=YES"]
+  
+  #warp_options: {}         # optional
+  warp_options:
+    resampleAlg: nearest
+    creationOptions: ["TILED=YES", "COMPRESS=LZW", "BIGTIFF=YES"]
+
+  
+  # gdal/cpl environment overrides (exported before io)
+  # useful: GDAL_NUM_THREADS=ALL_CPUS, GDAL_CACHEMAX=2048, CPL_LOG=/path/to/log
+  config:
+    GDAL_NUM_THREADS: ALL_CPUS
+    CPL_LOG: gdal_rank_%p.log
+    CPL_DEBUG: ON
+    CPL_LOG_ERRORS: ON
+
+combos:
+  # hydrologic condition types; edit to restrict runs
+  hc_types: [p, f, g]          # p=poor, f=fair, g=good (or your project’s mapping)
+  
+  # antecedent runoff condition sets
+  arc_types: [i, ii, iii]
+  
+  # drainage states reflected in your directory template above
+  drainage_types: [drained, undrained]
+
+  # fast-path overrides (optional)
+  # if provided, these bypass aoi->bbox block discovery
+  # give either a path to a plain text list or literal ids
+  block_list_path: null          # e.g., ./blocks.txt (one id per line)
+  block_ids: null                # e.g., [101, 102, 103]
+
+# notes:
+# - aoi crs does not need to match rasters; gdal.warp reprojects cutlines as needed
+# - ensure mosaic.raster_dir_template and raster_glob_template match gcn10 output names
+# - if your filenames changed, edit the glob to match exactly (including underscores)
+# - for large mosaics, consider creationOptions with tiled + compression + bigtiff
