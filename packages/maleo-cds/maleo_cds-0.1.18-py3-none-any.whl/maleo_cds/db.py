@@ -1,0 +1,3 @@
+from maleo_soma.managers.db import create_base
+
+MaleoCDSBase = create_base()
