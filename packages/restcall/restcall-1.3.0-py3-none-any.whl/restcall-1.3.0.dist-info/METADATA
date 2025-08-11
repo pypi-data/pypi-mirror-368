@@ -1,0 +1,112 @@
+Metadata-Version: 2.4
+Name: restcall
+Version: 1.3.0
+Summary: A small JSON-based command-line utility to make REST calls
+Author-email: Subhadip Ghosh <subhadip.sky@gmail.com>
+License: MIT License
+        
+        Copyright (c) 2021 Subhadip Ghosh
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE.
+        
+Project-URL: Homepage, https://github.com/subhadig/restcall
+Project-URL: Changelog, https://github.com/subhadig/restcall/blob/master/CHANGELOG.md
+Keywords: rest,client,cli
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: requests
+Requires-Dist: urllib3
+Requires-Dist: uncurl
+Dynamic: license-file
+
+# restcall
+A small JSON-based command-line utility to make REST calls.
+
+## Installation
+`restcall` is distributed as a Python package and can be installed using `pip`.
+```
+python -m pip install restcall
+```
+
+## Usage
+
+### Generate a template
+```
+restcall -t get-service-name.json
+
+restcall -t post-service-name.json
+```
+
+### Import template from curl command
+```
+restcall -u curl-command.txt get-service-name.json
+```
+The `curl-command.txt` file contains the curl command.
+
+### Modify the generated template
+
+The generated template looks like this:
+
+```json
+{
+    "url": "",
+    "httpMethod": "POST",
+    "reqAuthType": "none",
+    "reqAuthToken": "",
+    "reqContentType": "",
+    "reqHeaders": {},
+    "reqPayload": "",
+    "resFile": ""
+}
+```
+Edit the template and populate the required values.
+Here are the parameters, their meaning and the allowed values:
+- url - the REST URL
+- httpMethod - GET, POST, PUT, PATCH, DELETE
+- reqAuthType - `none`, `bearer`, `bearer_generate`, `basic`
+- reqAuthToken
+    - the actual token if the reqAuthType is `bearer`
+    - filepath to the restcall template to generate the token if the reqAuthType is `bearer_generate`
+    - `username:password` if the reqAuthType is `basic`
+- reqContentType - the request content type. eg. `application/json`
+- reqHeaders - the request headers
+- reqPayload - the request body. If binary, provide the file path.
+- resFile - the file path for storing response externally
+
+### Make the REST call
+```
+restcall get-service-name.json
+```
+
+It will generate the response file `get-service-name-res.json`.
+
+### Output equivalent curl command:
+```
+restcall -c get-service-name.json
+```
+
+## SSL
+By default SSL certificate verification is disabled.
+
+## License
+This repository and the files under it are licensed under the MIT license.
