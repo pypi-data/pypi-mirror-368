@@ -1,0 +1,591 @@
+#####################################################
+ Python Outlier Detection Thresholding (PyThresh) V1
+#####################################################
+
+**Deployment, Stats, & License**
+
+|badge_pypi| |badge_anaconda| |badge_docs| |badge_testing|
+|badge_coverage| |badge_maintainability| |badge_stars| |badge_downloads|
+|badge_versions| |badge_licence| |badge_citation|
+
+.. |badge_pypi| image:: https://img.shields.io/pypi/v/pythresh.svg?color=brightgreen&logo=pypi&logoColor=white
+   :alt: PyPI version
+   :target: https://pypi.org/project/pythresh/
+
+.. |badge_anaconda| image:: https://img.shields.io/conda/vn/conda-forge/pythresh?color=brightgreen&logo=conda-forge&logoColor=white
+   :alt: Anaconda version
+   :target: https://anaconda.org/conda-forge/pythresh
+
+.. |badge_docs| image:: https://img.shields.io/readthedocs/pythresh.svg?version=latest&logo=read-the-docs&logoColor=white
+   :alt: Documentation status
+   :target: http://pythresh.readthedocs.io/?badge=latest
+
+.. |badge_testing| image:: https://github.com/KulikDM/pythresh/actions/workflows/python-package.yml/badge.svg
+   :alt: testing
+   :target: https://github.com/KulikDM/pythresh/actions/workflows/python-package.yml
+
+.. |badge_coverage| image:: https://codecov.io/gh/KulikDM/pythresh/branch/main/graph/badge.svg?token=8ZAPXTLW9Y
+   :alt: Codecov
+   :target: https://codecov.io/gh/KulikDM/pythresh
+
+.. |badge_maintainability| image:: https://api.codeclimate.com/v1/badges/3e2de42b48701c731ef6/maintainability
+   :alt: Maintainability
+   :target: https://codeclimate.com/github/KulikDM/pythresh/maintainability
+
+.. |badge_stars| image:: https://img.shields.io/github/stars/KulikDM/pythresh.svg?logo=github&logoColor=white&style=flat
+   :alt: GitHub stars
+   :target: https://github.com/KulikDM/pythresh/stargazers
+
+.. |badge_downloads| image:: https://img.shields.io/badge/dynamic/xml?url=https%3A%2F%2Fstatic.pepy.tech%2Fbadge%2Fpythresh&query=%2F%2F*%5Blocal-name()%20%3D%20%27text%27%5D%5Blast()%5D&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAyNCAyNDsiIHZlcnNpb249IjEuMSIgdmlld0JveD0iMCAwIDI0IDI0IiB4bWw6c3BhY2U9InByZXNlcnZlIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIj48ZyBpZD0iaW5mbyIvPjxnIGlkPSJpY29ucyI%2BPGcgaWQ9InNhdmUiPjxwYXRoIGQ9Ik0xMS4yLDE2LjZjMC40LDAuNSwxLjIsMC41LDEuNiwwbDYtNi4zQzE5LjMsOS44LDE4LjgsOSwxOCw5aC00YzAsMCwwLjItNC42LDAtN2MtMC4xLTEuMS0wLjktMi0yLTJjLTEuMSwwLTEuOSwwLjktMiwyICAgIGMtMC4yLDIuMywwLDcsMCw3SDZjLTAuOCwwLTEuMywwLjgtMC44LDEuNEwxMS4yLDE2LjZ6IiBmaWxsPSIjZWJlYmViIi8%2BPHBhdGggZD0iTTE5LDE5SDVjLTEuMSwwLTIsMC45LTIsMnYwYzAsMC42LDAuNCwxLDEsMWgxNmMwLjYsMCwxLTAuNCwxLTF2MEMyMSwxOS45LDIwLjEsMTksMTksMTl6IiBmaWxsPSIjZWJlYmViIi8%2BPC9nPjwvZz48L3N2Zz4%3D&label=downloads
+   :alt: Downloads
+   :target: https://pepy.tech/project/pythresh
+
+.. |badge_versions| image:: https://img.shields.io/pypi/pyversions/pythresh.svg?logo=python&logoColor=white
+   :alt: Python versions
+   :target: https://pypi.org/project/pythresh/
+
+.. |badge_licence| image:: https://img.shields.io/github/license/KulikDM/pythresh.svg?logo=data:image/svg+xml;base64,PHN2ZyBoZWlnaHQ9IjMyIiBpZD0iaWNvbiIgdmlld0JveD0iMCAwIDMyIDMyIiB3aWR0aD0iMzIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnMgZmlsbD0iI2ViZjJlZSI+PHN0eWxlPgogICAgICAuY2xzLTEgewogICAgICAgIGZpbGw6IG5vbmU7CiAgICAgIH0KICAgIDwvc3R5bGU+PC9kZWZzPjxyZWN0IGhlaWdodD0iMiIgd2lkdGg9IjEyIiB4PSI4IiB5PSI2IiBmaWxsPSIjZWJmMmVlIi8+PHJlY3QgaGVpZ2h0PSIyIiB3aWR0aD0iMTIiIHg9IjgiIHk9IjEwIiBmaWxsPSIjZWJmMmVlIi8+PHJlY3QgaGVpZ2h0PSIyIiB3aWR0aD0iNiIgeD0iOCIgeT0iMTQiIGZpbGw9IiNlYmYyZWUiLz48cmVjdCBoZWlnaHQ9IjIiIHdpZHRoPSI0IiB4PSI4IiB5PSIyNCIgZmlsbD0iI2ViZjJlZSIvPjxwYXRoIGQ9Ik0yOS43MDcsMTkuMjkzbC0zLTNhLjk5OTQuOTk5NCwwLDAsMC0xLjQxNCwwTDE2LDI1LjU4NTlWMzBoNC40MTQxbDkuMjkyOS05LjI5M0EuOTk5NC45OTk0LDAsMCwwLDI5LjcwNywxOS4yOTNaTTE5LjU4NTksMjhIMThWMjYuNDE0MWw1LTVMMjQuNTg1OSwyM1pNMjYsMjEuNTg1OSwyNC40MTQxLDIwLDI2LDE4LjQxNDEsMjcuNTg1OSwyMFoiIGZpbGw9IiNlYmYyZWUiLz48cGF0aCBkPSJNMTIsMzBINmEyLjAwMjEsMi4wMDIxLDAsMCwxLTItMlY0QTIuMDAyMSwyLjAwMjEsMCwwLDEsNiwySDIyYTIuMDAyMSwyLjAwMjEsMCwwLDEsMiwyVjE0SDIyVjRINlYyOGg2WiIgZmlsbD0iI2ViZjJlZSIvPjxyZWN0IGNsYXNzPSJjbHMtMSIgZGF0YS1uYW1lPSImbHQ7VHJhbnNwYXJlbnQgUmVjdGFuZ2xlJmd0OyIgaGVpZ2h0PSIzMiIgaWQ9Il9UcmFuc3BhcmVudF9SZWN0YW5nbGVfIiB3aWR0aD0iMzIiIGZpbGw9IiNlYmYyZWUiLz48L3N2Zz4=
+   :alt: License
+   :target: https://github.com/KulikDM/pythresh/blob/master/LICENSE
+
+.. |badge_citation| image:: https://zenodo.org/badge/497683169.svg
+   :alt: Zenodo DOI
+   :target: https://zenodo.org/badge/latestdoi/497683169
+
+----
+
+PyThresh is a comprehensive and scalable **Python toolkit** for
+**thresholding outlier detection likelihood scores** in
+univariate/multivariate data. It has been written to work in tandem with
+PyOD and has similar syntax and data structures. However, it is not
+limited to this single library. PyThresh is meant to threshold
+likelihood scores generated by an outlier detector. It thresholds these
+likelihood scores and replaces the need to set a contamination level or
+have the user guess the amount of outliers that may exist in the dataset
+beforehand. These non-parametric methods were written to reduce the
+user's input/guess work and rather rely on statistics instead to
+threshold outlier likelihood scores. For thresholding to be applied
+correctly, the outlier detection likelihood scores must follow this
+rule: the higher the score, the higher the probability that it is an
+outlier in the dataset. All threshold functions return a binary array
+where inliers and outliers are represented by a 0 and 1 respectively.
+
+PyThresh includes more than 30 thresholding algorithms. These algorithms
+range from using simple statistical analysis like the Z-score to more
+complex mathematical methods that involve graph theory and topology.
+
+***************************
+ What's New in PyThresh V1
+***************************
+
+The transition of PyThresh to V1 sees many new features!
+
+**Sklearn Compatibility**:
+
+-  The `fit` and `predict` methods have been introduced, enhancing
+   alignment with Sklearn compatibility.
+-  These methods allow a thresholder to be fitted on training data and
+   evaluated on unseen data using the `predict` method.
+-  Previously,this functionality was cumbersome to implement using the
+   `eval` method.
+-  Full backward compatibility with the `eval` method has been
+   maintained.
+-  Checks ensure that results remain consistent between `<V1` and `V1`.
+-  The `BaseEstimator` has been integrated into the `BaseThresholder`.
+-  This addition provides enhanced Sklearn compatibility to all
+   thresholders and better integration with existing Sklearn pipelines.
+
+**Reproducibility Enhancements**:
+
+-  All thresholders now include a random seed to ensure better
+   reproducibility.
+-  Previously, some components in the thresholders differed due to
+   randomness.
+
+**Improved Testing and Examples**:
+
+-  Much more robust tests have been added to ensure the functionality
+   and reliability of the code.
+-  These tests enhance confidence in the correctness of the
+   implementation and prevent regressions.
+-  All examples have been updated and new jupyter notebooks have been
+   added to introduce all the capabilities of PyThresh
+
+************************
+ Documentation & Citing
+************************
+
+Visit `PyThresh Docs
+<https://pythresh.readthedocs.io/en/latest/?badge=latest>`_ for full
+documentation or see below for a quickstart installation and usage
+example.
+
+To cite this work you can visit `PyThresh Citation
+<https://zenodo.org/badge/latestdoi/497683169>`_
+
+----
+
+**Outlier Detection Thresholding with 8 Lines of Code**:
+
+.. code:: python
+
+   # train the KNN detector
+   from pyod.models.knn import KNN
+   from pythresh.thresholds.karch import KARCH
+
+   clf = KNN()
+   clf.fit(X_train)
+
+   # get outlier likelihood scores
+   decision_scores = clf.decision_scores_
+
+   # get outlier labels
+   thres = KARCH()
+   thres.fit(decision_scores)
+
+   labels = thres.labels_ # or thres.predict(decision_scores)
+
+or using multiple outlier detection score sets
+
+.. code:: python
+
+   # train multiple detectors
+   from pyod.models.knn import KNN
+   from pyod.models.pca import PCA
+   from pyod.models.iforest import IForest
+   from pythresh.thresholds.karch import KARCH
+
+   clfs = [KNN(), IForest(), PCA()]
+
+   # get outlier likelihood scores for each detector
+   scores = [clf.fit(X_train).decision_scores_ for clf in clfs]
+
+   scores = np.vstack(scores).T
+
+   # get outlier labels
+   thres = KARCH()
+   thres.fit(decision_scores)
+
+   labels = thres.labels_ # or thres.predict(decision_scores)
+
+**************
+ Installation
+**************
+
+It is recommended to use **pip** or **conda** for installation:
+
+.. code:: bash
+
+   pip install pythresh            # normal install
+   pip install --upgrade pythresh  # or update if needed
+
+.. code:: bash
+
+   conda install -c conda-forge pythresh
+
+Alternatively, you can get the version with the latest updates by
+cloning the repo and run setup.py file:
+
+.. code:: bash
+
+   git clone https://github.com/KulikDM/pythresh.git
+   cd pythresh
+   pip install .
+
+Or with **pip**:
+
+.. code:: bash
+
+   pip install https://github.com/KulikDM/pythresh/archive/main.zip
+
+**Required Dependencies**:
+
+-  numpy>=1.13
+-  pyod
+-  scipy>=1.3.1
+-  scikit_learn>=0.20.0
+
+**Optional Dependencies**:
+
+-  pyclustering (used in the CLUST thresholder)
+-  ruptures (used in the CPD thresholder)
+-  scikit-lego (used in the META thresholder)
+-  joblib>=0.14.1 (used in the META thresholder and RANK)
+-  pandas (used in the META thresholder)
+-  torch (used in the VAE thresholder)
+-  tqdm (used in the VAE thresholder)
+-  xgboost>=2.0.0 (used in the RANK)
+
+****************
+ API Cheatsheet
+****************
+
+-  **eval(score)**: evaluate a single outlier or multiple outlier
+   detection likelihood score set (Legacy method).
+
+-  **fit(score)**: fit a thresholder for a single outlier or multiple
+   outlier detection likelihood score set.
+
+-  **predict(score)**: predict the binary labels using the fitted
+   thresholder on a single outlier or multiple outlier detection
+   likelihood score set
+
+Key Attributes of threshold:
+
+-  **thresh_**: Return the threshold value that separates inliers from
+   outliers. Outliers are considered all values above this threshold
+   value. Note the threshold value has been derived from likelihood
+   scores normalized between 0 and 1.
+
+-  **labels_**: A binary array of labels for the fitted thresholder on
+   the fitted dataset.
+
+-  **confidence_interval_**: Return the lower and upper confidence
+   interval of the contamination level. Only applies to the COMB
+   thresholder.
+
+-  **dscores_**: 1D array of the TruncatedSVD decomposed decision scores
+   if multiple outlier detector score sets are passed.
+
+-  **mixture_**: fitted mixture model class of the selected model used
+   for thresholding. Only applies to MIXMOD. Attributes include:
+   components, weights, params. Functions include: fit, loglikelihood,
+   pdf, and posterior.
+
+************************
+ External Feature Cases
+************************
+
+**Towards Data Science**: `Thresholding Outlier Detection Scores with
+PyThresh
+<https://towardsdatascience.com/thresholding-outlier-detection-scores-with-pythresh-f26299d14fa>`_
+
+**Towards Data Science**: `When Outliers are Significant: Weighted
+Linear Regression
+<https://towardsdatascience.com/when-outliers-are-significant-weighted-linear-regression-bcdc8389ab10>`_
+
+**ArXiv**: `Estimating the Contamination Factor's Distribution in
+Unsupervised Anomaly Detection. <https://arxiv.org/abs/2210.10487>`_
+
+***********************************
+ Available Thresholding Algorithms
+***********************************
+
++-----------+-------------------------------------------+--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Abbr      | Description                               | References         | Documentation                                                                                                                                          |
++===========+===========================================+====================+========================================================================================================================================================+
+| AUCP      | Area Under Curve Percentage               | [#aucp1]_          | `pythresh.thresholds.aucp module <https://pythresh.readthedocs.io/en/latest/pythresh.thresholds.html#module-pythresh.thresholds.aucp>`_                |
++-----------+-------------------------------------------+--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| BOOT      | Bootstrapping                             | [#boot1]_          | `pythresh.thresholds.boot module <https://pythresh.readthedocs.io/en/latest/pythresh.thresholds.html#module-pythresh.thresholds.boot>`_                |
++-----------+-------------------------------------------+--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| CHAU      | Chauvenet's Criterion                     | [#chau1]_          | `pythresh.thresholds.chau module <https://pythresh.readthedocs.io/en/latest/pythresh.thresholds.html#module-pythresh.thresholds.chau>`_                |
++-----------+-------------------------------------------+--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| CLF       | Trained Linear Classifier                 | [#clf1]_           | `pythresh.thresholds.clf module <https://pythresh.readthedocs.io/en/latest/pythresh.thresholds.html#module-pythresh.thresholds.clf>`_                  |
++-----------+-------------------------------------------+--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| CLUST     | Clustering Based                          | [#clust1]_         | `pythresh.thresholds.clust module <https://pythresh.readthedocs.io/en/latest/pythresh.thresholds.html#module-pythresh.thresholds.clust>`_              |
++-----------+-------------------------------------------+--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| CPD       | Change Point Detection                    | [#cpd1]_           | `pythresh.thresholds.cpd module <https://pythresh.readthedocs.io/en/latest/pythresh.thresholds.html#module-pythresh.thresholds.cpd>`_                  |
++-----------+-------------------------------------------+--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| DECOMP    | Decomposition                             | [#decomp1]_        | `pythresh.thresholds.decomp module <https://pythresh.readthedocs.io/en/latest/pythresh.thresholds.html#module-pythresh.thresholds.decomp>`_            |
++-----------+-------------------------------------------+--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| DSN       | Distance Shift from Normal                | [#dsn1]_           | `pythresh.thresholds.dsn module <https://pythresh.readthedocs.io/en/latest/pythresh.thresholds.html#module-pythresh.thresholds.dsn>`_                  |
++-----------+-------------------------------------------+--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| EB        | Elliptical Boundary                       | [#eb1]_            | `pythresh.thresholds.eb module <https://pythresh.readthedocs.io/en/latest/pythresh.thresholds.html#module-pythresh.thresholds.eb>`_                    |
++-----------+-------------------------------------------+--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| FGD       | Fixed Gradient Descent                    | [#fgd1]_           | `pythresh.thresholds.fgd module <https://pythresh.readthedocs.io/en/latest/pythresh.thresholds.html#module-pythresh.thresholds.fgd>`_                  |
++-----------+-------------------------------------------+--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| FILTER    | Filtering Based                           | [#filter1]_        | `pythresh.thresholds.filter module <https://pythresh.readthedocs.io/en/latest/pythresh.thresholds.html#module-pythresh.thresholds.filter>`_            |
++-----------+-------------------------------------------+--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| FWFM      | Full Width at Full Minimum                | [#fwfm1]_          | `pythresh.thresholds.fwfm module <https://pythresh.readthedocs.io/en/latest/pythresh.thresholds.html#module-pythresh.thresholds.fwfm>`_                |
++-----------+-------------------------------------------+--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| GAMGMM    | Bayesian Gamma GMM                        | [#gamgmm1]_        | `pythresh.thresholds.gamgmm module <https://pythresh.readthedocs.io/en/latest/pythresh.thresholds.html#module-pythresh.thresholds.gamgmm>`_            |
++-----------+-------------------------------------------+--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| GESD      | Generalized Extreme Studentized Deviate   | [#gesd1]_          | `pythresh.thresholds.gesd module <https://pythresh.readthedocs.io/en/latest/pythresh.thresholds.html#module-pythresh.thresholds.gesd>`_                |
++-----------+-------------------------------------------+--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| HIST      | Histogram Based                           | [#hist1]_          | `pythresh.thresholds.hist module <https://pythresh.readthedocs.io/en/latest/pythresh.thresholds.html#module-pythresh.thresholds.hist>`_                |
++-----------+-------------------------------------------+--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| IQR       | Inter-Quartile Region                     | [#iqr1]_           | `pythresh.thresholds.iqr module <https://pythresh.readthedocs.io/en/latest/pythresh.thresholds.html#module-pythresh.thresholds.iqr>`_                  |
++-----------+-------------------------------------------+--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| KARCH     | Karcher mean (Riemannian Center of Mass)  | [#karch1]_         | `pythresh.thresholds.karch module <https://pythresh.readthedocs.io/en/latest/pythresh.thresholds.html#module-pythresh.thresholds.karch>`_              |
++-----------+-------------------------------------------+--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| MAD       | Median Absolute Deviation                 | [#mad1]_           | `pythresh.thresholds.mad module <https://pythresh.readthedocs.io/en/latest/pythresh.thresholds.html#module-pythresh.thresholds.mad>`_                  |
++-----------+-------------------------------------------+--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| MCST      | Monte Carlo Shapiro Tests                 | [#mcst1]_          | `pythresh.thresholds.mcst module <https://pythresh.readthedocs.io/en/latest/pythresh.thresholds.html#module-pythresh.thresholds.mcst>`_                |
++-----------+-------------------------------------------+--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| META      | Meta-model Trained Classifier             | [#meta1]_          | `pythresh.thresholds.meta module <https://pythresh.readthedocs.io/en/latest/pythresh.thresholds.html#module-pythresh.thresholds.meta>`_                |
++-----------+-------------------------------------------+--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| MIXMOD    | Normal & Non-Normal Mixture Models        | [#mixmod1]_        | `pythresh.thresholds.mixmod module <https://pythresh.readthedocs.io/en/latest/pythresh.thresholds.html#module-pythresh.thresholds.mixmod>`_            |
++-----------+-------------------------------------------+--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| MOLL      | Friedrichs' Mollifier                     | [#moll1]_          | `pythresh.thresholds.moll module <https://pythresh.readthedocs.io/en/latest/pythresh.thresholds.html#module-pythresh.thresholds.moll>`_                |
+|           |                                           | [#moll2]_          |                                                                                                                                                        |
++-----------+-------------------------------------------+--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| MTT       | Modified Thompson Tau Test                | [#mtt1]_           | `pythresh.thresholds.mtt module <https://pythresh.readthedocs.io/en/latest/pythresh.thresholds.html#module-pythresh.thresholds.mtt>`_                  |
++-----------+-------------------------------------------+--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| OCSVM     | One-Class Support Vector Machine          | [#ocsvm]_          | `pythresh.thresholds.ocsvm module <https://pythresh.readthedocs.io/en/latest/pythresh.thresholds.html#pythresh-thresholds-ocsvm-module>`_              |
++-----------+-------------------------------------------+--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| QMCD      | Quasi-Monte Carlo Discrepancy             | [#qmcd1]_          | `pythresh.thresholds.qmcd module <https://pythresh.readthedocs.io/en/latest/pythresh.thresholds.html#module-pythresh.thresholds.qmcd>`_                |
++-----------+-------------------------------------------+--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| REGR      | Regression Based                          | [#regr1]_          | `pythresh.thresholds.regr module <https://pythresh.readthedocs.io/en/latest/pythresh.thresholds.html#module-pythresh.thresholds.regr>`_                |
++-----------+-------------------------------------------+--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| VAE       | Variational Autoencoder                   | [#vae1]_           | `pythresh.thresholds.vae module <https://pythresh.readthedocs.io/en/latest/pythresh.thresholds.html#module-pythresh.thresholds.vae>`_                  |
++-----------+-------------------------------------------+--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| WIND      | Topological Winding Number                | [#wind1]_          | `pythresh.thresholds.wind module <https://pythresh.readthedocs.io/en/latest/pythresh.thresholds.html#module-pythresh.thresholds.wind>`_                |
++-----------+-------------------------------------------+--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| YJ        | Yeo-Johnson Transformation                | [#yj1]_            | `pythresh.thresholds.yj module <https://pythresh.readthedocs.io/en/latest/pythresh.thresholds.html#module-pythresh.thresholds.yj>`_                    |
++-----------+-------------------------------------------+--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ZSCORE    | Z-score                                   | [#zscore1]_        | `pythresh.thresholds.zscore module <https://pythresh.readthedocs.io/en/latest/pythresh.thresholds.html#module-pythresh.thresholds.zscore>`_            |
++-----------+-------------------------------------------+--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+| COMB      | Thresholder Combination                   | None               | `pythresh.thresholds.comb module <https://pythresh.readthedocs.io/en/latest/pythresh.thresholds.html#module-pythresh.thresholds.comb>`_                |
++-----------+-------------------------------------------+--------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+******************************************
+ Implementations, Benchmarks, & Utilities
+******************************************
+
+**The comparison among implemented models and general implementation**
+is made available below
+
+Additional `benchmarking
+<https://pythresh.readthedocs.io/en/latest/benchmark.html>`_ has been
+done on all the thresholders and it was found that the ``MIXMOD``
+thresholder performed best while the ``CLF`` thresholder provided the
+smallest uncertainty about its mean and is the most robust (best least
+accurate prediction). However, for interpretability and general
+performance the ``MIXMOD, FILTER,`` and ``META`` thresholders are good
+fits.
+
+Further utilities are available for assisting in the selection of the
+most optimal outlier detection and thresholding methods `ranking
+<https://pythresh.readthedocs.io/en/latest/ranking.html>`_ as well as
+determining the confidence with regards to the selected thresholding
+method `thresholding confidence
+<https://pythresh.readthedocs.io/en/latest/confidence.html>`_
+
+----
+
+**Tutorial Notebooks**
+
++-------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------+
+| Notebook                                                                                                          | Description                                                                                         |
++===================================================================================================================+=====================================================================================================+
+| `Introduction <https://github.com/KulikDM/pythresh/tree/main/notebooks/00_Introduction.ipynb>`_                   | Basic intro into outlier thresholding                                                               |
++-------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------+
+| `Advanced Thresholding <https://github.com/KulikDM/pythresh/tree/main/notebooks/01_Advanced.ipynb>`_              | Additional thresholding options for more advanced use                                               |
++-------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------+
+| `Threshold Confidence <https://github.com/KulikDM/pythresh/tree/main/notebooks/02_Confidence.ipynb>`_             | Calculating the confidence levels around the threshold point                                        |
++-------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------+
+| `Outlier Ranking <https://github.com/KulikDM/pythresh/tree/main/notebooks/03_Ranking.ipynb>`_                     | Assisting in selecting the best performing outlier and thresholding method combo using ranking      |
++-------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------+
+
+A quick look at all the thresholders performance can be found at
+`Compare Thresholders
+<https://github.com/KulikDM/pythresh/blob/main/notebooks/Compare%20All%20Thresholders.ipynb>`_
+
+.. image:: https://raw.githubusercontent.com/KulikDM/pythresh/main/imgs/All.png
+   :target: https://raw.githubusercontent.com/KulikDM/pythresh/main/imgs/All.png
+   :alt: Comparision_of_All
+
+----
+
+**************
+ Contributing
+**************
+
+Anyone is welcome to contribute to PyThresh:
+
+-  Please share your ideas and ask questions by opening an issue.
+
+-  To contribute, first check the Issue list for the "help wanted" tag
+   and comment on the one that you are interested in. The issue will
+   then be assigned to you.
+
+-  If the bug, feature, or documentation change is novel (not in the
+   Issue list), you can either log a new issue or create a pull request
+   for the new changes.
+
+-  To start, fork the main branch and add your
+   improvement/modification/fix.
+
+-  To make sure the code has the same style and standard, please refer
+   to qmcd.py for example.
+
+-  Create a pull request to the **main branch** and follow the pull
+   request template `PR template
+   <https://github.com/KulikDM/pythresh/blob/main/.github/PULL_REQUEST_TEMPLATE.md>`_
+
+-  Please make sure that all code changes are accompanied with proper
+   new/updated test functions. Automatic tests will be triggered. Before
+   the pull request can be merged, make sure that all the tests pass.
+
+----
+
+************
+ References
+************
+
+**Please Note** not all references' exact methods have been employed in
+PyThresh. Rather, the references serve to demonstrate the validity of
+the threshold types available in PyThresh.
+
+.. [#aucp1]
+
+   `A Robust AUC Maximization Framework With Simultaneous Outlier Detection
+   and Feature Selection for Positive-Unlabeled Classification
+   <https://arxiv.org/abs/1803.06604>`_
+
+.. [#boot1]
+
+   `An evaluation of bootstrap methods for outlier detection in least
+   squares regression
+   <https://www.researchgate.net/publication/24083638_An_evaluation_of_bootstrap_methods_for_outlier_detection_in_least_squares_regression>`_
+
+.. [#chau1]
+
+   `Chauvenet's Test in the Classical Theory of Errors
+   <https://epubs.siam.org/doi/10.1137/1119078>`_
+
+.. [#clf1]
+
+   `Linear Models for Outlier Detection
+   <https://link.springer.com/chapter/10.1007/978-3-319-47578-3_3>`_
+
+.. [#clust1]
+
+   `Cluster Analysis for Outlier Detection
+   <https://www.researchgate.net/publication/224990195_Cluster_Analysis_for_Outlier_Detection>`_
+
+.. [#cpd1]
+
+   `Changepoint Detection in the Presence of Outliers
+   <https://arxiv.org/abs/1609.07363>`_
+
+.. [#decomp1]
+
+   `Influence functions and outlier detection under the common principal
+   components model: A robust approach
+   <https://www.researchgate.net/publication/5207186_Influence_functions_and_outlier_detection_under_the_common_principal_components_model_A_robust_approach>`_
+
+.. [#dsn1]
+
+   `Fast and Exact Outlier Detection in Metric Spaces: A Proximity
+   Graph-based Approach <https://arxiv.org/abs/2110.08959>`_
+
+.. [#eb1]
+
+   `Elliptical Insights: Understanding Statistical Methods through
+   Elliptical Geometry <https://arxiv.org/abs/1302.4881>`_
+
+.. [#fgd1]
+
+   `Iterative gradient descent for outlier detection
+   <https://www.worldscientific.com/doi/10.1142/S0219691321500041>`_
+
+.. [#filter1]
+
+   `Filtering Approaches for Dealing with Noise in Anomaly Detection
+   <https://ieeexplore.ieee.org/document/9029258/>`_
+
+.. [#fwfm1]
+
+   `Sparse Auto-Regressive: Robust Estimation of AR Parameters
+   <https://arxiv.org/abs/1306.3317>`_
+
+.. [#gamgmm1]
+
+   `Estimating the Contamination Factor's Distribution in Unsupervised
+   Anomaly Detection <https://proceedings.mlr.press/v202/perini23a.html>`_
+
+.. [#gesd1]
+
+   `An adjusted Grubbs' and generalized extreme studentized deviation
+   <https://www.degruyter.com/document/doi/10.1515/dema-2021-0041/html?lang=en>`_
+
+.. [#hist1]
+
+   `Effective Histogram Thresholding Techniques for Natural Images Using
+   Segmentation
+   <http://www.joig.net/uploadfile/2015/0116/20150116042320548.pdf>`_
+
+.. [#iqr1]
+
+   `A new non-parametric detector of univariate outliers for distributions
+   with unbounded support <https://arxiv.org/abs/1509.02473>`_
+
+.. [#karch1]
+
+   `Riemannian center of mass and mollifier smoothing
+   <https://www.jstor.org/stable/41059320>`_
+
+.. [#mad1]
+
+   `Periodicity Detection of Outlier Sequences Using Constraint Based
+   Pattern Tree with MAD <https://arxiv.org/abs/1507.01685>`_
+
+.. [#mcst1]
+
+   `Testing normality in the presence of outliers
+   <https://www.researchgate.net/publication/24065017_Testing_normality_in_the_presence_of_outliers>`_
+
+.. [#meta1]
+
+   `Automating Outlier Detection via Meta-Learning
+   <https://arxiv.org/abs/2009.10606>`_
+
+.. [#mixmod1]
+
+   `Application of Mixture Models to Threshold Anomaly Scores
+   <https://studenttheses.uu.nl/bitstream/handle/20.500.12932/45591/Masterthesis%20%284%29.pdf?sequence=1&isAllowed=y>`_
+
+.. [#moll1]
+
+   `Riemannian center of mass and mollifier smoothing
+   <https://www.jstor.org/stable/41059320>`_
+
+.. [#moll2]
+
+   `Using the mollifier method to characterize datasets and models: The
+   case of the Universal Soil Loss Equation
+   <https://www.researchgate.net/publication/286670128_Using_the_mollifier_method_to_characterize_datasets_and_models_The_case_of_the_Universal_Soil_Loss_Equation>`_
+
+.. [#mtt1]
+
+   `Towards a More Reliable Interpretation of Machine Learning Outputs for
+   Safety-Critical Systems using Feature Importance Fusion
+   <https://arxiv.org/abs/2009.05501>`_
+
+.. [#ocsvm]
+
+   `Rule extraction in unsupervised anomaly detection for model
+   explainability: Application to OneClass SVM
+   <https://arxiv.org/abs/1911.09315>`_
+
+.. [#qmcd1]
+
+   `Deterministic and quasi-random sampling of optimized Gaussian mixture
+   distributions for vibronic Monte Carlo
+   <https://arxiv.org/abs/1912.11594>`_
+
+.. [#regr1]
+
+   `Linear Models for Outlier Detection
+   <https://link.springer.com/chapter/10.1007/978-3-319-47578-3_3>`_
+
+.. [#vae1]
+
+   `Likelihood Regret: An Out-of-Distribution Detection Score For
+   Variational Auto-encoder <https://arxiv.org/abs/2003.02977>`_
+
+.. [#wind1]
+
+   `Robust Inside-Outside Segmentation Using Generalized Winding Numbers
+   <https://www.researchgate.net/publication/262165781_Robust_Inside-Outside_Segmentation_Using_Generalized_Winding_Numbers>`_
+
+.. [#yj1]
+
+   `Transforming variables to central normality
+   <https://arxiv.org/abs/2005.07946>`_
+
+.. [#zscore1]
+
+   `Multiple outlier detection tests for parametric models
+   <https://arxiv.org/abs/1910.10426>`_
