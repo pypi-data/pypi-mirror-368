@@ -1,0 +1,28 @@
+{% load dynforms %}
+{% load icons %}
+<div class="controls row {{repeatable}}" id="{{field.name}}__controls" data-repeat-name="{{ repeat_name }}__controls">
+    <div class="field-group-item col">
+       <select name="{{field.name}}" id="{{field.name}}"
+               data-repeat-name="{{ repeat_name }}" aria-label="{{ field.label }}"
+               class="form-select{% if 'multiple' in field.options %}-multiple{% endif %} {{ required }}" {% if 'multiple' in field.options %}multiple{% endif %}>
+           {% if not 'multiple' in field.options %}<option {% if 'required' in field.options %}disabled{% else %}value=""{% endif %} {% if not data %}selected{% endif %}></option>{% endif %}
+            {% for choice in field|group_choices:data|randomize_choices:field %}
+               <option value="{{choice.value}}" {% if choice.selected %}selected="selected"{% endif %} >{{choice.label}}</option>
+           {% endfor %}
+       </select>
+    </div>
+    {% if "repeat" in field.options %}
+    <div class="field-group-item col-auto">
+        <button type="button" class="btn btn-danger remove-repeat" title="Remove item">
+            {% svg_icon "x" size="sm" %}
+        </button>
+    </div>
+    {% endif %}
+</div>
+{% if 'multiple' in field.options %}
+<script>
+    $(document).ready(function() {
+        createMultiSelect('#{{ field.name }}');
+    });
+</script>
+{% endif %}

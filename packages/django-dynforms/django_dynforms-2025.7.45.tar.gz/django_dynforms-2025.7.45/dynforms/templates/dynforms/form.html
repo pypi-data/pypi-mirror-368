@@ -1,0 +1,188 @@
+{% load dynforms %}
+{% load icons %}
+{% load static %}
+{% with form.get_validation as validation %}
+    {% svg_sprites %}
+    <form id="df-form-instance" method="post" novalidate
+          class="{% if form.form_type.help_bar %}extended-help{% endif %}">
+        <div class="df-form">
+            {% with form.form_type.get_pages as form_pages %}
+                {% if form.form_type.header %}
+                    <!-- Header -->
+                    <div class="df-form-header">
+                        <h1 class="df-form-title">{{ form.form_type.name }}</h1>
+                        <div class="df-form-description">{{ form.form_type.description }}</div>
+                    </div>
+                {% endif %}
+                <!-- Nav tabs -->
+                {% include "dynforms/form-tabs.html" with form_type=form.form_type %}
+
+                <div class="df-form-body">
+                    <!-- Tab panes -->
+                    <div class="tab-content">
+                        {% for page in form_pages %}
+                            <div class="tab-pane {% if page.number == active_page %}active{% endif %}"
+                                 id="df-page-{{ page.number }}">
+                                <div class="container-fluid">
+                                    <div class="df-container row">
+                                        {% with validation|page_errors:page.number as errors %}
+                                            {% if errors or form.errors %}
+                                                <div class="col-12">
+                                                    <div class="alert {% if form.errors %} alert-danger{% else %}alert-warning{% endif %} alert-dismissible">
+                                                        <button class="btn-close ms-auto" data-bs-dismiss="alert"
+                                                                aria-label="Close"></button>
+                                                        {% include 'dynforms/form-errors.html' %}
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                            {% for field in page.fields %}
+                                                <div class="df-field {{ field.width_styles }}">
+                                                    {% include "dynforms/field.html" %}
+                                                </div>
+                                            {% endfor %}
+                                        {% endwith %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <div class="df-form-help arrow-box p-3"></div>
+                </div>
+                <div class="df-form-footer d-flex align-items-center">
+                    <div class="footer-progress">
+                        <div class="d-flex flex-column align-items-stretch justify-content-center">
+                            <div>
+                                <span id="df-progress-prefix" class="text-body-secondary"></span>
+                                <span id="df-progress-text">0% complete</span>
+                            </div>
+                            <div>
+                                <div class="progress" style="height: 0.75em;">
+                                    <div id="df-progress-bar"
+                                         class="progress-bar"
+                                         role="progressbar"
+                                         aria-valuenow="0"
+                                         aria-valuemin="0" aria-valuemax="100"
+                                         style="width: 0 }}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="footer-buttons d-flex flex-row gap-2">
+                    {% if form.form_type.wizard %}
+                        <button type="button" class="df-switch-page btn btn-secondary" id="df-form-prev-page"
+                                >{% svg_icon "chevron-left" size="md" %} Previous</button>
+                        <button type="button" class="df-switch-page btn btn-secondary" id="df-form-next-page"
+                                >Next {% svg_icon "chevron-right" size="md" %}</button>
+                    {% endif %}
+                    {% for name, label in form.form_type.actions reversed %}
+                        <input type="submit" id="{{ name }}-action"
+                               class="df-action-btn btn {% if forloop.last %}btn-primary{% else %}btn-secondary{% endif %}"
+                               value="{{ label }}" name="{{ name }}">
+                    {% endfor %}
+                    </div>
+                </div>
+            {% endwith %}
+        </div>
+        {% csrf_token %}
+        <input id="active-page-input" type='hidden' name='active_page' value='{{ active_page }}'/>
+        <input id="total-progress-input" type='hidden' name='progress__total' value='{{ progress }}'/>
+        <input id="required-progress-input" type='hidden' name='progress__required' value='{{ progress }}'/>
+    </form>
+{% endwith %}
+<script src="{% static 'dynforms/df-toasts.min.js' %}" defer></script>
+<script>
+    function updateWizard(sel) {
+        // This function updates the visibility of the page navigation buttons for wizard forms.
+        // It checks the current active page and the last page, then shows or hides buttons accordingly.
+        // sel: the selector for the active form_tab, e.g., '#df-form-instance'
+
+        const $prevButton = $('#df-form-prev-page');
+        const $nextButton = $('#df-form-next-page');
+        const $actionButtons = $('.df-action-btn');
+        const $progressPrefix = $('#df-progress-prefix');
+
+        const activePage = $(sel).data('page-number');
+        const lastPage = $(sel).data('last-page');
+        const nextPage = activePage + 1;
+        const prevPage = activePage - 1;
+
+        $nextButton.data('target-page', nextPage);
+        $prevButton.data('target-page', prevPage);
+        $progressPrefix.html(`Page ${activePage} of ${lastPage} &mdash; `);
+
+        // update the state of the next, previous and action buttons
+        if (lastPage === 1) {
+            $prevButton.hide();
+            $nextButton.hide();
+            $actionButtons.show();
+        } else {
+            if (activePage === 1) {
+                $prevButton.hide();
+            } else {
+                $prevButton.show();
+            }
+            if (activePage === lastPage) {
+                $nextButton.hide();
+                $actionButtons.show();
+            } else {
+                $nextButton.show();
+                $actionButtons.hide();
+            }
+        }
+
+    }
+
+    $(document).ready(function () {
+        guardDirtyForm('#df-form-instance');
+        const $form = $('#df-form-instance');
+        $form.formProgress({
+            update: function (percentAll, percentRequired, missing) {
+                const progressBar = $('#df-progress-bar');
+                const progressText = $('#df-progress-text');
+                const submitButton = $('#df-form-instance input[value="submit"]');
+
+                $('#total-progress-input').val(percentAll.toFixed(1));
+                $('#required-progress-input').val(percentRequired.toFixed(1));
+
+                progressText.html(`${percentAll.toFixed(1)}% complete`);
+                progressBar.css('width', percentAll + '%');
+                if (percentRequired < 99) {
+                    progressBar.removeClass('bg-success').addClass('bg-warning');
+                    submitButton.attr('disabled', 'disabled');
+                } else {
+                    submitButton.removeAttr('disabled');
+                    progressBar.removeClass('bg-warning').addClass('bg-success');
+                }
+            },
+        });
+        $form.on('click', '.df-field', function () {
+            const $helpArea = $('.df-form-help');
+            const $helpContent = $(this).find('.control-instructions');
+            const fieldBox = this.getBoundingClientRect();
+            const offset = fieldBox.top - $helpArea[0].getBoundingClientRect().top + fieldBox.height / 2;
+            $helpArea.css('--df-help-offset', offset + 'px');
+
+            if ($helpArea.length === 0) {
+                return;
+            }
+            $helpArea.html($helpContent.html());
+        });
+        $form.on('click', '.nav-link', function () {
+            const $helpArea = $('.df-form-help');
+            $helpArea.html('');
+            $helpArea.css('--df-help-offset', '0.5em');
+        });
+        {% if form.form_type.wizard %}
+            // manage page navigation buttons for wizard forms
+            updateWizard(".nav-link[href='#df-page-{{active_page}}']");
+            $form.on('shown.bs.tab', function (e) {
+                updateWizard(e.target);
+            });
+            $form.on('click', '.df-switch-page', function (e) {
+                const targetPage = $(this).data('target-page');
+                $(`.nav-link[href="#df-page-${targetPage}"]`).tab('show');
+            });
+        {% endif %}
+    });
+</script>
+{% include "dynforms/form-rules.html" with form_type=form.form_type %}

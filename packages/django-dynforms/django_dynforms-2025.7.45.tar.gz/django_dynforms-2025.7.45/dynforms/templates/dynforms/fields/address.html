@@ -1,0 +1,123 @@
+{% load dynforms %}
+{% load static %}
+<div class="controls" id="{{ field.name }}__controls" data-repeat-name="{{ repeat_name }}__controls">
+    <div class="row">
+        {% if 'department' in field.options %}
+            <div class="field-group-item col-sm-12 {{ floating }}">
+                <input id="{{ field.name }}__place" aria-label="Institution"
+                       {% if not field|show_sublabels %}placeholder="Institution / Department"{% endif %}
+                       name="{{ field.name }}__place" class="form-control {% subfield_require "place"  %}" type="text" value="{{ data.place }}"
+                >
+                {% if field|show_sublabels %}
+                    <label for="{{ field.name }}__place" class="sub-label {% subfield_require "place"  %}">Institution / Department</label>
+                {% endif %}
+            </div>
+        {% endif %}
+        <div class="field-group-item col-sm-12 {{ floating }}">
+            <input id="{{ field.name }}__street" name="{{ field.name }}__street"
+                   aria-label="Street"
+                   {% if not field|show_sublabels %}placeholder="Street"{% endif %}
+                   class="form-control {% subfield_require "street"  %}" type="text" value="{{ data.street }}"
+            >
+            {% if field|show_sublabels %}
+                <label for="{{ field.name }}__street"  class="sub-label {% subfield_require "street"  %}">Street</label>
+            {% endif %}
+        </div>
+        <div class="field-group-item col-sm-6 {{ floating }}">
+            <input id="{{ field.name }}__country" aria-label="Country" name="{{ field.name }}__country"
+                   class="form-control {% subfield_require "country"  %}" type="text" value="{{ data.country }}"
+                   {% if  not field|show_sublabels %}placeholder="Country ..."{% endif %}
+            >
+            {% if field|show_sublabels %}
+                <label for="{{ field.name }}__country" class="sub-label {% subfield_require "country"  %}">Country</label>
+            {% endif %}
+        </div>
+        <div class="field-group-item col-sm-6 {{floating}}">
+
+            <input id="{{ field.name }}__region" aria-label="Province/State/Region" name="{{ field.name }}__region"
+                   class="form-control {% subfield_require "region"  %}" type="text" value="{{ data.region }}"
+                   {% if  not field|show_sublabels %}placeholder="Province/State/Region ..."{% endif %}
+            >
+            {% if field|show_sublabels %}
+                <label for="{{ field.name }}__region" class="sub-label {% subfield_require "region"  %}">Province / State / Region</label>
+            {% endif %}
+        </div>
+        <div class="field-group-item col-sm-6 {% if 'floating' in field.options %}form-floating{% endif %}">
+
+            <input id="{{ field.name }}__city" aria-label="City"
+                   {% if not field|show_sublabels %}placeholder="City"{% endif %}
+                   name="{{ field.name }}__city"
+                   class="form-control {% subfield_require ""  %}" type="text" value="{{ data.city }}"
+            >
+            {% if field|show_sublabels %}
+                <label for="{{ field.name }}__city" class="sub-label {% subfield_require "city"  %}">City</label>
+            {% endif %}
+        </div>
+        <div class="field-group-item col-sm-6 {% if 'floating' in field.options %}form-floating{% endif %}">
+
+            <input id="{{ field.name }}__code" aria-label="Postal Code"
+                   {% if not field|show_sublabels %}placeholder="Postal Code"{% endif %}
+                   name="{{ field.name }}__code" class="form-control {% subfield_require "code"  %}" type="text" value="{{ data.code }}"
+            >
+            {% if field|show_sublabels %}
+                <label for="{{ field.name }}__code" class="sub-label {% subfield_require "code"  %}">Postal / Zip Code</label>
+            {% endif %}
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/typeahead.js/0.11.1/typeahead.bundle.min.js"
+            integrity="sha512-qOBWNAMfkz+vXXgbh0Wz7qYSLZp6c14R0bZeVX2TdQxWpuKr6yHjBIM69fcF8Ve4GUX6B6AKRQJqiiAmwvmUmQ=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="{% static 'dynforms/countries.min.js' %}" charset="UTF-8"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            const $country = $('#{{field.name}}__country');
+            const $region = $('#{{field.name}}__region');
+
+            const countries = new Bloodhound({
+                datumTokenizer: Bloodhound.tokenizers.whitespace,
+                queryTokenizer: Bloodhound.tokenizers.whitespace,
+                local: COUNTRIES
+            });
+            const _regions = new Bloodhound({
+                datumTokenizer: Bloodhound.tokenizers.whitespace,
+                queryTokenizer: Bloodhound.tokenizers.whitespace,
+                local: REGIONS["CANADA"]
+            });
+
+
+            $country.typeahead(null, {
+                source: countries,
+                limit: 20
+            });
+
+            $region.typeahead(null, {
+                source: _regions,
+                limit: 20
+            });
+
+            $country.bind('typeahead:selected typeahead:autocompleted', function () {
+                const cntry = $country.val();
+                const cntry_regions = REGIONS[cntry.toUpperCase()];
+
+
+                if (cntry && cntry_regions) {
+                    const regions = new Bloodhound({
+                        datumTokenizer: Bloodhound.tokenizers.whitespace,
+                        queryTokenizer: Bloodhound.tokenizers.whitespace,
+                        local: cntry_regions
+                    });
+                    //console.log(cntry_regions);
+                    $region.typeahead('destroy');
+                    $region.typeahead(null, {
+                        source: regions,
+                        limit: 20
+                    });
+                    if ($.inArray($region.val(), cntry_regions) !== -1) {
+                        $region.val("")
+                    }
+                }
+            });
+        });
+    </script>
+</div>
