@@ -1,0 +1,29 @@
+#!/usr/bin/python3
+"""
+treetools: Tools for transforming treebank trees.
+
+Author: Wolfgang Maier <maierw@hhu.de>
+"""
+import argparse
+from . import transform, treeanalysis, grammar, transitions
+
+
+def main():
+    """Parse command line arguments and run appropriate action.
+    """
+    parser = argparse.ArgumentParser(description='Process constituency treebank trees',
+                                     epilog='Run %(prog)s command --help to obtain help'
+                                     ' on subcommands.')
+    subparsers = parser.add_subparsers(help='Subcommands',
+                                       dest='subparser_name')
+    subparsers.required = True
+    transform.add_parser(subparsers)
+    treeanalysis.add_parser(subparsers)
+    grammar.add_parser(subparsers)
+    transitions.add_parser(subparsers)
+    args = parser.parse_args()
+    args.func(args)
+
+
+if __name__ == '__main__':
+    main()
