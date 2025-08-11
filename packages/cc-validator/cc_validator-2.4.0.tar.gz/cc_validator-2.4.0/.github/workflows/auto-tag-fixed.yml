@@ -1,0 +1,72 @@
+name: Auto Tag on Version Change (Fixed)
+
+on:
+  push:
+    branches: [main]
+    paths: ['pyproject.toml']
+
+permissions:
+  contents: write
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version-changed: ${{ steps.check.outputs.changed }}
+      new-version: ${{ steps.check.outputs.version }}
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 2
+        # Use a PAT to allow triggering other workflows
+        token: ${{ secrets.PAT_GITHUB || github.token }}
+
+    - name: Check if version changed
+      id: check
+      run: |
+        # Get current version from pyproject.toml
+        CURRENT_VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+
+        # Get previous version from last commit
+        git checkout HEAD~1 -- pyproject.toml 2>/dev/null || echo "No previous version"
+        PREVIOUS_VERSION=$(grep '^version = ' pyproject.toml 2>/dev/null | sed 's/version = "\(.*\)"/\1/' || echo "none")
+
+        # Restore current pyproject.toml
+        git checkout HEAD -- pyproject.toml
+
+        echo "Current version: $CURRENT_VERSION"
+        echo "Previous version: $PREVIOUS_VERSION"
+
+        if [ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ] && [ "$CURRENT_VERSION" != "none" ]; then
+          echo "changed=true" >> $GITHUB_OUTPUT
+          echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "Version changed from $PREVIOUS_VERSION to $CURRENT_VERSION"
+        else
+          echo "changed=false" >> $GITHUB_OUTPUT
+          echo "No version change detected"
+        fi
+
+  create-tag:
+    needs: check-version
+    if: needs.check-version.outputs.version-changed == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        # Use a PAT to allow triggering other workflows
+        token: ${{ secrets.PAT_GITHUB || github.token }}
+
+    - name: Create and push tag
+      run: |
+        VERSION="${{ needs.check-version.outputs.new-version }}"
+        TAG="v$VERSION"
+
+        # Create annotated tag
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git tag -a "$TAG" -m "Release version $VERSION"
+        git push origin "$TAG"
+
+        echo "Created and pushed tag: $TAG"

@@ -1,0 +1,45 @@
+repos:
+  - repo: local
+    hooks:
+      - id: quick-validation-tests
+        name: Quick Validation Tests
+        entry: uv run python tests/test_quick_validation.py
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: comprehensive-validation-tests
+        name: Comprehensive Validation Tests (requires GEMINI_API_KEY)
+        entry: ./scripts/run-comprehensive-tests.sh
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: ruff-check
+        name: Ruff Linting
+        entry: uvx ruff check cc_validator/
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: mypy-check
+        name: MyPy Type Checking
+        entry: uvx mypy cc_validator/
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: black-check
+        name: Black Code Formatting
+        entry: uvx black --check cc_validator/
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
