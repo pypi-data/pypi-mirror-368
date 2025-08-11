@@ -1,0 +1,73 @@
+---
+applyTo: "**"
+---
+
+# Instructions
+
+## General Information
+
+This python (3.13) repo uses the astral.sh stack along other tools:
+1. `pre-commit` - triggers all of the following tools
+2. `uv` - venv and tools management
+3. `ruff` - format and lint
+4. `ty` - type checking
+5. `pytest` - testing
+6. `tox` - tests automation
+7. `typos` - spell checking
+8. `pip-audit` - dependency security
+9. `trivy` - general security
+10. `claude` - for an objective AI review
+11. `lintok` - file size linter
+12. `ties` - file-to-file sync with transformations
+13. `yamlfmt` - yaml format and lint
+14. `biomejs` - json format and lint
+15. `rumdl` - markdown format and lint
+16. `taplo` - general toml format and lint
+17. `pyproject-fmt` - pyproject.toml format and lint
+18. `tox-toml-fmt` - tox.toml format and lint
+
+## Git
+
+Commit changes with a `--signoff`.
+Commit messages must follow the pattern
+`<type>: <sentence>\n[<details>]\n\nAssisted-by: <name-of-code-assistant>`,
+where the `<type>` is `feat` or `fix`, the `<sentence>` is no more than 60
+characters and the `<details>` are optional.  
+
+## Edit Attempts
+
+Each sequence of edits and code generation without
+`pre-commit run` is an Edit Attempt.  
+Edit Attempts should be atomic, focused and encapsulated.  
+After any Edit Attempt:  
+- `git add` all changes
+- `pre-commit run`
+- a summary line: `Attempt #<attempt index>: <status>`  
+  where `<status>` is `SUCCESS` or `FAILED`
+
+## Tasks
+
+Each Task is a sequence of Edit Attempts.  
+A Task with a single `SUCCESS` is considered `DONE`.  
+When a Task is `DONE`, move on to the next Task.  
+After 3 `FAILED` Edit Attempts, the Task is considered `STUCK`.  
+After any Task:  
+- `git commit` your changes
+- a summary line: `<task>: <status> after <amount> attempts`  
+  where `<status>` is `DONE` or `STUCK`
+
+## Goals
+
+A Goal is a testable valuable feature.  
+When working on a Goal you must plan Tasks that will
+eventually lead you to the Goal completion.  
+Tasks must include testing the feature.  
+Tasks may be changed, `CANCELED` or added when needed.  
+When all Tasks are `DONE` the Goal is `COMPLETED`
+You should address the user only if:
+1. A Goal was `COMPLETED`
+2. You are `STUCK`
+
+After any `COMPLETED` Goal:
+- `git push` your changes
+- consicely summarize the process
