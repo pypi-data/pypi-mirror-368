@@ -1,0 +1,122 @@
+[build-system]
+requires = [
+    "setuptools~=70.0.0",
+    "setuptools-git-versioning>=2.0,<3",
+    "wheel",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "swmclient"
+description = "Python bindings for swm-core user REST API"
+authors = [
+    {name = "Taras Shapovalov", email = "taras@iclouds.net"},
+]
+keywords = [
+    "hpc",
+    "high performance computing",
+    "cloud",
+    "cloud computing",
+    "open workload",
+    "sky port",
+]
+classifiers = [
+    "Environment :: Console",
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3 :: Only",
+]
+requires-python = "~=3.10"
+dependencies = [
+    "httpx",
+]
+license = {text = "BSD 3-Clause License"}
+dynamic = ["version", "readme"]
+
+[project.urls]
+Homepage = "https://openworkload.org"
+Documentation = "https://openworkload.org"
+Repository = "https://github.com/openworkload/swm-python-client"
+Tests = "https://github.com/openworkload/swm-python-client/tree/master/test"
+Issues = "https://github.com/openworkload/swm-python-client/issues"
+Distribution = "https://pypi.org/project/swmclient"
+
+[project.optional-dependencies]
+build = [
+    "build==1.2.1"
+]
+publish = [
+    "twine==5.1.1"
+]
+test = [
+    "pytest",
+]
+
+[tool.setuptools.packages.find]
+where = ["./"]
+include = ["swmclient*"]
+exclude = ["swmclient.egg-info"]
+
+[tool.setuptools-git-versioning]
+enabled = true
+template = "{tag}"
+dev_template = "{tag}"
+dirty_template = "{tag}"
+
+[tool.setuptools.package-data]
+"your_package_name" = ["swmclient/logo64.png"]
+
+[tool.setuptools.dynamic]
+readme = {file = ["README.md"], content-type = "text/markdown"}
+
+[tool.black]
+line-length = 120
+target-version = ['py310']
+exclude = '''
+(
+  /(
+    | \.git
+    | \.venv
+    | \.mypy_cache
+    | \dist
+    | \build
+    | \swmclient.egg-info
+  )/
+)
+'''
+
+[tool.ruff]
+line-length = 120
+exclude = [
+    "swmclient/generated",
+    "swmclient.eggs-info",
+    ".git",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".venv",
+    "build",
+    "dist",
+]
+
+[tool.isort]
+line_length = 120
+profile = "black"
+skip_glob = [".venv/*", ".github/workflows/*"]
+length_sort = true
+
+[tool.mypy]
+python_version = 3.10
+strict = true
+follow_imports = "silent"
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+allow_untyped_defs = true
+allow_incomplete_defs = true
+allow_untyped_calls = true
+
+[tool.bandit]
+skips = []
