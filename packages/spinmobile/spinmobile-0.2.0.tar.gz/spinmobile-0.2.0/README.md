@@ -1,0 +1,72 @@
+# Spinmobile API Client
+
+This project provides an asynchronous Python client for interacting with the Spinmobile API. It includes services for KYC verification, credit scoring, and financial statement analysis.
+
+## Features
+
+- **KYC Verification**: Verify user identity using national ID and name.
+- **Credit Scoring**: Retrieve credit scores for users.
+- **Financial Statement Analysis**: Submit and analyze financial statements.
+
+## Installation
+
+1. Clone the repository:
+   ```bash
+   gh repo clone collinmutembei/spinmobile
+   ```
+
+2. Install dependencies:
+   ```bash
+   uv sync --dev
+   ```
+
+## Usage
+
+### Initialization
+
+```python
+from spinmobile.client import SpinmobileClient
+
+# Initialize the client
+client = SpinmobileClient(
+    base_url="https://sanbox-api.spinmobile.co/",
+    consumer_key="sandbox_consumer_key",
+    consumer_secret="sandbox_consumer_secret",
+)
+```
+
+### KYC Verification
+
+```python
+from spinmobile.kyc import KYCService
+kyc_service = KYCService(client)
+response = await kyc_service.verify_identity("12345678", "John", "Doe")
+print(response)
+```
+
+### Credit Scoring
+
+```python
+from spinmobile.credit import CreditService
+credit_service = CreditService(client)
+response = await credit_service.get_credit_score("12345678")
+print(response)
+```
+
+### Financial Statement Analysis
+
+```python
+from spinmobile.files import FileAnalysisService
+file_service = FileAnalysisService(client)
+payload = {"document_type": "BANK", "other_metadata": "value"}
+response = await file_service.submit_statements(["/path/to/file1.pdf", "/path/to/file2.pdf"], payload)
+print(response)
+```
+
+## Contributing
+
+Contributions are welcome! Please submit a pull request or open an issue for any improvements or bug fixes.
+
+## License
+
+This project is licensed under the MIT License.
