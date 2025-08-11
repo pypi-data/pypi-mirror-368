@@ -1,0 +1,1 @@
+Everything That Has A Beginning Has An End.
