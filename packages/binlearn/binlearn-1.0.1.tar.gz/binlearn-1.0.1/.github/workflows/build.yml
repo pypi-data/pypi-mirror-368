@@ -1,0 +1,138 @@
+name: Build & Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Test Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+      fail-fast: false
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for setuptools_scm
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[tests,dev,pandas,polars]"
+
+    - name: Show package info
+      run: |
+        python -c "import binlearn; print(f'Package: binlearn v{binlearn.__version__}')"
+        python -c "import sys; print(f'Python: {sys.version}')"
+        python -c "import pandas; print(f'Pandas: v{pandas.__version__}')"
+        python -c "import polars as pl; print(f'Polars: v{pl.__version__}')"
+
+    - name: Run ruff linting
+      run: |
+        echo "Running ruff linting..."
+        ruff check binlearn/
+
+    - name: Run flake8 linting
+      run: |
+        echo "Running flake8 linting..."
+        flake8 binlearn/ --max-line-length=100 --extend-ignore=E203,W503
+
+    - name: Run pylint analysis
+      run: |
+        echo "Running pylint analysis..."
+        pylint binlearn/ --rcfile=pyproject.toml --exit-zero || true
+        echo "Pylint completed (warnings/errors reported but not failing build)"
+
+    - name: Run mypy type checking
+      run: |
+        echo "Running mypy type checking..."
+        mypy binlearn/ --ignore-missing-imports
+
+    - name: Run tests with coverage
+      run: |
+        echo "Running test suite..."
+        pytest --cov=binlearn --cov-report=xml --cov-report=term-missing -v
+
+    - name: Upload coverage reports to Codecov
+      if: matrix.python-version == '3.11' && matrix.os == 'ubuntu-latest'  # Only upload once
+      uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        slug: TheDAALab/binlearn
+        file: ./coverage.xml
+        fail_ci_if_error: false
+
+  quality-gate:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[tests,dev,pandas,polars]"
+
+    - name: Final quality checks
+      run: |
+        echo "All quality checks passed!"
+        echo "Code coverage: Available in artifacts"
+        echo "Linting: ruff passed"
+        echo "Code style: flake8 passed"
+        echo "Code analysis: pylint completed"
+        echo "Type checking: mypy passed"
+        echo "Tests: All tests passed across Python versions and OS platforms"
+        echo "Pandas support: Verified"
+        echo "Polars support: Verified"
+
+    - name: Build test package
+      run: |
+        pip install build
+        python -m build
+        echo "Package built successfully for testing"
+
+    - name: Validate package
+      run: |
+        pip install twine
+        python -m twine check dist/*
+        echo "Package validation passed"
+
+  # Summary job that can be used as a required status check
+  build-success:
+    name: Build Success
+    runs-on: ubuntu-latest
+    needs: [test, quality-gate]
+    if: always()
+
+    steps:
+    - name: Check build status
+      run: |
+        if [[ "${{ needs.test.result }}" == "success" && "${{ needs.quality-gate.result }}" == "success" ]]; then
+          echo "Build pipeline completed successfully!"
+          echo "Ready for release when needed"
+        else
+          echo "Build pipeline failed"
+          exit 1
+        fi
