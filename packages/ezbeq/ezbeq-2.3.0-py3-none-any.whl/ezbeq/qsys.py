@@ -1,0 +1,265 @@
+import json
+import logging
+import re
+import socket
+from typing import Optional, List, Union
+
+from ezbeq.apis.ws import WsServer
+from ezbeq.catalogue import CatalogueEntry, CatalogueProvider
+from ezbeq.device import SlotState, DeviceState, PersistentDevice
+
+SLOT_NAME = 'QSYS'
+TERMINATOR = '\0'
+
+logger = logging.getLogger('ezbeq.qsys')
+
+
+class QsysSlotState(SlotState):
+
+    def __init__(self):
+        super().__init__(SLOT_NAME)
+
+
+class QsysState(DeviceState):
+
+    def __init__(self, name: str):
+        self.__name = name
+        self.slot = QsysSlotState()
+        self.slot.active = True
+
+    def serialise(self) -> dict:
+        return {
+            'type': 'qsys',
+            'name': self.__name,
+            'slots': [self.slot.as_dict()]
+        }
+
+
+class Qsys(PersistentDevice[QsysState]):
+
+    def __init__(self, name: str, config_path: str, cfg: dict, ws_server: WsServer, catalogue: CatalogueProvider):
+        super().__init__(config_path, name, ws_server)
+        self.__name = name
+        self.__catalogue = catalogue
+        self.__ip = cfg['ip']
+        self.__port = cfg['port']
+        self.__components = cfg.get('components', [])
+        self.__content_info = cfg.get('content_info', None)
+        if not self.__content_info:
+            self.__content_info = {}
+        self.__timeout_srcs = cfg.get('timeout_secs', 2)
+        self.__peq = {}
+
+    def _load_initial_state(self) -> QsysState:
+        return QsysState(self.name)
+
+    def _merge_state(self, loaded: QsysState, cached: dict) -> QsysState:
+        if 'slots' in cached:
+            for slot in cached['slots']:
+                if 'id' in slot:
+                    if slot['id'] == 'Qsys':
+                        if slot['last']:
+                            loaded.slot.last = slot['last']
+                        if slot['author']:
+                            loaded.slot.author = slot['author']
+        return loaded
+
+    @property
+    def device_type(self) -> str:
+        return self.__class__.__name__.lower()
+
+    def update(self, params: dict) -> bool:
+        any_update = False
+        if 'slots' in params:
+            for slot in params['slots']:
+                if slot['id'] == SLOT_NAME:
+                    if 'entry' in slot:
+                        if slot['entry']:
+                            match = self.__catalogue.find(slot['entry'])
+                            if match:
+                                self.load_filter(SLOT_NAME, match)
+                                any_update = True
+                        else:
+                            self.clear_filter(SLOT_NAME)
+                            any_update = True
+        return any_update
+
+    def __send(self, to_load: List['PEQ'], entry: Union[CatalogueEntry, str]):
+        logger.info(f"Sending {len(to_load)} filters")
+        while len(to_load) < 10:
+            to_load.append(PEQ(100, 1, 0, 'PeakingEQ'))
+        if to_load:
+            self.__send_to_socket(to_load, entry)
+        else:
+            logger.warning(f"Nothing to send")
+
+    @staticmethod
+    def __recvall(sock: socket, buf_size: int = 4096) -> str:
+        data = b''
+        while True:
+            try:
+                packet = sock.recv(buf_size)
+                if not packet:
+                    break
+                data += packet
+                if len(packet) < buf_size:
+                    break
+            except TimeoutError:
+                logger.error("timed out")
+                break
+        if data:
+            return data.decode('utf-8').strip(TERMINATOR)
+        return ''
+
+    def __send_to_socket(self, peqs: List['PEQ'], entry: Union[CatalogueEntry, str]):
+        logger.info(f"Sending {peqs} to {self.__ip}:{self.__port}")
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(self.__timeout_srcs)
+        try:
+            sock.connect((self.__ip, self.__port))
+            for c in self.__components:
+                controls = []
+                for idx, peq in enumerate(peqs):
+                    controls += peq.to_rpc(idx + 1)
+                self.__send_component(c, controls, sock)
+            for c in self.__content_info:
+                for component_name, mappings in c.items():
+                    text_controls = []
+                    for k, v in mappings.items():
+                        if v == 'filters':
+                            val = json.dumps([coeff for p in peqs for coeff in p.coeffs])
+                        elif isinstance(entry, CatalogueEntry):
+                            m = re.match(r'(.*)\[(\d+)]', v)
+                            if m:
+                                val = getattr(entry, m.group(1))
+                            else:
+                                val = getattr(entry, v)
+                            if isinstance(val, list):
+                                if m:
+                                    idx = int(m.group(2))
+                                    if len(val) > idx:
+                                        val = val[idx]
+                                    else:
+                                        logger.info(f"'{entry.title} {m.group(1)} has length {len(val)}, "
+                                                    f"no value to supply for {k}")
+                                        val = ''
+                                else:
+                                    val = ', '.join(val)
+                            else:
+                                val = str(val)
+                        else:
+                            val = '0.0' if v == 'mv_adjust' else ''
+                        text_controls.append({'Name': k, 'Value': val})
+                    self.__send_component(component_name, text_controls, sock)
+        finally:
+            sock.close()
+
+    def __send_component(self, name: str, controls: list, sock):
+        jsonrpc = {
+            "jsonrpc": "2.0",
+            "id": 1234,
+            "method": "Component.Set",
+            "params": {
+                "Name": name,
+                "Controls": controls
+            }
+        }
+        logger.info(f"Sending to component {name} with {len(controls)} controls")
+        encoded = json.dumps(jsonrpc).encode('utf-8')
+        logger.info(encoded)
+        sock.sendall(encoded)
+        sock.sendall(TERMINATOR.encode('utf-8'))
+        msg = self.__recvall(sock)
+        if msg:
+            try:
+                result = json.loads(msg)
+                logger.info(f"Received from {name}: {result}")
+            except:
+                logger.exception(f"Unable to decode {msg}")
+        else:
+            logger.info(f"Received no data from {name}")
+
+    def activate(self, slot: str) -> None:
+        def __do_it():
+            self._current_state.slot.active = True
+
+        self._hydrate_cache_broadcast(__do_it)
+
+    def load_biquads(self, slot: str, overwrite: bool, inputs: List[int], outputs: List[int],
+                     biquads: List[dict]) -> None:
+        raise NotImplementedError()
+
+    def send_commands(self, slot: str, inputs: List[int], outputs: List[int], commands: List[str]) -> None:
+        raise NotImplementedError()
+
+    def load_filter(self, slot: str, entry: CatalogueEntry, mv_adjust: float = 0.0) -> None:
+        to_load = [PEQ(f['freq'], f['q'], f['gain'], f['type']) for f in entry.filters]
+        self._hydrate_cache_broadcast(lambda: self.__do_it(to_load, entry))
+
+    def __do_it(self, to_load: List['PEQ'], entry: Union[CatalogueEntry, str]):
+        try:
+            self.__send(to_load, entry)
+            if isinstance(entry, CatalogueEntry):
+                self._current_state.slot.last = entry.formatted_title
+                self._current_state.slot.last_author = entry.author
+            else:
+                self._current_state.slot.last = entry
+                self._current_state.slot.last_author = None
+        except Exception as e:
+            self._current_state.slot.last = 'ERROR'
+            self._current_state.slot.last_author = None
+            raise e
+
+    def clear_filter(self, slot: str) -> None:
+        self._hydrate_cache_broadcast(lambda: self.__do_it([], 'Empty'))
+
+    def mute(self, slot: Optional[str], channel: Optional[int]) -> None:
+        raise NotImplementedError()
+
+    def unmute(self, slot: Optional[str], channel: Optional[int]) -> None:
+        raise NotImplementedError()
+
+    def set_gain(self, slot: Optional[str], channel: Optional[int], gain: float) -> None:
+        raise NotImplementedError()
+
+    def levels(self) -> dict:
+        # TODO implement
+        return {}
+
+
+class PEQ:
+
+    def __init__(self, fc: float, q: float, gain: float, filter_type_name: str, fs: int = 48000):
+        self.fs = fs
+        self.fc = fc
+        self.q = q
+        self.gain = gain
+        self.filter_type = 1.0 if filter_type_name == 'PeakingEQ' else 2.0 if filter_type_name == 'LowShelf' else 3.0
+        self.filter_type_name = filter_type_name
+
+    def to_rpc(self, slot: int):
+        return [
+            {"Name": f"frequency.{slot}", "Value": self.fc},
+            {"Name": f"gain.{slot}", "Value": self.gain},
+            {"Name": f"q.factor.{slot}", "Value": self.q},
+            {"Name": f"type.{slot}", "Value": self.filter_type}
+        ]
+
+    @property
+    def coeffs(self) -> List[float]:
+        if self.filter_type_name == 'LowShelf':
+            from ezbeq.iir import LowShelf
+            filt = LowShelf(self.fs, self.fc, self.q, self.gain)
+        elif self.filter_type_name == 'PeakingEQ':
+            from ezbeq.iir import PeakingEQ
+            filt = PeakingEQ(self.fs, self.fc, self.q, self.gain)
+        elif self.filter_type_name == 'HighShelf':
+            from ezbeq.iir import HighShelf
+            filt = HighShelf(self.fs, self.fc, self.q, self.gain)
+        else:
+            raise ValueError(f"Filter type {self.filter_type_name} not supported")
+        return filt.b + filt.a
+
+    def __repr__(self):
+        return f"{self.filter_type_name} {self.fc} Hz {self.gain} dB {self.q}"
+
