@@ -1,0 +1,56 @@
+[project]
+name = "Mopidy-Cranberry"
+description = "An opinionated web frontend for Mopidy"
+version = "0.1.0-rc5"
+authors = [
+    { name = "Alexander Kern", email = "al-kern@web.de" },
+]
+requires-python = ">= 3.11"
+readme = "README.rst"
+classifiers = [
+    "Environment :: No Input/Output (Daemon)",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Sound/Audio :: Players",
+]
+dependencies = [
+    "Mopidy >= 3.0",
+    "Pykka >= 2.0.1",
+]
+
+[project.license]
+text = "Apache-2.0"
+
+[project.urls]
+Homepage = "https://github.com/alkern/cranberry"
+
+[project.entry-points."mopidy.ext"]
+cranberry = "mopidy_cranberry:Extension"
+
+[tool.pdm]
+distribution = true
+
+[tool.pdm.version]
+source = "scm"
+
+[tool.pdm.build]
+includes = [
+    "mopidy_cranberry",
+]
+source-includes = [
+    "mopidy_cranberry/static",
+]
+
+[tool.pdm.build.wheel-data]
+data = [
+    { path = "mopidy_cranberry/static/**/*", relative-to = "." },
+]
+
+[build-system]
+requires = [
+    "pdm-backend",
+]
+build-backend = "pdm.backend"
