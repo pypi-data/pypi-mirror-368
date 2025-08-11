@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package nbqueue;
+
+// The NBQueue service definition
+service NBQueueService {
+  // Create a Kubernetes job from parameters
+  rpc CreateJob(CreateJobRequest) returns (CreateJobResponse);
+  
+  // Get the status of an existing job
+  rpc JobStatus(JobStatusRequest) returns (JobStatusResponse);
+}
+
+// Request message for creating a job
+message CreateJobRequest {
+  // Parameters from JupyterLab extension
+  string notebook_file = 1;           // Path to the notebook (.ipynb)
+  string owner = 2;                   // Owner of the job (e.g., "sau")
+  string project = 3;                 // Project name (e.g., "ossadmins")
+  string nbqueue_job_name = 4;        // Name of the job (recommended: same as notebook name)
+  string image = 5;                   // Container image to use
+  string conda_env = 6;              // Conda environment specification
+  string output_path = 7;            // Output location for results
+  string cpu = 8;                    // CPU resources (with default)
+  string ram = 9;                    // RAM resources (with default)
+  string uid = 10;                   // User ID for security
+  string gid = 11;                   // Group ID for security
+  
+  // Optional parameters that might come from HELM values
+  string namespace = 12;             // Kubernetes namespace
+  string oss_node_pool = 13;         // Node pool selector
+  string oss_tolerations = 14;       // Node tolerations
+  string oss_service_account = 15;   // Service account
+  string efs_mount_path = 16;        // EFS mount path
+  string efs_pvc_name = 17;          // EFS PVC name
+}
+
+// Response message for job creation
+message CreateJobResponse {
+  bool success = 1;                  // Whether the job was created successfully
+  string job_id = 2;                 // The ID/name of the created job
+  string kubectl_output = 3;         // Output from kubectl apply command
+  string error_message = 4;          // Error message if creation failed
+}
+
+// Request message for job status
+message JobStatusRequest {
+  string job_id = 1;                 // ID/name of the job to query
+  string namespace = 2;              // Kubernetes namespace (optional, can be from config)
+}
+
+// Response message for job status
+message JobStatusResponse {
+  bool success = 1;                  // Whether the status query was successful
+  string status = 2;                 // Job status (e.g., "Running", "Succeeded", "Failed")
+  string job_json = 3;               // Full JSON output from kubectl
+  string error_message = 4;          // Error message if query failed
+  
+  // Parsed status fields for convenience
+  int32 active_pods = 5;             // Number of active pods
+  int32 succeeded_pods = 6;          // Number of succeeded pods
+  int32 failed_pods = 7;             // Number of failed pods
+  string start_time = 8;             // Job start time
+  string completion_time = 9;        // Job completion time (if completed)
+}
