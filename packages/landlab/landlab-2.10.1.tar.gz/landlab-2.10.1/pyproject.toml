@@ -1,0 +1,203 @@
+[build-system]
+requires = ["cython", "numpy>=2.0,<3", "setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "landlab"
+description = "Open-source Python package for numerical modeling of Earth surface dynamics."
+authors = [
+  {email = "mcflugen@gmail.com"},
+  {name = "The landlab team"}
+]
+maintainers = [
+  {email = "mcflugen@gmail.com"},
+  {name = "The landlab team"}
+]
+keywords = [
+  "bmi",
+  "component modeling",
+  "earth science",
+  "gridding engine",
+  "model coupling",
+  "numerical modeling",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Cython",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Topic :: Scientific/Engineering :: Physics",
+]
+requires-python = ">=3.11"
+dependencies = [
+  "bmipy",
+  "importlib-resources; python_version < '3.12'",
+  "matplotlib",
+  "netcdf4",
+  "numpy >=1.20",
+  "pyyaml",
+  "pyshp != 2.3.0",
+  "rich-click",
+  "scipy",
+  "statsmodels",
+  "pandas",
+  "xarray >= 0.16",
+]
+dynamic = ["readme", "version"]
+
+[project.license]
+text = "MIT"
+
+[project.urls]
+homepage = "https://github.com/landlab"
+documentation = "https://landlab.csdms.io"
+repository = "https://github.com/landlab"
+changelog = "https://github.com/landlab/landlab/blob/develop/CHANGES.md"
+
+[project.optional-dependencies]
+dev = ["nox"]
+testing = [
+  "coverage",
+  "hypothesis",
+  "pytest",
+  "pytest-datadir",
+  "pytest-xdist",
+]
+
+[project.scripts]
+landlab = "landlab.cmd.landlab:landlab"
+
+[tool.setuptools]
+include-package-data = true
+package-dir = { "" = "src" }
+
+[tool.setuptools.package-data]
+landlab = [
+  "tests/*txt",
+  "data/*asc",
+  "data/*nc",
+  "data/*shp",
+  "test/*shx",
+  "data/*dbf",
+  "preciptest.in",
+  "test_*/*nc",
+  "test_*/*asc",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.dynamic]
+version = {attr = "landlab._version.__version__"}
+
+[tool.setuptools.dynamic.readme]
+file = ["README.md", "AUTHORS.md"]
+content-type = "text/markdown"
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+testpaths = ["notebooks", "landlab", "tests"]
+norecursedirs = [".*", "*.egg*", "build", "dist", "examples"]
+addopts = """
+  --ignore setup.py
+  --tb native
+  --durations 16
+  --strict-markers
+  --doctest-modules
+  -vvv
+  --ignore-glob=*/animate-landlab-output.ipynb
+  --ignore-glob=*/cellular_automaton_vegetation_flat_domain.ipynb
+  --ignore-glob=*/cellular_automaton_vegetation_DEM.ipynb
+  --ignore-glob=*/lithology_and_litholayers.ipynb
+  --ignore-glob=*/nst_scaling_profiling.ipynb
+  --ignore-glob=*/test_networkcreator_otherDEMs.ipynb
+  --ignore-glob=*/run_network_generator_OpenTopoDEM.ipynb
+"""
+doctest_optionflags = [
+  "NORMALIZE_WHITESPACE",
+  "IGNORE_EXCEPTION_DETAIL"
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "richdem: marks tests that use richdem (deselect with '-m \"not richdem\"')",
+    "notebook: marks tests as notebook (deselect with '-m \"not notebook\"')"
+]
+
+[tool.isort]
+combine_as_imports = true
+known_first_party = "landlab"
+profile = "black"
+
+[tool.check-manifest]
+ignore = [".nox", "build"]
+
+[tool.cibuildwheel]
+build = "cp311-* cp312-* cp313-*"
+skip = "*-musllinux_* *-win32*"
+archs = "x86_64,aarch64,arm64,AMD64,x86"
+test-command = [
+	"python -c \"import landlab; print(landlab.__version__)\"",
+	"python -c \"from landlab import RasterModelGrid; print(RasterModelGrid((3, 3)))\"",
+]
+
+[tool.cibuildwheel.linux.environment]
+CPPFLAGS = "-fopenmp"
+
+[tool.cibuildwheel.macos.environment]
+MACOSX_DEPLOYMENT_TARGET = "12.0"
+CC = "clang"
+CXX = "clang++"
+# CPPFLAGS = "-Xclang -fopenmp"
+# LDFLAGS = "-lomp"
+
+[tool.cython-lint]
+max-line-length = 88
+exclude = "tests/components/flow_router/ext/single_flow/priority_routing/test_breach_c.pyx"
+
+[tool.conda-lock]
+channels = ["conda-forge", "defaults"]
+platforms = ["osx-arm64", "linux-64", "osx-64", "win-64"]
+
+[tool.towncrier]
+directory = "news"
+name = "landlab"
+filename = "CHANGES.md"
+create_add_extension = false
+single_file = true
+underlines = [
+    "",
+    "",
+    "",
+]
+start_string = """
+<!-- towncrier release notes start -->
+"""
+template = "news/changelog_template.jinja"
+issue_format = "[#{issue}](https://github.com/landlab/landlab/issues/{issue})"
+title_format = "## {version} ({project_date})"
+type = [
+  {name="✨ New Components", directory="component", showcontent=true},
+  {name="📚 New Tutorial Notebooks", directory="notebook", showcontent=true},
+  {name="🍰 New Features", directory="feature", showcontent=true},
+  {name="🛠️ Bug Fixes", directory="bugfix", showcontent=true},
+  {name="📖 Documentation Enhancements", directory="docs", showcontent=true},
+  {name="🔩 Other Changes and Additions", directory="misc", showcontent=true},
+]
+
+[tool.landlab.credits]
+exclude = '''
+(?x)^(
+  \(no\ author\)|
+  root|
+  .*\[bot\]  # ignore all bots
+)
+'''
+authors_file = "AUTHORS.md"
+author_format = "- [{name}](https://github.com/{github})"
+start_string = "<!-- credits-roll start-author-list -->"
