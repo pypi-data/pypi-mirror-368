@@ -1,0 +1,97 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cc-validator"
+version = "2.6.0"
+description = "Hybrid security + TDD validation for Claude Code with automatic test result capture using Google Gemini"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+authors = [
+    {name = "Jihun Kim", email = "jihunkim0@noreply.github.com"},
+]
+keywords = [
+    "claude-code",
+    "security",
+    "validation",
+    "gemini",
+    "adk",
+    "hooks",
+    "ai-safety",
+    "tdd",
+    "test-driven-development"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Testing",
+]
+dependencies = [
+    "google-genai>=1.25.0",
+    "genai-processors>=0.1.0",
+    "pydantic>=2.0.0",
+    "dataclasses-json>=0.6.7",
+    "aiohttp>=3.12.15",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+    "pytest>=7.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/jihunkim0/jk-hooks-gemini-challenge"
+Repository = "https://github.com/jihunkim0/jk-hooks-gemini-challenge.git"
+Issues = "https://github.com/jihunkim0/jk-hooks-gemini-challenge/issues"
+Documentation = "https://github.com/jihunkim0/jk-hooks-gemini-challenge#readme"
+
+[project.scripts]
+cc-validator = "cc_validator.main:main"
+pytest = "pytest:main"
+
+[project.entry-points.pytest11]
+cc_validator = "cc_validator.pytest_plugin"
+
+[tool.uv.workspace]
+members = ["test-setup-enhancement"]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.17.0",
+    "pre-commit>=4.2.0",
+    "pytest>=8.4.1",
+    "pytest-xdist>=3.6.1",
+    "pytest-asyncio>=1.1.0",
+    "pytest-rerunfailures>=15.1",
+    "pyflakes>=3.4.0",
+]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+ignore_missing_imports = false
+
+[[tool.mypy.overrides]]
+module = [
+    "pytest",
+    "pydantic",
+    "genai_processors.*",
+    "google.*",
+    "google.genai.*",
+    "dataclasses_json",
+]
+ignore_missing_imports = true
