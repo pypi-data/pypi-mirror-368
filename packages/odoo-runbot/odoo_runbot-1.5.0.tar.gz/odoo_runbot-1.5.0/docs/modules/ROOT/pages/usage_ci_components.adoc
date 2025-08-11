@@ -1,0 +1,224 @@
+= CI/CD Components
+
+Ce projet nécessite 2 fichiers de configuration :
+
+* `.gitlab-ci.yml` pour lancer le runbot.
+* `pyproject.toml` pour configurer le runbot.
+
+.Configuration minimaliste `.gitlab-ci.yml`
+[,yml]
+----
+include:
+    - component: $CI_SERVER_FQDN/gitlab-ci/odoo-quality/runbot@1.0.0
+    inputs:
+      odoo_version: 12.0 # <.>
+----
+<.> La version de l'image Odoo dans laquelle les tests s'exécuteront
+
+NOTE: Il faut avoir la configuration du `runbot` dans le fichier `pyproject.toml`. xref:sample.adoc[]
+
+== Inputs
+
+Ce composant expose plusieurs `inputs` non obligatoires (pas comme `odoo_version`).
+
+[,yml]
+----
+# .gitlab-ci.yml du projet
+include:
+  - component: $CI_SERVER_FQDN/gitlab-ci/odoo-quality/runbot@1
+    inputs:
+      name: "custom:runbot" <1>
+      odoo_version: "15.0" <2>
+      docker_registry: "other-registry" <3>
+      stage: "deploy" <4>
+      runbot_args: "--step-name='My Step'" <5>
+      tag: "runner-tag" <6>
+      other_services:
+        - name: minio/minio <7>
+          alias: minio
+        - name: registry.mangono.io/dockers/pyenv-ubuntu <7>
+          alias: other-mangono-image
+      runbot_version: "1.0.0-beta1" <8>
+      runbot_workdir: $ROOT_PATH/sub/folder <9>
+
+"odoo:custom:runbot:15.0": <1> <2>
+    variables:
+        ROOT_PATH: "toto" <10>
+
+# résultat dans gitlab
+---
+".tmpl:custom:runbot:15.0": <12>
+  # ...
+odoo:custom:runbot:15.0: <1> <2>
+  variables:
+    RUNBOT_DIAG_VERBOSE: 1 <11>
+    ROOT_PATH: toto <10>
+    DB_HOST: database <11>
+    DB_PORT: 5432 <11>
+    POSTGRES_USER: runbot <11>
+    POSTGRES_PASSWORD: runbot-password <11>
+    POSTGRES_HOST_AUTH_METHOD: trust <11>
+  before_script:
+  - pip install "mangono-runbot==1.0.0-beta1" <8>
+  - mangono-runbot --verbose --workdir=$ROOT_PATH/sub/folder diag <9>
+  tags:
+  - runner-tag <6>
+  image:
+    name: other-registry:15.0 <2> <3>
+    entrypoint:
+    - ''
+  stage: deploy <4>
+  services:
+  - name: minio/minio <7>
+    alias: minio
+  - name: registry.mangono.io/dockers/pyenv-ubuntu <7>
+    alias: other-mangono-image
+  - name: postgres:15 <11>
+    alias: database
+  script:
+  - mangono-runbot --verbose --workdir=$ROOT_PATH/sub/folder init <9>
+  - mangono-runbot --verbose --workdir=$ROOT_PATH/sub/folder run --step-name='My Step' <9> <5>
+  - coverage report
+  artifacts:
+    when: always
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: tests/odoo_project/coverage.xml
+      junit:
+      - tests/odoo_project/test_results/*.xml
+----
+<1> `job-name` permet de changer le nom du job. Il faudra utiliser ce nouveau nom aussi pour ajouter des <<component_env_var>>.
+<2> `odoo-version` Est utilisé dans le nom du job ainsi que dans le nom de l'image.
+<3> `docker-registry` Permet de changer le _registry_ de l'image odoo utilisée.
+<4> `stage` Permet de changer le `stage` du job.
+<5> `runbot-args` Permet d'ajouter des arguments à la commande `mangono-runbot run`.
+<6> `job-tag` Permet de changer le `tag` du job.
+<7> `other-services` Permet d'ajouter d'autres services tiers pour des tests de bout-en-bout par exemple.
+<8> `runbot-version` Permet de forcer la version du programme `mangono-runbot` (utile en cas de bug). Cette version suivra les versions du composant.
+<9> `project-path` Permet dans certains cas de ne pas utiliser le dossier racine du projet comme _add-on path_.
+<10> Voir <<component_env_var>>
+<11> Voir <<component_env_var>>
+<12> Voir <<component_template>>
+
+[[component_env_var]]
+== Variables d'environnements
+
+Pour chaque inclusion de ce composant, il y a 1 job de créé.
+
+Il est possible de surcharger les variables. Par exemple :
+
+[,yml]
+----
+# .gitlab-ci.yml
+include:
+  - component: $CI_SERVER_FQDN/gitlab-ci/mangono-runbot/odoo-runbot@1
+    inputs:
+      odoo_version: "18.0" <1>
+
+odoo:runbot:18.0: <1>
+  variables:
+    ADDONS_GIT_GENERIC_GRID: "odoo/proprietary-addons/generic_grid" <2>
+    ADDONS_GIT_COMMON_MODULES: "odoo/v15/common-modules" <2>
+    ADDONS_GIT_COMMUNITY_ADDONS: "odoo-addons/community-addons" <2>
+    RUNBOT_DIAG_VERBOSE: 0 # <3>
+---
+
+----
+<1> Définition de la version d'Odoo, le job de `runbot` aura cette version dans son nom
+<2> Ajout d'_addons_ externes à mon projet
+<3> Surcharge de la variable `RUNBOT_DIAG_VERBOSE` proposé par le composant
+
+CAUTION: Les `variables` font bien une fusion entre celles du composant et les vôtres. +
+Ce n'est pas le cas de toutes les parties du job : `before_script` et `script` sont remplacés.
+
+[[component_template]]
+== Hidden job `.tmpl:odoo:job-name:odoo-version`
+
+Ce job caché est là uniquement pour des raisons techniques et n'a pas lieu d'etre surchargé.
+NOTE: Il permet de changer la balise `before_script` du job sans changer la partie `script`.
+
+== Migration depuis `ci-runbot`
+
+L'ancien projet `ci-files` et `ci-runbot` sont en cours d'abandon depuis Janvier 2025 au profit de `component`.
+
+Pour l'exemple de la migration du projet https://gitlab.mangono.io/odoo/v15/issues/[Issues].
+
+=== Gitlab CI
+
+.gitlab-ci.yml
+[,yml]
+----
+# .gitlab-ci.yml Avant
+include:
+  - project: odoo-addons/ci-files
+    ref: v2
+    file:
+      - pipeline/odoo-15.yml <1>
+
+# Only run pipeline if a merge request is open or run on a protected ref
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_REF_PROTECTED == "true"'
+
+
+variables:
+  ADDONS_GIT_GENERIC_GRID: "odoo/proprietary-addons/generic_grid" <2>
+  ODOO_IMAGE_NAME: "registry.mangono.io/odoo-cloud/container" <2>
+  RUNBOT_ALLOW_WARNING: "True"
+  BLACK_VERSION: "latest"
+
+runbot:
+  variables:
+    ODOO_MODULE: "issues_erp,issues_tests" <3>
+    BEFORE_ODOO_MODULE: "issues_config" <4>
+    ADDONS_GIT_COMMON_MODULES: "odoo/v15/common-modules" <2>
+
+deploy preview:up:
+  when: manual
+  variables:
+    NESTOR_NAME_PREFIX: "app-"
+    PROD_INSTANCE_NAME: "ndp-app"
+    ODOO_DEPENDS: "odoo-addons/community-addons,odoo/v15/common-modules,odoo-cloud/s3-filestore,odoo-cloud/redis-session,odoo/proprietary-addons/generic_grid"
+
+--- # .gitlab-ci.yml Apres
+# Ajouter les stage de lint et de preview à coté
+
+include:
+  - component: $CI_SERVER_FQDN/gitlab-ci/mangono-runbot/odoo-runbot@1
+    inputs:
+      odoo_version: "15.0" <1>
+
+odoo:runbot:15.0: <1>
+  variables:
+    ADDONS_GIT_GENERIC_GRID: "odoo/proprietary-addons/generic_grid" <2>
+    ADDONS_GIT_COMMON_MODULES: "odoo/v15/common-modules" <2>
+    ADDONS_GIT_COMMUNITY_ADDONS: "odoo-addons/community-addons" <2>
+----
+<1> La version d'Odoo est fournie par le nom de fichier
+<2> Des _addons_ ajoutés
+<3> Les modules testés. Voir <<after_mig_pyproject>>
+<4> Les modules installés avant les tests <<after_mig_pyproject>>
+
+En plus
+
+[[after_mig_pyproject]]
+.pyproject.toml
+[,toml]
+----
+[tool.runbot]
+[[tool.runbot.pywarnings-filter]]
+name="Warnings raised by module account_invoice_import_simple_pdf"
+action="ignore"
+category="DeprecationWarning"
+message=".*"
+
+[tool.runbot.step.install] # <1>
+modules=["issues_config"] # <1>
+
+[tool.runbot.step.tests] # <2>
+modules=["issues_erp","issues_tests"] # <2>
+----
+<1> Les modules installés avant les tests.
+<2> Les modules testés.

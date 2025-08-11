@@ -1,0 +1,55 @@
+spec:
+  inputs:
+    odoo_version:
+      description: "The Odoo version of your project"
+    name:
+      default: "runbot"
+      description: "The name of the job"
+    docker_registry:
+      description: "The docker registry used by the runbot job"
+      default: "registry.mangono.io/odoo-cloud/container"
+    stage:
+      description: "The stage where to add this job"
+      default: test
+    tag:
+      default: "runbot2"
+      description: "The name of the tag for this job"
+    other_services:
+      type: array
+      default: []
+      description: "Allow to add other next to Odoo+postgresql"
+    runbot_args:
+      default: ""
+      description: "The option used by the `odoo-runbot run` command"
+    runbot_version:
+      default: "==1.5.0"
+      description: "Force the runbot to another version"
+    runbot_workdir:
+      default: "$CI_PROJECT_DIR"
+      description: "Allow to change were the runbot run"
+    runbot_config_file:
+      default: "$RUNBOT_CONFIG_FILE"
+      description: "Allow to change were the runbot find it's config"
+
+---
+include:
+  - local: templates/runbot-no-tests.yml
+    inputs:
+      odoo_version: $[[ inputs.odoo_version ]]
+      name: $[[ inputs.name ]]
+      docker_registry: $[[ inputs.docker_registry ]]
+      stage: $[[ inputs.stage ]]
+      tag: $[[ inputs.tag ]]
+      other_services: $[[ inputs.other_services ]]
+      runbot_args: $[[ inputs.runbot_args ]]
+      runbot_version: $[[ inputs.runbot_version ]]
+      runbot_workdir: $[[ inputs.runbot_workdir ]]
+      runbot_config_file: $[[ inputs.runbot_config_file ]]
+
+"odoo:$[[ inputs.name ]]:$[[ inputs.odoo_version ]]":
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: $[[ inputs.runbot_workdir ]]/runbot_result/coverage.xml
+      junit: $[[ inputs.runbot_workdir ]]/runbot_result/x_unittest/*.xml

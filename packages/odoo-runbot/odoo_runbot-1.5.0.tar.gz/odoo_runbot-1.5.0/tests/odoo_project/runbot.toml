@@ -1,0 +1,47 @@
+modules = ["runbot_tester"]
+
+[step.install]
+log-filters = [".*Runbot Test Warmup Warning.*"]
+
+[step.Step1]
+test-tags = [":TestStep1"]
+
+[step.Step2]
+test-tags = [":TestStep2"]
+
+[step.Step3]
+# expecting logger odoo.addons.tester_runbot (global logger of the module)
+test-tags = [":TestStep3"]
+
+[[step.Step3.log-filters]]
+# Match strict message but in a logger (and child only)
+# By default the match should be catch only one time
+regex = "My Warning Filter1" # Strict regex match
+logger = 'odoo.addons.runbot_tester'
+
+[step.Step4]
+# expecting logger odoo.addons.tester_runbot (global logger of the module)
+test-tags = [":TestStep4"]
+
+[[step.Step4.log-filters]]
+# Regex to match message, the match should be case insensitive
+# You can set a minimum and a maximum of match
+regex = "My WaRnInG MesSaGe.*"
+min-match = 2
+max-match = 5
+
+[step.Step5]
+# expecting logger odoo.addons.tester_runbot (global logger of the module)
+modules = ["false_module", "odoo_img_tester"]
+test-tags = ["/odoo_img_tester:TestImportArrow"]
+
+[step.Step6]
+# catch simple filter form
+test-tags = [":TestStep6"]
+log-filters = ['.*Step6.*']
+
+[step.Step7]
+# expecting logger odoo.addons.tester_runbot (global logger of the module)
+modules-files = ["step7_modules.txt"]
+test-tags = ["/odoo_img_tester:TestImportArrow"]
+coverage = false

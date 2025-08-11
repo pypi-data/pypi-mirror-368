@@ -1,0 +1,46 @@
+[tool.runbot]
+coverage = false
+include-current-project = true
+modules = ["module_to_test", "module_to_test2"]
+
+[[tool.runbot.log-filters]]
+regex = ".*global-regex-warning-1.*"
+
+[[tool.runbot.log-filters]]
+name = "global-regex-warning-2"
+min-match = 1 # default can be false
+max-match = 2
+regex = ".*global-regex-warning-2.*"
+
+
+[tool.runbot.step.install] # <.>
+modules = ["first_module_to_install"]
+log-filters = [".*Install filter.*"]
+
+[tool.runbot.step.tests]
+coverage = true
+test-tags = [
+    "+at-install",
+    "-post-install"
+]
+
+[[tool.runbot.step.tests.log-filters]]
+name = "test-regex-log-warning-2"
+min-match = 1 # default can be false
+max-match = 1 # default can be false
+regex = ".*regex warning.*"
+
+
+[tool.runbot.step.warmup] # <.>
+modules = ["second_module_to_install"]
+
+[tool.runbot.step."Post install test"] # <.>
+# post test step, do post_install
+coverage = false
+action = "test"
+modules = ["module_to_test2"]
+test-tags = [
+    "-at-install",
+    "+post-install"
+]
+log-filters = [{min-match=2, regex=".*Post install test regex-warnings.*"}] # <.>

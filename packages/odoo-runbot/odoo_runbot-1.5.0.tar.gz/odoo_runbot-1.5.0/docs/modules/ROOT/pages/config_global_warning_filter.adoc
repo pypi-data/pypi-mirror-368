@@ -1,0 +1,83 @@
+= Warning Filter
+
+IMPORTANT: Aujourd'hui tous les _warnings_ sont filtrés, et cette documentation n'est qu'une ébauche.
+
+Cette section permet de filtrer des messages émis par les https://docs.python.org/3/library/warnings.html[_warnings_] de python.
+
+Comme avec python, il est possible de définir les règles dans deux formats, simples et complets.
+
+CAUTION: # TODO uniquement le format complet est supporté pour l'instant
+
+Le format simple doit respecter le format standard de Python.
+[,text]
+----
+action:message:category:module:line
+----
+
+Certaines parties peuvent être omises, comme ci-dessous.
+
+.Dans la https://docs.python.org/3/library/warnings.html#describing-warning-filters[doc python]
+[,text]
+----
+default                      # Show all warnings (even those ignored by default)
+ignore                       # Ignore all warnings <1>
+error                        # Convert all warnings to errors <1>
+error::ResourceWarning       # Treat ResourceWarning messages as errors
+default::DeprecationWarning  # Show DeprecationWarning messages
+ignore,default:::mymodule    # Only report warnings triggered by "mymodule"
+error:::mymodule             # Convert warnings to errors in "mymodule" <1>
+----
+<1> Non supporté par le runbot, car il n'y a pas de `category`
+
+Dans votre fichier `pyproject.toml` vous avez le choix entre deux formats.
+
+.Format simple
+[,toml]
+----
+[tool.runbot]
+warning-filter = ["ignore::RessourceWarning"]
+----
+
+.Format complet
+[,toml]
+----
+[tool.runbot]
+
+[[tool.runbot.warning-filter]]
+action = "ignore"
+category = "RessourceWarning"
+----
+
+Ces 2 exemples sont identiques pour le runbot.
+
+CAUTION: Il est interdit de faire une exclusion uniquement avec une `action`. Vous devez au minimum avoir une `category`
+
+== Champs possibles
+
+Dans chaque `warning-filter` vous pouvez préciser les attributs suivants :
+
+|===
+| name | Type Toml | Par défaut
+
+| action | https://toml.io/en/v1.0.0#string[string] | `"ignore"`
+| category | https://toml.io/en/v1.0.0#string[string] | *Obligatoire*
+| message | `"tests"` ou `"install"` | `"tests"`
+| module | https://toml.io/en/v1.0.0#string[string] |
+| line | https://toml.io/en/v1.0.0#integer[integer] |
+|===
+
+=== Format Complet
+
+.pyproject.toml
+[,toml]
+----
+[tool.runbot]
+modules = ["sale"]
+
+[[tool.runbot.warning-filter]]
+name = "A name"
+action = "ignore"
+category = "SyntaxeWarning"
+msg = '.*regex message.*'
+
+----
