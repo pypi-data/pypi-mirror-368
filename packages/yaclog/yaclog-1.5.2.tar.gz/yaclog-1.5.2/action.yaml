@@ -1,0 +1,71 @@
+name: Yaclog
+description: Get version information from a changelog
+branding:
+  icon: file-text
+  color: orange
+
+x-example-name: Get version info
+
+inputs:
+  changelog-path:
+    description: "Path of the changelog markdown file"
+
+  markdown:
+    description: "If the output should be in markdown format or not. Equivalent to the `--markdown` flag"
+    default: 'true'
+
+  release:
+    description: |
+      When set, creates a new release and commits it. Directly passed to the arguments of `yaclog release --yes --commit`.
+
+      Can be a version number or an increment tag like `--major`, `--minor`, or `--patch`. The resulting commit and tag will NOT be pushed back to the repo. You must add a step to do this yourself
+
+outputs:
+  name:
+    description: "The most recent version name, equivalent to the output of `yaclog show --name`. For example, `Version 1.3.0`"
+    value: ${{ steps.yaclog-show.outputs.name}}
+  header:
+    description: "The entire header for the most recent version, equivalent to the output of `yaclog show --header`. For example, `Version 1.3.0 - 2024-08-08`"
+    value: ${{ steps.yaclog-show.outputs.header }}
+  version:
+    description: "The current version number, equivalent to the output of `yaclog show --version`. For example, `1.3.1`"
+    value: ${{ steps.yaclog-show.outputs.version }}
+  body-file:
+    description: "The path to a temporary file containing the body of the most recent version. Contents equivalent to `yaclog show --body`"
+    value: ${{ steps.yaclog-show.outputs.body-file }}
+  body_file:
+    description: "Alias for body-file"
+    value: ${{ steps.yaclog-show.outputs.body-file }}
+  changelog:
+    description: "The path to the changelog file. Usually `CHANGELOG.md` in the current directory."
+    value: ${{ steps.yaclog-show.outputs.changelog }}
+
+runs:
+  using: "composite"
+  steps:
+    - id: setup-python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        update-environment: 'false'
+
+    - name: Setup Yaclog
+      shell: bash
+      run: |
+        [[ "$ACTION_REF" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && export SETUPTOOLS_SCM_PRETEND_VERSION_FOR_YACLOG="$ACTION_REF"
+        pipx install --python ${{ steps.setup-python.outputs.python-path }} ${{ github.action_path }}
+      env:
+        ACTION_REF: ${{ github.action_ref }}
+
+    - name: Create New Release
+      shell: bash
+      if: ${{ inputs.release }}
+      run: yaclog release --yes --commit ${{ inputs.release }}
+
+    - name: Get Changelog Information
+      id: yaclog-show
+      shell: bash
+      run: >
+        yaclog ${{ inputs.changelog-path && format('--path {0}', inputs.changelog-path) }} 
+        show ---gh-actions ${{ inputs.markdown && '--markdown' }} 
+        | tee -a "$GITHUB_OUTPUT"
