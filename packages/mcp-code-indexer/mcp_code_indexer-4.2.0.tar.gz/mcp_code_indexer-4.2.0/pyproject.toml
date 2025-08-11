@@ -1,0 +1,194 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "mcp-code-indexer"
+version = "4.2.0"
+description = "MCP server that tracks file descriptions across codebases, enabling AI agents to efficiently navigate and understand code through searchable summaries and token-aware overviews."
+authors = ["MCP Code Indexer Contributors"]
+maintainers = ["MCP Code Indexer Contributors"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/fluffypony/mcp-code-indexer"
+repository = "https://github.com/fluffypony/mcp-code-indexer"
+documentation = "https://github.com/fluffypony/mcp-code-indexer/blob/main/README.md"
+keywords = [
+    "mcp",
+    "model-context-protocol",
+    "code-indexer",
+    "ai-tools",
+    "codebase-navigation",
+    "file-descriptions",
+    "llm-tools"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Framework :: AsyncIO",
+    "Environment :: Console",
+    "Typing :: Typed"
+]
+packages = [{include = "mcp_code_indexer", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+tiktoken = ">=0.9.0"
+mcp = ">=1.9.0"
+gitignore-parser = "0.1.11"
+pydantic = ">=2.8.0"
+aiofiles = "23.2.0"
+aiosqlite = "0.19.0"
+aiohttp = ">=3.8.0"
+tenacity = ">=8.0.0"
+tomli = {version = ">=1.2.0", markers = "python_version < '3.11'"}
+importlib-metadata = {version = ">=1.0.0", markers = "python_version < '3.8'"}
+# HTTP transport dependencies
+fastapi = ">=0.104.0"
+uvicorn = ">=0.24.0"
+python-multipart = ">=0.0.6"
+
+[tool.poetry.extras]
+vector = [
+    "voyageai",
+    "turbopuffer", 
+    "tree-sitter",
+    "watchdog",
+    "pyyaml"
+]
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=8.0.0"
+pytest-asyncio = ">=0.21.0"
+pytest-mock = ">=3.11.0"
+pytest-cov = ">=4.0.0"
+black = ">=24.0.0"
+isort = ">=5.12.0"
+flake8 = ">=7.0.0"
+mypy = ">=1.8.0"
+pre-commit = ">=3.5.0"
+
+[tool.poetry.group.test.dependencies]
+pytest = ">=8.0.0"
+pytest-asyncio = ">=0.21.0"
+pytest-mock = ">=3.11.0"
+pytest-cov = ">=4.0.0"
+
+[tool.poetry.scripts]
+mcp-code-indexer = "mcp_code_indexer.main:cli_main"
+
+
+
+# Black configuration
+[tool.black]
+line-length = 88
+target-version = ['py39', 'py310', 'py311', 'py312', 'py313']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | venv
+)/
+'''
+
+# isort configuration
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["src", "mcp_code_indexer"]
+
+# MyPy configuration
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "tiktoken.*",
+    "gitignore_parser.*",
+    "aiofiles.*",
+    "aiosqlite.*"
+]
+ignore_missing_imports = true
+
+# Pytest configuration
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-ra -q --strict-markers --strict-config"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "performance: marks tests as performance benchmarks"
+]
+asyncio_mode = "auto"
+
+# Coverage configuration
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "tests/*",
+    "venv/*",
+    "*/__pycache__/*"
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod"
+]
+
+# Ruff configuration
+[tool.ruff]
+exclude = [
+    ".vulture_whitelist.py",
+    "venv",
+    ".git",
+    "__pycache__",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache"
+]
