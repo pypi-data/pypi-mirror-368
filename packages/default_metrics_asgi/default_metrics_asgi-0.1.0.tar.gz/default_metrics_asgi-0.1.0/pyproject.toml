@@ -1,0 +1,86 @@
+[project]
+name = "default_metrics_asgi"
+version = "0.1.0"
+description = "A helper package for collecting default Prometheus metrics in ASGI applications."
+authors = [
+    {name = "kimberly", email = "45748394+kquiet@users.noreply.github.com"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "prometheus-client (>=0.22.1,<1.0.0)",
+    "starlette (>=0.47.2,<1.0.0)"
+]
+
+[project.urls]
+repository = "https://github.com/kquiet/python_default_metrics_asgi"
+
+[tool.poetry]
+packages = [
+    { include = "default_metrics_asgi" },
+]
+include = [
+    "tests/**"
+]
+requires-poetry = ">=2.0"
+
+[tool.poetry.group.test.dependencies]
+pytest = "~=8.0"
+pytest-cov = "~=6.0"
+httpx = "~=0.28.1"
+
+[tool.poetry.requires-plugins]
+poethepoet = { version = "~=0.35", extras = ["poetry_plugin"]}
+
+[tool.poe.tasks.test]
+interpreter = ["bash", "powershell"]
+shell = """
+pytest
+"""
+
+[tool.poe.tasks.test-coverage]
+interpreter = ["bash", "powershell"]
+shell = """
+pytest --cov=. --cov-report=term-missing --cov-fail-under=70 --cov-report html
+"""
+
+[tool.poe.tasks.publish]
+control.script = "sys:stdout.write(sys.platform)"
+
+    [[tool.poe.tasks.publish.switch]]
+    case = "linux"
+    interpreter = "bash"
+    shell = """
+    . ./.env
+    rm -rf ./dist
+    poetry publish --build --no-interaction
+    """
+
+    [[tool.poe.tasks.publish.switch]]
+    case = "win32"
+    interpreter = "powershell"
+    shell = """
+    . .\\.env.ps1
+    Remove-Item -Recurse -Force .\\dist
+    poetry publish --build --no-interaction
+    """
+
+[tool.pytest.ini_options]
+addopts = "-rA"
+testpaths = [
+    "tests"
+]
+python_files = [
+    "test_*.py"
+]
+python_classes = [
+    "Test*"
+]
+python_functions = [
+    "test_*"
+]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
