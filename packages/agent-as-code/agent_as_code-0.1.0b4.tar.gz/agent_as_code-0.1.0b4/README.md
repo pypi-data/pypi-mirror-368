@@ -1,0 +1,373 @@
+# Agent as Code (AaC)
+
+```
+    _                _       _          ___         _               _         ___ 
+   /_\  __ _ ___ _ _| |_    /_\   ___  / __|___  __| |___   ___    /_\  __ _ / __|
+  / _ \/ _` / -_) ' \  _|  / _ \ (_-< | (__/ _ \/ _` / -_) |___|  / _ \/ _` | (__ 
+ /_/ \_\__, \___|_||_\__| /_/ \_\/__/  \___\___/\__,_\___|       /_/ \_\__,_|\___|
+       |___/                                                                      
+```
+
+Welcome to the Agent as Code (AaC) framework documentation. This guide will help you understand and use the framework to create, build, and deploy AI agents using declarative configuration.
+
+## What is Agent as Code?
+
+Agent as Code (AaC) is a declarative configuration system for AI agents, inspired by Docker and Infrastructure as Code (IaC). It enables developers to define AI agents using simple, version-controlled configuration files.
+
+**Think of it as "Docker for AI agents"** - just like Dockerfile makes it easy to define and build containers, Agentfile makes it easy to define and build AI agents.
+
+
+## Core Philosophy
+
+- **Declarative**: Define what the agent should do, not how to do it
+- **Version Controlled**: Track agent configurations in Git
+- **Reusable**: Share and reuse agent configurations
+- **Simple**: Easy to understand and modify
+- **Portable**: Work across different environments and clouds
+- **AI-Powered**: Use LLMs to generate and optimize agent configurations
+
+## Quick Start
+
+```bash
+# Install the framework
+pip install agent-as-code
+
+# Create your first agent
+agent init my-first-agent
+
+# Build the agent
+agent build -t my-first-agent:latest .
+
+# Run the agent
+agent run my-first-agent:latest
+```
+
+## 🚀 AI-Powered LLM Features
+
+Agent as Code includes advanced LLM integration that makes agent creation intelligent and user-friendly. Describe your agent in natural language and let AI handle the technical details!
+
+### LLM-Enhanced Agent Creation
+
+```bash
+# Generate complete Agentfile from natural language description
+agent llm generate-agentfile --description "A sentiment analysis agent that processes text and returns positive/negative scores with confidence levels"
+
+# Get intelligent template recommendations
+agent llm suggest-template --description "A document summarization agent that can handle PDFs, Word docs, and text files"
+
+# Generate comprehensive test cases automatically
+agent llm generate-tests --description "A customer support chatbot that handles common inquiries about products and services"
+
+# Optimize existing agents using AI analysis
+agent llm optimize-agent --agent-path ./my-agent --optimization-goal performance
+```
+
+### Example: Natural Language to Agentfile
+
+**Input:**
+```bash
+agent llm generate-agentfile --description "A weather forecasting agent that provides 7-day forecasts with temperature, humidity, and precipitation data for any city worldwide"
+```
+
+**Output:**
+```
+🤖 Generating Agentfile using LLM...
+Description: A weather forecasting agent that provides 7-day forecasts with temperature, humidity, and precipitation data for any city worldwide
+✅ Agentfile generated successfully!
+📁 Output: Agentfile
+🤖 Provider: openai
+🧠 Model: gpt-4o-mini
+
+📄 Generated content preview:
+FROM agent/python:3.11-docker
+
+# Weather Forecasting Agent
+LABEL description="7-day weather forecasting agent with comprehensive meteorological data"
+LABEL version="1.0.0"
+LABEL maintainer="weather-agent@example.com"
+
+# Install weather data dependencies
+RUN pip install requests openweathermap-python pandas numpy
+
+# Set environment variables
+ENV WEATHER_API_KEY=""
+ENV DEFAULT_UNITS="metric"
+ENV FORECAST_DAYS=7
+
+# Expose API port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8000/health || exit 1
+
+# Copy agent code
+COPY agent/ /app/agent/
+WORKDIR /app
+
+# Run the weather agent
+CMD ["python", "agent/main.py"]
+```
+
+### Example: Template Recommendation
+
+**Input:**
+```bash
+agent llm suggest-template --description "A language translation agent supporting 50+ languages with context-aware translations and cultural sensitivity"
+```
+
+**Output:**
+```
+🤖 Analyzing requirements for template recommendation...
+Description: A language translation agent supporting 50+ languages with context-aware translations and cultural sensitivity
+✅ Template recommendation:
+📋 Template: python-advanced
+💡 Reasoning: This agent requires sophisticated NLP capabilities, multiple language support, and context processing. The python-advanced template provides the necessary infrastructure for complex language models and API integrations.
+🔧 Capabilities: multi-language, context-aware, cultural-sensitivity, API-integration, high-performance
+📦 Dependencies: transformers, torch, sentence-transformers, fastapi, uvicorn, redis
+
+🚀 Next steps:
+   agent init translation-agent --template python-advanced
+```
+
+### Example: Test Generation
+
+**Input:**
+```bash
+agent llm generate-tests --description "A data processing pipeline agent that handles CSV, JSON, and XML files with data validation and transformation capabilities" --test-type comprehensive
+```
+
+**Output:**
+```
+🤖 Generating comprehensive test cases using LLM...
+Agent description: A data processing pipeline agent that handles CSV, JSON, and XML files with data validation and transformation capabilities
+✅ Generated 12 test cases!
+🤖 Provider: openai
+🧠 Model: gpt-4o-mini
+
+📋 Test Cases:
+  1. CSV File Processing (unit)
+     Description: Test CSV file ingestion and parsing
+     Input: sample.csv with mixed data types
+     Expected: Parsed data structure with proper type conversion
+
+  2. JSON Schema Validation (unit)
+     Description: Validate JSON data against defined schemas
+     Input: JSON payload with missing required fields
+     Expected: Validation error with specific field requirements
+
+  3. XML Transformation (unit)
+     Description: Transform XML data to standardized format
+     Input: Complex XML with nested elements
+     Expected: Flattened JSON structure
+
+  4. Data Type Conversion (unit)
+     Description: Convert data types based on schema definitions
+     Input: String numbers and boolean strings
+     Expected: Proper numeric and boolean types
+
+  5. Error Handling (integration)
+     Description: Handle malformed input files gracefully
+     Input: Corrupted CSV with invalid delimiters
+     Expected: Detailed error message with recovery suggestions
+
+📊 Test Data: sample.csv, test_data.json, complex.xml, edge_cases.csv
+🔍 Validation: Schema validation, type checking, format verification, error handling
+```
+
+### Example: Agent Optimization
+
+**Input:**
+```bash
+agent llm optimize-agent --agent-path ./my-agent --optimization-goal cost
+```
+
+**Output:**
+```
+🤖 Analyzing agent for cost optimization...
+Agent path: ./my-agent
+✅ Optimization analysis complete!
+🤖 Provider: openai
+🧠 Model: gpt-4o-mini
+
+📊 Current Analysis:
+  Strengths: Efficient algorithm implementation, good error handling, comprehensive logging
+  Weaknesses: Unnecessary API calls, redundant data processing, inefficient memory usage
+
+🚀 Optimization Recommendations:
+  📋 Resource Management
+     Current: 2GB memory allocation, 4 CPU cores
+     Recommended: 1GB memory, 2 CPU cores with auto-scaling
+     Reasoning: Current allocation exceeds actual usage patterns
+     Impact: High | Effort: Low
+
+  📋 API Efficiency
+     Current: Individual API calls for each data item
+     Recommended: Batch processing with rate limiting
+     Reasoning: Reduces API costs and improves performance
+     Impact: High | Effort: Medium
+
+  📋 Caching Strategy
+     Current: No caching mechanism
+     Recommended: Redis-based caching with TTL
+     Reasoning: Reduces redundant computations and API calls
+     Impact: High | Effort: Medium
+
+💾 Optimized Agentfile available in optimization results
+📝 To apply: Copy the optimized content to your Agentfile
+```
+
+### LLM Configuration
+
+Before using LLM features, configure your preferred providers:
+
+```bash
+# Auto-configure from environment variables
+export OPENAI_API_KEY="your-key-here"
+export ANTHROPIC_API_KEY="your-key-here"
+export GOOGLE_API_KEY="your-key-here"
+
+agent llm configure auto
+
+# Or use interactive wizard
+agent llm configure wizard
+
+# Or manually configure
+agent llm configure set-key --provider openai --api-key YOUR_KEY
+agent llm configure set-default --provider openai --model gpt-4o-mini
+```
+
+### Supported LLM Providers
+
+- **OpenAI**: GPT-4o, GPT-4o-mini, o3-mini
+- **Anthropic**: Claude 3.5 Sonnet, Claude 3.5 Haiku  
+- **Google**: Gemini models
+
+### Complete LLM Workflow Example
+
+```bash
+# 1. Configure LLM (one-time setup)
+agent llm configure auto
+
+# 2. Generate Agentfile from description
+agent llm generate-agentfile --description "A recommendation engine that suggests products based on user behavior and preferences"
+
+# 3. Get template recommendations
+agent llm suggest-template --description "A recommendation engine that suggests products based on user behavior and preferences"
+
+# 4. Initialize the agent project
+agent init recommendation-agent --template python
+
+# 5. Generate test cases
+agent llm generate-tests --description "A recommendation engine that suggests products based on user behavior and preferences"
+
+# 6. Build and test
+agent build -t recommendation-agent:latest .
+agent test recommendation-agent:latest
+
+# 7. Optimize for production
+agent llm optimize-agent --agent-path ./recommendation-agent --optimization-goal performance
+```
+
+## Documentation Sections
+
+### Core Pages
+
+1. **[Home](https://agent-as-code.myagentregistry.com/)** — Overview and latest updates
+2. **[Getting Started](https://agent-as-code.myagentregistry.com/getting-started)** — Prerequisites, installation, quick start, first agent, and deployment options
+3. **[Documentation](https://agent-as-code.myagentregistry.com/documentation)** — Full technical documentation hub
+
+### Component Guides
+
+4. **[Agentfile](https://agent-as-code.myagentregistry.com/documentation#agentfile)** — Write and structure your Agentfile
+5. **[Parser](https://agent-as-code.myagentregistry.com/documentation#parser)** — Validation and parsing rules
+6. **[Builder](https://agent-as-code.myagentregistry.com/documentation#builder)** — Building and packaging agents
+7. **[Runtime](https://agent-as-code.myagentregistry.com/documentation#runtime)** — Execution environments
+
+### CLI and Registry
+
+8. **[CLI Reference](https://agent-as-code.myagentregistry.com/cli)** — Commands, options, and workflows
+9. **[Registry Guide](https://agent-as-code.myagentregistry.com/registry)** — Remote registry, PAT, versioning, and security
+
+### Examples
+
+10. **[Examples](https://agent-as-code.myagentregistry.com/examples)** — Real-world examples and use cases
+
+## Framework Goals
+
+### Primary Objectives
+
+1. **Simplify AI Agent Development**
+   - Reduce complexity of agent creation
+   - Provide standardized patterns
+   - Enable rapid prototyping
+   - **AI-powered configuration generation**
+
+2. **Enable Declarative Configuration**
+   - Version-controlled agent definitions
+   - Infrastructure as Code principles
+   - Reproducible deployments
+   - **Natural language to configuration**
+
+3. **Facilitate Agent Sharing**
+   - Centralized registry for agents
+   - Easy distribution and discovery
+   - Community-driven development
+   - **Intelligent template recommendations**
+
+4. **Support Multiple Runtimes**
+   - Docker containerization
+   - Kubernetes deployment
+   - Cloud-native architectures
+   - **AI-optimized configurations**
+
+### Key Benefits
+
+- **Developer Experience**: Familiar Docker-like commands
+- **Portability**: Run agents anywhere
+- **Scalability**: Cloud-native micro-service architecture
+- **Collaboration**: Share agents through registry
+- **Automation**: CI/CD pipeline integration
+- **AI-Powered**: Natural language agent creation
+- **Intelligent**: Automated testing and optimization
+
+## Architecture Overview
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Agentfile     │───▶│   AaC Parser    │───▶│  Agent Builder  │
+│  (Config)       │    │  (Validation)   │    │  (Packaging)    │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         ▲                       │                       │
+         │                       │                       │
+    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+    │   LLM Creator   │    │   Agent CLI     │    │  Agent Runtime  │
+    │  (AI-Powered)   │    │  (Commands)     │    │  (Execution)    │
+    └─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         │                       ▼                       │
+    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+    │   LLM Manager   │    │   Registry      │    │  Optimization   │
+    │  (Providers)    │    │  (Storage)      │    │  (AI Analysis)  │
+    └─────────────────┘    └─────────────────┘    └─────────────────┘
+```
+
+## Getting Help
+
+- **Documentation**: https://agent-as-code.myagentregistry.com/documentation
+- **Getting Started**: https://agent-as-code.myagentregistry.com/getting-started
+- **Examples**: https://agent-as-code.myagentregistry.com/examples
+- **CLI Help**: Run `agent --help` for command reference
+- **LLM Help**: Run `agent llm --help` for AI-powered features
+
+## Next Steps
+
+1. Read **[Getting Started](https://agent-as-code.myagentregistry.com/getting-started)**
+2. Explore **[Examples](https://agent-as-code.myagentregistry.com/examples)**
+3. Review **[CLI Reference](https://agent-as-code.myagentregistry.com/cli#overview)**
+4. **Try LLM-powered agent creation** with `agent llm generate-agentfile`
+5. Create your first agent with `agent init`
+
+---
+
+**Ready to build your first AI agent?** Start with **[Getting Started](https://agent-as-code.myagentregistry.com/getting-started#quick-start)** or **try the AI-powered approach** with `agent llm generate-agentfile`!

@@ -1,0 +1,77 @@
+# Agentfile - Advanced Text Generation Agent
+# This example shows advanced features like multi-stage builds and agentic capabilities
+
+# Multi-stage build for training and runtime
+FROM agent/python:3.9 AS base
+
+# Install base dependencies
+DEPENDENCY torch==1.9.0
+DEPENDENCY transformers==4.11.3
+DEPENDENCY numpy==1.21.0
+DEPENDENCY pandas==1.5.0
+
+# Training stage
+FROM base AS training
+COPY training_data /app/training_data
+COPY training_scripts /app/training_scripts
+
+# Fine-tune the model
+RUN python /app/training_scripts/fine_tune.py \
+    --model gpt-4 \
+    --data /app/training_data \
+    --output /app/models/fine_tuned
+
+# Runtime stage
+FROM base AS runtime
+COPY --from=training /app/models /app/models
+COPY ./agent /app/agent
+
+# Define capabilities
+CAPABILITY text-generation
+CAPABILITY content-creation
+CAPABILITY story-writing
+CAPABILITY code-generation
+CAPABILITY self-learning
+
+# Model configuration
+MODEL gpt-4
+CONFIG temperature=0.7
+CONFIG max_tokens=500
+CONFIG top_p=0.9
+CONFIG frequency_penalty=0.1
+CONFIG presence_penalty=0.1
+
+# Agentic capabilities
+AGENTIC auto-optimize=true
+AGENTIC self-test=true
+AGENTIC performance-tuning=true
+AGENTIC learning-enabled=true
+
+# Environment variables
+ENV OPENAI_API_KEY=${OPENAI_API_KEY}
+ENV MODEL_CACHE_DIR=/app/models
+ENV FINE_TUNED_MODEL_PATH=/app/models/fine_tuned
+ENV LOG_LEVEL=INFO
+ENV MAX_CONCURRENT_REQUESTS=10
+
+# Copy configuration files
+COPY ./config /app/config
+COPY ./models /app/models
+
+# Expose service port
+EXPOSE 50051
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python /app/agent/health_check.py
+
+# Entry point
+ENTRYPOINT python /app/agent/main.py
+
+# Metadata
+LABEL version="2.0.0"
+LABEL author="developer@example.com"
+LABEL description="Advanced text generation agent with fine-tuning and agentic capabilities"
+LABEL tags="text-generation,content-creation,story-writing,code-generation,agentic"
+LABEL maintainer="team@example.com"
+LABEL license="MIT" 

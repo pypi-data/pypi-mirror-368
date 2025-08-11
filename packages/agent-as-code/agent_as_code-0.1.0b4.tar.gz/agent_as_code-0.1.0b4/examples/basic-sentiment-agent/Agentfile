@@ -1,0 +1,42 @@
+# Agentfile - Basic Sentiment Analysis Agent
+# This is a simple example of how to define an AI agent using Agent as Code
+
+# Base runtime environment
+FROM agent/python:3.9
+
+# Define agent capabilities
+CAPABILITY sentiment-analysis
+CAPABILITY text-processing
+
+# Model configuration
+MODEL gpt-4
+CONFIG temperature=0.3
+CONFIG max_tokens=150
+CONFIG top_p=0.9
+
+# Python dependencies
+DEPENDENCY transformers==4.11.3
+DEPENDENCY torch==1.9.0
+DEPENDENCY numpy==1.21.0
+DEPENDENCY pandas==1.5.0
+
+# Environment variables
+ENV OPENAI_API_KEY=${OPENAI_API_KEY}
+ENV MODEL_CACHE_DIR=/app/models
+ENV LOG_LEVEL=INFO
+
+# Copy agent code
+COPY ./agent /app/agent
+COPY ./models /app/models
+
+# Expose service port
+EXPOSE 50051
+
+# Entry point
+ENTRYPOINT python /app/agent/main.py
+
+# Metadata
+LABEL version="1.0.0"
+LABEL author="developer@example.com"
+LABEL description="Basic sentiment analysis agent for text classification"
+LABEL tags="sentiment,analysis,text,classification" 

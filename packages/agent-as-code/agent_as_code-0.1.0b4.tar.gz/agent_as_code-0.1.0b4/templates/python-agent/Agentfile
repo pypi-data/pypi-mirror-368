@@ -1,0 +1,58 @@
+# Agentfile - Python Agent Micro-Service
+# This template creates a unified micro-service agent with gRPC and REST APIs
+
+# Base runtime environment (Docker by default)
+FROM agent/python:3.11-docker
+
+# Define agent capabilities
+CAPABILITY sentiment-analysis
+CAPABILITY text-generation
+# Add more capabilities as needed:
+# CAPABILITY image-generation
+# CAPABILITY code-generation
+# CAPABILITY data-analysis
+
+# Model configuration
+MODEL gpt-4
+CONFIG temperature=0.7
+CONFIG max_tokens=200
+CONFIG top_p=0.9
+
+# Python dependencies
+DEPENDENCY openai==0.28.0
+DEPENDENCY grpcio==1.59.0
+DEPENDENCY grpcio-tools==1.59.0
+DEPENDENCY fastapi==0.104.0
+DEPENDENCY uvicorn==0.24.0
+DEPENDENCY pydantic==2.5.0
+# Add more dependencies as needed:
+# DEPENDENCY torch==1.9.0
+# DEPENDENCY transformers==4.11.3
+# DEPENDENCY numpy==1.21.0
+# DEPENDENCY pandas==1.5.0
+
+# Environment variables
+ENV OPENAI_API_KEY=${OPENAI_API_KEY}
+ENV LOG_LEVEL=INFO
+ENV GRPC_PORT=50051
+ENV REST_PORT=8080
+
+# Copy agent code
+COPY ./agent ./src/agent
+
+# Expose service ports (gRPC and REST)
+EXPOSE 50051
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8080/health || exit 1
+
+# Entry point
+ENTRYPOINT python src/main.py
+
+# Metadata
+LABEL version="1.0.0"
+LABEL author="your-email@example.com"
+LABEL description="Python AI agent micro-service with sentiment analysis and text generation capabilities"
+LABEL tags="python,ai,agent,microservice,sentiment,text-generation" 
