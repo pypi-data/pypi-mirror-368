@@ -1,0 +1,136 @@
+<!-- # ![Rex Banner](./src/lhcb_rex/tools/figures/Rex_banner.png) -->
+# ![Rex Banner](https://github.com/alexmarshallbristol/Rex-image/blob/master/Rex_banner.png?raw=true)
+
+# Rex 
+
+```Rex``` offers a fast emulation of the LHCb detector simulation. From truth level kinematics to reconstructed quantities and all commonly used reconstruction quality variables. 
+
+## Table of Contents
+- [About](#about)
+- [Installation](#installation)
+- [Usage](#usage)
+
+## About
+
+A full description of the tool can be found in this [📖 arXiv preprint](https://arxiv.org/abs/2507.05069/). 
+
+[📖 pypi](https://pypi.org/project/lhcb-rex/) | [📖 Project Docs](https://lhcb-rex.docs.cern.ch/) | [💬 Mattermost Chat](https://mattermost.cern.ch/your-channel) | [📬 Developer Email](mailto:alex.marshall@bristol.ac.uk)
+
+## Installation 
+
+### On lxplus  
+
+Set some environment variables
+```shell
+export REX_DIR=/afs/cern.ch/work/X/XXXXXXX/Rex_install
+export REX_WEIGHT_DIR=$REX_DIR  # note without this variable set weights default to ~/.cache/lhcb_rex/
+export RAPIDSIM_ROOT=$REX_DIR/RapidSim
+```
+
+Make package install directory
+```shell
+mkdir $REX_DIR
+```
+
+Install RapidSim
+```shell
+source /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_105 x86_64-el9-gcc11-opt
+cd $REX_DIR && git clone git@github.com:gcowan/RapidSim.git && cd RapidSim && mkdir build && cd build && cmake .. && make -j4 && cd $REX_DIR
+```
+for full use of the package we also need an ```EVTGEN``` install [evtgen.hepforge](https://evtgen.hepforge.org/). 
+```shell
+export EVTGEN_ROOT=....
+```
+
+Create new localised python environment and install ```lhcb_rex```
+```shell
+export UV_CACHE_DIR=$REX_DIR/.uv-cache # overwrite UV cache directory, default is ~/.cache/uv but quota is small here
+uv venv --python 3.9
+source $REX_DIR/.venv/bin/activate
+uv pip install lhcb_rex
+```
+remove any reference to ```/cvmfs/``` from ```PYTHONPATH``` (had problemes with cross-contamination)
+```shell
+export PYTHONPATH=$(echo "$PYTHONPATH" | tr ':' '\n' | grep -v "/cvmfs/sft.cern.ch" | paste -sd ':' -)
+```
+
+Check install has succeeded
+```shell
+python -c "import lhcb_rex"
+```
+or 
+```shell
+python -c 'import lhcb_rex; lhcb_rex.run(events=1000,decay="Bs0 -> mu+ mu-",naming_scheme="MOTHER -> DAUGHTER1 DAUGHTER2",decay_models="PHSP -> NA NA",workingDir="./Bs_mumu",)'
+```
+the above took ~10 mins on lxplus, woefully slow. It took about 50 seconds (including all initialisation time) on cpu at my university cluster, 20 seconds on GPU node (mostly configuration time).
+
+Create ```~/rex_setup.sh``` to configure environment next time, something like this
+```shell
+export REX_DIR=/afs/cern.ch/work/X/XXXXXXX/Rex_install
+export REX_WEIGHT_DIR=$REX_DIR
+export RAPIDSIM_ROOT=~/RapidSim
+source /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_105 x86_64-el9-gcc11-opt
+export PYTHONPATH=$(echo "$PYTHONPATH" | tr ':' '\n' | grep -v "/cvmfs/sft.cern.ch" | paste -sd ':' -)
+source $REX_DIR/.venv/bin/activate
+```
+then on login
+```shell
+source ~/rex_setup.sh
+```
+
+Note, if you want progress bars printed whilst RapidSim runs you need to install this patch
+```
+cd $RAPIDSIM_ROOT
+git apply <(curl -L https://raw.githubusercontent.com/alexmarshallbristol/Rex-image/refs/heads/master/print_n.patch)
+cd build
+make
+```
+
+## Usage
+
+Examples below
+
+<details>
+    <summary>Click to see an example</summary>
+
+```python
+import lhcb_rex
+
+lhcb_rex.run(
+    events=1000,
+    decay="Bs0 -> mu+ mu-",
+    naming_scheme="MOTHER -> DAUGHTER1 DAUGHTER2",
+    decay_models="PHSP -> NA NA",
+    workingDir="./Bs_mumu",
+)
+```
+
+</details>
+
+## Installation for development
+
+```shell
+git clone
+uv sync
+uv run pip install -e .
+```
+
+---
+
+📬 Have questions? Reach out at [alex.marshall@bristol.ac.uk](mailto:alex.marshall@bristol.ac.uk)
+
+
+### Notes for me
+
+```/dice/users/am13743/fast_vertex_quality/graveyard/```
+```/dice/users/am13743/fast_vertex_quality/checkpoints/```
+
+Relevant tags/checkpoints:
+- ```21_03_2025``` - Plotting for paper draft
+
+```shell
+rm -rf dist/
+uv build
+uv publish
+uv run pip install --no-deps --upgrade --force-reinstall -e . # to update the version number as in pyproject.toml
+```
