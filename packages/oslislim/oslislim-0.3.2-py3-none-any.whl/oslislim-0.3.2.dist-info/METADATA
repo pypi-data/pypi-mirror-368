@@ -1,0 +1,256 @@
+Metadata-Version: 2.4
+Name: oslislim
+Version: 0.3.2
+Summary: Technical solution to protect open source projects from commercial abuse
+Home-page: https://github.com/alltobebetter/oslislim
+Author: OSLisLim Contributors
+Author-email: oslislim@suwork.eu.org
+Keywords: license protection open-source anti-piracy packaging wheel
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Security
+Classifier: Topic :: System :: Software Distribution
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Provides-Extra: dev
+Requires-Dist: pytest>=6.0; extra == "dev"
+Requires-Dist: pytest-cov>=2.0; extra == "dev"
+Requires-Dist: black>=21.0; extra == "dev"
+Requires-Dist: flake8>=3.8; extra == "dev"
+Requires-Dist: build>=0.7.0; extra == "dev"
+Requires-Dist: wheel>=0.37.0; extra == "dev"
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: keywords
+Dynamic: license-file
+Dynamic: provides-extra
+Dynamic: requires-python
+Dynamic: summary
+
+# OSLisLim - Open Source License Limitation
+
+**Technical solution to protect open source projects from commercial abuse**
+
+OSLisLim is an innovative open source project protection tool that uses technical means to prevent open source projects from being maliciously packaged into commercial software for distribution.
+
+## Core Features
+
+- **Mandatory Dependency Mechanism**: Project cannot run after removing protection code
+- **Intelligent Usage Tracking**: Automatically records function calls and usage data
+- **Packaging Environment Detection**: Blocks PyInstaller and other packaging tools
+- **Complete Encryption Protection**: Protection bundle as single-line encrypted text
+- **Advanced Anti-Reverse Engineering**: Multi-layer security mechanisms
+
+## Installation
+
+```bash
+pip install oslislim
+```
+
+## Quick Start
+
+### Basic Usage
+
+```python
+from oslislim import decrypt_and_execute, protect_function
+
+# Must call this (project won't run if removed)
+decrypt_and_execute("protection.oslim")
+
+@protect_function
+def main():
+    print("Protected open source project")
+    return "Project execution complete"
+
+if __name__ == "__main__":
+    result = main()
+    print(result)
+```
+
+### Generate Protection Bundle
+
+```python
+from oslislim import generate_protection_bundle
+
+# Generate default protection bundle
+generate_protection_bundle()
+
+# Or with custom configuration
+generate_protection_bundle(
+    output_file="my_protection.oslim",
+    config={
+        "project_name": "My Project",
+        "author": "Author Name"
+    }
+)
+```
+
+## How It Works
+
+### 1. Encrypted Protection Bundle
+```
+exec(__import__('oslislim.crypto_client',fromlist=['decrypt_bundle_code']).decrypt_bundle_code('OSL_encrypted_data...'))
+```
+
+### 2. Mandatory Dependency Mechanism
+- Project must call `decrypt_and_execute("protection.oslim")`
+- Removing this line makes the project non-functional
+- Creates genuine technical dependency
+
+### 3. Packaging Environment Detection
+- Automatically detects PyInstaller, cx_Freeze, Nuitka, etc.
+- Immediately refuses to run in packaging environments
+- Effectively prevents commercial packaging and distribution
+
+### 4. Intelligent Tracking System
+- All functions decorated with `@protect_function` are automatically tracked
+- Supports local tracking mode
+- Anonymized user information processing for privacy protection
+
+## Advanced Configuration
+
+### Custom Tracking Function
+
+```python
+def custom_tracker(func_name, args, kwargs):
+    """Custom tracking logic"""
+    import json
+    import os
+    from datetime import datetime
+
+    usage_data = {
+        "timestamp": datetime.now().isoformat(),
+        "function": func_name,
+        "args_count": len(args),
+        "user": os.getenv("USERNAME", "unknown")
+    }
+
+    # Save to custom location
+    with open("usage_log.json", "a") as f:
+        json.dump(usage_data, f)
+        f.write("\n")
+
+# Use custom tracker
+generate_protection_bundle(tracker_code=custom_tracker)
+```
+
+### Project Configuration Options
+
+```python
+config = {
+    "project_name": "Project Name",
+    "author": "Author Information",
+    "version": "1.0.0",
+    "protection_level": "high",  # standard, high
+    "core_functions": ["main", "init", "process"],
+    "license_file": "LICENSE"
+}
+
+generate_protection_bundle(config=config)
+```
+
+## Security Features
+
+### Anti-Debugging Protection
+- Debugger environment detection
+- Reverse engineering tool identification
+- Virtual machine environment detection
+- Process analysis tool detection
+
+### Multi-Layer Encryption
+1. **XOR Encryption**: Advanced XOR with multiple layers
+2. **Bit Shift Obfuscation**: Byte shift processing
+3. **Base64 Encoding**: Standard encoding
+4. **Character Substitution**: Custom character mapping
+
+### Environment Checks
+- Python version verification
+- Operating system detection
+- Execution environment analysis
+- File system checks
+
+## Use Cases
+
+### Open Source Project Protection
+- **Prevent commercial abuse**: Block packaging of open source projects into commercial software
+- **Maintain open source spirit**: Ensure projects are used in open source environments
+- **Technical barriers**: Increase technical difficulty for malicious use
+
+### Software License Management
+- **Usage monitoring**: Understand actual software usage patterns
+- **Function call statistics**: Analyze which functions are frequently used
+- **User behavior analysis**: Collect anonymous usage data
+
+### Intellectual Property Protection
+- **Source code protection**: Core algorithms stored in encrypted form
+- **Reverse engineering protection**: Multiple technical measures to prevent reverse engineering
+- **Legal evidence**: Provide technical means as evidence for rights protection
+## Important Notes
+
+### Legal Use
+- OSLisLim is only for protecting legitimate open source projects
+- Must not be used for malware or illegal purposes
+- Users must comply with relevant laws and regulations
+
+### Technical Limitations
+- Cannot prevent all forms of reverse engineering
+- Advanced attackers may still bypass protection mechanisms
+- Recommend combining with legal measures for comprehensive protection
+
+### Performance Impact
+- Protection mechanisms introduce slight performance overhead
+- Encryption/decryption processes require additional computation time
+- Recommend using protection on critical functions only
+
+## Contributing
+
+We welcome community contributions! Please feel free to submit issues and pull requests.
+
+### Development Environment Setup
+
+```bash
+# Clone repository
+git clone https://github.com/oslislim/oslislim.git
+cd oslislim
+
+# Install development dependencies
+pip install -e ".[dev]"
+
+# Run tests
+python -m pytest tests/
+```
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Links
+
+- [PyPI Package](https://pypi.org/project/oslislim/)
+- [GitHub Repository](https://github.com/alltobebetter/oslislim)
+- [Issue Tracker](https://github.com/alltobebetter/oslislim/issues)
+
+## Contact
+
+- **Email**: oslislim@suwork.eu.org
+- **GitHub**: [@alltobebetter](https://github.com/alltobebetter)
+
+---
+
+**OSLisLim - Making open source projects safer and the open source spirit purer**
