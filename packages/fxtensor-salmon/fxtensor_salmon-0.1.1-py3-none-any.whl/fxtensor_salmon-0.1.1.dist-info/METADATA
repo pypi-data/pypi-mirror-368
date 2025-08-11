@@ -1,0 +1,253 @@
+Metadata-Version: 2.4
+Name: fxtensor-salmon
+Version: 0.1.1
+Summary: Markov Tensor Module
+Author-email: Tadachika Oki <sakesnare@gmail.com>
+License: Copyright 2025 Tadachika Oki
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+        
+Project-URL: Homepage, https://github.com/salmonsnare/fxtensor-salmon
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Topic :: Scientific/Engineering :: Mathematics
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: numpy>=1.20.0
+Dynamic: license-file
+
+# FXTensor
+**Numpy** を利用してマルコフ・テンソルを効率的に計算するための `FXTensor` クラスです。
+
+## インストール
+
+```bash
+pip install fxtensor-salmon
+```
+
+このクラスは、確率的な事象の連鎖をテンソルとして表現し、それらの結合や周辺化といった操作を可能にします。これにより、複雑な確率モデルを体系的に扱うことができます。
+
+#### テンソル計算
+
+  * **結合演算 (`composition`)**: 2つのテンソルを結合します（行列積の一般化）。
+  * **テンソル積 (`tensor_product`)**: 2つのテンソルを並列に組み合わせます。
+  * **部分結合 (`partial_composition`)**: テンソルの一部だけを結合します。
+  * **同時化 (`jointification`)**: 2つの状態から同時確率分布を生成します。
+  * **条件化 (`conditionalization`)**: 同時確率分布から条件付き確率分布を求めます。
+  * **第一・第二周辺化 (`first_marginalization`, `second_marginalization`)**: 特定の確率変数を消去（積分）します。
+
+#### テンソル生成（クラスメソッド）
+  * **恒等射/単位テンソル (`unit_tensor`)**: 何も変化させないテンソルを作成します。
+  * **マルコフ・テンソル Δ (`delta`)**: 状態を複製（コピー）するテンソルを作成します。
+  * **マルコフ・テンソル \! (`exclamation`)**: 状態を破棄（無視）するテンソルを作成します。
+  * **マルコフ・テンソル Xa,b (スワップ) (`swap`)**: 2つの状態を入れ替えるテンソルを作成します。
+
+## はじめに
+
+### 本スクリプトにおける計算の基本
+
+次のような行と列にインデックスを持つ確率の表（行列）を考えます。各列の合計は1になるものとします。これは、ある列のインデックスで表現される事象が起きたという条件下で、ある行のインデックスで表現される事象が起きる条件付き確率を表します。
+
+例として、次のような表1と表2を示します。
+
+**表1.**
+黒、または白のボールが混在した容器からボールを1個選んだ後、その色に応じて赤、緑、青のランプがランダムに発光する確率。
+
+```console
+　　黒　白
+-----------
+赤  0.1 0.2
+緑  0.2 0.3
+青  0.7 0.5
+```
+
+**表2.**
+赤、緑、青のランプが発光した際に、別の白色ランプが光るかどうかの確率。
+
+```console
+　　　　　　　　　　　　赤　緑　青
+-----------------------------------------
+白色のランプが光る  　　0.8 0.9 0.9
+白色のランプが光らない  0.2 0.1 0.1
+```
+
+ここで、表1と表2の**結合**を考えます。これは、ボールを選んでから最終的に白色ランプがどうなるかまでの一連の確率を計算することに対応します。
+
+例えば、「黒ボールを選び」→「赤いランプが光り (確率0.1)」→「その結果、白色ランプが光る (確率0.8)」という一連の事象が起きる確率は `0.1 * 0.8 = 0.08` です。
+
+同様に、ランプが緑、青の場合も計算し、全て足し合わせると、「黒ボールを選んだ場合に、最終的に白色ランプが光る確率」が求まります。
+`  (0.1 * 0.8) + (0.2 * 0.9) + (0.7 * 0.9) = 0.08 + 0.18 + 0.63 = 0.89 `
+
+この計算をすべての組み合わせで行うと、次の表3が得られます。
+
+**表3.**
+ボールの色を条件として、最終的に白色ランプが光るかどうかの確率。
+
+```console
+　　　　　　　　　　　　黒　　白
+-----------------------------------------
+白色のランプが光る  　　0.89   0.88 (22/25)
+白色のランプが光らない  0.11   0.12 (3/25)
+```
+
+本スクリプト `FXTensor` クラスを用いると、この計算は `composition` メソッドで直感的に実行できます。
+
+```python
+import numpy as np
+from fxtensor_salmon import FXTensor # FXTensor クラスをインポート
+
+# -- ラベルとインデックスの対応 --
+# 状態空間の定義
+ball_domain = ['黒', '白']
+lamp_colors = ['赤', '緑', '青']
+white_lamp_codomain = ['白色のランプが光る', '白色のランプが光らない']
+
+def main():
+    # --- 表1をFXTensorで表現 ---
+    # profileは[入力の次元], [出力の次元]
+    # 入力: ボールの色 (2種類)、出力: ランプの色 (3種類)
+    profile_a = [[len(ball_domain)], [len(lamp_colors)]]
+    # データはNumpy配列で表現。P(出力|入力)の形
+    # data[入力インデックス, 出力インデックス]
+    data_a = np.array([
+        # 入力が'黒' (インデックス0) の場合
+        [0.1, 0.2, 0.7],  # 出力: [P(赤|黒), P(緑|黒), P(青|黒)]
+        # 入力が'白' (インデックス1) の場合
+        [0.2, 0.3, 0.5]   # 出力: [P(赤|白), P(緑|白), P(青|白)]
+    ])
+    tensor_a = FXTensor(profile_a, data=data_a)
+
+    # --- 表2をFXTensorで表現 ---
+    # 入力: ランプの色 (3種類)、出力: 白色ランプの状態 (2種類)
+    profile_b = [[len(lamp_colors)], [len(white_lamp_codomain)]]
+    data_b = np.array([
+        # 入力が'赤' (インデックス0) の場合
+        [0.8, 0.2],  # 出力: [P(光る|赤), P(光らない|赤)]
+        # 入力が'緑' (インデックス1) の場合
+        [0.9, 0.1],  # 出力: [P(光る|緑), P(光らない|緑)]
+        # 入力が'青' (インデックス2) の場合
+        [0.9, 0.1]   # 出力: [P(光る|青), P(光らない|青)]
+    ])
+    tensor_b = FXTensor(profile_b, data=data_b)
+
+    # --- テンソルの結合 ---
+    # tensor_a の出力と tensor_b の入力が接続される
+    result_tensor = tensor_a.composition(tensor_b)
+
+    # --- 結果の表示 ---
+    print("結合後のプロファイル:", result_tensor.profile)
+    print("結合後のデータ (Numpy配列):\n", result_tensor.data)
+    print("\n--- 結果の解釈 ---")
+    for i, ball_color in enumerate(ball_domain):
+        for j, lamp_status in enumerate(white_lamp_codomain):
+            prob = result_tensor.data[i, j]
+            print(f"P({lamp_status} | {ball_color}) = {prob:.2f}")
+
+if __name__ == "__main__":
+    main()
+```
+
+上記のコードを実行すると、`composition` によって2つの確率過程が結合され、次のような実行結果を得ます。
+
+```console
+結合後のプロファイル: [[2], [2]]
+結合後のデータ (Numpy配列):
+ [[0.89 0.11]
+ [0.88 0.12]]
+
+--- 結果の解釈 ---
+P(白色のランプが光る | 黒) = 0.89
+P(白色のランプが光らない | 黒) = 0.11
+P(白色のランプが光る | 白) = 0.88
+P(白色のランプが光らない | 白) = 0.12
+```
+
+### 行と列のラベルがそれぞれ複数ある場合
+
+この考え方は、入出力が複数の要素の組（タプル）で表される、より高次元のテンソルにも拡張できます。
+
+例えば、「(ボールの色, カードの色)」という入力に対して、「(ランプ1の色, ランプ2の色)」という出力が得られるような、より複雑な確率過程も同様に扱うことができます。この場合、データは2次元の行列ではなく、4次元以上の `numpy` 配列で表現されます。`composition` などの演算は、これらの高次元配列に対しても同様に機能します。
+
+以下の表4、5、6はそのような例です。
+
+**表4.** (ボール, カード) → (ランプ色1, ランプ色2) の確率
+
+```console
+　　　　(黒, 金)　(黒, 銀）（白, 金）（白, 銀）
+--------------------------------------------
+(赤, 桃)  0.1　　　　0.1　　　0.1　　　0.1 
+(赤, 紫)  0.1　　　　0.1　　　0.1　　　0.1
+(緑, 桃)  0.1　　　　0.1　　　0.1　　　0.5
+(緑, 紫)  0.1　　　　0.1　　　0.5　　　0.1
+(青, 桃)  0.1　　　　0.5　　　0.1　　　0.1
+(青, 紫)  0.5　　　　0.1　　　0.1　　　0.1
+--------------------------------------------
+```
+
+**表5.** (ランプ色1, ランプ色2) → (白色ランプ1の状態, 白色ランプ2の状態) の確率
+
+```console
+　　　　　　　　　　　　　　　　　　　　　　　  　　　(赤, 桃) (赤, 紫）(緑, 桃) (緑, 紫）(青, 桃) (青, 紫）
+-----------------------------------------------------------------------------------------------------------
+(白色のランプ 1 が光る, 白色のランプ 2 が光る)  　　　　0.1　　　0.4　　　0.3　　　0.2　　　0.1　　　0.2 
+(白色のランプ 1 が光る, 白色のランプ 2 が光らない)  　　0.2　　　0.1　　　0.4　　　0.3　　　0.1　　　0.6
+(白色のランプ 1 が光らない, 白色のランプ 2 が光る) 　　 0.3　　　0.2　　　0.1　　　0.4　　　0.2　　　0.1
+(白色のランプ 1 が光らない, 白色のランプ 2 が光らない)  0.4　　　0.3　　　0.2　　　0.1　　　0.6　　　0.1
+-----------------------------------------------------------------------------------------------------------
+```
+
+これらのテンソルを `FXTensor` クラスで表現し、`composition` を用いて結合することで、最終的な結果である表6を導出できます。
+
+**表6.** (ボール, カード) → (白色ランプ1の状態, 白色ランプ2の状態) の確率
+
+```console
+　　　　　　　　　　　　　　　　　　　　　　　　　　　　(黒, 金)　(黒, 銀）（白, 金）（白, 銀）
+------------------------------------------------------------------------------------------------
+(白色のランプ 1 が光る, 白色のランプ 2 が光る)  　　　　21/100　　17/100　　21/100　　1/4
+(白色のランプ 1 が光る, 白色のランプ 2 が光らない)  　　41/100　　21/100　　29/100　　33/100
+(白色のランプ 1 が光らない, 白色のランプ 2 が光る) 　　 17/100　　21/100　　29/100　　17/100
+(白色のランプ 1 が光らない, 白色のランプ 2 が光らない)  21/100　　41/100　　21/100　　1/4
+------------------------------------------------------------------------------------------------
+```
+
+この計算は、`FXTensor` の `profile` に `[[2, 2], [3, 2]]` のように複数の次元を指定し、`data` に4階のテンソル（4次元のNumpy配列）を渡すことで実現されます。
+
+JSON ファイルの入出力例
+
+```python
+import numpy as np
+from fxtensor import FXTensor
+
+json_data = {
+  "profile": [[2], [2]],
+  "strands": [
+    {"from": [0], "to": [0], "weight": 0.3},
+    {"from": [0], "to": [1], "weight": 0.7},
+    {"from": [1], "to": [0], "weight": 0.5},
+    {"from": [1], "to": [1], "weight": 0.5}
+  ]
+}
+
+# JSONデータからテンソルを作成
+stochastic_map = FXTensor.from_json(json_data)
+
+print(stochastic_map)
+# 出力予測: FXTensor(profile=[[2], [2]], shape=(2, 2))
+
+print(stochastic_map.data)
+# 出力予測:
+# [[0.3 0.7]
+#  [0.5 0.5]]
+```
+
+## 参考文献
+
+  * 檜山正幸のキマイラ飼育記 (はてなBlog), マルコフ圏 A First Look -- 圏論的確率論の最良の定式化, [https://m-hiyama.hatenablog.com/entry/2020/06/09/154044](https://m-hiyama.hatenablog.com/entry/2020/06/09/154044)
+  * 檜山正幸のキマイラ飼育記 (はてなBlog), マルコフ圏におけるテンソル計算の手順とコツ, [https://m-hiyama.hatenablog.com/entry/2021/04/05/153325](https://m-hiyama.hatenablog.com/entry/2021/04/05/153325)
+JSON定義から`FXTensor`オブジェクトを作成する方法は以下の通りです。
