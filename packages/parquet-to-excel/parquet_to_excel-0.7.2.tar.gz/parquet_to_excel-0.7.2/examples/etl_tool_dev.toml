@@ -1,0 +1,47 @@
+label = "数据核对工具"
+# procs = 6                                                      # 使用多少个进程，缺省为处理器的物理核心数
+# quick = true                                                   # 快速模式下原始未见未变，不再重复转换
+# duckbase = 'data/.duck/duckdb'                                 # 所连接的数据库，不配置则open_in_memory
+
+[[xlsx_maps]]
+name = 'bittable_test'                                           # 必须，表名
+from = 'D:\Projects\RustTool\data\read\数据上传'                   # 必须，数据来源目录
+filter = '.*\.xlsx'                                               # 必须，文件匹配正则表达式
+filter_gps = []                                                   # 内容可为空，从路径提取的列，_表示忽略，@开头作为分区，其他作为普通字段，需与filter的字串匹配
+sheet_regx = ''                                                   # 内容可为空，匹配sheet的正则表达式，与sheet_list配置一项
+sheet_list = []                                                   # 内容可为空，列出具体的sheet名称，与sheet_regx配置一项，均配置时取sheet_list
+# update_time = 'update_time'                                     # 可选，若配置则将文件最后更新时间添加为指定的列名
+# rownum_name = 'rownum'                                          # 可选，若配置则将excel文件的行号添加为指定的列名
+column_used = "B:E"                                               # 必须，指定需要用到的列
+column_type = [                                                   # 必须，指定用到列的数据类型
+    ["日期", "datetime_ms_local"],
+    ["文本", "string"],
+    ["数字", "float"],
+    ["单选", "string"],
+]
+first_row_is_header = true                                     # 首行是否为标题，若设置为true，则读取到的首行不会作为数据储存
+[xlsx_maps.first_nrows]                                         # 内容可为空，指定sheet用到的起始列，不配置从第一列开始
+[xlsx_maps.check_header]                                        # 可选，需first_row_is_header配置为true，此项才有用
+    # [1, "ssss"]
+    # 列号 = XX值 
+
+
+# 上传数据到飞书多维表格
+[[bt_uploads]]
+label = "上传测试数据到飞书多维表格"
+local = "bittable_test"           #  本地数据文件
+clear = true                                   #  上传数据前是否先清空，默认为false
+[bt_uploads.bittable]
+app_token = "Dp6Kbb3QHau7h9sjixWcpTponYf"      #  多维表格的app_token
+table_id = "tbliNOjKpLsAmv5Y"                  #  多维表格的table_id
+columns = ["序号"]                              #  可选,不设置在删除数据时需取回所有列，影响效率，建议设置
+# batch_size = 500                                 #  可选，每个批次查询/删除的数据行数，默认为500
+[bt_uploads.bittable.filter]                   # "多维表格查询参数"，需要按官方查询接口规则设置 https://open.feishu.cn/document/docs/bitable-v1/app-table-record/record-filter-guide
+
+
+# # ------------------------------------------按原始格式导出指定sheet数据------------------------------------------
+# [[exports.'指定sheet数据']]                                                 # 导出数据的任务，可多项
+# path = 'data/csv_export.xlsx'                                  # 设置储存结果的xlsx文件不能命名为year等关键字
+# [exports.'指定sheet数据'.arguments]                                       # 设置查询的固定参数
+# [exports.'指定sheet数据'.sheets]                                          # 设置各输出sheet对应的查询SQL, SQL可以在独立的文件中
+# "data" = '''${file: sql/Scripts/00_dev.sql}'''
