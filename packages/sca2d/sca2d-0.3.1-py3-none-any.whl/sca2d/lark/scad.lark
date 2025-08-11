@@ -1,0 +1,201 @@
+start: _code_block
+_code_block: _terminated_statement*
+
+_terminated_statement: variable_assignment
+                     | _use_inc_statement
+                     | _flow_or_mod_call
+                     | modified_flow_or_mod_call
+                     | _definition
+                     | pointless_scoped_block
+                     | pointless_termination
+
+pointless_termination: TERMINATION
+pointless_scoped_block: _scoped_block
+
+_definition: (module_def|function_def)
+module_def: "module" _module
+
+function_def: "function" function_header "=" function_scope TERMINATION
+function_literal: "function" function_literal_header function_scope
+function_call: function_header
+function_literal_header: "(" _arglist")"
+function_header: _func_call_header
+function_scope: _expr
+
+_module_control_or_scope: (_flow_or_mod_call|modified_flow_or_mod_call|_scoped_block)
+
+modified_flow_or_mod_call: modifier (_flow_or_mod_call|modified_flow_or_mod_call)
+_flow_or_mod_call: (_flow_control|module_call)
+module_call: _module
+_module: module_header (module_scope|TERMINATION)
+module_scope: _module_control_or_scope
+module_header: _func_call_header
+
+_flow_control: (if|for|intersection_for|assign|let)
+control_scope: _module_control_or_scope
+_c_scope_or_term: (control_scope|TERMINATION)
+
+if: _if_header _c_scope_or_term [else _c_scope_or_term]
+_if_header: "if" "(" condition ")"
+else: "else" -> else
+for: _for_header _c_scope_or_term
+_for_header: "for" "(" control_assignment_list ")"
+intersection_for: "intersection_for" "(" control_assignment_list ")" _c_scope_or_term
+assign: "assign" "(" control_assignment_list ")" _c_scope_or_term
+let: _let_header _c_scope_or_term
+_let_header: "let" "(" control_assignment_list ")"
+
+_assignment: assigned_var "=" _expr
+variable_assignment: _assignment TERMINATION
+kwarg: _assignment
+control_assignment: _assignment
+control_assignment_list: control_assignment ("," control_assignment)*
+
+_scoped_block: "{" [_code_block] "}"
+
+
+//anything that acts like an element and hence can be indexed
+_meta_element: _element
+             | parenth_expr
+             | indexed_expr
+             | element_attribute
+
+_atomic_expr: _meta_element
+            | function_literal
+            | let_expr
+            | signed_expr
+            | not_expr
+            | echo_func_expr
+            | assert_func_expr
+
+_atom_arith_expr: _atomic_expr
+                | arithmetic_operation
+
+_atom_arith_tern_expr: _atom_arith_expr
+                     | ternary
+
+_atom_arith_tern_rel_expr: _atom_arith_tern_expr
+                    | relational_operation
+
+_expr: | _atom_arith_tern_rel_expr
+       | logical_operation
+
+_element: number
+        | built_in_var
+        | variable
+        | function_call
+        | list
+        | string
+        | iterator
+
+parenth_expr: "(" _expr ")"
+indexed_expr: _meta_element "[" index "]"
+element_attribute: _meta_element "." attribute
+not_expr: "!" _atomic_expr
+index: _expr
+echo_func_expr: echo_func _expr
+echo_func: "echo" "(" _arglist ")"
+assert_func_expr: assert_func _expr
+assert_func: "assert" "(" _arglist ")"
+
+signed_expr: sign _atomic_expr
+sign: "+"  -> plus
+    | "-"  -> minus
+
+arithmetic_operation: _atomic_expr (arithmetic_operator _atomic_expr)+
+ternary: condition "?" _atom_arith_tern_expr ":" _atom_arith_tern_expr
+relational_operation: _atom_arith_tern_expr (relational_operator _atom_arith_tern_expr)+
+logical_operation: _atom_arith_tern_rel_expr (logical_operator _atom_arith_tern_rel_expr)+
+let_expr: _let_header _expr
+
+condition: _expr
+
+built_in_var: "true" -> true
+            | "false" -> false
+            | "undef" -> undef
+
+assigned_var: VARIABLE
+variable: VARIABLE
+attribute: ATTRIBUTE
+number: NUMBER
+string: ESCAPED_STRING
+
+//list comp expressions take priprity so correct version of let is used.
+_expr_or_lcomp_expr: list_comp_expr
+                   | _expr
+
+
+//list comprehension expressions
+list_comp_expr: lc_for
+              | lc_if
+              | lc_each
+              | lc_for_c_style
+              | lc_let_expr
+
+//list comprehension version of for and if
+lc_for: _for_header _expr_or_lcomp_expr
+lc_if: _if_header _expr_or_lcomp_expr [else _expr_or_lcomp_expr]
+
+//list comprehension each statement
+lc_each: "each "_expr_or_lcomp_expr
+
+//There is not really a list comprehension let. But it is needed because it can be used in
+// the middle of a list comp and needs to match another list comp afterwards
+lc_let_expr: _let_header _expr_or_lcomp_expr
+
+//The "c-style" list comprehension for - This one hurts my head!
+c_style_for_assignment: "(" control_assignment_list ";" condition ";" control_assignment_list ")"
+lc_for_c_style: "for" c_style_for_assignment _expr_or_lcomp_expr
+
+list: "[" [list_item ("," list_item)*] "]"
+list_item: _expr_or_lcomp_expr
+iterator: "[" _expr (":" _expr)~1..2 "]"
+
+//openscad doesn't really have attributes but they are allowing .x .y .z to index
+//I call this attribute for lack of a better name.
+ATTRIBUTE: /[a-zA-Z_$][a-zA-Z0-9_]*/
+VARIABLE: /(?:\$|(?:[0-9]*)?[a-zA-Z_])[a-zA-Z0-9_]*/
+MOD_CALL_NAME: /(?:\$|(?:[0-9]*)?[a-zA-Z_])[a-zA-Z0-9_]*/
+FUNC_CALL_NAME: /(?!let[^a-zA-Z0-9_])(?:\$|(?:[0-9]*)?[a-zA-Z_])[a-zA-Z0-9_]*/
+mod_name: MOD_CALL_NAME
+func_name: FUNC_CALL_NAME
+_arglist: arg ("," arg)*
+_mod_call_header: mod_name "(" _arglist")"
+_func_call_header: func_name "(" _arglist")"
+arg: _expr | kwarg
+
+arithmetic_operator: "+"  -> plus
+                   | "-"  -> minus
+                   | "*"  -> multiply
+                   | "/"  -> divide
+                   | "%"  -> modulo
+                   | "^"  -> power
+
+relational_operator: "<"   -> less_than
+                   | "<="  -> less_eq
+                   | "=="  -> equal
+                   | "!="  -> not_equal
+                   | ">="  -> great_eq
+                   | ">"   -> greater_than
+
+logical_operator: "&&" -> logical_and
+                | "||" -> logical_or
+
+modifier: "*" -> disable
+        | "!" -> show_only
+        | "#" -> highlight
+        | "%" -> transparent
+
+_use_inc_statement: (use_statement|include_statement)
+use_statement: "use" "<" FILENAME ">"
+include_statement: "include" "<" FILENAME ">"
+FILENAME: /[^>;\n]+/
+TERMINATION: ";"
+%import common.ESCAPED_STRING
+%import common.NUMBER
+%import common.ESCAPED_STRING
+%import common.WS
+COMMENT: /\/\/[^\n]*/
+       | /\/\*.*?(\*\/)/s
+%ignore COMMENT
+%ignore WS
