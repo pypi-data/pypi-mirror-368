@@ -1,0 +1,50 @@
+[package]
+name = "python-proto-importer"
+version = "0.1.3"
+edition = "2024"
+description = "Rust-based CLI to streamline Python gRPC/Protobuf workflows: generate code, stabilize imports, and run type checks."
+readme = "README.md"
+license = "Apache-2.0"
+repository = "https://github.com/K-dash/python-proto-importer"
+homepage = "https://github.com/K-dash/python-proto-importer"
+documentation = "https://github.com/K-dash/python-proto-importer#readme"
+keywords = ["protobuf", "grpc", "python", "generator", "cli"]
+categories = ["command-line-utilities", "development-tools"]
+exclude = [
+  ".github/",
+  "python_e2e/",
+  "doc/",
+  "target/",
+  ".idea/",
+  ".vscode/",
+  ".DS_Store",
+]
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+which = "8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.9"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+glob = "0.3"
+tempfile = "3"
+walkdir = "2"
+regex = "1"
+prost = "0.14"
+prost-types = "0.14"
+prost-reflect = "0.16"
+
+# Optional: Python bindings via PyO3 (enabled with `--features python`)
+pyo3 = { version = "0.25.1", features = ["extension-module", "abi3-py38"], optional = true }
+
+[features]
+default = []
+# Enable building Python extension module/wheels
+python = ["pyo3"]
+
+[lib]
+name = "python_proto_importer"
+crate-type = ["rlib", "cdylib"]
