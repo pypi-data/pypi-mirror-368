@@ -1,0 +1,106 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rag_startups"
+version = "0.9.2"
+keywords = ["rag", "ai", "startup", "langchain"]
+readme = "README.md"
+
+
+authors = [
+    { name = "Val Giner", email = "valginer0@gmail.com" },
+]
+description = "Generate startup ideas grounded in real YC data using Retrieval-Augmented Generation (RAG)."
+requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+# Removed dynamic scripts; explicit script entry point declared below
+dependencies = [
+    "langchain>=0.1.0",
+    "langchain-community>=0.0.1",
+    "pandas>=2.0.0",
+    "sentence-transformers>=2.2.2",
+    "transformers>=4.30.0",
+    "langchain-chroma>=0.1.0",
+    "langsmith>=0.0.30",
+    "python-dotenv>=1.0.0",
+    "backoff>=2.2.1",
+    "chromadb>=0.4.0",
+    "wbdata>=0.3.0",
+    "huggingface-hub>=0.23.0",  # Explicitly required for Xet-powered storage
+    "requests>=2.31.0",
+    "redis>=5.0.1",
+    "cachetools>=5.3.2",  # For in-memory caching fallback
+    "fakeredis>=2.20.0",  # For development Redis server
+    "spacy>=3.7.2",  # Core NLP library (pinned minor for model compatibility)
+
+
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.1.0",
+    "pytest-benchmark>=4.0.0",
+    "black==24.2.0",
+    "flake8>=6.0.0",
+    "isort>=5.13.2",
+    "mypy>=1.0.0",
+    "pre-commit>=3.5.0",
+]
+test = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.1.0",
+    "pytest-benchmark>=4.0.0",
+]
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.5.0",
+    "mkdocstrings[python]>=0.24.0",
+    "mkdocs-gen-files>=0.5.0",
+    "mkdocs-literate-nav>=0.6.0",
+    "mkdocs-include-markdown-plugin>=4.0.0",
+]
+# Extra for release tooling
+publish = [
+    "build>=1.0.0",
+    "twine>=4.0.0",
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+include = '\.pyi?$'
+
+[project.urls]
+Homepage = "https://github.com/valginer0/rag_startups"
+Repository = "https://github.com/valginer0/rag_startups"
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[project.scripts]
+rag-startups = "rag_startups.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["rag_startups*"]
+
+# Ensure top-level helper modules are packaged
+[tool.setuptools]
+py-modules = ["embed_master"]
+
+[tool.flake8]
+max-line-length = 120
+extend-ignore = ["E501"]
