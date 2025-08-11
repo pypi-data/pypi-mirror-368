@@ -1,0 +1,37 @@
+create or replace procedure PLUGIN.RETRIEVE_NETWORK_RULE_OBJECT(RULE_NAME VARCHAR)
+   returns object
+   language javascript
+   COMMENT = $$
+   Allows the sync engine to retrieve the details of a network rule object, since this application owns them.
+   $$
+   execute as owner
+as
+$$
+try{
+   var networkRuleResult = snowflake.createStatement( {
+      sqlText: `desc NETWORK RULE IDENTIFIER(?)`,
+      binds:[RULE_NAME]
+   } ).execute();
+   networkRuleResult.next();
+   return {
+        "success": true,
+        "data": {
+         "type": networkRuleResult.getColumnValue(7),
+         "mode": networkRuleResult.getColumnValue(8),
+         "value_list": networkRuleResult.getColumnValue(9)
+        }
+   }
+}
+catch(e){
+   return {
+      "success": false,
+      "error": `RETRIEVE_NETWORK_RULE_OBJECT: ${String(e)}`
+   }
+}
+
+$$
+;
+
+grant usage on procedure PLUGIN.RETRIEVE_NETWORK_RULE_OBJECT(VARCHAR)
+to application role OMNATA_MANAGEMENT;
+

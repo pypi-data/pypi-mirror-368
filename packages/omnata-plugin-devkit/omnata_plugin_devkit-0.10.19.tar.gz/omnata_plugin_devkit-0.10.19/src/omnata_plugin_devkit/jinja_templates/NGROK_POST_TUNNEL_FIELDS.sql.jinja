@@ -1,0 +1,59 @@
+create or replace procedure PLUGIN.NGROK_POST_TUNNEL_FIELDS(
+                                                CONNECTION_METHOD VARCHAR,
+                                                CONNECTION_PARAMETERS OBJECT,
+                                                OAUTH_SECRET_NAME VARCHAR,
+                                                OTHER_SECRETS_NAME VARCHAR,
+                                                FUNCTION_NAME VARCHAR)
+returns object
+language python
+RUNTIME_VERSION = '3.10'
+PACKAGES = ({{packages}})
+IMPORTS = ('/app.zip')
+HANDLER = 'run'
+COMMENT = $$
+Requests connection form fields to be presented after the ngrok tunnel is established.
+$$
+execute as owner
+as
+$$
+from logging import getLogger
+from omnata_plugin_runtime.logging import log_exception
+import json
+logger = getLogger(__name__)
+def run(session,connection_method,connection_parameters,oauth_secret_name,other_secrets_name,function_name):
+   try:
+      logger.info('plugin entrypoint wrapper')
+      from omnata_plugin_runtime.plugin_entrypoints import PluginEntrypoint, normalise_nulls
+      logger.info('importing plugin {{plugin_class_name}} from module {{plugin_class_module}}')
+      entrypoint = PluginEntrypoint(session=session,
+         plugin_fqn='{{plugin_fqn}}',
+         module_name='{{plugin_class_module}}',
+         class_name='{{plugin_class_name}}'
+      )
+      oauth_secret_name = normalise_nulls(oauth_secret_name)
+      other_secrets_name = normalise_nulls(other_secrets_name)
+      # no idea why this sometimes happens, I blame some versions of the snowflake python connector
+      if oauth_secret_name=='None':
+         oauth_secret_name=None
+      result = entrypoint.ngrok_post_tunnel_fields(connection_method,connection_parameters,oauth_secret_name,other_secrets_name,function_name)
+      logger.debug(f'result from plugin: {result}')
+      return {
+         "success": True,
+         "data": result
+      }
+   except Exception as exception:
+      log_exception(exception,logger)
+      return {
+         "success": False,
+         "error": f"NGROK_POST_TUNNEL_FIELDS: {str(exception)}"
+      }
+$$
+;
+   
+grant usage on procedure PLUGIN.NGROK_POST_TUNNEL_FIELDS(
+                                                VARCHAR,
+                                                OBJECT,
+                                                VARCHAR,
+                                                VARCHAR,
+                                                VARCHAR)
+to application role OMNATA_MANAGEMENT;

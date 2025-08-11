@@ -1,0 +1,43 @@
+create or replace function PLUGIN.OUTBOUND_RECORD_VALIDATOR(SYNC_PARAMETERS OBJECT,FIELD_MAPPINGS OBJECT,TRANSFORM_RECORD OBJECT,SOURCE_TYPES OBJECT)
+returns object
+language python
+RUNTIME_VERSION = '3.10'
+PACKAGES = ({{packages}})
+IMPORTS = ('/app.zip')
+HANDLER = 'run'
+COMMENT = $$
+Requests validation of an outbound record. Used to test the validity of field mappings and provided data values.
+Failed records will be marked with a SOURCE_FAILURE instead of DESTINATION_FAILURE.
+$$
+as
+$$
+from typing import Any, Dict, Optional
+from omnata_plugin_runtime.logging import log_exception
+from omnata_plugin_runtime.configuration import StoredConfigurationValue, StoredMappingValue
+from omnata_plugin_runtime.plugin_entrypoints import PluginEntrypoint
+from logging import getLogger
+logger = getLogger(__name__)
+
+# as per https://docs.snowflake.com/en/developer-guide/udf/python/udf-python-designing#designing-the-module
+# we do the expensive operations (plugin object import and instantiation) outside of the function
+logger.info('importing plugin {{plugin_class_name}} from module {{plugin_class_module}}')
+entrypoint = PluginEntrypoint(session=None,
+   plugin_fqn='{{plugin_fqn}}',
+   module_name='{{plugin_class_module}}',
+   class_name='{{plugin_class_name}}'
+)
+
+def run(sync_parameters:Dict,field_mappings:Dict,transformed_record:Dict,source_types:Dict[str,str]):
+   try:
+      return entrypoint.outbound_record_validator(sync_parameters=sync_parameters,
+                            field_mappings=field_mappings,
+                            transformed_record=transformed_record,
+                            source_types=source_types)
+   except Exception as exception:
+      log_exception(exception,logger)
+      raise
+$$
+;
+   
+grant usage on function PLUGIN.OUTBOUND_RECORD_VALIDATOR(OBJECT,OBJECT,OBJECT,OBJECT)
+to application role OMNATA_MANAGEMENT;

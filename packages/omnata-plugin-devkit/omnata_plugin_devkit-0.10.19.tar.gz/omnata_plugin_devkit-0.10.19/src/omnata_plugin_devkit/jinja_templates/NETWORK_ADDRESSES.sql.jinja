@@ -1,0 +1,76 @@
+create or replace procedure PLUGIN.NETWORK_ADDRESSES(
+                                    CONNECTIVITY_OPTION VARCHAR,
+                                    METHOD VARCHAR, 
+                                    CONNECTION_PARAMETERS OBJECT
+                                    )
+returns object
+language python
+RUNTIME_VERSION = '3.10'
+PACKAGES = ({{packages}})
+IMPORTS = ('/app.zip')
+HANDLER = 'run'
+COMMENT = $$
+Retrieves a list of network addresses that must be allowed for the connection to work.
+$$
+execute as owner
+as
+$$
+from logging import getLogger
+from omnata_plugin_runtime.logging import log_exception
+import json
+logger = getLogger(__name__)
+def run(session,connectivity_option,method,connection_parameters):
+   try:
+      logger.info('plugin entrypoint wrapper')
+      from omnata_plugin_runtime.plugin_entrypoints import PluginEntrypoint
+      logger.info('importing plugin {{plugin_class_name}} from module {{plugin_class_module}}')
+      entrypoint = PluginEntrypoint(session=session,
+         plugin_fqn='{{plugin_fqn}}',
+         module_name='{{plugin_class_module}}',
+         class_name='{{plugin_class_name}}'
+      )
+      result = entrypoint.network_addresses(connectivity_option,method,connection_parameters)
+      logger.info(f'result from plugin: {result}')
+      return {
+         "success": True,
+         "data": result
+      }
+   except Exception as exception:
+      log_exception(exception,logger)
+      return {
+         "success": False,
+         "error": f"NETWORK_ADDRESSES: {str(exception)}"
+      }
+$$
+;
+
+grant usage on procedure PLUGIN.NETWORK_ADDRESSES(VARCHAR, 
+                                    VARCHAR,
+                                    OBJECT)
+to application role OMNATA_MANAGEMENT;
+
+
+-- legacy method, can be removed once all plugins pass runtime version 0.7.0
+-- and sync engine no longer calls this
+create or replace procedure PLUGIN.NETWORK_ADDRESSES(
+                                    METHOD VARCHAR, 
+                                    CONNECTION_PARAMETERS OBJECT
+                                    )
+returns object
+language SQL 
+as
+$$
+DECLARE res OBJECT;
+  BEGIN
+    CALL PLUGIN.NETWORK_ADDRESSES(
+         'direct', 
+         :METHOD,
+         :CONNECTION_PARAMETERS
+         ) INTO :res;
+    return res;
+  END;
+$$;
+
+
+grant usage on procedure PLUGIN.NETWORK_ADDRESSES(VARCHAR,OBJECT)
+to application role OMNATA_MANAGEMENT;

@@ -1,0 +1,58 @@
+create or replace procedure PLUGIN.POST_INSTALL_ACTIONS()
+   returns object
+   language javascript
+   COMMENT = $$
+   Called by the setup script during installation/upgrade.
+   $$
+   execute as owner
+as
+$$
+// snowflake object automatically injected by Snowpark
+
+try{
+    snowflake.log("info", "POST_INSTALL_ACTIONS called");
+    var currentDatabaseResults = snowflake.createStatement( {
+        sqlText: `select current_database()`,
+        binds:[]
+    } ).execute();
+    currentDatabaseResults.next();
+    var currentDatabase = currentDatabaseResults.getColumnValue(1);
+
+    var appsResults = snowflake.createStatement( {
+        sqlText: `select 
+                    APPLICATION_NAME,
+                    EXTERNAL_ACCESS_INTEGRATIONS
+                from DATA.OMNATA_REGISTRATION`,
+        binds:[]
+    } ).execute();
+    let applicationName;
+    let integrationNames;
+    let secrets;
+    let externalAccessIntegrations;
+    if (appsResults.next())  {
+        applicationName = appsResults.getColumnValue(1);
+        snowflake.log("info", `Updating plugin info using Sync Engine application ${applicationName}, current database ${currentDatabase}`);
+        var updatePluginInfoResult = snowflake.createStatement( {
+            sqlText: `call ${applicationName}.API.UPDATE_PLUGIN_INFO(?)`,
+            binds:[currentDatabase]
+        } ).execute();
+        updatePluginInfoResult.next();
+        snowflake.log("info", `UPDATE_PLUGIN_INFO result: ${updatePluginInfoResult.getColumnValue(1)}`);
+    }else{
+        snowflake.log("info", `Plugin not registered yet, skipping update of info`);
+    }
+    return {
+        "success": true,
+        "data": {}
+    }
+}
+catch(e){
+    snowflake.log("error", e.message);
+    return {
+       "success": false,
+       "error": `POST_INSTALL_ACTIONS: ${String(e)}`
+    }
+}
+
+$$
+;

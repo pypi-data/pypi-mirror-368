@@ -1,0 +1,81 @@
+create or replace procedure PLUGIN.API_LIMITS(
+                                    CONNECTIVITY_OPTION VARCHAR,
+                                    METHOD VARCHAR, 
+                                    CONNECTION_PARAMETERS OBJECT,
+                                    OAUTH_SECRET_NAME VARCHAR,
+                                    OTHER_SECRETS_NAME VARCHAR)
+returns object
+language python
+RUNTIME_VERSION = '3.10'
+PACKAGES = ({{packages}})
+IMPORTS = ('/app.zip')
+HANDLER = 'run'
+COMMENT = $$
+Returns the API limits for a particular connection.
+$$
+execute as owner
+as
+$$
+from logging import getLogger
+from omnata_plugin_runtime.logging import log_exception
+import json
+logger = getLogger(__name__)
+def run(session,connectivity_option,method,connection_parameters,oauth_secret_name,other_secrets_name):
+   try:
+      logger.info('plugin entrypoint wrapper')
+      from omnata_plugin_runtime.plugin_entrypoints import PluginEntrypoint
+      logger.info('importing plugin {{plugin_class_name}} from module {{plugin_class_module}}')
+      entrypoint = PluginEntrypoint(session=session,
+         plugin_fqn='{{plugin_fqn}}',
+         module_name='{{plugin_class_module}}',
+         class_name='{{plugin_class_name}}'
+      )
+      result = entrypoint.api_limits(connectivity_option,method,connection_parameters,oauth_secret_name,other_secrets_name)
+      logger.info(f'result from plugin: {result}')
+      return {
+         "success": True,
+         "data": result
+      }
+   except Exception as exception:
+      log_exception(exception,logger)
+      return {
+         "success": False,
+         "error": str(exception)
+      }
+$$
+;
+   
+grant usage on procedure PLUGIN.API_LIMITS(VARCHAR,
+                                    VARCHAR,
+                                    OBJECT,
+                                    VARCHAR,
+                                    VARCHAR)
+to application role OMNATA_MANAGEMENT;
+
+-- legacy method, can be removed once all plugins pass runtime version 0.7.0
+-- and sync engine no longer calls this
+create or replace procedure PLUGIN.API_LIMITS(
+                                    METHOD VARCHAR,
+                                    CONNECTION_PARAMETERS OBJECT, 
+                                    OAUTH_SECRET_NAME VARCHAR,
+                                    OTHER_SECRETS_NAME VARCHAR)
+returns object
+language SQL 
+as
+$$
+DECLARE res OBJECT;
+  BEGIN
+    CALL PLUGIN.API_LIMITS(
+         'direct', 
+         :METHOD,
+         :CONNECTION_PARAMETERS,
+         :OAUTH_SECRET_NAME,
+         :OTHER_SECRETS_NAME
+         ) INTO :res;
+    return res;
+  END;
+$$;
+
+
+grant usage on procedure PLUGIN.API_LIMITS(VARCHAR,OBJECT,VARCHAR,VARCHAR)
+to application role OMNATA_MANAGEMENT;
