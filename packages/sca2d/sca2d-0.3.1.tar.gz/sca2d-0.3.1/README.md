@@ -1,0 +1,119 @@
+# SCA2D - Static Code Analysis for SCAD
+
+![](identity/SCA2D.png){width=50%}
+
+This is a linter for OpenSCAD. The focus is to properly lex the `.scad` files so that we can test for dangerous code like redefining variable from other scopes.
+
+SCA2D has been used for a few years now by the OpenFlexure Microscope project, but may have issue with projects that use different conventions.
+
+It can:
+
+* Parse any `.scad` file. We don't yet do extensive testing. Please raise an issue if you find a parsing error in SCA2D.
+* Parse included and used `.scad` files and checking variable, function, and module usage in different scopes.
+* Report for a number of code errors, code style issues, and some whitespace issues.
+
+SCA2D is also experimenting with creating documentation while linting.
+
+## How to install
+
+If you have Python 3.6 or later installed on your machine (and on the PATH) you can install SCA2D from PyPi by running the following command from a terminal
+
+    pip install sca2d
+
+to upgrade your current versions of SCA2D run:
+
+    pip install sca2d --upgrade
+
+You can check that SCA2D is installed by running the following:
+
+    sca2d -h
+
+you should see a help screen.
+
+### Install issues
+
+If you have problems with installation possible problems include:
+
+* You may need to run `pip3` instead of `pip`
+* Python may not be on the PATH, this often happens in Windows depending on how python was installed
+
+## How to run
+
+To analyse a `.scad` file run:
+
+    sca2d filename.scad
+
+This will print any code messages to the screen.
+
+To analyse all `.scad` files in a directory run:
+
+    sca2d dir_path
+
+This will also print any code messages to the screen.
+
+**To also generate documentation run.**
+
+    sca2d --docs dir_path.
+
+Additionally the `--project` option can be used to set a project name for the documentation.
+
+If you wish to inspect the parse tree that SCA2D generates and then uses you can instead run:
+
+    sca2d --output-tree filename.scad
+
+the tree will be printed into a file called `filename.sca2d`.
+
+
+### SCA2D Docstring Conventions for OpenSCAD
+
+To enable automatic documentation parsing and example image generation, SCA2D defines a simple docstring format for OpenSCAD code. These conventions are enforced and utilised by the SCA2D documentation tooling.
+
+- Use `/* */`-style C comments for docstrings.
+- Do **not** include leading `*`s on each line.
+- Document parameters using Python-style directives:
+  - `:param arg1: Description of the argument`
+  - `:return:` or `:returns:` to describe return values
+  - `:assert condition:` to describe assertions or expected conditions (in place of `:raises:`)
+- Multiline descriptions (for `:param`, `:return:`, or `:assert`) should indent subsequent lines by **4 spaces**.
+- All other content is treated as **Markdown**.
+- Use fenced code blocks (` ``` `) for examples or inline code.
+
+#### Docstring Example
+
+```scad
+/* Create a box with optional bevelled edges.
+
+    :param size: A 2D vector specifying the width and height
+    :param bevel: Optional bevel radius (default 0)
+
+    :return: A 2D shape representing the box
+*/
+module box(size, bevel = 0) {
+    // ...
+}
+```
+
+#### Rendering images for examples
+
+To include a rendered image of an example use a fenced code block that begins with ` ```example `. This blocks trigger automatic image generation as part of the documentation build.
+
+Customisation is currently fairly limited.
+
+* To set the camera angle use the special scad variables (`$vpt`, `$vpr`, and `$vpd`) in your example.
+* By default preview mode is used to use render mode add the word `render` after `example`: ` ```example render`
+* By images have the axes showing, add `no-axes` after `example` to suppress rendering axes: ` ```example no-axes`
+
+#### Other Options for Documenting OpenSCAD
+
+Projects like [`openscad_docsgen`](https://https://github.com/BelfrySCAD/openscad_docsgen) also generate OpenSCAD docs. 
+
+We did consider following the same conventions, however, because `openscad_docsgen` does not parse the SCAD code, their conventions include a lot of repetition of information found in the code (such as function/module signatures). The format also contains a fairly rigid structure to the documentation, prevent simply adding docs as you go to specific functions.
+
+The SCA2D approach is to parse the SCAD source first, to automatically create module and function signatures, so documentation can focus purely on usage, behaviour, and intent. This avoids redundancy, reduces maintenance overhead, and allows for lightweight Markdown-based docstrings that feel familiar to developers coming from Python or similar languages.
+
+At the time of writing `openscad_docsgen` is more mature than SCA2D's documentation tooling, and has more options for generating example images.
+
+
+## How to get involved with SCA2D
+
+The best way to get involved is to find bugs and then [open an issue](https://gitlab.com/bath_open_instrumentation_group/sca2d/-/issues). You could also make changes and open a merge request.
