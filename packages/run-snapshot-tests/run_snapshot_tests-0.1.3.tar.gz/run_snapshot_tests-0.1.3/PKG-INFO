@@ -1,0 +1,101 @@
+Metadata-Version: 2.4
+Name: run-snapshot-tests
+Version: 0.1.3
+Summary: Runner for Python [inline-snapshot](https://github.com/15r10nk/inline-snapshot/) tests with a better interface and cleaner terminal output.
+Author-email: Mark Lidenberg <marklidenberg@gmail.com>
+License: MIT
+License-File: LICENSE
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Requires-Python: >=3.8
+Requires-Dist: dony>=0.2.0
+Requires-Dist: inline-snapshot>=0.27.1
+Requires-Dist: pytest>=8.3.5
+Provides-Extra: dev
+Requires-Dist: better-exceptions>=0.3.3; extra == 'dev'
+Requires-Dist: build>=1.2.2.post1; extra == 'dev'
+Requires-Dist: load-dotenv>=0.1.0; extra == 'dev'
+Requires-Dist: questionary>=2.1.0; extra == 'dev'
+Requires-Dist: twine>=6.1.0; extra == 'dev'
+Description-Content-Type: text/markdown
+
+# run-snapshot-tests
+
+Runner for Python [inline-snapshot](https://github.com/15r10nk/inline-snapshot/) tests with a better interface and cleaner terminal output.
+
+# Interface
+
+```python
+
+def run_snapshot_tests(
+    path: Union[str, Path, None] = None, # tests path. Defaults to current file if not set
+    mode: Literal[
+        "assert", 
+        "create_missing", 
+        "fix_broken", 
+        "update_all"
+    ] = "create_missing",
+) -> None:
+```
+
+# Example
+
+
+```python
+from inline_snapshot import outsource, snapshot
+from run_snapshot_tests import run_snapshot_tests
+
+def test():
+    assert "value" == snapshot()
+    assert 5 <= snapshot()
+    assert 5 in snapshot()
+    a = snapshot()
+    assert a["key"] == "value"
+
+    assert (
+        outsource(
+            "Long data" * 1000,
+        )
+        == snapshot()
+    )
+
+
+if __name__ == "__main__":
+    run_snapshot_tests()
+```
+
+↓
+
+```python
+from inline_snapshot import outsource, snapshot
+from run_snapshot_tests import run_snapshot_tests
+
+from inline_snapshot import external
+
+
+def test():
+    assert "value" == snapshot('value')
+    assert 5 <= snapshot(5)
+    assert 5 in snapshot([5])
+    a = snapshot({'key': 'value'})
+    assert a["key"] == "value"
+
+    assert (
+        outsource(
+            "Long data" * 1000,
+        )
+        == snapshot(external("hash:dc9b148c966a*.txt"))
+    )
+
+
+if __name__ == "__main__":
+    run_snapshot_tests()
+
+```
