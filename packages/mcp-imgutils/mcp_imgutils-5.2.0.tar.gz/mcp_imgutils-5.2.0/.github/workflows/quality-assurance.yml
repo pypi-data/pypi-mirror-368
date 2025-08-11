@@ -1,0 +1,426 @@
+name: 质量保证
+
+# 添加明确的权限声明
+permissions:
+  contents: read
+  pull-requests: write  # 允许创建PR评论
+  issues: write         # 允许创建issue评论
+  checks: write         # 允许更新检查状态
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: 设置Python
+        run: uv python install
+
+      - name: 创建并激活虚拟环境
+        run: |
+          uv venv
+          . .venv/bin/activate
+
+      - name: 安装依赖
+        run: uv pip install -e ".[test]"
+
+      - name: 运行测试并生成覆盖率报告
+        id: tests
+        run: |
+          uv run pytest \
+            -v \
+            --cov=src/mcp_imgutils \
+            --cov-report=html \
+            --cov-report=term-missing \
+            --cov-report=json:coverage.json \
+            --cov-report=xml:coverage.xml \
+            tests/
+            
+      - name: 上传覆盖率报告
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+            
+      - name: 计算覆盖率百分比
+        id: calc_coverage
+        run: |
+          COVERAGE=$(jq -r '.totals.percent_covered' coverage.json)
+          echo "Coverage: $COVERAGE"
+          echo "percentage=${COVERAGE%.*}" >> $GITHUB_OUTPUT
+          if (( $(echo "$COVERAGE >= 90" | bc -l) )); then
+            echo "color=green" >> $GITHUB_OUTPUT
+          elif (( $(echo "$COVERAGE >= 80" | bc -l) )); then
+            echo "color=yellow" >> $GITHUB_OUTPUT
+          else
+            echo "color=red" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 创建覆盖率徽章
+        uses: schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: ${{ secrets.GIST_ID }}
+          filename: imgutils-coverage.json
+          label: "覆盖率"
+          message: "${{ steps.calc_coverage.outputs.percentage }}%"
+          color: "${{ steps.calc_coverage.outputs.color }}"
+          namedLogo: python
+
+  sonarcloud:
+    name: SonarCloud分析
+    needs: pytest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: 下载覆盖率报告
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report
+      - name: SonarCloud扫描
+        id: sonar_scan
+        uses: SonarSource/sonarqube-scan-action@v5.0.0
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      
+      - name: SonarQube质量门禁检查
+        id: sonar_qg
+        uses: sonarsource/sonarqube-quality-gate-action@master
+        continue-on-error: true
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          scanMetadataReportFile: .scannerwork/report-task.txt
+          
+      - name: SonarCloud PR评论
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
+        with:
+          script: |
+            const fs = require('fs');
+            
+            // 读取质量门禁结果
+            let qualityGateStatus = 'Unknown';
+            try {
+              const reportTaskContent = fs.readFileSync('.scannerwork/report-task.txt', 'utf8');
+              const ceTaskIdMatch = reportTaskContent.match(/ceTaskId=(.+)/);
+              if (ceTaskIdMatch && ceTaskIdMatch[1]) {
+                const ceTaskId = ceTaskIdMatch[1];
+                
+                // 等待分析完成
+                let analysisComplete = false;
+                let retries = 0;
+                while (!analysisComplete && retries < 10) {
+                  const ceTaskResponse = await fetch(
+                    `https://sonarcloud.io/api/ce/task?id=${ceTaskId}`,
+                    { headers: { Authorization: `Bearer ${process.env.SONAR_TOKEN}` } }
+                  ).then(res => res.json());
+                  
+                  if (ceTaskResponse.task && ceTaskResponse.task.status === 'SUCCESS') {
+                    analysisComplete = true;
+                  } else {
+                    retries++;
+                    await new Promise(resolve => setTimeout(resolve, 5000)); // 等待5秒
+                  }
+                }
+              }
+            } catch (error) {
+              console.error('Error reading report task file:', error);
+            }
+            
+            // 获取SonarCloud分析结果
+            const projectKey = process.env.SONAR_PROJECT_KEY;
+            const sonarResponse = await fetch(
+              `https://sonarcloud.io/api/measures/component?component=${projectKey}&metricKeys=bugs,vulnerabilities,code_smells,coverage,duplicated_lines_density`,
+              { headers: { Authorization: `Bearer ${process.env.SONAR_TOKEN}` } }
+            ).then(res => res.json());
+            
+            // 解析结果
+            let coverage = 'N/A';
+            let bugs = 'N/A';
+            let vulnerabilities = 'N/A';
+            let codeSmells = 'N/A';
+            let duplication = 'N/A';
+            
+            if (sonarResponse && sonarResponse.component && sonarResponse.component.measures) {
+              const measures = sonarResponse.component.measures;
+              
+              for (const measure of measures) {
+                switch (measure.metric) {
+                  case 'coverage':
+                    coverage = `${parseFloat(measure.value).toFixed(2)}%`;
+                    break;
+                  case 'bugs':
+                    bugs = measure.value;
+                    break;
+                  case 'vulnerabilities':
+                    vulnerabilities = measure.value;
+                    break;
+                  case 'code_smells':
+                    codeSmells = measure.value;
+                    break;
+                  case 'duplicated_lines_density':
+                    duplication = `${parseFloat(measure.value).toFixed(2)}%`;
+                    break;
+                }
+              }
+            }
+            
+            // 获取质量门禁状态
+            const qualityGateResponse = await fetch(
+              `https://sonarcloud.io/api/qualitygates/project_status?projectKey=${projectKey}`,
+              { headers: { Authorization: `Bearer ${process.env.SONAR_TOKEN}` } }
+            ).then(res => res.json());
+            
+            if (qualityGateResponse && qualityGateResponse.projectStatus) {
+              qualityGateStatus = qualityGateResponse.projectStatus.status === 'OK' ? '✅ 通过' : '❌ 失败';
+            }
+            
+            // 计算总问题数
+            const totalIssues = parseInt(bugs || 0) + parseInt(vulnerabilities || 0) + parseInt(codeSmells || 0);
+            
+            // 生成评论内容
+            let recommendations = [];
+            if (parseInt(bugs) > 0) recommendations.push('- 修复已识别的bug以提高代码可靠性');
+            if (parseInt(vulnerabilities) > 0) recommendations.push('- 解决安全漏洞以增强应用程序安全性');
+            if (parseInt(codeSmells) > 5) recommendations.push('- 重构代码以减少代码异味并提高可维护性');
+            if (parseFloat(coverage) < 80) recommendations.push('- 增加测试覆盖率以满足80%的最低要求');
+            if (parseFloat(duplication) > 3) recommendations.push('- 减少代码重复以提高可维护性');
+            
+            const comment = [
+              '## SonarCloud分析结果',
+              '',
+              '### 摘要',
+              `- **质量门禁**: ${qualityGateStatus}`,
+              `- **覆盖率**: ${coverage}`,
+              `- **总问题数**: ${totalIssues}`,
+              `- **代码重复率**: ${duplication}`,
+              '',
+              '### 详情',
+              `- **代码异味**: ${codeSmells}`,
+              `- **Bug**: ${bugs}`,
+              `- **安全漏洞**: ${vulnerabilities}`,
+              '',
+              '### 建议',
+              ...recommendations,
+              '',
+              `[在SonarCloud上查看完整报告](https://sonarcloud.io/dashboard?id=${projectKey})`
+            ].join('\n');
+            
+            // 发布或更新PR评论
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.login === 'github-actions[bot]' && 
+              comment.body.includes('SonarCloud分析结果')
+            );
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: comment,
+              });
+              console.log('更新了现有的SonarCloud评论');
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment,
+              });
+              console.log('创建了新的SonarCloud评论');
+            }
+            
+      - name: 提取SonarCloud问题
+        if: always()
+        uses: actions/github-script@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
+        with:
+          script: |
+            const fs = require('fs');
+            
+            // 获取SonarCloud问题
+            const projectKey = process.env.SONAR_PROJECT_KEY;
+            console.log(`获取项目 ${projectKey} 的SonarCloud问题...`);
+            
+            // 获取PR号
+            let prNumberParam = '';
+            if (context.issue.number) {
+              prNumberParam = `&pullRequest=${context.issue.number}`;
+              console.log(`处理PR #${context.issue.number}的SonarCloud问题`);
+            } else {
+              console.log('未检测到PR号，将获取所有未解决的问题');
+            }
+            
+            // 获取未解决的问题
+            const issuesResponse = await fetch(
+              `https://sonarcloud.io/api/issues/search?componentKeys=${projectKey}${prNumberParam}&resolved=false&ps=500`,
+              { headers: { Authorization: `Bearer ${process.env.SONAR_TOKEN}` } }
+            ).then(res => res.json());
+            
+            console.log(`找到 ${issuesResponse.issues ? issuesResponse.issues.length : 0} 个未解决的问题`);
+            
+            // 保存原始JSON
+            fs.writeFileSync('sonar_issues.json', JSON.stringify(issuesResponse, null, 2));
+            
+            // 格式化为AI友好的Markdown
+            let markdownContent = '# SonarCloud分析问题报告\n\n';
+            markdownContent += `[在SonarCloud中查看完整报告](https://sonarcloud.io/project/issues?id=${projectKey})\n\n`;
+            
+            // 添加问题摘要
+            if (issuesResponse.issues && issuesResponse.issues.length > 0) {
+              // 按严重性统计
+              const severityCounts = {};
+              // 按类型统计
+              const typeCounts = {};
+              
+              issuesResponse.issues.forEach(issue => {
+                severityCounts[issue.severity] = (severityCounts[issue.severity] || 0) + 1;
+                typeCounts[issue.type] = (typeCounts[issue.type] || 0) + 1;
+              });
+              
+              markdownContent += '## 问题摘要\n\n';
+              
+              markdownContent += '### 按严重性\n\n';
+              for (const [severity, count] of Object.entries(severityCounts)) {
+                let severityText = '';
+                switch (severity) {
+                  case 'BLOCKER': severityText = '阻断级'; break;
+                  case 'CRITICAL': severityText = '严重级'; break;
+                  case 'MAJOR': severityText = '主要级'; break;
+                  case 'MINOR': severityText = '次要级'; break;
+                  case 'INFO': severityText = '提示级'; break;
+                  default: severityText = severity;
+                }
+                markdownContent += `- ${severityText}: ${count}个问题\n`;
+              }
+              
+              markdownContent += '\n### 按类型\n\n';
+              for (const [type, count] of Object.entries(typeCounts)) {
+                let typeText = '';
+                switch (type) {
+                  case 'BUG': typeText = 'Bug'; break;
+                  case 'VULNERABILITY': typeText = '安全漏洞'; break;
+                  case 'CODE_SMELL': typeText = '代码异味'; break;
+                  default: typeText = type;
+                }
+                markdownContent += `- ${typeText}: ${count}个问题\n`;
+              }
+              
+              // 按文件分组问题
+              const issuesByFile = {};
+              issuesResponse.issues.forEach(issue => {
+                const component = issue.component.split(':').pop();
+                if (!issuesByFile[component]) {
+                  issuesByFile[component] = [];
+                }
+                issuesByFile[component].push(issue);
+              });
+              
+              markdownContent += '\n## 详细问题列表\n\n';
+              
+              for (const [file, issues] of Object.entries(issuesByFile)) {
+                markdownContent += `### 文件: ${file}\n\n`;
+                
+                issues.forEach(issue => {
+                  let severityText = '';
+                  switch (issue.severity) {
+                    case 'BLOCKER': severityText = '阻断级'; break;
+                    case 'CRITICAL': severityText = '严重级'; break;
+                    case 'MAJOR': severityText = '主要级'; break;
+                    case 'MINOR': severityText = '次要级'; break;
+                    case 'INFO': severityText = '提示级'; break;
+                    default: severityText = issue.severity;
+                  }
+                  
+                  let typeText = '';
+                  switch (issue.type) {
+                    case 'BUG': typeText = 'Bug'; break;
+                    case 'VULNERABILITY': typeText = '安全漏洞'; break;
+                    case 'CODE_SMELL': typeText = '代码异味'; break;
+                    default: typeText = issue.type;
+                  }
+                  
+                  markdownContent += `- 文件: ${file}\n`;
+                  markdownContent += `  行号: ${issue.line || 'N/A'}\n`;
+                  markdownContent += `  问题: ${issue.message}\n`;
+                  markdownContent += `  严重性: ${severityText}\n`;
+                  markdownContent += `  类型: ${typeText}\n`;
+                  markdownContent += `  [在SonarCloud中查看](https://sonarcloud.io/project/issues?id=${projectKey}&open=${issue.key})\n\n`;
+                });
+              }
+              
+              // 添加常见问题修复建议
+              markdownContent += '## 常见问题修复建议\n\n';
+              
+              // 检查是否存在特定规则的问题
+              const hasRule = rule => issuesResponse.issues.some(issue => issue.rule === rule);
+              
+              if (hasRule('python:S1481')) {
+                markdownContent += '- **未使用的变量**: 删除未使用的变量声明，或者在变量名前添加下划线（例如 `_unused`）\n';
+              }
+              
+              if (hasRule('python:S5754')) {
+                markdownContent += '- **类型检查**: 使用 `isinstance()` 替代 `type()` 进行类型检查\n';
+              }
+              
+              if (hasRule('python:S1066')) {
+                markdownContent += '- **合并嵌套if语句**: 将嵌套的if语句合并为一个使用 `and` 运算符的条件\n';
+              }
+              
+              if (hasRule('python:S1172')) {
+                markdownContent += '- **未使用的参数**: 删除未使用的函数参数，或者在参数名前添加下划线\n';
+              }
+              
+              if (hasRule('python:S5806')) {
+                markdownContent += '- **不必要的lambda**: 使用函数引用替代只调用另一个函数的lambda\n';
+              }
+              
+              // 添加通用建议
+              markdownContent += '- **代码重复**: 提取重复代码为共享函数或类\n';
+              markdownContent += '- **复杂函数**: 将大型函数拆分为更小的函数，每个函数只做一件事\n';
+              markdownContent += '- **注释**: 为复杂逻辑添加清晰的注释，解释"为什么"而不仅仅是"做什么"\n';
+            } else {
+              markdownContent += '## 没有发现问题\n\n恭喜！SonarCloud没有检测到任何问题。';
+            }
+            
+            // 保存Markdown文件
+            fs.writeFileSync('sonar_report.md', markdownContent);
+            
+            console.log('已生成SonarCloud问题报告');
+            
+      - name: 上传SonarCloud问题报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sonarcloud-issues
+          path: |
+            sonar_issues.json
+            sonar_report.md
