@@ -1,0 +1,135 @@
+# SPDX-FileCopyrightText: 2025 Florian Obersteiner / KIT
+# SPDX-FileContributor: Florian Obersteiner <f.obersteiner@kit.edu>
+#
+# SPDX-License-Identifier: CC-BY-SA-4.0
+
+[project]
+authors = [{ name = "Florian Obersteiner", email = "f.obersteiner@posteo.de" }]
+license = "GPL-3.0-or-later"
+name = "pyfuppes"
+version = "0.7.1"
+description = "A collection of tools in Python"
+readme = "README.md"
+requires-python = ">= 3.11, < 3.14"
+classifiers = [
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "geopy>=2.0",
+    "matplotlib>=3.0",
+    "netcdf4>=1.6",
+    "numba>=0.59.0",
+    "numpy>=1.18",
+    "pandas>=2.0",
+    "polars>=1.0",
+    "pysolar>=0.10",
+    "scikit-learn>=1.4",
+    "scipy>=1.1",
+    "xarray>=2024",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.15.0",
+    "pandas-stubs>=2.3.0.250703",
+    "pre-commit>=3.3.3",
+    "pre-commit-hooks>=5.0.0", #  to run all hooks 'local'
+    "pyproj>=3.7.1", #  for benchmark_geo
+    "pytest-cov>=6.1.1",
+    "pytest>=7.0",
+    "reuse>=5.0.2",
+    "rich>=13.0", #  for pretty benchmark output
+    "ruff>=0.0.254",
+]
+
+[project.urls]
+Homepage = "https://gitlab.kit.edu/FObersteiner/pyfuppes"
+Issues = "https://gitlab.kit.edu/FObersteiner/pyFuppes/issues"
+Changelog = "https://gitlab.kit.edu/FObersteiner/pyFuppes/blob/main/CHANGELOG.md"
+
+[tool.mypy]
+files = "pyfuppes"
+exclude = "tests"
+# TODO:
+# disallow_untyped_defs = true
+# disallow_any_unimported = true
+# no_implicit_optional = true
+# check_untyped_defs = true
+# warn_return_any = true
+# warn_unused_ignores = true
+show_error_codes = true
+
+[tool.ruff]
+target-version = "py311" #  minimum
+line-length = 100
+fix = true
+exclude = ["tests"]
+
+[tool.ruff.format]
+preview = true
+quote-style = "double"
+indent-style = "space"
+
+[tool.ruff.lint]
+select = [
+    "B",    #  bugbear checks
+    "C4",   #  comprehensions
+    "E",    #  pycodestyle errors
+    "FURB", #  refurb checks
+    "G",    #  logging format
+    "I",    #  import sorting
+    "PERF", #  performance
+    "PLW",  #  pyflakes warnings
+    "Q",    #  quotes
+    "SIM",  #  code simplifications
+    "TCH",  #  type checking optimizations
+    "UP",   #  pyupgrade
+    # TODO:
+    # "A",      #  flake8-builtins
+    # "C90",    #  mccabe
+    # "F",      #  pyflakes
+    # "PGH",    #  pygrep-hooks
+    # "RUF",    #  ruff
+    # "S",      #  flake8-bandit
+    # "T10",    #  flake8-debugger
+    # "TRY",    #  tryceratops
+    # "W",      #  pycodestyle
+    # "YTT",    #  flake8-2020
+]
+ignore = [
+    "E501",   #  LineTooLong
+    "E731",   #  DoNotAssignLambda
+     #
+     #  asserts good, however note that they can be disabled when Python is run with the -O flag,
+    "S101", #  which optimizes the code by removing them.
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["pyfuppes"]
+
+[tool.pytest.ini_options]
+addopts = ["--import-mode=importlib"]
+pythonpath = ["."]
+
+[tool.coverage.run]
+omit = [
+    "benchmarks/*",
+    "pyfuppes/__init__.py",
+    "pyfuppes/na1001_backend/__init__.py",
+    "tests/__init__.py",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.sdist]
+packages = ["pyfuppes"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["pyfuppes"]
