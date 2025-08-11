@@ -1,0 +1,26 @@
+name: pre-commit
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    container:
+      image: "4alonkellner/ties-ci:latest"
+      options: --user root
+    steps:
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/
+          key: ${{ runner.os }}
+          restore-keys: |
+            ${{ runner.os }}
+      - uses: actions/checkout@v4
+      - name: git safe directory
+        run: git config --global --add safe.directory $(pwd)
+      - name: postCreateCommand
+        run: .devcontainer/postCreateCommand
+      - name: postStartCommand & pre-commit all
+        run: .devcontainer/postStartCommand
