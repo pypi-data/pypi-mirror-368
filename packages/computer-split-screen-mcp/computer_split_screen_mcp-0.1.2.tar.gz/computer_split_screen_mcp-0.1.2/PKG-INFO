@@ -1,0 +1,201 @@
+Metadata-Version: 2.4
+Name: computer-split-screen-mcp
+Version: 0.1.2
+Summary: Model Context Protocol (MCP) server for cross-platform window management and screen splitting
+Project-URL: Homepage, https://github.com/yourusername/computer-split-screen-mcp
+Project-URL: Repository, https://github.com/yourusername/computer-split-screen-mcp
+Project-URL: Issues, https://github.com/yourusername/computer-split-screen-mcp/issues
+Author-email: Your Name <your.email@example.com>
+License: MIT
+License-File: LICENSE
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Desktop Environment
+Classifier: Topic :: System :: Systems Administration
+Classifier: Topic :: Utilities
+Requires-Python: >=3.8
+Requires-Dist: mcp>=1.0.0
+Provides-Extra: dev
+Requires-Dist: black>=22.0.0; extra == 'dev'
+Requires-Dist: flake8>=5.0.0; extra == 'dev'
+Requires-Dist: mypy>=1.0.0; extra == 'dev'
+Requires-Dist: pytest>=7.0.0; extra == 'dev'
+Description-Content-Type: text/markdown
+
+# Computer Split Screen MCP Server
+
+A Model Context Protocol (MCP) server that provides cross-platform window management and screen splitting capabilities. This server allows MCP clients to control window positioning, sizing, and state across Windows and macOS systems.
+
+## Features
+
+- **Cross-Platform Support**: Works on Windows and macOS
+- **Window Positioning**: Move windows to screen halves and quadrants
+- **Window State Control**: Minimize and toggle fullscreen
+- **MCP Integration**: Full Model Context Protocol compliance
+- **Automatic OS Detection**: No configuration needed
+
+## Installation
+
+### From PyPI (Recommended)
+
+```bash
+pip install computer-split-screen-mcp
+```
+
+### From Source
+
+```bash
+git clone https://github.com/yourusername/computer-split-screen-mcp.git
+cd computer-split-screen-mcp
+pip install -e .
+```
+
+## Usage
+
+### As an MCP Server
+
+Configure your MCP client with the following configuration:
+
+```json
+{
+  "mcpServers": {
+    "window-management": {
+      "command": "uvx",
+      "args": ["computer-split-screen-mcp"],
+      "env": {}
+    }
+  }
+}
+```
+
+### Available Tools
+
+The server provides the following MCP tools:
+
+#### Window Positioning
+- `move_to_top_half` - Move active window to top half of screen
+- `move_to_bottom_half` - Move active window to bottom half of screen
+- `move_to_left_half` - Move active window to left half of screen
+- `move_to_right_half` - Move active window to right half of screen
+
+#### Quadrant Positioning
+- `move_to_top_left_quadrant` - Move window to top-left quarter
+- `move_to_top_right_quadrant` - Move window to top-right quarter
+- `move_to_bottom_left_quadrant` - Move window to bottom-left quarter
+- `move_to_bottom_right_quadrant` - Move window to bottom-right quarter
+
+#### Window State
+- `minimize_window` - Minimize the currently active window
+- `toggle_fullscreen` - Toggle fullscreen mode for active window
+
+### Direct Python Usage
+
+You can also use the window management functions directly in Python:
+
+```python
+from computer_split_screen_mcp import (
+    relocate_to_top_half,
+    move_to_top_left_quadrant,
+    minimize_active_window
+)
+
+# Move window to top half
+relocate_to_top_half()
+
+# Move window to top-left quadrant
+move_to_top_left_quadrant()
+
+# Minimize active window
+minimize_active_window()
+```
+
+## Requirements
+
+- Python 3.8 or higher
+- Windows 10+ or macOS 10.14+
+- For Windows: No additional dependencies
+- For macOS: AppleScript support (built-in)
+
+## Development
+
+### Setup Development Environment
+
+```bash
+git clone https://github.com/yourusername/computer-split-screen-mcp.git
+cd computer-split-screen-mcp
+pip install -e ".[dev]"
+```
+
+### Run Tests
+
+```bash
+pytest
+```
+
+### Code Formatting
+
+```bash
+black computer_split_screen_mcp/
+```
+
+### Type Checking
+
+```bash
+mypy computer_split_screen_mcp/
+```
+
+## How It Works
+
+### Windows Implementation
+Uses the Windows API through `ctypes.windll.user32` to:
+- Get screen dimensions via `GetSystemMetrics()`
+- Control windows via `SetWindowPos()` and `ShowWindow()`
+- Access the foreground window via `GetForegroundWindow()`
+
+### macOS Implementation
+Uses AppleScript through `subprocess.run(['osascript'])` to:
+- Control System Events for window management
+- Get screen bounds dynamically
+- Set window position and size via accessibility attributes
+
+### Cross-Platform Layer
+Automatically detects the operating system and routes calls to the appropriate implementation, providing a unified API regardless of platform.
+
+## Security Considerations
+
+- **Windows**: Requires no special permissions beyond normal user access
+- **macOS**: May require accessibility permissions for some applications
+- **AppleScript**: Executes with user privileges, timeout-limited to 10 seconds
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+- **Issues**: [GitHub Issues](https://github.com/yourusername/computer-split-screen-mcp/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/yourusername/computer-split-screen-mcp/discussions)
+
+## Changelog
+
+### 0.1.0
+- Initial release
+- Cross-platform window management
+- MCP server implementation
+- Support for Windows and macOS
