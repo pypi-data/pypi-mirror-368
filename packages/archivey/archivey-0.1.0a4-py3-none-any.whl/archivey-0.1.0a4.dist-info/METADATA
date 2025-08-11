@@ -1,0 +1,78 @@
+Metadata-Version: 2.4
+Name: archivey
+Version: 0.1.0a4
+Summary: Python library for reading zip, tar, rar, 7z and other archives
+Project-URL: homepage, https://github.com/davitf/archivey
+Project-URL: documentation, https://davitf.github.io/archivey/
+Project-URL: repository, https://github.com/davitf/archivey.git
+Author-email: Davi Figueiredo <gh@davitf.com>
+License: MIT
+License-File: LICENSE
+Requires-Python: >=3.10
+Requires-Dist: backports-strenum>=1.3.1; python_full_version < '3.11'
+Requires-Dist: tqdm>=4.67.1
+Requires-Dist: typing-extensions>=4.0.0
+Provides-Extra: optional
+Requires-Dist: brotli>=1.1.0; extra == 'optional'
+Requires-Dist: cryptography>=45.0.3; extra == 'optional'
+Requires-Dist: indexed-bzip2>=1.6.0; extra == 'optional'
+Requires-Dist: lz4>=4.4.4; (python_full_version < '3.14') and extra == 'optional'
+Requires-Dist: py7zr>=1.0.0; extra == 'optional'
+Requires-Dist: pycdlib>=1.14.0; extra == 'optional'
+Requires-Dist: python-xz>=0.5.0; extra == 'optional'
+Requires-Dist: pyzstd>=0.17.0; extra == 'optional'
+Requires-Dist: rapidgzip==0.14.5; extra == 'optional'
+Requires-Dist: rarfile>=4.2; extra == 'optional'
+Requires-Dist: uncompresspy>=0.4.0; (python_full_version >= '3.11') and extra == 'optional'
+Requires-Dist: zstandard>=0.23.0; (python_full_version < '3.14') and extra == 'optional'
+Provides-Extra: optional-freethreaded
+Requires-Dist: brotli>=1.1.0; extra == 'optional-freethreaded'
+Requires-Dist: indexed-bzip2==1.6.0; extra == 'optional-freethreaded'
+Requires-Dist: lz4>=4.4.4; (python_full_version < '3.14') and extra == 'optional-freethreaded'
+Requires-Dist: py7zr>=1.0.0; extra == 'optional-freethreaded'
+Requires-Dist: pycdlib>=1.14.0; extra == 'optional-freethreaded'
+Requires-Dist: pycryptodome>=3.23.0; extra == 'optional-freethreaded'
+Requires-Dist: python-xz>=0.5.0; extra == 'optional-freethreaded'
+Requires-Dist: pyzstd>=0.17.0; extra == 'optional-freethreaded'
+Requires-Dist: rarfile>=4.2; extra == 'optional-freethreaded'
+Requires-Dist: uncompresspy>=0.4.0; extra == 'optional-freethreaded'
+Description-Content-Type: text/markdown
+
+# Archivey
+
+**Archivey** is a Python library that provides a unified interface for reading various archive formats:
+
+```python
+from archivey import open_archive
+
+with open_archive("example.zip") as archive:  # Automatic format detection
+    # Extract all files
+    archive.extractall("output_dir/")
+
+    # Or process each file in the archive
+    for member, stream in archive.iter_members_with_streams():
+        print(member.filename, member.type, member.file_size)
+        if stream is not None:  # File-like stream for files, None for dirs and links
+            data = stream.read()
+            print("  ", data[:50])
+```
+
+It wraps built-in modules and optional third-party libraries, adding missing features and fixing limitations in the underlying tools. See the [User guide](https://davitf.github.io/archivey/user_guide/) for more details.
+
+
+### Installation
+
+```bash
+pip install archivey[optional]
+```
+
+The [optional] extra includes all recommended third-party libraries for full format support.
+
+**Note:** RAR support requires the `unrar` binary to be available on your system or installed separately.
+
+### Resources
+
+- 📖 [Documentation](https://davitf.github.io/archivey/)
+- 📘 [API reference](https://davitf.github.io/archivey/api/)
+- 🛠️ [GitHub repository](https://github.com/davitf/archivey)  
+  ↳ or the [development repo](https://github.com/davitf/archivey-dev), with in-progress work, rougher commits and AI-generated pull requests
