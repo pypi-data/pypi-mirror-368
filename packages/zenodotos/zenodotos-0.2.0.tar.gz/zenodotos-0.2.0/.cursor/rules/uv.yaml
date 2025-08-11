@@ -1,0 +1,35 @@
+# Cursor Project Rule: Using the uv Tool
+---
+description: |
+  All Python dependency management, virtual environment operations, and package building/publishing in the zenodotos project must use the `uv` tool. Do not use `pip`, `venv`, `virtualenv`, `build`, or `twine` directly unless explicitly required for compatibility.
+
+rules:
+  - Use `uv add` to add dependencies. Consider using `uv add --dev` for development dependencies.
+  - Use `uv sync` to install dependencies.
+  - Use `uv venv` to create virtual environments.
+  - Use `uv build` to build Python packages.
+  - Use `uv publish` to publish packages to PyPI.
+  - Prefer `uv` for any supported operation (install, update, run, etc.).
+  - Document any exceptions or compatibility issues in this file.
+
+configuration:
+  build:
+    command: uv build
+    options:
+      - --out-dir dist/
+      - --no-isolation
+  publish:
+    command: uv publish
+    options:
+      - --repository pypi
+      - --token ${PYPI_TOKEN}
+
+rationale: |
+  The `uv` tool provides faster, more reliable dependency management, environment creation, and package building/publishing. Standardizing on `uv` ensures consistency and leverages its performance benefits across all Python package operations.
+
+  For publishing to PyPI:
+  - Set PYPI_TOKEN environment variable with your PyPI API token
+  - Use `uv publish` with appropriate options
+  - Ensure package metadata in pyproject.toml is complete and accurate
+  - Test the package locally before publishing
+  - Follow semantic versioning for releases

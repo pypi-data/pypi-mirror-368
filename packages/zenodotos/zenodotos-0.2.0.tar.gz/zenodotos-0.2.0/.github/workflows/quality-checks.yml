@@ -1,0 +1,198 @@
+name: Quality Checks
+
+on:
+  push:
+    branches: [ '**' ]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+  pull_request:
+    branches: [ '**' ]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+  release:
+    types: [ published, created ]
+
+jobs:
+  code-quality:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+        uv-version: ["0.8.6"]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Load versions from .env file
+      run: |
+        source .github/versions.env
+        echo "UV_VERSION=$UV_VERSION" >> $GITHUB_ENV
+        echo "RUFF_VERSION=$RUFF_VERSION" >> $GITHUB_ENV
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: ${{ env.UV_VERSION || matrix.uv-version }}
+
+    - name: Install dependencies
+      run: |
+        uv sync --dev
+        uv run pip install ruff==${{ env.RUFF_VERSION || '0.11.13' }}
+
+    - name: Check code complexity
+      run: |
+        echo "Checking cyclomatic complexity..."
+        uv run pip install radon
+        uv run radon cc src/ -a
+
+    - name: Check maintainability index
+      run: |
+        echo "Checking maintainability index..."
+        uv run radon mi src/
+
+    - name: Check raw metrics
+      run: |
+        echo "Checking raw metrics..."
+        uv run radon raw src/
+
+    - name: Check for unused imports
+      run: |
+        echo "Checking for unused imports..."
+        uv run ruff check --select F401 .
+
+    - name: Check for unused variables
+      run: |
+        echo "Checking for unused variables..."
+        uv run ruff check --select F841 .
+
+    - name: Check for missing docstrings
+      run: |
+        echo "Checking for missing docstrings..."
+        uv run pip install pydocstyle
+        uv run pydocstyle src/ || echo "Docstring style issues found (non-blocking)"
+
+    - name: Check for code duplication
+      if: github.event.issue.pull_request
+      uses: platisd/duplicate-code-detection-tool@v1.2.0
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        directories: "src/"
+        ignore_below: 5
+        warn_above: 15
+        fail_above: 70
+        only_code: true
+
+
+  dependency-analysis:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+        uv-version: ["0.8.6"]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Load versions from .env file
+      run: |
+        source .github/versions.env
+        echo "UV_VERSION=$UV_VERSION" >> $GITHUB_ENV
+        echo "RUFF_VERSION=$RUFF_VERSION" >> $GITHUB_ENV
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: ${{ env.UV_VERSION || matrix.uv-version }}
+
+    - name: Install dependencies
+      run: |
+        uv sync --dev
+        uv run pip install ruff==${{ env.RUFF_VERSION || '0.11.13' }}
+
+    - name: Check for outdated dependencies
+      run: |
+        echo "Checking for outdated dependencies..."
+        uv run pip install pip-check-updates
+        uv run pcu --dry-run || echo "Outdated dependencies found (non-blocking)"
+
+    - name: Run security audit with bandit
+      run: |
+        uv run pip install bandit
+        uv run bandit -r src/ -f json -o bandit-report.json || echo "Security issues found (non-blocking)"
+        uv run bandit -r src/ -f txt || echo "Security issues found (non-blocking)"
+
+    - name: Check dependency licenses
+      run: |
+        echo "Checking dependency licenses..."
+        uv run pip install pip-licenses
+        uv run pip-licenses --format=markdown --output-file=dependency-licenses.md
+
+    - name: Upload dependency licenses
+      uses: actions/upload-artifact@v4
+      with:
+        name: dependency-licenses-${{ matrix.python-version }}
+        path: dependency-licenses.md
+
+  performance-checks:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+        uv-version: ["0.8.6"]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Load versions from .env file
+      run: |
+        source .github/versions.env
+        echo "UV_VERSION=$UV_VERSION" >> $GITHUB_ENV
+        echo "RUFF_VERSION=$RUFF_VERSION" >> $GITHUB_ENV
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: ${{ env.UV_VERSION || matrix.uv-version }}
+
+    - name: Install dependencies
+      run: |
+        uv sync --dev
+        uv run pip install ruff==${{ env.RUFF_VERSION || '0.11.13' }}
+
+    - name: Run performance tests (if any)
+      run: |
+        if [ -d "tests/performance" ]; then
+          echo "Running performance tests..."
+          uv run pytest tests/performance/ -v
+        else
+          echo "No performance tests found"
+        fi
+
+    - name: Check import performance
+      run: |
+        echo "Checking import performance..."
+        uv run python -c "import time; start = time.time(); import zenodotos; end = time.time(); print(f'Import time: {end - start:.3f} seconds')"
