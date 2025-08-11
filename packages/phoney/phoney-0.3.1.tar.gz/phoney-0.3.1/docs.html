@@ -1,0 +1,2058 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phoney - Documentation</title>
+  <meta name="description" content="Phoney - Generate realistic fake data for testing, development, and anonymization. Supports 50+ locales with complete profiles.">
+  <meta name="theme-color" content="#0ea5e9">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --primary-dark: #2563eb;
+      --primary-light: #60a5fa;
+      --accent: #6366f1;
+      --accent-light: #8b5cf6;
+      --bg-light: #ffffff;
+      --bg-dark: #0f1419;
+      --surface-light: #f8fafc;
+      --surface-dark: #1a1f2e;
+      --text-light: #1e293b;
+      --text-dark: #e2e8f0;
+      --text-muted-light: #64748b;
+      --text-muted-dark: #94a3b8;
+      --border-light: #e2e8f0;
+      --border-dark: #2d3748;
+      --code-bg-light: #f1f5f9;
+      --code-bg-dark: #1e2936;
+      --shadow-light: 0 1px 3px rgba(0, 0, 0, 0.1);
+      --shadow-dark: 0 1px 3px rgba(0, 0, 0, 0.3);
+      
+      /* Python syntax highlighting colors */
+      --python-keyword: #ff7b72;
+      --python-string: #a5d6ff;
+      --python-comment: #8b949e;
+      --python-function: #d2a8ff;
+      --python-number: #79c0ff;
+      --python-operator: #ff7b72;
+      --python-builtin: #ffa657;
+    }
+
+    [data-theme='light'] {
+      --bg: var(--bg-light);
+      --surface: var(--surface-light);
+      --text: var(--text-light);
+      --text-muted: var(--text-muted-light);
+      --border: var(--border-light);
+      --code-bg: var(--code-bg-light);
+      --shadow: var(--shadow-light);
+    }
+
+    [data-theme='dark'] {
+      --bg: var(--bg-dark);
+      --surface: var(--surface-dark);
+      --text: var(--text-dark);
+      --text-muted: var(--text-muted-dark);
+      --border: var(--border-dark);
+      --code-bg: var(--code-bg-dark);
+      --shadow: var(--shadow-dark);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      height: 100%;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      transition: all 0.2s ease;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: var(--bg);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      height: 60px;
+    }
+
+    .navbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      height: 100%;
+      max-width: none;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .logo i {
+      font-size: 1.5rem;
+    }
+
+    .nav-links {
+      display: none;
+      gap: 1.5rem;
+    }
+
+    @media (min-width: 768px) {
+      .nav-links {
+        display: flex;
+      }
+    }
+
+    .nav-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.2s ease;
+      font-size: 0.9rem;
+    }
+
+    .nav-link:hover {
+      color: var(--primary);
+    }
+
+    .theme-toggle {
+      background: none;
+      border: none;
+      font-size: 1rem;
+      cursor: pointer;
+      color: var(--text-muted);
+      padding: 0.5rem;
+      border-radius: 0.25rem;
+      transition: all 0.15s ease;
+    }
+
+    .theme-toggle:hover {
+      background: var(--surface);
+      color: var(--primary);
+    }
+
+    .mobile-menu-btn {
+      display: none;
+      background: none;
+      border: none;
+      font-size: 1rem;
+      cursor: pointer;
+      color: var(--text-muted);
+      padding: 0.5rem;
+      border-radius: 0.25rem;
+      transition: all 0.15s ease;
+    }
+
+    @media (max-width: 1024px) {
+      .mobile-menu-btn {
+        display: block;
+      }
+    }
+
+    .mobile-menu-btn:hover {
+      background: var(--surface);
+      color: var(--primary);
+    }
+
+    .container {
+      display: flex;
+      height: 100vh;
+      padding-top: 60px;
+    }
+
+    .sidebar {
+      width: 260px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      position: fixed;
+      top: 60px;
+      left: 0;
+      height: calc(100vh - 60px);
+      overflow-y: auto;
+      padding: 1.5rem 0;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+      z-index: 100;
+    }
+
+    .sidebar::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .sidebar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .sidebar::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 2px;
+    }
+
+    @media (max-width: 1024px) {
+      .sidebar {
+        left: -260px;
+        transition: left 0.2s ease;
+        z-index: 999;
+        box-shadow: var(--shadow);
+      }
+
+      .sidebar.open {
+        left: 0;
+      }
+    }
+
+    .sidebar-section {
+      margin-bottom: 1.5rem;
+    }
+
+    .sidebar-title {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+      padding: 0 1rem;
+    }
+
+    .sidebar-nav {
+      list-style: none;
+    }
+
+    .sidebar-nav li {
+      margin-bottom: 0.15rem;
+    }
+
+    .sidebar-nav a {
+      display: block;
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 0.5rem 1rem;
+      transition: all 0.15s ease;
+      font-weight: 400;
+      font-size: 0.875rem;
+      border-left: 2px solid transparent;
+      min-height: 40px;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .sidebar-nav a:hover,
+    .sidebar-nav a.active {
+      color: var(--primary);
+      background: rgba(59, 130, 246, 0.1);
+      border-left-color: var(--primary);
+    }
+
+    .sidebar-nav a i {
+      width: 16px;
+      font-size: 0.8rem;
+      text-align: center;
+    }
+
+    .main-content {
+      flex: 1;
+      margin-left: 260px;
+      padding: 2rem 3rem;
+      max-width: calc(100vw - 260px);
+      overflow-x: hidden;
+    }
+
+    @media (max-width: 1024px) {
+      .main-content {
+        margin-left: 0;
+        padding: 1.5rem 2rem;
+        max-width: 100vw;
+      }
+      
+      .sidebar {
+        left: -260px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .main-content {
+        padding: 1rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .main-content {
+        padding: 0.75rem;
+      }
+      
+      .section-title {
+        font-size: 1.5rem;
+      }
+      
+      .hero-title {
+        font-size: 1.75rem;
+      }
+    }
+
+    .hero {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 3rem 2rem;
+      margin-bottom: 3rem;
+      text-align: center;
+    }
+
+    .hero-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: var(--text);
+    }
+
+    @media (max-width: 768px) {
+      .hero-title {
+        font-size: 2rem;
+      }
+    }
+
+    .hero-subtitle {
+      font-size: 1.125rem;
+      margin-bottom: 2rem;
+      color: var(--text-muted);
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.375rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      border: none;
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--surface);
+      border-color: var(--primary);
+      color: var(--primary);
+      transform: translateY(-1px);
+    }
+
+    .section {
+      margin-bottom: 3rem;
+    }
+
+    .section-title {
+      font-size: 1.875rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+
+    .section-subtitle {
+      font-size: 1rem;
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+      line-height: 1.6;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    /* Extra spacing for Modules section */
+    #modules .cards-grid {
+      gap: 1.5rem;
+      margin-top: 1rem;
+    }
+    #modules .card {
+      padding: 1.5rem;
+    }
+
+    @media (max-width: 768px) {
+      .cards-grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .cards-grid {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+      }
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 1.25rem;
+      transition: all 0.15s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+      border-color: var(--primary);
+    }
+
+    .card-icon {
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 0.5rem;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1rem;
+      color: white;
+      font-size: 1rem;
+    }
+
+    .card-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+
+    .card-description {
+      color: var(--text-muted);
+      line-height: 1.5;
+      font-size: 0.875rem;
+    }
+
+    .code-block {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
+      font-size: 0.8rem;
+      line-height: 1.5;
+      color: var(--text);
+      overflow-x: auto;
+      overflow-y: auto;
+      max-height: 400px;
+      position: relative;
+      margin: 1rem 0;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .code-block::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    .code-block::-webkit-scrollbar-track {
+      background: var(--code-bg);
+      border-radius: 4px;
+    }
+
+    .code-block::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+
+    .code-block::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+
+    .code-block::-webkit-scrollbar-corner {
+      background: var(--code-bg);
+    }
+
+    @media (max-width: 768px) {
+      .code-block {
+        font-size: 0.75rem;
+        padding: 0.75rem;
+        max-height: 300px;
+      }
+    }
+
+    /* Python syntax highlighting */
+    .code-block .keyword { color: var(--python-keyword); font-weight: 500; }
+    .code-block .string { color: var(--python-string); }
+    .code-block .comment { color: var(--python-comment); font-style: italic; }
+    .code-block .function { color: var(--python-function); }
+    .code-block .number { color: var(--python-number); }
+    .code-block .operator { color: var(--python-operator); }
+    .code-block .builtin { color: var(--python-builtin); }
+
+    .copy-btn {
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 0.25rem;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      color: var(--text-muted);
+      min-height: 28px;
+      min-width: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .copy-btn:hover {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    @media (max-width: 768px) {
+      .copy-btn {
+        position: static;
+        margin-bottom: 0.5rem;
+        min-height: 36px;
+        min-width: 60px;
+        padding: 0.5rem 0.75rem;
+      }
+    }
+
+    .feature-list {
+      list-style: none;
+      margin: 1.5rem 0;
+    }
+
+    .feature-list li {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 0;
+      color: var(--text);
+    }
+
+    .feature-list li::before {
+      content: '✓';
+      width: 1.5rem;
+      height: 1.5rem;
+      background: var(--primary);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .locale-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 0.75rem;
+      margin: 1.5rem 0;
+    }
+
+    @media (max-width: 768px) {
+      .locale-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 0.5rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .locale-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 0.5rem;
+      }
+    }
+
+    .locale-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.375rem;
+      padding: 0.75rem;
+      text-align: center;
+      transition: all 0.15s ease;
+    }
+
+    .locale-item:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow);
+      border-color: var(--primary);
+    }
+
+    .locale-flag {
+      font-size: 1.25rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .locale-name {
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 0.125rem;
+      font-size: 0.8rem;
+    }
+
+    .locale-code {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .api-method {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .api-method-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 0.5rem;
+    }
+
+    .api-method-desc {
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      line-height: 1.5;
+      font-size: 0.9rem;
+    }
+
+    .api-params {
+      background: var(--code-bg);
+      border-radius: 0.375rem;
+      padding: 0.75rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--text);
+      line-height: 1.4;
+    }
+
+    .footer {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 2rem;
+      margin-top: 3rem;
+      margin-left: 260px;
+    }
+
+    @media (max-width: 1024px) {
+      .footer {
+        margin-left: 0;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .footer {
+        padding: 1.5rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .footer {
+        padding: 1rem;
+      }
+    }
+
+    .footer-content {
+      max-width: none;
+      margin: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .footer-section h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.75rem;
+    }
+
+    .footer-section ul {
+      list-style: none;
+    }
+
+    .footer-section ul li {
+      margin-bottom: 0.25rem;
+    }
+
+    .footer-section ul a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.15s ease;
+      font-size: 0.875rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .footer-section ul a:hover {
+      color: var(--primary);
+    }
+
+    .footer-section ul a i {
+      width: 16px;
+      font-size: 0.875rem;
+    }
+
+    .footer-bottom {
+      text-align: center;
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.3);
+      z-index: 998;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    @media (max-width: 1024px) {
+      .hero {
+        padding: 2rem 1.5rem;
+      }
+
+      .hero-buttons {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .navbar {
+        padding: 0 1rem;
+      }
+
+      .container {
+        padding-top: 60px;
+      }
+
+      .sidebar {
+        top: 60px;
+        height: calc(100vh - 60px);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .hero {
+        padding: 1.5rem 1rem;
+      }
+      
+      .copy-btn {
+        position: static;
+        margin-bottom: 0.5rem;
+        display: inline-block;
+      }
+      
+      .code-block {
+        padding-top: 0.75rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .hero {
+        padding: 1rem;
+      }
+      
+      .btn {
+        width: 100%;
+        justify-content: center;
+      }
+      
+      .hero-buttons {
+        width: 100%;
+      }
+      
+      .api-method {
+        padding: 1rem;
+      }
+      
+      .card {
+        padding: 1rem;
+      }
+    }
+  </style>
+</head>
+<body data-theme="light">
+  <!-- Mobile Overlay -->
+  <div class="overlay" id="overlay"></div>
+
+  <!-- Header -->
+  <header class="header">
+    <nav class="navbar">
+      <a href="#" class="logo">
+        <i class="fas fa-database"></i>
+        Phoney
+      </a>
+      
+      <div class="nav-links">
+        <a href="#installation" class="nav-link">Installation</a>
+        <a href="#quickstart" class="nav-link">Quick Start</a>
+        <a href="#modules" class="nav-link">Modules</a>
+        <a href="#api" class="nav-link">API</a>
+        <a href="#locales" class="nav-link">Locales</a>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 1rem;">
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+          <i class="fas fa-moon"></i>
+        </button>
+        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">
+          <i class="fas fa-bars"></i>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <div class="container">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-section">
+        <h3 class="sidebar-title">Getting Started</h3>
+        <ul class="sidebar-nav">
+          <li><a href="#overview" class="active">Overview</a></li>
+          <li><a href="#installation">Installation</a></li>
+          <li><a href="#quickstart">Quick Start</a></li>
+          <li><a href="#features">Features</a></li>
+        </ul>
+      </div>
+
+      <div class="sidebar-section">
+        <h3 class="sidebar-title">Documentation</h3>
+        <div class="api-method">
+          <div class="api-method-name">Generate per-country prefixes (offline)</div>
+          <div class="api-method-desc">Use the built-in CLI to build <code>ipv4_prefixes.&lt;CC&gt;.txt</code> and <code>ipv6_prefixes.&lt;CC&gt;.txt</code> from RIR delegated datasets.</div>
+          <div class="api-params">
+            <strong>Steps:</strong><br>
+            1) Download the following files into a folder of your choice (e.g. <code>C:/rir-data</code>):<br>
+            <code>delegated-apnic-extended-latest</code>, <code>delegated-arin-extended-latest</code>, <code>delegated-ripencc-extended-latest</code>, <code>delegated-lacnic-extended-latest</code>, <code>delegated-afrinic-extended-latest</code><br>
+            2) Run the builder (outputs to your site-packages phoney/data/internet by default):
+            <pre class="code-block"><code>phoney-build-prefixes --input-dir C:/rir-data</code></pre>
+            You can also specify a custom output directory:
+            <pre class="code-block"><code>phoney-build-prefixes --input-dir C:/rir-data --output-dir C:/my-prefixes</code></pre>
+          </div>
+        </div>
+          <li><a href="#email-module">emailgen.py</a></li>
+          <li><a href="#financial-module">financial.py</a></li>
+          <li><a href="#person-module">person.py</a></li>
+          <li><a href="#phone-module">phone.py</a></li>
+          <li><a href="#username-module">username.py</a></li>
+          <li><a href="#uuid-module">uuidgen.py</a></li>
+        </ul>
+      </div>
+
+      <div class="sidebar-section">
+        <h3 class="sidebar-title">Community</h3>
+        <ul class="sidebar-nav">
+          <li><a href="https://github.com/YTstyo/phoney" target="_blank"><i class="fab fa-github"></i> GitHub</a></li>
+          <li><a href="https://github.com/YTstyo/phoney/issues" target="_blank"><i class="fas fa-bug"></i> Issues</a></li>
+          <li><a href="https://github.com/YTstyo/phoney/discussions" target="_blank"><i class="fas fa-comments"></i> Discussions</a></li>
+        </ul>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Hero Section -->
+      <section class="hero">
+        <h1 class="hero-title">Phoney</h1>
+        <p class="hero-subtitle">Generate realistic fake data for testing, development, and anonymization</p>
+        <div class="hero-buttons">
+          <a href="#installation" class="btn btn-primary">
+            <i class="fas fa-download"></i>
+            Get Started
+          </a>
+          <a href="#quickstart" class="btn btn-secondary">
+            <i class="fas fa-rocket"></i>
+            Quick Start
+          </a>
+        </div>
+      </section>
+      <!-- Overview Section -->
+      <section id="overview" class="section">
+        <h2 class="section-title">Overview</h2>
+        <p class="section-subtitle">
+          Phoney is a comprehensive fake data generator designed for developers who need realistic test data. 
+          It supports over 50 locales and generates everything from names and emails to complete user profiles with financial information.
+        </p>
+        
+        <div class="cards-grid">
+          <div class="card">
+            <div class="card-icon">
+              <i class="fas fa-globe"></i>
+            </div>
+            <h3 class="card-title">50+ Locales</h3>
+            <p class="card-description">Generate locale-specific data for countries worldwide with proper name formats, phone numbers, and cultural considerations.</p>
+          </div>
+          
+          <div class="card">
+            <div class="card-icon">
+              <i class="fas fa-user-circle"></i>
+            </div>
+            <h3 class="card-title">Complete Profiles</h3>
+            <p class="card-description">Create full user profiles including names, contact information, demographics, and financial data in one call.</p>
+          </div>
+          
+          <div class="card">
+            <div class="card-icon">
+              <i class="fas fa-bolt"></i>
+            </div>
+            <h3 class="card-title">Zero Dependencies</h3>
+            <p class="card-description">Lightweight and fast with no external dependencies. Perfect for CI/CD pipelines and production environments.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Installation Section -->
+      <section id="installation" class="section">
+        <h2 class="section-title">Installation</h2>
+        <p class="section-subtitle">Get started with Phoney in seconds using pip or your preferred package manager.</p>
+        
+        <div class="code-block">
+          <button class="copy-btn" onclick="copyToClipboard('pip install phoney')">
+            <i class="fas fa-copy"></i>
+          </button>
+          <code>pip install phoney</code>
+        </div>
+
+        <p>Or install from GitHub for the latest features:</p>
+        
+        <div class="code-block">
+          <button class="copy-btn" onclick="copyToClipboard('pip install git+https://github.com/YTstyo/phoney.git')">
+            <i class="fas fa-copy"></i>
+          </button>
+          <code>pip install git+https://github.com/YTstyo/phoney.git</code>
+        </div>
+      </section>
+
+      <!-- Quick Start Section -->
+      <section id="quickstart" class="section">
+        <h2 class="section-title">Quick Start</h2>
+        <p class="section-subtitle">Jump right in with these common usage patterns and examples.</p>
+        
+        <style>
+          /* Additional code formatting for Quick Start section */
+          .python-example {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 1.25rem;
+            font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: var(--text);
+            position: relative;
+            margin: 1.5rem 0;
+            overflow-x: auto;
+          }
+          
+          .python-example pre {
+            margin: 0;
+            white-space: pre;
+          }
+          
+          .python-example .keyword { color: var(--python-keyword); font-weight: 500; }
+          .python-example .string { color: var(--python-string); }
+          .python-example .comment { color: var(--python-comment); font-style: italic; }
+          .python-example .function { color: var(--python-function); }
+          .python-example .number { color: var(--python-number); }
+          .python-example .operator { color: var(--python-operator); }
+          .python-example .builtin { color: var(--python-builtin); }
+          
+          .python-example .copy-btn {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            z-index: 10;
+          }
+          
+          @media (max-width: 768px) {
+            .python-example {
+              padding: 1rem;
+            }
+          }
+        </style>
+
+        <h3>Basic Usage</h3>
+        <div class="python-example">
+          <button class="copy-btn" data-code="from phoney import Phoney
+
+# Initialize the generator
+phoney = Phoney()
+
+# Generate individual data
+print(phoney.first_name(locale='de_DE'))  # → 'Hans'
+print(phoney.phone(locale='ja_JP'))       # → '+81 90-1234-5678'
+print(phoney.email('John', 'Doe'))        # → 'john.doe@example.com'">
+            <i class="fas fa-copy"></i>
+          </button>
+          <pre><span class="keyword">from</span> phoney <span class="keyword">import</span> Phoney
+
+<span class="comment"># Initialize the generator</span>
+phoney = Phoney()
+
+<span class="comment"># Generate individual data</span>
+<span class="builtin">print</span>(phoney.<span class="function">first_name</span>(locale=<span class="string">'de_DE'</span>))  <span class="comment"># → 'Hans'</span>
+<span class="builtin">print</span>(phoney.<span class="function">phone</span>(locale=<span class="string">'ja_JP'</span>))       <span class="comment"># → '+81 90-1234-5678'</span>
+<span class="builtin">print</span>(phoney.<span class="function">email</span>(<span class="string">'John'</span>, <span class="string">'Doe'</span>))        <span class="comment"># → 'john.doe@example.com'</span></pre>
+        </div>
+
+        <h3>Complete Profile Generation</h3>
+        <div class="python-example">
+          <button class="copy-btn" data-code="# Generate a complete profile
+profile = phoney.profile(locale='fr_FR')
+
+print(profile)
+# Output:
+# {
+#   'first_name': 'Marie',
+#   'last_name': 'Dubois', 
+#   'full_name': 'Marie Dubois',
+#   'gender': 'female',
+#   'age': 28,
+#   'birthdate': '1995-03-15',
+#   'email': 'marie.dubois@example.fr',
+#   'phone': '+33 6 12 34 56 78',
+#   'username': 'marie_dubois_95',
+#   'credit_card': {
+#     'issuer': 'Visa',
+#     'number': '4532123456789012',
+#     'expiry': '12/2028',
+#     'cvv': '123'
+#   },
+#   'locale': 'fr_FR'
+# }">
+            <i class="fas fa-copy"></i>
+          </button>
+          <pre><span class="comment"># Generate a complete profile</span>
+profile = phoney.<span class="function">profile</span>(locale=<span class="string">'fr_FR'</span>)
+
+<span class="builtin">print</span>(profile)
+<span class="comment"># Output:</span>
+<span class="comment"># {</span>
+<span class="comment">#   'first_name': 'Marie',</span>
+<span class="comment">#   'last_name': 'Dubois',</span>
+<span class="comment">#   'full_name': 'Marie Dubois',</span>
+<span class="comment">#   'gender': 'female',</span>
+<span class="comment">#   'age': 28,</span>
+<span class="comment">#   'birthdate': '1995-03-15',</span>
+<span class="comment">#   'email': 'marie.dubois@example.fr',</span>
+<span class="comment">#   'phone': '+33 6 12 34 56 78',</span>
+<span class="comment">#   'username': 'marie_dubois_95',</span>
+<span class="comment">#   'credit_card': {</span>
+<span class="comment">#     'issuer': 'Visa',</span>
+<span class="comment">#     'number': '4532123456789012',</span>
+<span class="comment">#     'expiry': '12/2028',</span>
+<span class="comment">#     'cvv': '123'</span>
+<span class="comment">#   },</span>
+<span class="comment">#   'locale': 'fr_FR'</span>
+<span class="comment"># }</span></pre>
+        </div>
+
+        <h3>Financial Data Generation</h3>
+        <div class="python-example">
+          <button class="copy-btn" data-code="from phoney.financial import FinancialDataGenerator
+
+# Generate financial data
+financial = FinancialDataGenerator(locale='en_US')
+data = financial.generate()
+
+print(data)
+# Output:
+# {
+#   'credit_card': {
+#     'issuer': 'MasterCard',
+#     'number': '5555444433332222',
+#     'expiry': '08/2027',
+#     'cvv': '456'
+#   },
+#   'iban': 'US64SVBKUS6S3300958879',
+#   'bic': 'SVBKUS6S'
+# }">
+            <i class="fas fa-copy"></i>
+          </button>
+          <pre><span class="keyword">from</span> phoney.financial <span class="keyword">import</span> FinancialDataGenerator
+
+<span class="comment"># Generate financial data</span>
+financial = <span class="function">FinancialDataGenerator</span>(locale=<span class="string">'en_US'</span>)
+data = financial.<span class="function">generate</span>()
+
+<span class="builtin">print</span>(data)
+<span class="comment"># Output:</span>
+<span class="comment"># {</span>
+<span class="comment">#   'credit_card': {</span>
+<span class="comment">#     'issuer': 'MasterCard',</span>
+<span class="comment">#     'number': '5555444433332222',</span>
+<span class="comment">#     'expiry': '08/2027',</span>
+<span class="comment">#     'cvv': '456'</span>
+<span class="comment">#   },</span>
+<span class="comment">#   'iban': 'US64SVBKUS6S3300958879',</span>
+<span class="comment">#   'bic': 'SVBKUS6S'</span>
+<span class="comment"># }</span></pre>
+        </div>
+      </section>
+
+      <!-- Features Section -->
+      <section id="features" class="section">
+        <h2 class="section-title">Features</h2>
+        <p class="section-subtitle">Comprehensive data generation capabilities for all your testing needs.</p>
+        
+        <ul class="feature-list">
+          <li>Generate names, emails, phones, and addresses for 50+ locales</li>
+          <li>Create complete user profiles with demographics and preferences</li>
+          <li>Generate financial data including credit cards, IBANs, and BICs</li>
+          <li>Create usernames, passwords, and social media handles</li>
+          <li>Generate UUIDs, user agents, and other technical identifiers</li>
+          <li>Zero dependencies for easy integration</li>
+          <li>Lightweight and performant</li>
+          <li>Extensive locale support with cultural accuracy</li>
+          <li>Modular architecture for custom implementations</li>
+        </ul>
+      </section>
+
+      <!-- Modules Section -->
+      <section id="modules" class="section">
+        <h2 class="section-title">Modules</h2>
+        <p class="section-subtitle">Phoney is organized into focused modules that handle specific data generation tasks.</p>
+        
+        <div class="cards-grid">
+          <div class="card" id="age-module">
+            <div class="card-icon">
+              <i class="fas fa-birthday-cake"></i>
+            </div>
+            <h3 class="card-title">age.py</h3>
+            <p class="card-description">Generate random ages and birthdates with configurable ranges. Supports age constraints for realistic demographics.</p>
+            <div class="code-block" style="margin-top: 1rem; font-size: 0.8rem;">
+              <code>generate_age(min_age=18, max_age=80)</code>
+            </div>
+          </div>
+
+          <div class="card" id="agent-module">
+            <div class="card-icon">
+              <i class="fas fa-desktop"></i>
+            </div>
+            <h3 class="card-title">agent.py</h3>
+            <p class="card-description">Create realistic browser user agent strings for desktop and mobile devices across different browsers and versions.</p>
+            <div class="code-block" style="margin-top: 1rem; font-size: 0.8rem;">
+              <code>generate_user_agent(device_type="desktop")</code>
+            </div>
+          </div>
+
+          <div class="card" id="profile-module">
+            <div class="card-icon">
+              <i class="fas fa-user-circle"></i>
+            </div>
+            <h3 class="card-title">create_profile.py</h3>
+            <p class="card-description">Generate complete user profiles combining data from all other modules. Includes names, contact info, username, and financial data.</p>
+            <div class="code-block" style="margin-top: 1rem; font-size: 0.8rem;">
+              <code>generate_profile(locale, gender=None)</code>
+            </div>
+          </div>
+
+          <div class="card" id="data-module">
+            <div class="card-icon">
+              <i class="fas fa-database"></i>
+            </div>
+            <h3 class="card-title">data_loader.py</h3>
+            <p class="card-description">Load and manage locale-specific data including names, phone formats, and email domains from organized data files.</p>
+            <div class="code-block" style="margin-top: 1rem; font-size: 0.8rem;">
+              <code>load_names(locale)<br>get_available_locales()</code>
+            </div>
+          </div>
+
+          <div class="card" id="email-module">
+            <div class="card-icon">
+              <i class="fas fa-envelope"></i>
+            </div>
+            <h3 class="card-title">emailgen.py</h3>
+            <p class="card-description">Create realistic email addresses based on names and locale-specific domain patterns with various formatting styles.</p>
+            <div class="code-block" style="margin-top: 1rem; font-size: 0.8rem;">
+              <code>generate_email(first_name, last_name, locale)</code>
+            </div>
+          </div>
+
+          <div class="card" id="financial-module">
+            <div class="card-icon">
+              <i class="fas fa-credit-card"></i>
+            </div>
+            <h3 class="card-title">financial.py</h3>
+            <p class="card-description">Generate fake financial data including valid credit card numbers, IBANs, BICs, and other banking information.</p>
+            <div class="code-block" style="margin-top: 1rem; font-size: 0.8rem;">
+              <code>FinancialDataGenerator(locale='en_US')</code>
+            </div>
+          </div>
+
+          <div class="card" id="person-module">
+            <div class="card-icon">
+              <i class="fas fa-user"></i>
+            </div>
+            <h3 class="card-title">person.py</h3>
+            <p class="card-description">Generate person data including first names, last names, and genders based on locale-specific cultural patterns.</p>
+            <div class="code-block" style="margin-top: 1rem; font-size: 0.8rem;">
+              <code>generate_person(locale, gender=None)</code>
+            </div>
+          </div>
+
+          <div class="card" id="phone-module">
+            <div class="card-icon">
+              <i class="fas fa-phone"></i>
+            </div>
+            <h3 class="card-title">phone.py</h3>
+            <p class="card-description">Create phone numbers in the correct format for any locale with proper country codes and regional patterns.</p>
+            <div class="code-block" style="margin-top: 1rem; font-size: 0.8rem;">
+              <code>generate_phone(locale=None)</code>
+            </div>
+          </div>
+
+          <div class="card" id="username-module">
+            <div class="card-icon">
+              <i class="fas fa-at"></i>
+            </div>
+            <h3 class="card-title">username.py</h3>
+            <p class="card-description">Generate usernames, secure passwords, social media handles, and complete online presence profiles.</p>
+            <div class="code-block" style="margin-top: 1rem; font-size: 0.8rem;">
+              <code>generate_username(first_name, last_name)</code>
+            </div>
+          </div>
+
+          <div class="card" id="uuid-module">
+            <div class="card-icon">
+              <i class="fas fa-fingerprint"></i>
+            </div>
+            <h3 class="card-title">uuidgen.py</h3>
+            <p class="card-description">Generate UUIDs (universally unique identifiers) of various versions (v1, v3, v4, v5) for different use cases.</p>
+            <div class="code-block" style="margin-top: 1rem; font-size: 0.8rem;">
+              <code>generate_uuid(version=4)</code>
+            </div>
+          </div>
+
+          <div class="card" id="career-module">
+            <div class="card-icon">
+              <i class="fas fa-briefcase"></i>
+            </div>
+            <h3 class="card-title">career.py</h3>
+            <p class="card-description">Job titles with levels, salary ranges per locale, employment history and skills lists.</p>
+            <div class="code-block" style="margin-top: 1rem; font-size: 0.8rem;">
+              <code>generate_job_title()<br>generate_salary()<br>generate_employment_history()<br>generate_skills()</code>
+            </div>
+          </div>
+
+          <div class="card" id="internet-module">
+            <div class="card-icon">
+              <i class="fas fa-globe"></i>
+            </div>
+            <h3 class="card-title">internet.py</h3>
+            <p class="card-description">Domains, URLs, hostnames, IPv4/IPv6 and MAC addresses. Locale-aware TLDs; country/region-aware IPv4/IPv6 with data file overrides.</p>
+            <div class="code-block" style="margin-top: 1rem; font-size: 0.8rem;">
+              <code>generate_tld(locale=None)<br>generate_domain(tld=None, locale=None)<br>generate_url(scheme='https', domain=None, path_segments=None, query_params=None, locale=None)<br>generate_ipv4(country=None, locale=None)<br>generate_ipv6(global_unicast=True, country=None, locale=None)<br>generate_mac()</code>
+            </div>
+          </div>
+
+          <div class="card" id="identifiers-module">
+            <div class="card-icon">
+              <i class="fas fa-barcode"></i>
+            </div>
+            <h3 class="card-title">identifiers</h3>
+            <p class="card-description">Device and barcode identifiers with correct check digits and constraints.</p>
+            <div class="code-block" style="margin-top: 1rem; font-size: 0.8rem;">
+              <code>generate_imei(tac=None)<br>generate_vin()<br>generate_ean13(prefix="")<br>generate_upca(prefix="")<br>generate_isbn13(group_prefix="978")</code>
+            </div>
+          </div>
+  </div>
+      </section>
+
+      <!-- Data Files Section -->
+      <section id="data-files" class="section">
+        <h2 class="section-title">Internet Data Files</h2>
+        <p class="section-subtitle">Override built-in defaults by adding files under <code>phoney/data/internet</code>.</p>
+        <div class="api-method">
+          <div class="api-method-name">Overrides</div>
+          <div class="api-method-desc">Provide your own datasets for accuracy and compliance requirements.</div>
+          <div class="api-params">
+            <strong>Files:</strong><br>
+            • <code>tlds.txt</code> — Preferred TLDs, one per line<br>
+            • <code>words.txt</code> — Wordlist used for domains and paths<br>
+            • <code>ipv4_prefixes.&lt;CC&gt;.txt</code> — Country IPv4 CIDRs, one per line (e.g., <code>ipv4_prefixes.GB.txt</code>)<br>
+            • <code>ipv6_prefixes.&lt;CC&gt;.txt</code> — Country IPv6 CIDRs, one per line (e.g., <code>ipv6_prefixes.JP.txt</code>)<br>
+          </div>
+        </div>
+        <div class="api-method">
+          <div class="api-method-name">Generate per-country prefixes (offline)</div>
+          <div class="api-method-desc">Use the helper to build <code>ipv4_prefixes.&lt;CC&gt;.txt</code> and <code>ipv6_prefixes.&lt;CC&gt;.txt</code> from RIR delegated datasets.</div>
+          <div class="api-params">
+            <strong>Steps:</strong><br>
+            1) Download the following files to <code>tools/data/</code>:<br>
+            <code>delegated-apnic-extended-latest</code>, <code>delegated-arin-extended-latest</code>, <code>delegated-ripencc-extended-latest</code>, <code>delegated-lacnic-extended-latest</code>, <code>delegated-afrinic-extended-latest</code><br>
+            2) Run the builder:
+            <pre class="code-block"><code>python tools/build_prefixes.py</code></pre>
+            The script writes output files under <code>phoney/data/internet</code>.
+            <br><br>
+            <em>Tip:</em> Use the one-step PowerShell helper on Windows:
+            <pre class="code-block"><code>./tools/fetch_and_build_prefixes.ps1</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- API Reference Section -->
+      <section id="api" class="section">
+        <h2 class="section-title">API Reference</h2>
+        <p class="section-subtitle">Complete reference for the Phoney class and all available methods.</p>
+        <div class="api-method">
+          <div class="api-method-name">ipv4(country=None, locale=None)</div>
+          <div class="api-method-desc">Generate a public-looking IPv4 address. If country-specific prefixes are provided via data files, outputs are drawn from those; otherwise a regional fallback is used. Private/reserved ranges are avoided.</div>
+          <div class="api-params">
+            <strong>Parameters:</strong><br>
+            • country (str): ISO country code, e.g. 'GB'<br>
+            • locale (str): Locale like 'en_GB' or 'en-GB' (also accepts bare 'GB')<br>
+            <strong>Returns:</strong> str - IPv4 address
+          </div>
+        </div>
+
+        <div class="api-method">
+          <div class="api-method-name">ipv6(global_unicast=True, country=None, locale=None)</div>
+          <div class="api-method-desc">Generate a valid IPv6 address. Prefers country-specific CIDR prefixes when present via data files; else uses RIR regional /12 fallback by locale. Always returns canonical compressed form.</div>
+          <div class="api-params">
+            <strong>Parameters:</strong><br>
+            • global_unicast (bool): when True (default), ensures address is from 2000::/3 if no locale/country match<br>
+            • country (str): ISO country code, e.g. 'JP'<br>
+            • locale (str): Locale like 'ja_JP' or 'ja-JP' (also accepts bare 'JP')<br>
+            <strong>Returns:</strong> str - IPv6 address
+          </div>
+        </div>
+
+        <div class="api-method">
+          <div class="api-method-name">imei(tac=None)</div>
+          <div class="api-method-desc">Generate a 15-digit IMEI with a valid Luhn check digit. Optionally pass an 8-digit TAC.</div>
+          <div class="api-params">
+            <strong>Parameters:</strong><br>
+            • tac (str|None): 8-digit Type Allocation Code to anchor the IMEI<br>
+            <strong>Returns:</strong> str - IMEI
+          </div>
+        </div>
+
+        <div class="api-method">
+          <div class="api-method-name">vin()</div>
+          <div class="api-method-desc">Generate a 17-character VIN with correct check digit; excludes letters I, O, and Q.</div>
+          <div class="api-params">
+            <strong>Returns:</strong> str - VIN
+          </div>
+        </div>
+
+        <div class="api-method">
+          <div class="api-method-name">ean13(prefix="")</div>
+          <div class="api-method-desc">Generate an EAN-13 barcode number with a valid checksum. Optional numeric prefix is supported.</div>
+          <div class="api-params">
+            <strong>Parameters:</strong><br>
+            • prefix (str): Optional starting digits (will be trimmed to fit 12-digit body)
+          </div>
+        </div>
+
+        <div class="api-method">
+          <div class="api-method-name">upca(prefix="")</div>
+          <div class="api-method-desc">Generate a 12-digit UPC-A barcode with a valid checksum. Optional numeric prefix is supported.</div>
+          <div class="api-params">
+            <strong>Parameters:</strong><br>
+            • prefix (str): Optional starting digits for the 11-digit body
+          </div>
+        </div>
+
+        <div class="api-method">
+          <div class="api-method-name">isbn13(group_prefix="978")</div>
+          <div class="api-method-desc">Generate an ISBN-13 number (default group prefix 978) with a valid checksum.</div>
+          <div class="api-params">
+            <strong>Parameters:</strong><br>
+            • group_prefix (str): Usually 978 or 979
+          </div>
+        </div>
+        
+        <div class="api-method">
+          <div class="api-method-name">Phoney()</div>
+          <div class="api-method-desc">Main class for generating fake data. Initialize once and use throughout your application.</div>
+          <div class="api-params">
+            <strong>Usage:</strong>
+            <div class="python-example">
+              <button class="copy-btn" data-code="phoney = Phoney()
+# No parameters required for initialization">
+                <i class="fas fa-copy"></i>
+              </button>
+              <pre><span>phoney = <span class="function">Phoney</span>()</span>
+<span class="comment"># No parameters required for initialization</span></pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="api-method">
+          <div class="api-method-name">first_name(locale='en_US', gender=None)</div>
+          <div class="api-method-desc">Generate a first name for the specified locale and gender.</div>
+          <div class="api-params">
+            <strong>Parameters:</strong><br>
+            • locale (str): Locale code (e.g., 'en_US', 'fr_FR')<br>
+            • gender (str): 'male' or 'female', None for random<br>
+            <strong>Returns:</strong> str - First name
+          </div>
+        </div>
+
+        <div class="api-method">
+          <div class="api-method-name">profile(locale='en_US', gender=None)</div>
+          <div class="api-method-desc">Generate a complete user profile with all demographic and contact information.</div>
+          <div class="api-params">
+            <strong>Parameters:</strong><br>
+            • locale (str): Locale code<br>
+            • gender (str): 'male' or 'female', None for random<br>
+            <strong>Returns:</strong> dict - Complete profile with name, age, contact info, username, and credit card data
+          </div>
+        </div>
+
+        <div class="api-method">
+          <div class="api-method-name">phone(locale='en_US')</div>
+          <div class="api-method-desc">Generate a phone number in the format appropriate for the specified locale.</div>
+          <div class="api-params">
+            <strong>Parameters:</strong><br>
+            • locale (str): Locale code<br>
+            <strong>Returns:</strong> str - Formatted phone number with country code
+          </div>
+        </div>
+
+        <div class="api-method">
+          <div class="api-method-name">email(first_name, last_name, locale='en_US')</div>
+          <div class="api-method-desc">Generate an email address based on the provided names and locale.</div>
+          <div class="api-params">
+            <strong>Parameters:</strong><br>
+            • first_name (str): First name<br>
+            • last_name (str): Last name<br>
+            • locale (str): Locale code for domain selection<br>
+            <strong>Returns:</strong> str - Email address
+          </div>
+        </div>
+
+        <div class="api-method">
+          <div class="api-method-name">username(first_name, last_name)</div>
+          <div class="api-method-desc">Generate a username based on the provided names using various formatting patterns.</div>
+          <div class="api-params">
+            <strong>Parameters:</strong><br>
+            • first_name (str): First name<br>
+            • last_name (str): Last name<br>
+            <strong>Returns:</strong> str - Username
+          </div>
+        </div>
+      </section>
+
+      <!-- Locales Section -->
+      <section id="locales" class="section">
+        <h2 class="section-title">Supported Locales</h2>
+        <p class="section-subtitle">Phoney supports over 50 locales across different regions with culturally appropriate data.</p>
+        
+        <h3>Asian Locales</h3>
+        <div class="locale-grid">
+          <div class="locale-item">
+            <div class="locale-flag">🇮🇳</div>
+            <div class="locale-name">India</div>
+            <div class="locale-code">hi_IN</div>
+          </div>
+          <div class="locale-item">
+            <div class="locale-flag">🇯🇵</div>
+            <div class="locale-name">Japan</div>
+            <div class="locale-code">ja_JP</div>
+          </div>
+          <div class="locale-item">
+            <div class="locale-flag">🇰🇷</div>
+            <div class="locale-name">South Korea</div>
+            <div class="locale-code">ko_KR</div>
+          </div>
+          <div class="locale-item">
+            <div class="locale-flag">🇨🇳</div>
+            <div class="locale-name">China</div>
+            <div class="locale-code">zh_CN</div>
+          </div>
+        </div>
+
+        <h3>European Locales</h3>
+        <div class="locale-grid">
+          <div class="locale-item">
+            <div class="locale-flag">🇩🇰</div>
+            <div class="locale-name">Denmark</div>
+            <div class="locale-code">da_DK</div>
+          </div>
+          <div class="locale-item">
+            <div class="locale-flag">🇩🇪</div>
+            <div class="locale-name">Germany</div>
+            <div class="locale-code">de_DE</div>
+          </div>
+          <div class="locale-item">
+            <div class="locale-flag">🇬🇧</div>
+            <div class="locale-name">United Kingdom</div>
+            <div class="locale-code">en_GB</div>
+          </div>
+          <div class="locale-item">
+            <div class="locale-flag">🇺🇸</div>
+            <div class="locale-name">United States</div>
+            <div class="locale-code">en_US</div>
+          </div>
+          <div class="locale-item">
+            <div class="locale-flag">🇪🇸</div>
+            <div class="locale-name">Spain</div>
+            <div class="locale-code">es_ES</div>
+          </div>
+          <div class="locale-item">
+            <div class="locale-flag">🇫🇮</div>
+            <div class="locale-name">Finland</div>
+            <div class="locale-code">fi_FI</div>
+          </div>
+          <div class="locale-item">
+            <div class="locale-flag">🇫🇷</div>
+            <div class="locale-name">France</div>
+            <div class="locale-code">fr_FR</div>
+          </div>
+          <div class="locale-item">
+            <div class="locale-flag">🇮🇹</div>
+            <div class="locale-name">Italy</div>
+            <div class="locale-code">it_IT</div>
+          </div>
+          <div class="locale-item">
+            <div class="locale-flag">🇳🇱</div>
+            <div class="locale-name">Netherlands</div>
+            <div class="locale-code">nl_NL</div>
+          </div>
+          <div class="locale-item">
+            <div class="locale-flag">🇵🇱</div>
+            <div class="locale-name">Poland</div>
+            <div class="locale-code">pl_PL</div>
+          </div>
+          <div class="locale-item">
+            <div class="locale-flag">🇧🇷</div>
+            <div class="locale-name">Brazil</div>
+            <div class="locale-code">pt_BR</div>
+          </div>
+          <div class="locale-item">
+            <div class="locale-flag">🇷🇺</div>
+            <div class="locale-name">Russia</div>
+            <div class="locale-code">ru_RU</div>
+          </div>
+          <div class="locale-item">
+            <div class="locale-flag">🇸🇪</div>
+            <div class="locale-name">Sweden</div>
+            <div class="locale-code">sv_SE</div>
+          </div>
+          <div class="locale-item">
+            <div class="locale-flag">🇹🇷</div>
+            <div class="locale-name">Turkey</div>
+            <div class="locale-code">tr_TR</div>
+          </div>
+        </div>
+
+        <h3>Middle East & Africa</h3>
+        <div class="locale-grid">
+          <div class="locale-item">
+            <div class="locale-flag">🇪🇬</div>
+            <div class="locale-name">Egypt</div>
+            <div class="locale-code">ar_EG</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Examples Section -->
+      <section id="examples" class="section">
+        <h2 class="section-title">Examples</h2>
+        <p class="section-subtitle">Real-world examples of how to use Phoney in your projects.</p>
+        
+        <h3>Creating Test Users for a Database</h3>
+        <div class="python-example">
+          <button class="copy-btn" data-code="from phoney import Phoney
+
+# Create test users for different locales
+phoney = Phoney()
+users = []
+
+locales = ['en_US', 'de_DE', 'fr_FR', 'ja_JP', 'es_ES']
+
+for locale in locales:
+    for i in range(5):
+        user = phoney.profile(locale=locale)
+        users.append(user)
+
+# Now you have 25 realistic test users from 5 different countries
+print(f&quot;Created {len(users)} test users&quot;)
+for user in users[:3]:  # Show first 3
+    print(f&quot;{user['full_name']} ({user['locale']}) - {user['email']}&quot;)">
+            <i class="fas fa-copy"></i>
+          </button>
+          <pre><span class="keyword">from</span> phoney <span class="keyword">import</span> Phoney
+
+<span class="comment"># Create test users for different locales</span>
+phoney = Phoney()
+users = []
+
+locales = [<span class="string">'en_US'</span>, <span class="string">'de_DE'</span>, <span class="string">'fr_FR'</span>, <span class="string">'ja_JP'</span>, <span class="string">'es_ES'</span>]
+
+<span class="keyword">for</span> locale <span class="keyword">in</span> locales:
+    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="builtin">range</span>(<span class="number">5</span>):
+        user = phoney.<span class="function">profile</span>(locale=locale)
+        users.<span class="function">append</span>(user)
+
+<span class="comment"># Now you have 25 realistic test users from 5 different countries</span>
+<span class="builtin">print</span>(<span class="string">f</span><span class="string">"Created {</span><span class="builtin">len</span>(users)<span class="string">} test users"</span>)
+<span class="keyword">for</span> user <span class="keyword">in</span> users[:<span class="number">3</span>]:  <span class="comment"># Show first 3</span>
+    <span class="builtin">print</span>(<span class="string">f</span><span class="string">"{</span>user[<span class="string">'full_name'</span>]<span class="string">} ({</span>user[<span class="string">'locale'</span>]<span class="string">}) - {</span>user[<span class="string">'email'</span>]<span class="string">}"</span>)</pre>
+        </div>
+
+        <h3>Testing User Registration Flow</h3>
+        <div class="python-example">
+          <button class="copy-btn" data-code="from phoney import Phoney
+from phoney.username import generate_password
+
+phoney = Phoney()
+
+def create_test_registration_data():
+    # Generate a realistic test user
+    profile = phoney.profile(locale='en_US')
+    
+    return {
+        'first_name': profile['first_name'],
+        'last_name': profile['last_name'],
+        'email': profile['email'],
+        'phone': profile['phone'],
+        'username': profile['username'],
+        'password': generate_password(min_length=8, max_length=12),
+        'date_of_birth': profile['birthdate'],
+        'user_agent': phoney.user_agent()
+    }
+
+# Use in your tests
+test_user = create_test_registration_data()
+# POST to /api/register with test_user data">
+            <i class="fas fa-copy"></i>
+          </button>
+          <pre><span class="keyword">from</span> phoney <span class="keyword">import</span> Phoney
+<span class="keyword">from</span> phoney.username <span class="keyword">import</span> generate_password
+
+phoney = Phoney()
+
+<span class="keyword">def</span> <span class="function">create_test_registration_data</span>():
+    <span class="comment"># Generate a realistic test user</span>
+    profile = phoney.<span class="function">profile</span>(locale=<span class="string">'en_US'</span>)
+    
+    <span class="keyword">return</span> {
+        <span class="string">'first_name'</span>: profile[<span class="string">'first_name'</span>],
+        <span class="string">'last_name'</span>: profile[<span class="string">'last_name'</span>],
+        <span class="string">'email'</span>: profile[<span class="string">'email'</span>],
+        <span class="string">'phone'</span>: profile[<span class="string">'phone'</span>],
+        <span class="string">'username'</span>: profile[<span class="string">'username'</span>],
+        <span class="string">'password'</span>: <span class="function">generate_password</span>(min_length=<span class="number">8</span>, max_length=<span class="number">12</span>),
+        <span class="string">'date_of_birth'</span>: profile[<span class="string">'birthdate'</span>],
+        <span class="string">'user_agent'</span>: phoney.<span class="function">user_agent</span>()
+    }
+
+<span class="comment"># Use in your tests</span>
+test_user = <span class="function">create_test_registration_data</span>()
+<span class="comment"># POST to /api/register with test_user data</span></pre>
+        </div>
+
+        <h3>Generating Sample Data for Development</h3>
+        <div class="python-example">
+          <button class="copy-btn" data-code="import json
+from phoney import Phoney
+
+phoney = Phoney()
+
+# Generate sample data for frontend development
+sample_data = {
+    'customers': [],
+    'orders': [],
+    'products': []
+}
+
+# Create 100 sample customers
+for i in range(100):
+    customer = phoney.profile()
+    sample_data['customers'].append({
+        'id': i + 1,
+        'name': customer['full_name'],
+        'email': customer['email'],
+        'phone': customer['phone'],
+        'age': customer['age'],
+        'country': customer['locale'].split('_')[1],
+        'created_at': '2024-01-01'
+    })
+
+# Save to JSON file
+with open('sample_data.json', 'w') as f:
+    json.dump(sample_data, f, indent=2)
+
+print(&quot;Sample data generated successfully!&quot;)">
+            <i class="fas fa-copy"></i>
+          </button>
+          <pre><span class="keyword">import</span> json
+<span class="keyword">from</span> phoney <span class="keyword">import</span> Phoney
+
+phoney = Phoney()
+
+<span class="comment"># Generate sample data for frontend development</span>
+sample_data = {
+    <span class="string">'customers'</span>: [],
+    <span class="string">'orders'</span>: [],
+    <span class="string">'products'</span>: []
+}
+
+<span class="comment"># Create 100 sample customers</span>
+<span class="keyword">for</span> i <span class="keyword">in</span> <span class="builtin">range</span>(<span class="number">100</span>):
+    customer = phoney.<span class="function">profile</span>()
+    sample_data[<span class="string">'customers'</span>].<span class="function">append</span>({
+        <span class="string">'id'</span>: i + <span class="number">1</span>,
+        <span class="string">'name'</span>: customer[<span class="string">'full_name'</span>],
+        <span class="string">'email'</span>: customer[<span class="string">'email'</span>],
+        <span class="string">'phone'</span>: customer[<span class="string">'phone'</span>],
+        <span class="string">'age'</span>: customer[<span class="string">'age'</span>],
+        <span class="string">'country'</span>: customer[<span class="string">'locale'</span>].<span class="function">split</span>(<span class="string">'_'</span>)[<span class="number">1</span>],
+        <span class="string">'created_at'</span>: <span class="string">'2024-01-01'</span>
+    })
+
+<span class="comment"># Save to JSON file</span>
+<span class="keyword">with</span> <span class="builtin">open</span>(<span class="string">'sample_data.json'</span>, <span class="string">'w'</span>) <span class="keyword">as</span> f:
+    json.<span class="function">dump</span>(sample_data, f, indent=<span class="number">2</span>)
+
+<span class="builtin">print</span>(<span class="string">"Sample data generated successfully!"</span>)</pre>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="footer-section">
+        <h3>Phoney</h3>
+        <p>Generate realistic fake data for testing, development, and anonymization. Built with ❤️ for developers.</p>
+      </div>
+      
+      <div class="footer-section">
+        <h3>Resources</h3>
+        <ul>
+          <li><a href="#installation">📖 Documentation</a></li>
+          <li><a href="#examples">💡 Examples</a></li>
+          <li><a href="#api">🔧 API Reference</a></li>
+          <li><a href="#locales">🌍 Supported Locales</a></li>
+        </ul>
+      </div>
+      
+      <div class="footer-section">
+        <h3>Community</h3>
+        <ul>
+          <li><a href="https://github.com/YTstyo/phoney" target="_blank"><i class="fab fa-github"></i> GitHub Repository</a></li>
+          <li><a href="https://github.com/YTstyo/phoney/issues" target="_blank"><i class="fas fa-bug"></i> Report Issues</a></li>
+          <li><a href="https://github.com/YTstyo/phoney/discussions" target="_blank"><i class="fas fa-comments"></i> Discussions</a></li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="footer-bottom">
+      <p>Phoney Fake Data Generator | MIT License | Developed by <a href="https://github.com/YTstyo" target="_blank" style="color: var(--primary);"><i class="fab fa-github"></i> YTstyo</a></p>
+    </div>
+  </footer>
+
+  <script>
+    // Theme toggle functionality
+    const themeToggle = document.getElementById('themeToggle');
+    const body = document.body;
+    const themeIcon = themeToggle.querySelector('i');
+    
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    body.setAttribute('data-theme', savedTheme);
+    updateThemeIcon(savedTheme);
+    
+    themeToggle.addEventListener('click', () => {
+      const currentTheme = body.getAttribute('data-theme');
+      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+      
+      body.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      updateThemeIcon(newTheme);
+    });
+    
+    function updateThemeIcon(theme) {
+      themeIcon.className = theme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+    }
+    
+    // Mobile menu functionality
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('overlay');
+    
+    mobileMenuBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+      overlay.classList.toggle('active');
+    });
+    
+    overlay.addEventListener('click', () => {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('active');
+    });
+    
+    // Sidebar navigation
+    document.querySelectorAll('.sidebar-nav a').forEach(link => {
+      link.addEventListener('click', () => {
+        document.querySelectorAll('.sidebar-nav a').forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+        sidebar.classList.remove('open');
+        overlay.classList.remove('active');
+      });
+    });
+    
+    // Smooth scrolling
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function(e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+    });
+
+    // Copy to clipboard - works for both standard code-blocks and python-example blocks
+    document.querySelectorAll('.copy-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            // Handle python-example blocks with pre-defined data-code
+            if (button.dataset.code) {
+                navigator.clipboard.writeText(button.dataset.code).then(() => {
+                    const originalIcon = button.innerHTML;
+                    button.innerHTML = '<i class="fas fa-check"></i>';
+                    setTimeout(() => {
+                        button.innerHTML = originalIcon;
+                    }, 2000);
+                });
+                return;
+            }
+            
+            // Handle regular code blocks
+            const codeBlock = button.closest('.code-block');
+            if (!codeBlock) return;
+
+            const codeElement = codeBlock.querySelector('code');
+            if (!codeElement) return;
+
+            const code = codeElement.textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                const originalIcon = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-check"></i>';
+                setTimeout(() => {
+                    button.innerHTML = originalIcon;
+                }, 2000);
+            });
+        });
+    });
+
+    // Fallback for legacy inline onclick buttons
+    window.copyToClipboard = function(text) {
+      if (!text) return;
+      navigator.clipboard.writeText(text).catch(() => {/* no-op */});
+    }
+
+    // Sanitize any code blocks that accidentally contain literal HTML markup
+    function sanitizeCodeBlocks() {
+      document.querySelectorAll('pre code').forEach(block => {
+        let raw = block.textContent || '';
+        
+        // Aggressively strip all visible HTML tags and attributes
+        raw = raw.replace(/<span[\s\S]*?<\/span>/g, ''); // Remove complete spans
+        raw = raw.replace(/<[^>]*>/g, ''); // Remove other tags
+        raw = raw.replace(/&lt;[\s\S]*?&gt;/g, ''); // Remove encoded tags
+        raw = raw.replace(/class=["'][^"']*["']/g, ''); // Remove class attributes
+        raw = raw.replace(/span/g, ''); // Remove leftover span text
+        
+        // Fix specific Quick Start examples
+        if (raw.includes('phoney.first_name') || raw.includes('phoney.profile') || raw.includes('FinancialDataGenerator')) {
+          // Force completely clean, pure code for these examples
+          if (raw.includes('phoney.first_name')) {
+            raw = `from phoney import Phoney
+
+# Initialize the generator
+phoney = Phoney()
+
+# Generate individual data
+print(phoney.first_name(locale='de_DE'))  # → 'Hans'
+print(phoney.phone(locale='ja_JP'))       # → '+81 90-1234-5678'
+print(phoney.email('John', 'Doe'))        # → 'john.doe@example.com'`;
+          } else if (raw.includes('phoney.profile')) {
+            raw = `# Generate a complete profile
+profile = phoney.profile(locale='fr_FR')
+
+print(profile)
+# Output:
+# {
+#   'first_name': 'Marie',
+#   'last_name': 'Dubois', 
+#   'full_name': 'Marie Dubois',
+#   'gender': 'female',
+#   'age': 28,
+#   'birthdate': '1995-03-15',
+#   'email': 'marie.dubois@example.fr',
+#   'phone': '+33 6 12 34 56 78',
+#   'username': 'marie_dubois_95',
+#   'credit_card': {
+#     'issuer': 'Visa',
+#     'number': '4532123456789012',
+#     'expiry': '12/2028',
+#     'cvv': '123'
+#   },
+#   'locale': 'fr_FR'
+# }`;
+          } else if (raw.includes('FinancialDataGenerator')) {
+            raw = `from phoney.financial import FinancialDataGenerator
+
+# Generate financial data
+financial = FinancialDataGenerator(locale='en_US')
+data = financial.generate()
+
+print(data)
+# Output:
+# {
+#   'credit_card': {
+#     'issuer': 'MasterCard',
+#     'number': '5555444433332222',
+#     'expiry': '08/2027',
+#     'cvv': '456'
+#   },
+#   'iban': 'US64SVBKUS6S3300958879',
+#   'bic': 'SVBKUS6S'
+# }`;
+          }
+        }
+        
+        block.textContent = raw;
+      });
+    }
+
+    // Python Syntax Highlighting
+    function highlightPython(block) {
+        if (block.dataset.highlighted) return;
+        
+        // Make sure content is sanitized before highlighting
+        let text = block.textContent || '';
+        
+        // Additional safety check before highlighting
+        if (text.includes('<span') || text.includes('</span') || text.includes('class=')) {
+            text = text.replace(/<[^>]*>/g, ''); // Remove any HTML before highlighting
+        }
+        
+        const patterns = {
+            keyword: /\b(from|import|def|class|if|else|elif|for|while|try|except|finally|with|as|return|yield|break|continue|pass|lambda|and|or|not|in|is|None|True|False)\b/g,
+            string: /([f]?)((["'])(?:\\.|(?!\3)[^\\])*?\3)/g,
+            comment: /(#.*$)/gm,
+            function: /\b([a-zA-Z_][a-zA-Z0-9_]*)\s*(?=\()/g,
+            builtin: /\b(print|len|range|str|int|float|list|dict|tuple|set|bool|type|isinstance|hasattr|getattr|setattr|enumerate|zip|map|filter|sorted|reversed|sum|max|min|abs|round|open|input)\b/g,
+            number: /\b(\d+(?:\.\d+)?)\b/g,
+            operator: /(\+|\-|\*|\/|%|==|!=|<=|>=|<|>|=)/g,
+        };
+
+        text = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+        let html = text;
+        html = html.replace(patterns.keyword, '<span class="keyword">$1</span>');
+        html = html.replace(patterns.string, (match, p1, p2) => `<span class="string">${p1 || ''}${p2}</span>`);
+        html = html.replace(patterns.comment, '<span class="comment">$1</span>');
+        html = html.replace(patterns.function, '<span class="function">$1</span>');
+        html = html.replace(patterns.builtin, '<span class="builtin">$1</span>');
+        html = html.replace(patterns.number, '<span class="number">$1</span>');
+        html = html.replace(patterns.operator, '<span class="operator">$1</span>');
+
+        block.innerHTML = html;
+        block.dataset.highlighted = 'true';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // First clean all code blocks completely
+        sanitizeCodeBlocks();
+        
+        // Then apply highlighting only once to clean content
+        document.querySelectorAll('pre code.language-python').forEach(highlightPython);
+        
+        // Force clean Quick Start section
+        document.querySelectorAll('#quickstart pre code').forEach(block => {
+            if (block.dataset.highlighted) {
+                // Ensure no visible HTML tags in highlighted content
+                const html = block.innerHTML;
+                if (html.includes('&lt;span') || html.includes('class=')) {
+                    sanitizeCodeBlocks();
+                    highlightPython(block);
+                }
+            }
+        });
+    });
+  </script>
+</body>
+</html>
