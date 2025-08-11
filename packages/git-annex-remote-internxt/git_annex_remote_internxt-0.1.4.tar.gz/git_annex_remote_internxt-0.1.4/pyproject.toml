@@ -1,0 +1,197 @@
+[build-system]
+requires = [
+  "hatchling",
+  "hatch-vcs",
+]
+build-backend = "hatchling.build"
+
+[project]
+name = "git-annex-remote-internxt"
+dynamic = ["version"]
+description = "git annex remote internxt"
+readme = "README.md"
+keywords = [
+  "git",
+  "git-annex",
+  "special-remote",
+  "internxt",
+]
+authors = [
+  {name = "Adina S. Wagner", email = "adina@ngln.eu"},
+  {name = "Michael Hanke", email = "mih@ngln.eu"}
+]
+maintainers = [
+  {name = "Adina S. Wagner", email = "adina@ngln.eu"},
+  {name = "Michael Hanke", email = "mih@ngln.eu"}
+]
+classifiers = [
+  "License :: OSI Approved :: MIT License",
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Intended Audience :: End Users/Desktop",
+  "Natural Language :: English",
+  "Operating System :: OS Independent",
+  "Topic :: Software Development",
+  "Topic :: Software Development :: Version Control",
+  "Topic :: Software Development :: Version Control :: Git",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+license = "MIT"
+dependencies = [
+  "annexremote",
+]
+requires-python = ">= 3.10"
+
+[project.scripts]
+git-annex-remote-internxt = "annex_remote_internxt.remote:main"
+
+[project.urls]
+Homepage = "https://hub.datalad.org/git-annex/git-annex-remote-internxt"
+Documentation = "https://hub.datalad.org/git-annex/git-annex-remote-internxt#readme"
+Issues = "https://hub.datalad.org/git-annex/git-annex-remote-internxt/issues"
+Source = "https://hub.datalad.org/git-annex/git-annex-remote-internxt"
+Changelog = "https://hub.datalad.org/git-annex/git-annex-remote-internxt/src/branch/main/CHANGELOG.md"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "annex_remote_internxt/_version.py"
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+  ".forgejo",
+]
+[tool.hatch.build.targets.wheel]
+packages = ["annex_remote_internxt"]
+
+[tool.hatch.envs.hatch-test]
+default-args = ["annex_remote_internxt"]
+extra-args = ["--doctest-modules"]
+extra-dependencies = [
+  "pytest",
+  # if you come here, because coverage combination crashed for you
+  # run `hatch test --cover` and/or see
+  # https://github.com/pypa/hatch/issues/1565#issuecomment-2163773123
+  "pytest-cov",
+]
+
+[[tool.hatch.envs.hatch-test.matrix]]
+python = ["3.10", "3.11", "3.12", "3.13"]
+
+
+[tool.hatch.envs.types]
+description = "type checking with MyPy"
+extra-dependencies = [
+  "mypy>=1.0.0",
+  "pytest",
+  "argcomplete",
+]
+[tool.hatch.envs.types.scripts]
+check = [
+  "mypy --install-types --non-interactive --python-version 3.10 --pretty --show-error-context --follow-untyped-imports {args:annex_remote_internxt}",
+]
+
+[tool.hatch.envs.cz]
+description = "commit compliance, changelog, and release generation"
+detached = true
+extra-dependencies = [
+  "commitizen",
+]
+[tool.hatch.envs.cz.scripts]
+check-commits = [
+  # check all commit messages since the dawn of time
+  "cz check --rev-range 4b825dc642cb6eb9a060e54bf8d69288fbee4904..HEAD",
+]
+show-changelog = [
+  # show the would-be changelog on stdout
+  "cz changelog --dry-run",
+]
+bump-version = [
+  # bump version (also tags) and update changelog
+  "cz bump --changelog",
+]
+
+[tool.hatch.envs.codespell]
+description = "spell checking"
+detached = true
+extra-dependencies = [
+  "codespell",
+]
+[tool.hatch.envs.codespell.scripts]
+check = "codespell"
+fix = "codespell --write-changes"
+
+[tool.codespell]
+skip = ".git,build,.*cache,dist,./docs/_build/*"
+#exclude-file = ".codespell-exclude"
+
+[tool.coverage.run]
+source_pkgs = ["annex_remote_internxt", "tests"]
+branch = true
+parallel = true
+omit = [
+]
+data_file = "${COVERAGE_ROOT-.}/.coverage"
+
+[tool.coverage.paths]
+annex_remote_internxt = ["annex_remote_internxt"]
+tests = ["tests", "*/annex_remote_internxt/tests"]
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
+]
+
+[tool.ruff]
+exclude = [
+  "docs",
+]
+line-length = 88
+indent-width = 4
+target-version = "py310"
+[tool.ruff.format]
+# Prefer single quotes over double quotes.
+quote-style = "single"
+[tool.ruff.lint.per-file-ignores]
+"**/test_*" = [
+  # permit assert statements in tests
+  "S101",
+  # permit relative import in tests
+  "TID252",
+  # permit versatile function names in tests
+  "N802",
+]
+
+[tool.commitizen]
+name = "cz_customize"
+tag_format = "v$version"
+version_scheme = "pep440"
+version_provider = "scm"
+changelog_incremental = true
+template = ".changelog.md.j2"
+gpg_sign = true
+
+[tool.commitizen.customize]
+commit_parser = "^((?P<change_type>feat|fix|rf|perf|test|doc|BREAKING CHANGE)(?:\\((?P<scope>[^()\r\n]*)\\)|\\()?(?P<breaking>!)?|\\w+!):\\s(?P<message>.*)?(?P<body>.*)?"
+change_type_order = ["BREAKING CHANGE", "feat", "fix", "rf", "perf", "doc", "test"]
+changelog_pattern = "^((BREAKING[\\-\\ ]CHANGE|\\w+)(\\(.+\\))?!?):"
+bump_pattern = "^((BREAKING[\\-\\ ]CHANGE|\\w+)(\\(.+\\))?!?):"
+schema_pattern = "(?s)(ci|doc|feat|fix|perf|rf|style|test|chore|revert|bump)(\\(\\S+\\))?!?:( [^\\n\\r]+)((\\n\\n.*)|(\\s*))?$"
+
+[tool.commitizen.customize.bump_map]
+"^\\w+!" = "MAJOR"
+"^BREAKING" = "MAJOR"
+"^feat" = "MINOR"
+"^fix" = "PATCH"
