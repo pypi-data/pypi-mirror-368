@@ -1,0 +1,99 @@
+# Default configuration for VTON evaluation pipeline
+
+# Submission metadata
+submission:
+  id: "default_submission"
+  team_name: "Default Team"
+  description: "Default VTON model evaluation"
+
+# VLM backend configuration
+vlm:
+  backend: "gemini"  # Currently only gemini is implemented
+  api_key: null  # Set via environment variable GEMINI_API_KEY or override
+  model_name: "gemini-2.5-flash"
+  max_tokens: 1000
+  temperature: 0.1
+
+# Model paths and configurations
+models:
+  sam:
+    model_type: "large"  # Options: tiny, small, base_plus, large
+    device: "cpu"
+    cache_dir: "./models/sam2"
+    auto_download: true
+  
+  clip:
+    model_name: "ViT-B-32"
+    pretrained: "laion2b_s34b_b79k"
+    device: "cpu"
+  
+  face_recognition:
+    models: ["ArcFace", "Facenet512", "VGG-Face"]
+    detectors: ["retinaface", "mtcnn", "opencv"]
+
+# Scoring weights and thresholds
+scoring:
+  weights:
+    garment: 0.35
+    identity: 0.25
+    body: 0.20
+    fit: 0.20
+  
+  # Production readiness threshold
+  production_threshold: 0.8
+  
+  # Component-specific thresholds (optional)
+  component_thresholds:
+    garment: 0.75
+    identity: 0.7
+    body: 0.7
+    fit: 0.7
+
+# Evaluation settings
+evaluation:
+  batch_size: 32
+  checkpoint_interval: 100
+  generate_visualizations: true
+  
+  # Enable/disable specific evaluators
+  evaluators:
+    garment_preservation:
+      enabled: true
+      use_vlm: true
+      use_perceptual_metrics: true
+    
+    identity_preservation:
+      enabled: true
+      use_face_recognition: true
+      use_vlm: true
+      use_clip: true
+    
+    body_shape:
+      enabled: true
+      use_pose_estimation: true
+      use_vlm: true
+    
+    fit_measurement:
+      enabled: true
+      use_sam: true
+      use_vlm: true
+      calibration_method: "height"  # Options: height, shoulder_width, hip_width
+
+# Reporting configuration
+reporting:
+  include_visualizations: true
+  export_formats: ["json", "csv"]
+  detailed_scores: true
+  
+  # Visualization settings
+  visualization:
+    dpi: 100
+    style: "seaborn-v0_8-darkgrid"
+    color_palette: "husl"
+
+# Runtime settings
+runtime:
+  num_workers: 4
+  log_level: "INFO"
+  cache_results: true
+  cache_dir: "./cache"
