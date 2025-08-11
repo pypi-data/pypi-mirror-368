@@ -1,0 +1,635 @@
+__all__ = ["Model", "LossTracker"]
+
+import gc
+import warnings
+import torch
+from torch import nn, Tensor
+from typing import TypeVar, Mapping
+from lt_utils.common import *
+from lt_tensor.misc_utils import plot_view
+from lt_utils.misc_utils import get_current_time
+from lt_utils.file_ops import load_json, save_json, find_files, load_yaml
+from lt_tensor.config_templates import ModelConfig
+from lt_utils.type_utils import is_file, is_path_valid
+
+T = TypeVar("T")
+
+ROOT_DEVICE = torch.zeros(1).device
+
+POSSIBLE_OUTPUT_TYPES: TypeAlias = Union[
+    Tensor,
+    Sequence[Tensor],
+    Dict[Union[str, Tensor, Any], Union[Sequence[Tensor], Tensor, Any]],
+]
+
+def _in_exclude_list(item:str, exclusion_list: List[str]):
+    if exclusion_list:
+        for exc in exclusion_list:
+            if exc.lower() in item.lower():
+                return True
+    return False
+    
+
+def get_weights(
+    directory_or_weights: Union[str, PathLike, Mapping],
+    weights_only: bool = False,
+    map_location: Union[torch.device, str] = torch.device("cpu"),
+):
+    if isinstance(directory_or_weights, (dict, Mapping)):
+        return directory_or_weights
+    if isinstance(map_location, str):
+        map_location = torch.device(map_location)
+
+    is_path_valid(
+        directory_or_weights, validate=True
+    )  # raises validation if its invalid path
+
+    directory_or_weights = Path(directory_or_weights)
+
+    if is_file(directory_or_weights):
+        return torch.load(
+            str(directory_or_weights),
+            map_location=map_location,
+            weights_only=weights_only,
+        )
+
+    for file in sorted(find_files(directory_or_weights, ["*.pt", "*.ckpt", "*.pth"])):
+        try:
+            return torch.load(
+                file, map_location=map_location, weights_only=weights_only
+            )
+        except:
+            pass
+    raise ValueError("No weight has been found!")
+
+
+def get_config(
+    cfg_dir_or_data: Union[str, PathLike, ModelConfig, dict],
+    default: Optional[Any] = None,
+) -> Union[Dict[str, object], ModelConfig, Any]:
+    # raises validation if its invalid path only when default is None otherwise it returns the defaults.
+    if isinstance(cfg_dir_or_data, (ModelConfig, dict)):
+        return cfg_dir_or_data
+    if not is_path_valid(cfg_dir_or_data, validate=default is None):
+        return default
+    cfg_dir_or_data = Path(cfg_dir_or_data)
+    if is_file(cfg_dir_or_data):
+        assert cfg_dir_or_data.name.endswith(
+            (".json", ".yaml", ".yml")
+        ), "Invalid file provided"
+        if cfg_dir_or_data.name.endswith(".json"):
+            return load_json(cfg_dir_or_data, default)
+        return load_yaml(cfg_dir_or_data, default)
+
+    res = find_files(
+        cfg_dir_or_data,
+        [
+            "config*.json",
+            "*config.json",
+            "config*.yml",
+            "*config.yml",
+            "*config.yaml",
+            "config*.yaml",
+        ],
+        maximum=1,
+    )
+    assert res, f"No config file has been found in '{cfg_dir_or_data}'"
+
+    if Path(res[0]).name.endswith(".json"):
+        return load_json(res[0], default)
+    return load_yaml(res[0], default)
+
+
+class LossTracker:
+    last_file = f"logs/history_{get_current_time()}.json"
+
+    def __init__(self, max_len=50_000):
+        self.max_len = max_len
+        self.history = {
+            "train": [],
+            "eval": [],
+        }
+
+    def append(
+        self, loss: float, mode: Union[Literal["train", "eval"], "str"] = "train"
+    ):
+        self.history[mode].append(float(loss))
+        if len(self.history[mode]) > self.max_len:
+            self.history[mode] = self.history[mode][-self.max_len :]
+
+    def get(self, mode: Union[Literal["train", "eval"], "str"] = "train"):
+        return self.history.get(mode, [])
+
+    def save(self, path: Optional[PathLike] = None):
+        if path is None:
+            path = f"logs/history_{get_current_time()}.json"
+        save_json(path, self.history, indent=2)
+        self.last_file = path
+
+    def load(self, path: Optional[PathLike] = None):
+        if path is None:
+            path = self.last_file
+        self.history = load_json(path, [])
+        self.last_file = path
+
+    def plot(
+        self,
+        history_keys: Union[str, List[str]],
+        max_amount: int = 0,
+        title: str = "Loss",
+    ):
+        if isinstance(history_keys, str):
+            history_keys = [history_keys]
+        return plot_view(
+            {k: v for k, v in self.history.items() if k in history_keys},
+            title,
+            max_amount,
+        )
+
+
+class _Devices_Base(nn.Module):
+    _device: torch.device = ROOT_DEVICE
+    _setting_device: bool = False
+
+    @property
+    def device(self):
+        return self._device
+
+    @device.setter
+    def device(self, device: Union[torch.device, str]):
+        assert isinstance(device, (str, torch.device))
+        self._device = torch.device(device) if isinstance(device, str) else device
+
+    def freeze_all(self, exclude: list[str] = []):
+        for name, module in self.named_parameters():
+            if _in_exclude_list(name, exclude):
+                continue
+            try:
+                self.freeze_module(module)
+            except:
+                pass
+
+    def unfreeze_all(self, exclude: list[str] = []):
+        for name, module in self.named_parameters():
+            if _in_exclude_list(name, exclude):
+                continue
+            try:
+                self.unfreeze_module(module)
+            except:
+                pass
+
+    def freeze_module(
+        self, module_or_name: Union[str, nn.Module, nn.Parameter, "Model", Tensor]
+    ):
+        self._change_gradient_state(module_or_name, False)
+
+    def unfreeze_module(
+        self, module_or_name: Union[str, nn.Module, nn.Parameter, "Model", Tensor]
+    ):
+        self._change_gradient_state(module_or_name, True)
+
+    def _change_gradient_state(
+        self,
+        module_or_name: Union[str, nn.Module, nn.Parameter, "Model", Tensor],
+        new_state: bool,  # True = unfreeze
+    ):
+        assert isinstance(
+            module_or_name, (str, nn.Module, nn.Parameter, Model, Tensor)
+        ), f"Item '{module_or_name}' is not a valid module, parameter, tensor or a string."
+        if isinstance(module_or_name, (nn.Module, nn.Parameter, Model, Tensor)):
+            target = module_or_name
+        else:
+            target = getattr(self, module_or_name)
+
+        if isinstance(target, Tensor):
+            target.requires_grad = new_state
+        elif isinstance(target, nn.Parameter):
+            target.requires_grad = new_state
+        elif isinstance(target, Model):
+            target.freeze_all()
+        elif isinstance(target, nn.Module):
+            for param in target.parameters():
+                if hasattr(param, "requires_grad"):
+                    param.requires_grad = new_state
+        else:
+            raise ValueError(
+                f"Item '{module_or_name}' is not a valid module, parameter or tensor."
+            )
+
+    def apply_device(self):
+        """Helps to apply devices towards all the internal components"""
+        if self._setting_device:
+            return
+
+        self._setting_device = True
+
+        try:
+            for modules in self.modules():
+                try:
+                    modules.to(self.device)
+                except:
+                    pass
+
+            for buffer in self.buffers():
+                try:
+                    buffer.to(self.device)
+                except:
+                    pass
+
+            for tensor in self.parameters():
+                try:
+                    tensor.to(self.device)
+                except:
+                    pass
+        except:
+            pass
+        finally:
+            self._setting_device = False
+
+    def _to_dvc(
+        self, device_name: str, device_id: Optional[Union[int, torch.device]] = None
+    ):
+        device = device_name
+        if device_id is not None:
+            if isinstance(device_id, Number):
+                device += ":" + str(int(device_id))
+            elif hasattr(device_id, "index"):
+                device += ":" + str(device_id.index)
+        self.device = device
+        if not self._setting_device:
+            self.apply_device()
+
+    def _to(self, *args, **kwargs):
+        self.to(*args, _internal=True, **kwargs)
+
+    def to(self, *args, **kwargs):
+        device, dtype, non_blocking, convert_to_format = torch._C._nn._parse_to(
+            *args, **kwargs
+        )
+
+        if dtype is not None:
+            if not (dtype.is_floating_point or dtype.is_complex):
+                raise TypeError(
+                    "nn.Module.to only accepts floating point or complex "
+                    f"dtypes, but got desired dtype={dtype}"
+                )
+            if dtype.is_complex:
+                warnings.warn(
+                    "Complex modules are a new feature under active development whose design may change, "
+                    "and some modules might not work as expected when using complex tensors as parameters or buffers. "
+                    "Please file an issue at https://github.com/pytorch/pytorch/issues/new?template=bug-report.yml "
+                    "if a complex module does not work as expected."
+                )
+
+        def convert(t: Tensor):
+            try:
+                if convert_to_format is not None and t.dim() in (4, 5):
+                    return t.to(
+                        device,
+                        dtype if t.is_floating_point() or t.is_complex() else None,
+                        non_blocking,
+                        memory_format=convert_to_format,
+                    )
+                return t.to(
+                    device,
+                    dtype if t.is_floating_point() or t.is_complex() else None,
+                    non_blocking,
+                )
+            except NotImplementedError as e:
+                if str(e) == "Cannot copy out of meta tensor; no data!":
+                    raise NotImplementedError(
+                        f"{e} Please use torch.nn.Module.to_empty() instead of torch.nn.Module.to() "
+                        f"when moving module from meta to a different device."
+                    ) from None
+                else:
+                    raise
+
+        self._apply(convert)
+        self._to_dvc(device)
+        return self
+
+    def ipu(self, device: Optional[Union[int, torch.device]] = None) -> T:
+        super().ipu(device)
+        self._to_dvc("ipu", device)
+        return self
+
+    def xpu(self, device: Optional[Union[int, torch.device]] = None) -> T:
+        super().xpu(device)
+        self._to_dvc("xpu", device)
+        return self
+
+    def cuda(self, device: Optional[Union[int, torch.device]] = None) -> T:
+        super().cuda(device)
+        self._to_dvc("cuda", device)
+        return self
+
+    def mtia(self, device: Optional[Union[int, torch.device]] = None) -> T:
+        super().mtia(device)
+        self._to_dvc("mtia", device)
+        return self
+
+    def cpu(self) -> T:
+        super().cpu()
+        self._to_dvc("cpu", None)
+        return self
+
+
+class Model(_Devices_Base, ABC):
+    """
+    This makes it easier to assign a device and retrieves it later
+    """
+
+    _autocast: bool = False
+
+    # this is to be used on the case of they module requires low-rank adapters
+    _low_rank_lambda: Optional[Callable[[], nn.Module]] = (
+        None  # Example: lambda: nn.Linear(32, 32, True)
+    )
+    low_rank_adapter: Union[nn.Identity, nn.Module, nn.Sequential] = nn.Identity()
+
+    # dont save list:
+    _dont_save_items: List[str] = []
+
+    @property
+    def autocast(self):
+        return self._autocast
+
+    @autocast.setter
+    def autocast(self, value: bool):
+        self._autocast = value
+
+    def trainable_parameters(self, module_name: Optional[str] = None):
+        """Gets the number of trainable parameters from either the entire model or from a specific module."""
+        if module_name is not None:
+            assert hasattr(self, module_name), f"Module '{module_name}' not found."
+            module = getattr(self, module_name)
+            return sum(
+                [
+                    x.numel()
+                    for x in module.parameters()
+                    if hasattr(x, "requires_grad") and x.requires_grad
+                ]
+            )
+        return sum(
+            [
+                x.numel()
+                for x in self.parameters()
+                if hasattr(x, "requires_grad") and x.requires_grad
+            ]
+        )
+
+    def non_trainable_parameters(self, module_name: Optional[str] = None):
+        """Gets the number of non-trainable parameters from either the entire model or from a specific module."""
+        if module_name is not None:
+            assert hasattr(self, module_name), f"Module '{module_name}' not found."
+            module = getattr(self, module_name)
+            return sum(
+                [
+                    x.numel()
+                    for x in module.parameters()
+                    if not hasattr(x, "requires_grad") or not x.requires_grad
+                ]
+            )
+        return sum(
+            [
+                x.numel()
+                for x in self.parameters()
+                if not hasattr(x, "requires_grad") or not x.requires_grad
+            ]
+        )
+
+    def extract_weights(self, module_name: Optional[str] = None) -> List[Tensor]:
+        """Returns the weights of the model entry model or from a specified module"""
+        if module_name is not None:
+            assert hasattr(self, module_name), f"Module '{module_name}' not found."
+            module = getattr(self, module_name)
+            params = []
+            if isinstance(module, nn.Module):
+                return [x.data.detach() for x in module.parameters()]
+            elif isinstance(module, (Tensor, nn.Parameter)):
+                return [module.data.detach()]
+            raise (f"{module_name} is has no weights")
+        return [x.data.detach() for x in self.parameters()]
+
+    def format_trainable_parameters(self, module_name: Optional[str] = None) -> str:
+        params = format(self.trainable_parameters(module_name), ",").replace(",", ".")
+        return params
+
+    def format_non_trainable_parameters(self, module_name: Optional[str] = None) -> str:
+        params = format(self.non_trainable_parameters(module_name), ",").replace(
+            ",", "."
+        )
+        return params
+
+    def print_trainable_parameters(self, module_name: Optional[str] = None) -> str:
+        fmt = self.format_trainable_parameters(module_name)
+        if module_name is not None:
+            print(f"Trainable parameter(s) for module '{module_name}': {fmt}")
+        else:
+            print(f"Trainable parameter(s): {fmt}")
+
+    def print_non_trainable_parameters(self, module_name: Optional[str] = None) -> str:
+        fmt = self.format_non_trainable_parameters(module_name)
+        if module_name is not None:
+            print(f"Non-Trainable parameter(s) for module '{module_name}': {fmt}")
+        else:
+            print(f"Non-Trainable parameter(s): {fmt}")
+
+    @classmethod
+    def from_pretrained(
+        cls,
+        model_path_or_weight_data: Union[str, PathLike, Mapping],
+        config: Optional[Union[str, PathLike]] = None,
+        config_defaults: Dict[str, Any] = {},
+        assign=False,
+        strict=False,
+    ):
+        """TODO: Finish this implementation or leave it as an optional function."""
+        assert isinstance(
+            model_path_or_weight_data, (dict, Mapping, str, PathLike, bytes)
+        ), (
+            f"Invalid 'model_path_or_weight_data'. It must be either a path pointing to a checkpoint or a dictionary containing the loaded keys."
+            " Received instead: ({model_path_or_weight_data}) type: {type(model_path_or_weight_data)}"
+        )
+        state_dict = get_weights(model_path_or_weight_data)
+        if config is not None:
+            config_data = get_config(config, config_defaults)
+
+        if config is None:
+            model = cls()
+        else:
+            try:
+                if isinstance(config_data, ModelConfig):
+                    model = cls(config_data)
+                else:
+                    model = cls(**config_data)
+            except:
+                model = cls(config_data)
+
+        try:
+            model.load_state_dict(state_dict, assign=assign, strict=strict)
+        except Exception as e:
+            if hasattr(model, "remove_norms"):
+                model.remove_norms()
+                model.load_state_dict(state_dict, assign=assign, strict=strict)
+            else:
+                raise e
+
+        return model
+
+    def save_weights(
+        self,
+        path: Union[Path, str],
+        replace: bool = False,
+        save_with_adapters: bool = False,
+    ):
+        path = Path(path)
+        model_dir = path
+        if path.exists():
+            if path.is_dir():
+                model_dir = Path(path, f"model_{get_current_time()}.pt")
+            elif path.is_file():
+                if replace:
+                    path.unlink()
+                else:
+                    model_dir = Path(path.parent, f"model_{get_current_time()}.pt")
+        else:
+            if not "." in str(path):
+                model_dir = Path(path, f"model_{get_current_time()}.pt")
+        path.parent.mkdir(exist_ok=True, parents=True)
+
+        state_dict = self.state_dict()
+
+        if not save_with_adapters or isinstance(self.low_rank_adapter, nn.Identity):
+            state_dict.pop("low_rank_adapter", None)
+        state_dict.pop("_setting_device", None)
+        torch.save(obj=state_dict, f=str(model_dir))
+
+    def save_lora(
+        self,
+        path: Union[Path, str],
+        replace: bool = False,
+    ):
+        assert not isinstance(
+            self.low_rank_adapter, nn.Identity
+        ), "The adapter is empty!"
+        path = Path(path)
+        model_dir = path
+        if path.exists():
+            if path.is_dir():
+                model_dir = Path(path, f"adapter_{get_current_time()}.pt")
+            elif path.is_file():
+                if replace:
+                    path.unlink()
+                else:
+                    model_dir = Path(path.parent, f"adapter_{get_current_time()}.pt")
+        else:
+            if not "." in str(path):
+                model_dir = Path(path, f"adapter_{get_current_time()}.pt")
+
+        state_dict = self.low_rank_adapter.state_dict()
+        torch.save(obj=state_dict, f=str(model_dir))
+
+    def load_lora(
+        self,
+        path: Union[Path, str],
+        raise_if_not_exists: bool = False,
+        strict: bool = False,
+        assign: bool = False,
+        weights_only: bool = True,
+        mmap: Optional[bool] = None,
+        **pickle_load_args,
+    ):
+        assert (
+            self._low_rank_lambda is not None
+        ), "Lora not implemented! '_low_rank_lambda' must be setup to deploy a proper module"
+        path = Path(path)
+        if not path.exists():
+            assert not raise_if_not_exists, "Path does not exists!"
+            return None
+
+        if path.is_dir():
+            possible_files = list(Path(path).rglob("adapter_*.pt"))
+            assert (
+                possible_files or not raise_if_not_exists
+            ), "No model could be found in the given path!"
+            if not possible_files:
+                return None
+            path = sorted(possible_files)[-1]
+
+        state_dict = torch.load(
+            str(path), weights_only=weights_only, mmap=mmap, **pickle_load_args
+        )
+        self.low_rank_adapter = None
+        gc.collect()
+        self.low_rank_adapter = self._low_rank_lambda()
+        incompatible_keys = self.low_rank_adapter.load_state_dict(
+            state_dict,
+            strict=strict,
+            assign=assign,
+        )
+        return incompatible_keys
+
+    def load_weights(
+        self,
+        path: Union[Path, str],
+        raise_if_not_exists: bool = False,
+        strict: bool = False,
+        assign: bool = False,
+        weights_only: bool = False,
+        mmap: Optional[bool] = None,
+        **pickle_load_args,
+    ):
+        path = Path(path)
+        if not path.exists():
+            assert not raise_if_not_exists, "Path does not exists!"
+            return None
+        if path.is_dir():
+            possible_files = list(Path(path).rglob("*.pt"))
+            assert (
+                possible_files or not raise_if_not_exists
+            ), "No model could be found in the given path!"
+            if not possible_files:
+                return None
+            path = sorted(possible_files)[-1]
+        state_dict = torch.load(
+            str(path), weights_only=weights_only, mmap=mmap, **pickle_load_args
+        )
+        incompatible_keys = self.load_state_dict(
+            state_dict,
+            strict=strict,
+            assign=assign,
+        )
+        return incompatible_keys
+
+    def lora_step(self, *arg, **kwargs):
+        raise NotImplementedError("Not implemented for this model")
+
+    @torch.no_grad()
+    def inference(self, *args, **kwargs):
+        if self.training:
+            self.eval()
+        return self(*args, **kwargs)
+
+    def train_step(
+        self,
+        *inputs,
+        **kwargs,
+    ):
+        """Train Step"""
+        if not self.training:
+            self.train()
+        return self(*inputs, **kwargs)
+
+    def __call__(self, *args, **kwds) -> POSSIBLE_OUTPUT_TYPES:
+        # with torch.autocast(device_type=self.device.type, enabled=self.autocast):
+        return super().__call__(*args, **kwds)
+
+    def forward(
+        self,
+        *args,
+        **kwargs,
+    ) -> Union[Tensor, Sequence[Tensor], Dict[str, Union[object, Tensor]]]:
+        raise NotImplementedError(
+            f"No forward method has been implement for '{self.__class__.__name__}'"
+        )
