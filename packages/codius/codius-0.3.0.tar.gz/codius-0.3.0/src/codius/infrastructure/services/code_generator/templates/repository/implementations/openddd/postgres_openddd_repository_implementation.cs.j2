@@ -1,0 +1,32 @@
+﻿using OpenDDD.Infrastructure.Persistence.OpenDdd.DatabaseSession.Postgres;
+using OpenDDD.Infrastructure.Repository.OpenDdd.Postgres;
+using OpenDDD.Infrastructure.Persistence.Serializers;
+using OpenDDD.Domain.Model.Exception;
+using {{ domain_namespace }};
+
+namespace {{ implementation_namespace }}
+{
+    public class PostgresOpenDdd{{ aggregate_name }}Repository : PostgresOpenDddRepository<{{ aggregate_name }}, Guid>, I{{ aggregate_name }}Repository
+    {
+        private readonly ILogger<PostgresOpenDdd{{ aggregate_name }}Repository> _logger;
+
+        public PostgresOpenDdd{{ aggregate_name }}Repository(
+            PostgresDatabaseSession session,
+            IAggregateSerializer serializer,
+            ILogger<PostgresOpenDdd{{ aggregate_name }}Repository> logger)
+            : base(session, serializer)
+        {
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        }
+
+{% for method in custom_methods %}
+        public async Task{% if method.return_type %}<{{ method.return_type }}>{% endif %} {{ method.name }}({% for p in method.parameters %}{{ p.type }} {{ p.name }}, {% endfor %}CancellationToken ct)
+        {
+            throw new NotImplementedException();
+        }
+{% if not loop.last %}
+
+{% endif %}
+{% endfor %}
+    }
+}
