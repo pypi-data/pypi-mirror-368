@@ -1,0 +1,123 @@
+# spectroflat
+`spectroflat` is a Python based library to flat field spatially resolved spectro-polarimetric data.
+It allows for flat-field calibration data to be to obtained for diffraction-grating-based, long-slit
+solar spectrographs combined with temporally modulated polarimetry from high-resolution solar telescopes. 
+This approach is based on nominal flat-fielding procedures performed during the instrument’s science operations.
+
+The Python library can be plugged into existing Python-based data reduction pipelines or used as
+a standalone calibration tool. Our results demonstrate a suppression of fringes, sensor artifacts, 
+and fixed-pattern imprints in demodulated data by one order of magnitude. 
+For intensity images, the photon noise level can be closely attained after calibration.
+The data calibrated with the `spectroflat` method offer robust and precise inversion results and allow 
+for spectral image reconstruction.
+
+When using this library to reduce your data, please cite:
+Hoelken et al. "Spectroflat: A generic spectrum and flat-field calibration library for spectro-polarimetric data" 
+([DOI: 10.1051/0004-6361/202348877](https://doi.org/10.1051/0004-6361/202348877),
+[NASA ADS](https://ui.adsabs.harvard.edu/abs/2024A%26A...687A..22H/abstract))
+
+
+## Theoretical Background 
+Generally this is intended to be an extension of the
+"[Precise reduction of solar spectra obtained with large CCD arrays](https://www.aanda.org/articles/aa/pdf/2002/42/aa2154.pdf)"
+method, presented by Wöhl et al. (2002), to spectro-polarimetric instruments covering a large spectral field of view with many lines.
+
+### Original algorithm
+The spectroflat algorithm `1.X.X` is described and evaluated in 
+Hölken et al. (2023) "Spectroflat: A generic calibration library for spectro-polarimetric data". [see above]
+
+### Changes in `2.X.X`:
+The smile extraction can now be done iteratively (`default=2`, use `Config.iterations` to adjust).
+Usually, the residual offset correction is below 0.1 px in the second iteration.   
+Consequently, we removed the dust flat iteration, as now the first extraction yields correct results.
+
+- The property `gain_table` of the `Analyzer` class is now deprecated and replaced by `illumination_pattern`.
+- The property `pre_flat` of the `Analyzer` now exclusively holds the actual pre flat from the preparation step.
+  The dust flat is now stored in the  `dust_flat`property.
+
+## Input data 
+The input data must be calibrated for the camera zero-input response (dark current and bias level) and 
+relevant non-linearity effects. If each modulation state is to be corrected with its own set of calibration data 
+an average of all frames from the flat field recording belonging to each modulation state has to be provided. 
+
+Input data shall be provided as a `numpy` Array with dimensions modulation state, spatial location 
+along the spectrograph slit and wavelength position. 
+
+## Extracted Data
+After the successful execution of the `Analyzer` the following results are available.
+
+### Pre-Flat
+```python
+analyzer.pre_flat
+```
+
+The pre-flat is generated in the preparation step from fitting a polynomial along every column of the input data.
+It is a preliminary version of the dust flat (see below).
+
+### Dust-Flat
+```python
+analyzer.dust_flat
+```
+
+The dust-flat is a combination of the sensor and slit flat that 
+contains most of the "hard" flat field features.
+Most prominently the following is corrected:
+- Sensor features (e.g. column-to-column response patterns, dust on the sensor itself)
+- Slit features (e.g. dust on the slit resulting in line features in the spectral direction)
+- Fixed optical fringes and illumination impurities.
+
+The dust flat might be split in Sensor Flat and Slit Flat by the mean profile method applied along 
+the spectrograph slit dimension. 
+
+`spectroflat` provides a utility function separate the sensor- and slit-flat parts in the dust flat:
+`spectroflat.utils.ffing.split_sensor_slit_flat`. 
+It takes the dust-flat and the corrected rotation. The rotation value can either be taken from the header 
+of the offset map or the configuration. 
+
+### Smile offset map
+```python
+analyzer.offset_map
+```
+
+spectroflat characterizes the smile distortion by tracking the change of every spectral absorption or emission 
+line with respect to the reference profile generated from the central rows. The map list the offset each pixel 
+has, compared to that reference, with sub-pixel precision.  
+
+### Illumination pattern
+```python
+analyzer.illumination_pattern
+```
+
+Typically, the illumination patterns are in the 10−6 range and are not used.  
+This result is kept for compatibility with the approach of Wöhl et al. (2002).
+
+### PDF Report
+A report summary with relevant plots to inspect the quality of the extracted products. 
+
+## Technical Documentation
+
+**NOTE** This library expects the spacial domain on the vertical-axis and
+the spectral domain on the horizontal axis. 
+spectroflat does not include any file reading/writing routines and expects `numpy` arrays as input. 
+
+Please refer to the  [API Documentation](https://hoelken.pages.gwdg.de/spectroflat/doc/spectroflat/) for 
+implementation details. 
+Especially the entries on available 
+[Configuration](https://hoelken.pages.gwdg.de/spectroflat/doc/spectroflat/base/config.html) values 
+are of general interest. 
+
+The [`example.py`](example.py) script provides an usage example. 
+
+## Contact
+This code is developed and maintained at the Max Planck Institute for 
+Solar System Research (MPS) Göttingen.
+
+### Maintainer 
+- Johannes Hoelken ([hoelken@mps.mpg.de](mailto:hoelken@mps.mpg.de))
+
+### Contributions
+- Alex Feller 
+- Francisco Iglesias
+
+## License
+BSD clause-2, see [LICENSE](LICENSE)
