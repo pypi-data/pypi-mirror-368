@@ -1,0 +1,46 @@
+[package]
+name = "rusty-todo-md"
+version = "1.8.0"
+edition = "2021"
+
+description = "A multi-language TODO comment extractor for source code files."
+license = "MIT"
+homepage = "https://github.com/simone-viozzi/rusty-todo-md"
+repository = "https://github.com/simone-viozzi/rusty-todo-md"
+documentation = "https://github.com/simone-viozzi/rusty-todo-md"
+readme = "README.md"
+
+[dependencies]
+clap = { version = "4.5.27", features = ["derive"] }
+git2 = { version = "0.20", default-features = false, features = [
+    "vendored-openssl",
+    "vendored-libgit2",
+] }
+openssl = { version = "0.10", features = ["vendored"] }
+regex = "1.11.1"
+anstyle = "1.0.10"
+chrono = "0.4.39"
+env_logger = { version = "0.11.6", features = ["color"] }
+log = "0.4.25"
+pest = { version = "2.7.15", features = ["pretty-print"] }
+pest_derive = { version = "2.7.15", features = ["grammar-extras"] }
+
+[dev-dependencies]
+assert_cmd = "2.0.16"
+cargo-tarpaulin = "0.32.7"
+tempfile = "3.15.0"
+once_cell = "1.20.2"
+predicates = "3.1.3"
+
+[package.metadata.maturin]
+bindings = "bin"
+
+[package.metadata.release]
+tag-name = "v{{version}}"
+push = true
+
+pre-release-hook = ["./bump-version.sh"]
+
+[profile.dist]
+inherits = "release"
+lto = "thin"
