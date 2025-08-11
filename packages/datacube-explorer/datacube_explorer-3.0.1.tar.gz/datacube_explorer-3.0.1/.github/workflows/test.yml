@@ -1,0 +1,92 @@
+---
+name: Tests
+
+on:
+  pull_request:
+    paths:
+      - '**'
+
+  push:
+    branches:
+      - develop
+      - integrate_1.9
+    paths:
+      - '**'
+
+  release:
+    types:
+      - published
+  workflow_dispatch:
+
+env:
+  DOCKER_IMAGE: ghcr.io/opendatacube/explorer:tests
+
+permissions: {}
+
+# When a PR is updated, cancel the jobs from the previous version. Merges
+# do not define head_ref, so use run_id to never cancel those jobs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  integration-tests:
+    timeout-minutes: 55
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+
+      - name: Get Git commit timestamps
+        run: |
+          TIMESTAMP=$(git log -1 --pretty=%ct pyproject.toml uv.lock cubedash)
+          echo "TIMESTAMP=$TIMESTAMP" >> $GITHUB_ENV
+
+      - name: Build Docker
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          file: Dockerfile
+          context: .
+          build-args: |
+            ENVIRONMENT=test
+          tags: ${{ env.DOCKER_IMAGE }}
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+        env:
+          SOURCE_DATE_EPOCH: ${{ env.TIMESTAMP }}
+
+      - name: Run tests
+        run: |
+          export LOCAL_UID=$(id -u $USER)
+          export LOCAL_GID=$(id -g $USER)
+          make up-d
+          make create-test-db-docker
+          make test-docker
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5.4.3
+        with:
+          files: ./coverage.xml
+          disable_search: true
+          fail_ci_if_error: false
+          use_oidc: true
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@e92bafb6253dcd438e0484186d7669ea7a8ca1cc # v6.4.3
+
+      - name: Build Packages
+        run: |
+          uv build
+          uv tool run twine check dist/*
+
+      # Uses to OIDC identification between GitHub and PyPI
+      - name: Upload package to PyPI on GitHub Release
+        if: "github.repository_owner == 'opendatacube' && github.event.action == 'published'"
+        uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # v1.12.4
