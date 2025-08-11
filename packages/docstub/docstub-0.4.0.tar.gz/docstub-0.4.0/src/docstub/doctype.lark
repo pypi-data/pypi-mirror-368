@@ -1,0 +1,148 @@
+// Grammar defining the syntax for docstring type descriptions
+//
+// Reading and introduction order of rules starts at the top of the tree.
+//
+// Reference for Lark grammars:
+// https://lark-parser.readthedocs.io/en/latest/grammar.html
+
+
+?start: annotation_with_meta
+
+
+// The basic structure of a full docstring annotation as it comes after the
+// `name : `. It includes additional meta information that is optional and
+// currently ignored.
+?annotation_with_meta: type ("," optional_info)?
+
+
+// A type annotation. Can range from a simple qualified name to a complex
+// nested construct of types.
+?type: qualname
+    | union
+    | subscription
+    | natlang_literal
+    | natlang_container
+    | natlang_array
+
+
+// A qualified name which can contain multiple parts separated by a ".".
+// Optionally, "~." can be prefixed to abbreviate a leading part of the name.
+// Optionally, a qualname can be wrapped in the style of a reStructuredText
+// role [1], e.g, as used by Sphinx.
+// [1] https://docutils.sourceforge.io/docs/ref/rst/roles.html
+//
+qualname: (/~/ ".")? (NAME ".")* NAME
+    | (":" (NAME ":")? NAME ":")? "`" qualname "`" -> rst_role
+
+
+// An union of different types, joined either by "or" or "|".
+union: type (_OR type)+
+
+
+// Operator used in unions.
+_OR: "or" | "|"
+
+
+// An expression where an object is subscribed with "A[v, ...]".
+subscription: qualname "[" type ("," type)* ("," ELLIPSES)? "]"
+
+
+// Allow Python's ellipses object
+ELLIPSES: "..."
+
+
+// A natural language expression that combines one or multiple literals inside
+// curly braces `{l1, l2, ...}`
+natlang_literal: "{" literal_item ("," literal_item)* "}"
+
+
+// An single item in a literal expression (or `optional`). We must also allow
+// for qualified names, since a "class" or enum can be used as a literal too.
+?literal_item: ELLIPSES | STRING | SIGNED_NUMBER | qualname
+
+
+// Natural language forms of the subscription expression for containers.
+// These forms allow nesting with other expressions. But it's discouraged to do
+// so extensively to maintain readability.
+natlang_container: qualname "of" qualname _PLURAL_S?
+    | qualname "of" "(" type ")"
+    | _natlang_tuple
+    | _natlang_mapping
+
+
+// Indicate the plural version of a qualname by appending "(s)".
+// The negative lookbehind in this regex disallows whitespace directly in front
+// of this.
+_PLURAL_S: /(?<!\s)\(s\)/
+
+
+// Special behavior for tuples [1].
+// [1] https://typing.python.org/en/latest/spec/tuples.html#tuple-type-form
+_natlang_tuple: qualname "of" "(" type "," ELLIPSES ")"
+    | qualname "of" "(" type ("," type)+ ")"
+
+
+// Natural language container variant for mappings.
+_natlang_mapping: qualname "of" "{" type ":" type "}"
+
+
+// A natural language alternative to describe arrays with a dtype and shape.
+natlang_array: array_name "of dtype" dtype ("and shape" shape)?
+    | array_name "of shape" shape ("and dtype" dtype)?
+    | shape array_name ("of" dtype)?
+    | shape? array_name "of" dtype
+    | shape dtype array_name
+    | dtype array_name
+
+
+// Currently a bit of a hack. Since the `array_expression` is ambiguous, we
+// want to make sure it only works for real arrays. For now, we are using a
+// hack here, that only allows specific names in `array_name`. In the
+// transformer we alias this to qualname.
+//
+// TODO  figure out less hacky way & allow users to set other array names
+array_name: ARRAY_NAME
+ARRAY_NAME: "array" | "ndarray" | "array-like" | "array_like"
+
+
+// The dtype used in an array expression.
+?dtype: qualname | "(" union ")"
+
+
+// The shape used in an array expression. Possibly to liberal right now in
+// what it allows. Since there is currently no support to type the shape of
+// NumPy arrays, this information is dropped during the transformation.
+shape: "(" dim ",)"
+    | "(" leading_optional_dim? dim (("," dim | insert_optional_dim))* ")"
+    | INT "-"? "D"
+
+
+// Optional dimensions in a `shape` expression placed at the start,
+// e.g., `([3 ,] N)`.
+?leading_optional_dim: "[" dim ("," dim)* ",]"
+
+
+// Optional dimensions in a `shape` expression placed anywhere but the start,
+// e.g., `(A[, B], C[, D])`.
+?insert_optional_dim: "[," dim ("," dim)* "]"
+
+
+// Dimension can be a number, ellipses ('...') or a simple name. A simple name
+// can be bound to a specific number, e.g. `N=3`.
+?dim: INT | ELLIPSES | NAME ("=" INT)?
+
+
+// Optional meta information added after the docstring annotation, e.g.
+// "optional" or "in range (0, 10), default: 3". Information is dropped and not
+// used to generate stubs.
+optional_info: /[^\r\n]+/
+
+// A simple name. Can start with a number or character. Can be delimited by "_"
+// or "-" but not by ".".
+NAME: /[^\W\d][\w-]*/
+
+
+%import python (STRING)
+%import common (SIGNED_NUMBER, INT, WS_INLINE)
+
+%ignore WS_INLINE

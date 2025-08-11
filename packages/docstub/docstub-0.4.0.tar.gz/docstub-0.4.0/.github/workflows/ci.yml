@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Many color libraries just need this to be set to any value, but at least
+  # one distinguishes color depth, where "3" -> "256-bit color".
+  FORCE_COLOR: 3
+  MYPYPATH: ${{ github.workspace }}/stubs
+
+defaults:
+  run:
+    # Make sure that bash specific stuff works on Windows
+    shell: bash
+
+jobs:
+  lint:
+    name: pre-commit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: --hook-stage manual --all-files
+
+  test:
+    name: Test ${{ matrix.runs-on.short }}-py${{ matrix.python-version }}
+    runs-on: ${{ matrix.runs-on.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runs-on:
+          - { short: linux, name: ubuntu-latest }
+          - { short: win, name: windows-latest }
+          - { short: macos, name: macos-14 }
+        python-version: ["3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
+
+      - name: Install package
+        run: |
+          python -m pip install .[test]
+          python -m docstub --version
+          docstub --help
+
+      - name: Run pytest
+        run: >-
+          python -m pytest --showlocals -ra --cov --cov-report=term
+
+      # TODO upload coverage statistics, and fail on decrease?
+
+      - name: Compare example stubs
+        run: |
+          python -m docstub run -v \
+              --config=examples/docstub.toml \
+              --out-dir=examples/example_pkg-stubs \
+              examples/example_pkg
+          git diff --exit-code examples/ && echo "Stubs for example_pkg did not change"
+
+      - name: Generate stubs for docstub
+        run: |
+          python -m docstub run -v src/docstub -o ${MYPYPATH}/docstub
+
+      - name: Check with mypy.stubtest
+        run: |
+          python -m mypy.stubtest \
+            --mypy-config-file pyproject.toml \
+            --allowlist stubtest_allow.txt \
+            docstub
+
+      - name: Check tests/ with mypy
+        run: |
+          python -m mypy tests/
+
+      - name: Check tests/ with basedpyright
+        run: |
+          basedpyright tests/
