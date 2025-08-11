@@ -1,0 +1,102 @@
+// 🗄️ MySQL Workbench SQL Generator
+// Run this to get SQL commands you can copy-paste into MySQL Workbench
+
+print "🗄️ MySQL Workbench SQL Generator";
+print "=================================";
+
+print "\n📋 COPY AND PASTE THESE COMMANDS INTO MYSQL WORKBENCH:";
+print "======================================================";
+
+print "\n-- 1. Create Database";
+print "CREATE DATABASE IF NOT EXISTS novalang_app;";
+print "USE novalang_app;";
+
+print "\n-- 2. Create Users Table";
+print "CREATE TABLE IF NOT EXISTS users (";
+print "    id INT AUTO_INCREMENT PRIMARY KEY,";
+print "    name VARCHAR(100) NOT NULL,";
+print "    email VARCHAR(255) UNIQUE NOT NULL,";
+print "    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,";
+print "    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP";
+print ");";
+
+print "\n-- 3. Create Products Table";
+print "CREATE TABLE IF NOT EXISTS products (";
+print "    id INT AUTO_INCREMENT PRIMARY KEY,";
+print "    name VARCHAR(100) NOT NULL,";
+print "    price DECIMAL(10,2) NOT NULL,";
+print "    category VARCHAR(50),";
+print "    stock INT DEFAULT 0,";
+print "    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP";
+print ");";
+
+print "\n-- 4. Create Orders Table";
+print "CREATE TABLE IF NOT EXISTS orders (";
+print "    id INT AUTO_INCREMENT PRIMARY KEY,";
+print "    user_id INT,";
+print "    product_id INT,";
+print "    quantity INT NOT NULL,";
+print "    total DECIMAL(10,2) NOT NULL,";
+print "    status VARCHAR(20) DEFAULT 'pending',";
+print "    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,";
+print "    FOREIGN KEY (user_id) REFERENCES users(id),";
+print "    FOREIGN KEY (product_id) REFERENCES products(id)";
+print ");";
+
+print "\n-- 5. Insert Sample Data";
+print "INSERT INTO users (name, email) VALUES";
+print "    ('John Doe', 'john@company.com'),";
+print "    ('Jane Smith', 'jane@company.com'),";
+print "    ('Bob Wilson', 'bob@company.com');";
+
+print "\nINSERT INTO products (name, price, category, stock) VALUES";
+print "    ('Laptop Pro', 1299.99, 'Electronics', 10),";
+print "    ('Coffee Beans', 24.99, 'Food', 50),";
+print "    ('Wireless Mouse', 79.99, 'Electronics', 25),";
+print "    ('Desk Chair', 199.99, 'Furniture', 15);";
+
+print "\nINSERT INTO orders (user_id, product_id, quantity, total, status) VALUES";
+print "    (1, 1, 1, 1299.99, 'completed'),";
+print "    (2, 2, 2, 49.98, 'pending'),";
+print "    (1, 3, 1, 79.99, 'shipped'),";
+print "    (3, 4, 1, 199.99, 'pending');";
+
+print "\n-- 6. Verify Data";
+print "SELECT 'Users' as Table_Name, COUNT(*) as Record_Count FROM users";
+print "UNION ALL";
+print "SELECT 'Products', COUNT(*) FROM products";
+print "UNION ALL";
+print "SELECT 'Orders', COUNT(*) FROM orders;";
+
+print "\n-- 7. Sample Queries";
+print "-- Get all users with their orders";
+print "SELECT u.name, u.email, o.id as order_id, o.total, o.status";
+print "FROM users u";
+print "LEFT JOIN orders o ON u.id = o.user_id";
+print "ORDER BY u.name;";
+
+print "\n-- Get products by category";
+print "SELECT category, COUNT(*) as product_count, AVG(price) as avg_price";
+print "FROM products";
+print "GROUP BY category;";
+
+print "\n✨ INSTRUCTIONS:";
+print "================";
+print "1. Open MySQL Workbench";
+print "2. Connect to your local MySQL server";
+print "3. Copy the SQL commands above";
+print "4. Paste them into a new SQL tab";
+print "5. Execute the commands (Ctrl+Shift+Enter)";
+print "6. Refresh the schemas to see your new database!";
+
+print "\n🎯 Your database 'novalang_app' will be created with:";
+print "   📋 users table (3 sample users)";
+print "   📦 products table (4 sample products)";
+print "   🛒 orders table (4 sample orders)";
+print "   🔗 Foreign key relationships";
+
+print "\n🚀 After creating the database, you can:";
+print "   • View data in MySQL Workbench";
+print "   • Run queries to test relationships";
+print "   • Add more data manually";
+print "   • Use the NovaLang backend to simulate operations";

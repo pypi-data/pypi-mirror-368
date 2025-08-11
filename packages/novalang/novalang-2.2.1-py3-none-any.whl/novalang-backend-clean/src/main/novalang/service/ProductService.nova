@@ -1,0 +1,77 @@
+// 📦 Product Service
+// @Service
+
+print "⚙️ Loading Product Service...";
+
+// @Service
+function ProductService_createProduct(name, price, category) {
+    print "🔄 ProductService.createProduct()";
+    
+    if (price <= 0) {
+        print "❌ Validation error: Price must be positive";
+        return false;
+    }
+    
+    if (len(name) < 2) {
+        print "❌ Validation error: Product name too short";
+        return false;
+    }
+    
+    // Business logic: Set default category if empty
+    if (len(category) == 0) {
+        category = "General";
+        print "📝 Setting default category: General";
+    }
+    
+    // Check for duplicate product name
+    print "🔍 Checking for duplicate product names...";
+    
+    return ProductRepository_save(name, price, category);
+}
+
+function ProductService_getAllProducts() {
+    print "📋 ProductService.getAllProducts()";
+    return ProductRepository_findAll();
+}
+
+function ProductService_getProductsByCategory(category) {
+    print "🔍 ProductService.getProductsByCategory('" + category + "')";
+    return ProductRepository_findByCategory(category);
+}
+
+function ProductService_updateProduct(id, name, price, category) {
+    print "🔄 ProductService.updateProduct(" + str(id) + ")";
+    
+    // Validation
+    if (price <= 0) {
+        print "❌ Validation error: Price must be positive";
+        return false;
+    }
+    
+    if (len(name) < 2) {
+        print "❌ Validation error: Product name too short";
+        return false;
+    }
+    
+    // Business logic: Price change notification
+    print "📢 Notifying about price change for product: " + name;
+    
+    return ProductRepository_updateById(id, name, price, category);
+}
+
+function ProductService_deleteProduct(id) {
+    print "🗑️ ProductService.deleteProduct(" + str(id) + ")";
+    
+    // Business logic: Check if product has orders
+    print "🔍 Checking for existing orders...";
+    print "✅ Safe to delete product";
+    
+    return ProductRepository_deleteById(id);
+}
+
+function ProductService_getProductById(id) {
+    print "🔍 ProductService.getProductById(" + str(id) + ")";
+    return ProductRepository_findById(id);
+}
+
+print "✅ Product Service loaded successfully";

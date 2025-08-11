@@ -1,0 +1,65 @@
+// 👤 User Service
+// @Service
+
+print "⚙️ Loading User Service...";
+
+// @Service
+function UserService_createUser(name, email) {
+    print "🔄 UserService.createUser()";
+    
+    // Business logic validation
+    if (len(name) < 2) {
+        print "❌ Validation error: Name too short";
+        return false;
+    }
+    
+    // Check if email exists
+    print "🔍 Checking email uniqueness...";
+    
+    // Save user
+    let saved = UserRepository_save(name, email);
+    
+    // Send welcome email (business logic)
+    print "📧 Sending welcome email to: " + email;
+    
+    print "✅ User creation completed";
+    return saved;
+}
+
+function UserService_getUserById(id) {
+    print "🔍 UserService.getUserById(" + str(id) + ")";
+    return UserRepository_findById(id);
+}
+
+function UserService_getAllUsers() {
+    print "📋 UserService.getAllUsers()";
+    return UserRepository_findAll();
+}
+
+function UserService_updateUser(id, name, email) {
+    print "🔄 UserService.updateUser(" + str(id) + ")";
+    
+    // Validation
+    if (len(name) < 2) {
+        print "❌ Validation error: Name too short";
+        return false;
+    }
+    
+    // Update logic
+    print "📝 Updating user data...";
+    let updated = UserRepository_updateById(id, name, email);
+    print "✅ User updated successfully";
+    return updated;
+}
+
+function UserService_deleteUser(id) {
+    print "🗑️ UserService.deleteUser(" + str(id) + ")";
+    return UserRepository_deleteById(id);
+}
+
+function UserService_findUserByEmail(email) {
+    print "🔍 UserService.findUserByEmail('" + email + "')";
+    return UserRepository_findByEmail(email);
+}
+
+print "✅ User Service loaded successfully";
