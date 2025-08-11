@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+
+#
+# DATABRICKS CONFIDENTIAL & PROPRIETARY
+# __________________
+#
+# Copyright 2019 Databricks, Inc.
+# All Rights Reserved.
+#
+# NOTICE:  All information contained herein is, and remains the property of Databricks, Inc.
+# and its suppliers, if any.  The intellectual and technical concepts contained herein are
+# proprietary to Databricks, Inc. and its suppliers and may be covered by U.S. and foreign Patents,
+# patents in process, and are protected by trade secret and/or copyright law. Dissemination, use,
+# or reproduction of this information is strictly forbidden unless prior written permission is
+# obtained from Databricks, Inc.
+#
+# If you view or obtain a copy of this information and believe Databricks, Inc. may not have
+# intended it to be made available, please promptly report it to Databricks Legal Department
+# @ legal@databricks.com.
+#
+
+# Shell script for starting the Spark Shell REPL using Bazel, including building the photon library.
+# Note that you still need to set the spark.databricks.photon.enabled config to enable photon.
+
+set -euo pipefail
+
+REPL_TARGET=//repl:repl-hive-2.3__hadoop-3.2_2.12
+HIVE_UNSHADED_TARGET=//sql/hive:hive-unshaded-hive-2.3__hadoop-3.2_2.12
+PHOTON_TARGET=//photon:lib-photon.so
+AETHER_TARGET=//aether:aether
+BAZEL_CMD=(bazel build --aspects=@universe//bazel/rules/scala/scala:classpath.bzl%classpath --output_groups=+runtimeclasspath)
+CONFIG="${CONFIG:-debug}"
+
+if [ "$CONFIG" == "release" ]; then
+  echo "Building with --config release"
+  "${BAZEL_CMD[@]}" "${REPL_TARGET}" "${HIVE_UNSHADED_TARGET}" "${PHOTON_TARGET}" "${AETHER_TARGET}" --config release
+elif [ "$CONFIG" == "asan" ]; then
+  echo "Building with --config asan"
+  ASAN_RUNTIME=$(bazel cquery --config asan 'deps(//photon:lib-photon.so)' | grep libclang_rt.asan-x86_64.so | sed -e 's,//:, ,g' -e 's/@//g' -e 's, ,\t,g')
+  LLVM_TOOLCHAIN=$(echo "$ASAN_RUNTIME" | cut -f1)
+  ASAN_SO=$(echo "$ASAN_RUNTIME" | cut -f2)
+  LLVM_PATH=$(bazel info execution_root)/external/${LLVM_TOOLCHAIN}
+  export ASAN_OPTIONS="detect_leaks=0"
+  export ASAN_SYMBOLIZER_PATH="${LLVM_PATH}/bin/llvm-symbolizer"
+  export LD_PRELOAD="${LLVM_PATH}/${ASAN_SO}"
+  "${BAZEL_CMD[@]}" "${REPL_TARGET}" "${HIVE_UNSHADED_TARGET}" "${PHOTON_TARGET}" "${AETHER_TARGET}" --config asan
+else
+  echo "Building with --config debug"
+  "${BAZEL_CMD[@]}" "${REPL_TARGET}" "${HIVE_UNSHADED_TARGET}" "${PHOTON_TARGET}" "${AETHER_TARGET}" --config debug
+fi
+
+RUNTIME_CLASSPATH_FILES=(bazel-bin/sql/hive/hive-unshaded-hive-2.3__hadoop-3.2_2.12.runtime.classpath.txt)
+RUNTIME_CLASSPATH_FILES+=(bazel-bin/repl/repl-hive-2.3__hadoop-3.2_2.12.runtime.classpath.txt)
+RUNTIME_CLASSPATH_FILES+=(bazel-bin/aether/aether-hive-2.3__hadoop-3.2_2.12.runtime.classpath.txt)
+
+export BAZEL_SPARK_SUBMIT="$(cat ${RUNTIME_CLASSPATH_FILES[@]} | sort | uniq | tr '\n' ':')"
+GIT_ROOT="$(git rev-parse --show-toplevel)"
+
+"$GIT_ROOT/bin/spark-shell" "$@"
