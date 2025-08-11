@@ -1,0 +1,153 @@
+syntax = "proto3";
+
+package agent;
+
+// Core agent service definition
+service AgentService {
+  // Core agent operations
+  rpc Initialize(InitializeRequest) returns (InitializeResponse);
+  rpc Execute(ExecuteRequest) returns (ExecuteResponse);
+  rpc HealthCheck(HealthRequest) returns (HealthResponse);
+  rpc GetCapabilities(GetCapabilitiesRequest) returns (GetCapabilitiesResponse);
+  rpc GetMetadata(GetMetadataRequest) returns (GetMetadataResponse);
+  
+  // Capability-specific operations
+  rpc TextGeneration(TextRequest) returns (TextResponse);
+  rpc SentimentAnalysis(SentimentRequest) returns (SentimentResponse);
+  rpc ImageGeneration(ImageRequest) returns (ImageResponse);
+  rpc CodeGeneration(CodeRequest) returns (CodeResponse);
+  rpc DataAnalysis(DataRequest) returns (DataResponse);
+}
+
+// Core request/response messages
+message InitializeRequest {
+  map<string, string> config = 1;
+}
+
+message InitializeResponse {
+  bool success = 1;
+  string message = 2;
+  map<string, string> metadata = 3;
+}
+
+message ExecuteRequest {
+  string capability = 1;
+  bytes input_data = 2;
+  map<string, string> parameters = 3;
+  string request_id = 4;
+}
+
+message ExecuteResponse {
+  bool success = 1;
+  bytes output_data = 2;
+  string error_message = 3;
+  map<string, string> metadata = 4;
+  string request_id = 5;
+  int64 execution_time_ms = 6;
+}
+
+message HealthRequest {
+  string check_type = 1;  // "liveness", "readiness", "startup"
+}
+
+message HealthResponse {
+  string status = 1;  // "SERVING", "NOT_SERVING", "SERVICE_UNKNOWN"
+  string message = 2;
+  map<string, string> details = 3;
+}
+
+message GetCapabilitiesRequest {}
+
+message GetCapabilitiesResponse {
+  repeated Capability capabilities = 1;
+}
+
+message GetMetadataRequest {}
+
+message GetMetadataResponse {
+  AgentMetadata metadata = 1;
+}
+
+// Capability-specific messages
+message TextRequest {
+  string prompt = 1;
+  map<string, string> parameters = 2;
+  string model = 3;
+}
+
+message TextResponse {
+  string generated_text = 1;
+  map<string, string> metadata = 2;
+  float confidence = 3;
+}
+
+message SentimentRequest {
+  string text = 1;
+  string model = 2;
+}
+
+message SentimentResponse {
+  string sentiment = 1;  // "positive", "negative", "neutral"
+  float confidence = 2;
+  map<string, float> scores = 3;
+}
+
+message ImageRequest {
+  string prompt = 1;
+  int32 width = 2;
+  int32 height = 3;
+  string model = 4;
+}
+
+message ImageResponse {
+  bytes image_data = 1;
+  string format = 2;  // "png", "jpeg", "webp"
+  map<string, string> metadata = 3;
+}
+
+message CodeRequest {
+  string prompt = 1;
+  string language = 2;
+  string framework = 3;
+}
+
+message CodeResponse {
+  string generated_code = 1;
+  string language = 2;
+  map<string, string> metadata = 3;
+}
+
+message DataRequest {
+  bytes input_data = 1;
+  string analysis_type = 2;  // "classification", "regression", "clustering"
+  map<string, string> parameters = 3;
+}
+
+message DataResponse {
+  bytes result_data = 1;
+  string format = 2;  // "json", "csv", "pickle"
+  map<string, string> metadata = 3;
+}
+
+// Supporting message types
+message Capability {
+  string name = 1;
+  string description = 2;
+  string version = 3;
+  map<string, string> parameters = 4;
+  repeated string input_formats = 5;
+  repeated string output_formats = 6;
+}
+
+message AgentMetadata {
+  string name = 1;
+  string version = 2;
+  string description = 3;
+  string author = 4;
+  repeated string tags = 5;
+  string runtime = 6;
+  string base_image = 7;
+  repeated int32 ports = 8;
+  map<string, string> environment = 9;
+  repeated Capability capabilities = 10;
+} 
