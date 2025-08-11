@@ -1,0 +1,113 @@
+Metadata-Version: 2.4
+Name: automatic-goggles
+Version: 0.1.0
+Summary: A package for extracting structured fields from call transcripts with confidence scores
+Home-page: https://github.com/ashishorkalra/automatic-goggles
+Author: Ashish Kalra
+Author-email: Ashish Kalra <ashish.kalra@example.com>
+License: MIT
+Project-URL: Homepage, https://github.com/ashishorkalra/automatic-goggles
+Project-URL: Repository, https://github.com/ashishorkalra/automatic-goggles
+Project-URL: Documentation, https://github.com/ashishorkalra/automatic-goggles#readme
+Project-URL: Bug Reports, https://github.com/ashishorkalra/automatic-goggles/issues
+Keywords: transcript,processing,field extraction,AI,natural language processing
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: dspy==2.6.8
+Requires-Dist: openai>=1.0.0
+Requires-Dist: pydantic>=2.0.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0.0; extra == "dev"
+Dynamic: author
+Dynamic: home-page
+Dynamic: license-file
+Dynamic: requires-python
+
+# Automatic Goggles
+
+A Python package for extracting structured fields from call transcripts with confidence scores using DSPy and OpenAI's language models.
+
+## Features
+
+- Extract structured fields from conversation transcripts
+- Get confidence scores for extracted data using log probabilities
+- Support for multiple field types (currently supports string fields)
+- Easy integration with OpenAI API
+- Similar functionality to RetellAI post-call processing
+
+## Installation
+
+```bash
+pip install automatic-goggles
+```
+
+## Quick Start
+
+```python
+from transtype import TranscriptProcessor
+
+# Initialize the processor with your OpenAI API key
+processor = TranscriptProcessor(api_key="your-openai-api-key")
+
+# Define your input data
+data = {
+    "messages": [
+        {
+            "role": "assistant",
+            "content": "Hi, this is Marcus, I'm a customer service representative with TechFlow Solutions in Downtown Seattle."
+        },
+        {
+            "role": "user", 
+            "content": "I need to discuss my account billing issues."
+        }
+    ],
+    "fields": [
+        {
+            "field_name": "representative_name",
+            "field_type": "string",
+            "format_example": "Sarah Chen"
+        }
+    ]
+}
+
+# Process the transcript
+result = processor.process(data)
+print(result)
+```
+
+## Output Format
+
+```json
+{
+    "fields": [
+        {
+            "field_name": "representative_name",
+            "field_value": "Marcus",
+            "field_confidence": 0.95,
+            "field_reason": "Representative introduced himself as 'Marcus' at the beginning of the conversation"
+        }
+    ]
+}
+```
+
+## Requirements
+
+- Python 3.8+
+- OpenAI API key
+
+## License
+
+MIT License
