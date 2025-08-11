@@ -1,0 +1,61 @@
+{% extends 'app_kit/manage_generic_content.html' %}
+{% load i18n static localcosmos_tags %}
+
+{% block extra_head_script %}
+	<script src="{% static 'template_content/ckeditor5-build-classic/ckeditor.js' %}"></script>
+{% endblock%}
+
+{% block content_title %}
+	<br>
+	<h3>
+		<span id="generic-content-name">{{ generic_content }}</span>
+		{% if generic_content.is_locked %}
+		{% else %}
+			<small>
+				<div class="btn-group">
+					<button type="button" class="btn btn-xs btn-outline-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+						{% trans 'Modify' %}
+					</button>
+					<div class="dropdown-menu">
+						<a class="dropdown-item xhr" data-url="{% url 'change_frontend' meta_app.id generic_content.id %}" ajax-target="ModalContent">{% trans 'change frontend' %}</a>
+					</div>
+				</div>
+				{% block badges %}
+					<span class="badge badge-info">version {{ generic_content.current_version }}</span>
+				{% endblock %}
+			</small>
+		{% endif %}
+	</h3>
+
+	<hr>
+{% endblock %}
+
+{% block generic_content_specific %}
+	<div class="my-4">
+		<div>
+			{% blocktrans %}You are currently using the following frontend:{% endblocktrans %} <b>{{ generic_content.frontend_name }}, version {{ preview_build_settings.version }} </b>
+		</div>
+		{% if new_frontend_version_available %}
+			<div class="my-2 alert alert-info">
+				{% blocktrans with frontend_name=generic_content.frontend_name new_frontend_version=frontend_settings.version %}There is a new version available for the Frontend {{ frontend_name }}: <b>{{ new_frontend_version }}</b>{% endblocktrans %}
+			</div>
+			<div>
+				<a href="{% url 'update_used_frontend' meta_app.id frontend.id %}" class="xhr btn btn-outline-primary" ajax-target="ModalContent">{% trans 'Update Frontend' %}</a>
+			</div>
+		{% endif %}
+	</div>
+	<div>
+		{% with form=frontend_settings_form %}
+			{% include 'frontend/ajax/manage_frontend_settings.html' %}
+		{% endwith %}
+	</div>
+
+{% endblock %}
+
+{% block extra_script %}
+	<script>
+		{% with form=frontend_settings_form %}
+			{% include 'app_kit/snippets/ckeditor_js_snippet.html' %}
+		{% endwith %}
+	</script>
+{% endblock %}
