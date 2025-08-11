@@ -1,0 +1,1363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PromptLab</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f7fa;
+            color: #2c3e50;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+            background-color: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th, td {
+            border: 1px solid #edf2f7;
+            padding: 12px 15px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #34495e;
+            color: white;
+            font-weight: 500;
+            text-transform: uppercase;
+            font-size: 0.9em;
+        }
+
+        tr:hover {
+            background-color: #f8fafc;
+        }
+
+        #compareBtn, #backBtn {
+            margin: 20px 0;
+            padding: 12px 24px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background-color 0.3s ease;
+        }
+
+        #compareBtn:hover, #backBtn:hover {
+            background-color: #2980b9;
+        }
+
+        #compareBtn:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+
+        #comparisonTable {
+            display: none;
+        }
+
+        .evaluation-cell {
+            max-width: 300px;
+            overflow-wrap: break-word;
+        }
+
+        input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #3498db;
+        }
+
+        #experimentTable tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+
+        /* Comparison table specific styles */
+        #comparisonTable tr[data-alternate="true"] {
+            background-color: #edf2f7;
+        }
+
+        #comparisonTable tr[data-alternate="false"] {
+            background-color: white;
+        }
+
+        /* Add these styles after the existing styles */
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .left-menu {
+            width: 200px;
+            background-color: #34495e;
+            padding: 20px 0;
+            color: white;
+        }
+
+        .left-menu ul {
+            list-style: none;
+            padding: 20px 0 0 0; /* Added top padding */
+            margin: 0;
+        }
+
+        .left-menu li {
+            padding: 12px 24px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .left-menu li:hover {
+            background-color: #2c3e50;
+        }
+
+        .left-menu li.active {
+            background-color: #2980b9;
+        }
+
+        .content-area {
+            flex: 1;
+            padding: 20px;
+        }
+
+        #assetContent {
+            display: none;
+        }
+
+        /* Add these new styles before the closing style tag */
+        .container.nav-collapsed .left-menu {
+            width: 50px;
+            overflow: hidden;
+        }
+
+        .container.nav-collapsed .left-menu span {
+            display: none;
+        }
+
+        .nav-toggle {
+            position: absolute;
+            top: 10px; /* Changed from 20px to 10px */
+            left: 170px;
+            background: #2c3e50;
+            border: none;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: left 0.3s ease;
+        }
+
+        .container.nav-collapsed .nav-toggle {
+            left: 20px;
+        }
+
+        .left-menu {
+            position: relative;
+            transition: width 0.3s ease;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .menu-icon {
+            font-size: 16px;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        #promptTemplateContent {
+            display: none;
+        }
+
+        #datasetContent {
+            display: none;
+        }
+
+        .deployed-row {
+            background-color: #e8f5e9 !important; /* Light green background */
+        }
+        
+        .deployed-row:hover {
+            background-color: #c8e6c9 !important; /* Slightly darker green on hover */
+        }
+
+        .column-filter {
+            margin: 0; /* Remove margins */
+            position: relative;
+            width: 300px;
+        }
+
+        .column-filter-header {
+            padding: 10px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .column-filter-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-top: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+            z-index: 1000;
+        }
+
+        .column-filter-option {
+            padding: 8px 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        .column-filter-option:hover {
+            background-color: #f5f5f5;
+        }
+
+        .column-filter.active .column-filter-dropdown {
+            display: block;
+        }
+
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0;
+        }
+
+        .filter-container {
+            display: none;
+            margin-bottom: 0; /* Remove bottom margin */
+        }
+
+        /* Update back button styles to work in the new layout */
+        #backBtn {
+            margin: 0; /* Remove margins */
+            display: none; /* Initially hidden */
+
+        }
+
+        #popupOverlay {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0; top: 0; right: 0; bottom: 0;
+            background: rgba(44, 62, 80, 0.7);
+            align-items: center;
+            justify-content: center;
+        }
+        #popupOverlay .popup-content {
+            background: #fff;
+            border-radius: 8px;
+            padding: 32px 24px 24px 24px;
+            max-width: 700px;
+            width: 90vw;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 4px 32px rgba(44,62,80,0.2);
+        }
+        #popupOverlay .close-popup {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            background: none;
+            border: none;
+            font-size: 2rem;
+            color: #34495e;
+            cursor: pointer;
+        }
+        #popupOverlay .popup-text {
+            white-space: pre-wrap;
+            font-family: inherit;
+            font-size: 1rem;
+            color: #2c3e50;
+            margin-top: 16px;
+        }
+        .see-more-link {
+            color: #2980b9;
+            cursor: pointer;
+            text-decoration: underline;
+            font-size: 0.95em;
+
+        }
+
+        /* Login form styles */
+        #loginContainer {
+            display: none;
+            max-width: 400px;
+            margin: 60px auto;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(44,62,80,0.08);
+            padding: 32px 24px;
+        }
+
+        #loginContainer h2 {
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        #loginContainer label {
+            display: block;
+            margin-bottom: 6px;
+            color: #34495e;
+        }
+
+        #loginContainer input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-bottom: 18px;
+        }
+
+        #loginContainer button {
+            width: 100%;
+            padding: 12px;
+            background: #3498db;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        #loginError {
+            color: #e74c3c;
+            margin-top: 12px;
+            display: none;
+        }
+
+        #logoutBtn {
+            position: fixed;
+            top: 24px;
+            right: 36px;
+            padding: 8px 18px;
+            background: #e74c3c;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 2000;
+            display: none;
+        }
+
+        /* Profile menu styles */
+        #profileMenu {
+            position: fixed;
+            top: 24px;
+            right: 36px;
+            z-index: 2100;
+        }
+
+        #profileIcon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #2980b9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(44,62,80,0.08);
+        }
+
+        #profileDropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 44px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(44,62,80,0.12);
+            min-width: 180px;
+        }
+
+        .profile-option {
+            padding: 12px 18px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+
+        .profile-option:last-child {
+            border-bottom: none;
+        }
+
+        .profile-username {
+            padding: 12px 18px;
+            border-bottom: 1px solid #eee;
+            font-weight: 600;
+            color: #2c3e50;
+            background-color: #f8fafc;
+        }
+
+        /* Token modal styles */
+        #tokenModal {
+            display: none;
+            position: fixed;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(44,62,80,0.7);
+            z-index: 3000;
+        }
+
+        #tokenModal .modal-content {
+            background: #fff;
+            border-radius: 8px;
+            max-width: 600px;
+            width: 90vw;
+            margin: 80px auto;
+            padding: 32px 24px;
+            position: relative;
+            box-shadow: 0 4px 32px rgba(44,62,80,0.2);
+        }
+
+        #tokenModal .close-modal {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            background: none;
+            border: none;
+            font-size: 2rem;
+            color: #34495e;
+            cursor: pointer;
+        }
+
+        #tokenModal pre {
+            white-space: pre-wrap;
+            word-break: break-all;
+            background: #f5f7fa;
+            padding: 16px;
+            border-radius: 6px;
+            font-size: 0.95em;
+            max-height: 300px;
+            overflow: auto;
+        }
+    </style>
+</head>
+<body>
+    <div id="loginContainer">
+        <h2>PromptLab</h2>
+        <form id="loginForm">
+            <div>
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div>
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit">Login</button>
+            <div id="loginError"></div>
+        </form>
+    </div>
+    <div class="container" id="mainApp">
+        <nav class="left-menu">
+            <button class="nav-toggle" title="Toggle menu">☰</button>
+            <ul>
+                <li class="active" data-content="experimentContent">
+                    <div class="menu-item">
+                        <i class="menu-icon">📊</i>
+                        <span>Experiment</span>
+                    </div>
+                </li>
+                <li data-content="promptTemplateContent">
+                    <div class="menu-item">
+                        <i class="menu-icon">📝</i>
+                        <span>Prompt Template</span>
+                    </div>
+                </li>
+                <li data-content="datasetContent">
+                    <div class="menu-item">
+                        <i class="menu-icon">📂</i>
+                        <span>Dataset</span>
+                    </div>
+                </li>
+            </ul>
+        </nav>
+        
+        <div id="profileMenu">
+            <div id="profileIcon" title="Profile">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 12C14.7614 12 17 9.76142 17 7C17 4.23858 14.7614 2 12 2C9.23858 2 7 4.23858 7 7C7 9.76142 9.23858 12 12 12Z" fill="white"/>
+                    <path d="M12 14C7.58172 14 4 17.5817 4 22H20C20 17.5817 16.4183 14 12 14Z" fill="white"/>
+                </svg>
+            </div>
+            <div id="profileDropdown">
+                <div class="profile-username" id="profileUsername">User</div>
+                <div class="profile-option" id="showTokenOption">Auth Token</div>
+                <div class="profile-option" id="logoutOption">Logout</div>
+            </div>
+        </div>
+        
+        <main class="content-area">
+            <div id="experimentContent">
+                <h1>PromptLab</h1>
+                <div class="action-bar">
+                    <div>
+                        <button id="compareBtn" disabled>Compare</button>
+                        <button id="backBtn">Back</button>
+                    </div>
+                    <div id="filterContainer" class="filter-container">
+                        <div class="column-filter">
+                            <div class="column-filter-header">
+                                <span>Select columns to display</span>
+                                <span>▼</span>
+                            </div>
+                            <div class="column-filter-dropdown"></div>
+                        </div>
+                    </div>
+                </div>
+                <table id="experimentTable">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="selectAll"></th>
+                            <th>Experiment ID</th>
+                            <th>Completion Model</th>
+                            <th>Embedding Model</th>
+                            <th>Prompt Template</th>
+                            <th>Prompt Template Version</th>
+                            <th>Dataset</th>
+                            <th>Dataset Version</th>
+                            <th>System Prompt</th>
+                            <th>User Prompt</th>
+                            <th>User ID</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+
+                <table id="comparisonTable">
+                    <thead>
+                        <tr>
+                            <th>Experiment ID</th>
+                            <th>Dataset Record ID</th>
+                            <th>Completion</th>
+                            <th>Completion Tokens</th>
+                            <th>Prompt Tokens</th>
+                            <th>Latency (ms)</th>
+                            <th>ragas-SemanticSimilarity</th>
+                            <th>ragas-RougeScore</th>
+                        </tr>
+                    </thead>
+                    <tbody id="comparisonTableBody"></tbody>
+                </table>
+            </div>
+
+            <div id="promptTemplateContent">
+                <h1>Prompt Templates</h1>
+                <table id="promptTemplateTable">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Version</th>
+                            <th>Created At</th>
+                            <th>System Prompt</th>
+                            <th>User Prompt</th>
+                            <th>Deployment Time</th>
+                            <th>Is Deployed</th>
+                            <th>User ID</th>
+                        </tr>
+                    </thead>
+                    <tbody id="promptTemplateTableBody"></tbody>
+                </table>
+            </div>
+
+            <div id="assetContent">
+                <h1>Assets</h1>
+                <p>Asset management content will go here.</p>
+            </div>
+            
+            <div id="datasetContent">
+                <h1>Datasets</h1>
+                <table id="datasetTable">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Version</th>
+                            <th>Created At</th>
+                            <th>File Path</th>
+                            <th>User ID</th>
+                        </tr>
+                    </thead>
+                    <tbody id="datasetTableBody"></tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- JWT Token Modal -->
+    <div id="tokenModal" style="display:none;position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(44,62,80,0.7);z-index:3000;">
+        <div class="modal-content" style="background:#fff;border-radius:8px;max-width:600px;width:90vw;margin:80px auto;padding:32px 24px;position:relative;box-shadow:0 4px 32px rgba(44,62,80,0.2);">
+            <button id="closeTokenModal" class="close-modal" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:2rem;color:#34495e;cursor:pointer;">&times;</button>
+            <h2 style="margin-top:0;">Your Auth Token</h2>
+            <pre id="jwtTokenText" style="white-space:pre-wrap;word-break:break-all;background:#f5f7fa;padding:16px;border-radius:6px;font-size:0.95em;max-height:300px;overflow:auto;"></pre>
+        </div>
+    </div>
+
+    <script>
+        // --- AUTH LOGIC ---
+        function isLoggedIn() {
+            return !!localStorage.getItem('access_token');
+        }
+        function parseJwt(token) {
+            if (!token) return null;
+            const base64Url = token.split('.')[1];
+            if (!base64Url) return null;
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            return JSON.parse(jsonPayload);
+        }
+        function getUserRole() {
+            const token = localStorage.getItem('access_token');
+            const payload = parseJwt(token);
+            return payload && payload.role ? payload.role : null;
+        }
+        function getUsername() {
+            const token = localStorage.getItem('access_token');
+            const payload = parseJwt(token);
+            return payload && payload.sub ? payload.sub : 'User';
+        }
+        function showLogin() {
+            document.getElementById('loginContainer').style.display = 'block';
+            document.getElementById('mainApp').style.display = 'none';
+        }
+        function showApp() {
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'flex';
+            
+            // Update profile username
+            const username = getUsername();
+            const profileUsernameElement = document.getElementById('profileUsername');
+            if (profileUsernameElement) {
+                profileUsernameElement.textContent = username;
+            }
+            
+            // document.getElementById('logoutBtn').style.display = 'block';
+            // Show/hide Admin tab
+            const role = getUserRole();
+            const adminTab = document.getElementById('adminTab');
+            if (role === 'admin') {
+                if (!adminTab) {
+                    const li = document.createElement('li');
+                    li.id = 'adminTab';
+                    li.dataset.content = 'adminContent';
+                    li.innerHTML = `<div class="menu-item"><i class="menu-icon">🔒</i><span>Admin</span></div>`;
+                    document.querySelector('.left-menu ul').appendChild(li);
+                    li.addEventListener('click', () => {
+                        showTab('adminContent');
+                    });
+                } else {
+                    adminTab.style.display = '';
+                }
+                var adminContent = document.getElementById('adminContent');
+                if (adminContent) adminContent.style.display = 'none'; // Hide by default
+            } else if (adminTab) {
+                adminTab.style.display = 'none';
+            }
+        }
+        function logout() {
+            localStorage.removeItem('access_token');
+            showLogin();
+        }
+        // document.getElementById('logoutBtn').addEventListener('click', logout);
+
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('loginError');
+            errorDiv.style.display = 'none';
+            try {
+                const currentPort = window.location.port || '8000';
+                const apiUrl = `http://${window.location.hostname}:${currentPort}/api/login`;
+                const resp = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    localStorage.setItem('access_token', data.access_token);
+                    showApp();
+                    location.reload();
+                } else {
+                    errorDiv.textContent = data.message || 'Login failed';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (err) {
+                errorDiv.textContent = 'Login error';
+                errorDiv.style.display = 'block';
+            }
+        });
+        // On load, show login or app
+        if (isLoggedIn()) {
+            showApp();
+        } else {
+            showLogin();
+        }
+
+        document.querySelector('.nav-toggle').addEventListener('click', () => {
+            document.querySelector('.container').classList.toggle('nav-collapsed');
+        });
+
+        let experimentsData = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const currentPort = window.location.port || '8000'; // default to 8000 if no port
+                const apiUrl = `http://${window.location.hostname}:${currentPort}/api/experiments`;
+                const token = localStorage.getItem('access_token');
+                const response = await fetch(apiUrl, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                experimentsData = await response.json();
+                
+                // Get unique experiments based on experiment_id
+                const uniqueExperiments = Array.from(
+                    new Map(experimentsData.experiments.map(item => [item.experiment_id, item]))
+                    .values()
+                );
+
+                const tableBody = document.getElementById('tableBody');
+                uniqueExperiments.forEach(exp => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td><input type="checkbox" class="experiment-checkbox" data-id="${exp.experiment_id}"></td>
+                        <td>${exp.experiment_id}</td>
+                        <td>${exp.completion_model}</td>
+                        <td>${exp.embedding_model}</td>
+                        <td>${exp.prompt_template_name}</td>
+                        <td>${exp.prompt_template_version}</td>
+                        <td>${exp.dataset_name}</td>
+                        <td>${exp.dataset_version}</td>
+                        <td>${exp.system_prompt_template.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>
+                        <td>${exp.user_prompt_template.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>
+                        <td>${exp.user_id ?? '-'}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+
+                // Handle checkbox events
+                const compareBtn = document.getElementById('compareBtn');
+                const checkboxes = document.querySelectorAll('.experiment-checkbox');
+                const selectAll = document.getElementById('selectAll');
+
+                function updateCompareButton() {
+                    const checkedBoxes = document.querySelectorAll('.experiment-checkbox:checked');
+                    compareBtn.disabled = checkedBoxes.length === 0;
+                }
+
+                checkboxes.forEach(checkbox => {
+                    checkbox.addEventListener('change', updateCompareButton);
+                });
+
+                selectAll.addEventListener('change', (e) => {
+                    checkboxes.forEach(checkbox => {
+                        checkbox.checked = e.target.checked;
+                    });
+                    updateCompareButton();
+                });
+
+                // Modified Compare button click handler
+                compareBtn.addEventListener('click', () => {
+                    const selectedExperiments = Array.from(document.querySelectorAll('.experiment-checkbox:checked'))
+                        .map(checkbox => checkbox.dataset.id);
+                    
+                    const filteredData = experimentsData.experiments.filter(exp => 
+                        selectedExperiments.includes(exp.experiment_id)
+                    );
+                    console.log('Selected experiments:', filteredData);
+                    renderComparisonTable(filteredData);
+                    
+                    // Toggle visibility
+                    document.getElementById('experimentTable').style.display = 'none';
+                    document.getElementById('comparisonTable').style.display = 'table';
+                    document.getElementById('compareBtn').style.display = 'none';
+                    document.getElementById('backBtn').style.display = 'block';
+                });
+
+                // Back button click handler
+                document.getElementById('backBtn').addEventListener('click', () => {
+                    document.getElementById('experimentTable').style.display = 'table';
+                    document.getElementById('comparisonTable').style.display = 'none';
+                    document.getElementById('compareBtn').style.display = 'block';
+                    document.getElementById('backBtn').style.display = 'none';
+                    document.getElementById('filterContainer').style.display = 'none'; // Add this line
+                });
+
+            } catch (error) {
+                console.error('Error fetching experiments:', error);
+            }
+        });
+
+        function renderComparisonTable(data) {
+            const comparisonTableBody = document.getElementById('comparisonTableBody');
+            const comparisonTable = document.getElementById('comparisonTable');
+            const filterContainer = document.getElementById('filterContainer');
+            const columnFilterDropdown = document.querySelector('.column-filter-dropdown');
+            
+            // Show filter container
+            filterContainer.style.display = 'block';
+            
+            // Clear existing content
+            comparisonTableBody.innerHTML = '';
+            columnFilterDropdown.innerHTML = '';
+            
+            // Define fixed columns
+            const fixedColumns = [
+                'Experiment ID',
+                'User ID',
+                'Dataset Record ID',
+                'Completion',
+                'Completion Tokens',
+                'Prompt Tokens',
+                'Latency (ms)'
+            ];
+            
+            // Get all unique metric names
+            const metricSet = new Set();
+            data.forEach(exp => {
+                const evaluationData = JSON.parse(exp.evaluation);
+                evaluationData.forEach(e => {
+                    metricSet.add(e.metric);
+                });
+            });
+            
+            // Create select all option
+            const selectAllDiv = document.createElement('div');
+            selectAllDiv.className = 'column-filter-option';
+            selectAllDiv.innerHTML = `
+                <input type="checkbox" id="selectAllColumns" checked>
+                <label for="selectAllColumns">Select All</label>
+            `;
+            columnFilterDropdown.appendChild(selectAllDiv);
+            
+            // Add all columns as options
+            const allColumns = [...fixedColumns, ...Array.from(metricSet)];
+            allColumns.forEach(column => {
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'column-filter-option';
+                optionDiv.innerHTML = `
+                    <input type="checkbox" id="${column}" value="${column}" checked>
+                    <label for="${column}">${column}</label>
+                `;
+                columnFilterDropdown.appendChild(optionDiv);
+            });
+            
+            // Remove any existing event listeners
+            const existingFilterHeader = document.querySelector('.column-filter-header');
+            if (existingFilterHeader) {
+                const newFilterHeader = existingFilterHeader.cloneNode(true);
+                existingFilterHeader.parentNode.replaceChild(newFilterHeader, existingFilterHeader);
+            }
+
+            // Toggle dropdown with improved click handling
+            const filterHeader = document.querySelector('.column-filter-header');
+            filterHeader.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent event from bubbling up
+                document.querySelector('.column-filter').classList.toggle('active');
+            });
+
+            // Handle select all with improved event handling
+            const selectAllCheckbox = document.getElementById('selectAllColumns');
+            selectAllCheckbox.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent event from bubbling up
+                const checkboxes = columnFilterDropdown.querySelectorAll('input[type="checkbox"]');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = e.target.checked;
+                });
+                updateTable();
+            });
+
+            // Add change listeners to all checkboxes with improved event handling
+            columnFilterDropdown.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent event from bubbling up
+                    updateTable();
+                });
+            });
+
+            // Improve outside click handling
+            const outsideClickHandler = (e) => {
+                if (!e.target.closest('.column-filter')) {
+                    document.querySelector('.column-filter').classList.remove('active');
+                }
+            };
+
+            // Remove existing click listener and add new one
+            document.removeEventListener('click', outsideClickHandler);
+            document.addEventListener('click', outsideClickHandler);
+
+            function updateTable() {
+                const selectedColumns = Array.from(columnFilterDropdown.querySelectorAll('input[type="checkbox"]:checked'))
+                    .map(checkbox => checkbox.value)
+                    .filter(value => value !== 'selectAllColumns');
+                
+                // Update select all checkbox state
+                const allColumnsCheckboxes = columnFilterDropdown.querySelectorAll('input[type="checkbox"]:not(#selectAllColumns)');
+                selectAllCheckbox.checked = Array.from(allColumnsCheckboxes).every(checkbox => checkbox.checked);
+                
+                // Create table header
+                const headerRow = document.createElement('tr');
+                
+                // Only add selected columns to header
+                selectedColumns.forEach(colName => {
+                    const th = document.createElement('th');
+                    th.textContent = colName;
+                    headerRow.appendChild(th);
+                });
+                
+                // Replace existing header
+                const thead = comparisonTable.querySelector('thead');
+                thead.innerHTML = '';
+                thead.appendChild(headerRow);
+                
+                // Sort and render data rows
+                let currentRecordId = '';
+                let isAlternate = false;
+                comparisonTableBody.innerHTML = '';
+                
+                data.sort((a, b) => parseInt(a.dataset_record_id) - parseInt(b.dataset_record_id));
+                
+                // Helper to truncate text to 3 lines and add 'see more...'
+                function getTruncatedCellContent(text) {
+                    if (!text) return '-';
+                    const safeText = text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    if (safeText.length <= 170) return safeText;
+                    const preview = safeText.slice(0, 170);
+                    return `<span class="truncated-text">${preview}</span> <a href="#" class="see-more-link">see more...</a>`;
+                }
+
+                // Pop-up overlay logic
+                function showOverlay(fullText) {
+                    let overlay = document.getElementById('popupOverlay');
+                    if (!overlay) {
+                        overlay = document.createElement('div');
+                        overlay.id = 'popupOverlay';
+                        overlay.innerHTML = `
+                            <div class="popup-content">
+                                <button class="close-popup">&times;</button>
+                                <pre class="popup-text"></pre>
+                            </div>
+                        `;
+                        document.body.appendChild(overlay);
+                        overlay.querySelector('.close-popup').onclick = () => overlay.style.display = 'none';
+                        overlay.onclick = (e) => { if (e.target === overlay) overlay.style.display = 'none'; };
+                    }
+                    overlay.querySelector('.popup-text').textContent = fullText;
+                    overlay.style.display = 'flex';
+                }
+
+                data.forEach((exp, rowIdx) => {
+                    const row = document.createElement('tr');
+                    const evaluationData = JSON.parse(exp.evaluation);
+                    // console.log('Evaluation data:', evaluationData);
+                    if (currentRecordId !== exp.dataset_record_id) {
+                        isAlternate = !isAlternate;
+                        currentRecordId = exp.dataset_record_id;
+                    }
+
+                    row.dataset.alternate = isAlternate;
+
+                    // Create metrics map
+                    const metricResults = {};
+                    evaluationData.forEach(e => {
+                        metricResults[e.metric] = e.result ? e.result.toString() : '-';
+                    });
+                    
+                    // Map of all possible values
+                    const allValues = {
+                        'Experiment ID': exp.experiment_id,
+                        'User ID': exp.user_id ?? '-',
+                        'Dataset Record ID': exp.dataset_record_id,
+                        'Completion': exp.completion,
+                        'Completion Tokens': exp.completion_tokens,
+                        'Prompt Tokens': exp.prompt_tokens,
+                        'Latency (ms)': exp.latency_ms?.toFixed(2) ?? '-',
+                        ...metricResults
+                    };
+
+                    // Add only selected columns in the same order as headers
+                    selectedColumns.forEach((colName, colIdx) => {
+                        const td = document.createElement('td');
+                        if (colName === 'Completion' && allValues[colName]) {
+                            td.innerHTML = getTruncatedCellContent(allValues[colName]);
+                        } else {
+                            td.textContent = allValues[colName] || '-';
+                        }
+                        row.appendChild(td);
+                    });
+
+                    comparisonTableBody.appendChild(row);
+                });
+                // Add event listeners for see more links
+                comparisonTableBody.querySelectorAll('.see-more-link').forEach(link => {
+                    link.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        // Find the row and column
+                        const tr = this.closest('tr');
+                        const rowIdx = tr.rowIndex - 1; // skip header
+                        // Find the data object
+                        const exp = data[rowIdx];
+                        showOverlay(exp.completion);
+                    });
+                });
+            }
+            
+            // Initial table render
+            updateTable();
+        }
+
+        // --- ROUTING LOGIC ---
+        function showTab(tab) {
+            // Remove active from all
+            document.querySelectorAll('.left-menu li').forEach(item => item.classList.remove('active'));
+            // Hide all content
+            document.querySelectorAll('.content-area > div').forEach(content => content.style.display = 'none');
+            // Show selected
+            document.getElementById(tab).style.display = 'block';
+            // Set active nav
+            const navItem = Array.from(document.querySelectorAll('.left-menu li')).find(li => li.dataset.content === tab);
+            if (navItem) navItem.classList.add('active');
+            // Load data if needed
+            if (tab === 'promptTemplateContent') loadPromptTemplates();
+            else if (tab === 'datasetContent') loadDatasets();
+            else if (tab === 'adminContent') loadUsers();
+        }
+        function handleRoute() {
+            const path = window.location.pathname;
+            if (path === '/datasets') {
+                showTab('datasetContent');
+            } else if (path === '/prompts') {
+                showTab('promptTemplateContent');
+            } else {
+                showTab('experimentContent');
+            }
+        }
+        window.addEventListener('popstate', handleRoute);
+        // Navigation click handlers
+        document.querySelectorAll('.left-menu li').forEach(menuItem => {
+            menuItem.addEventListener('click', () => {
+                const contentId = menuItem.dataset.content;
+                let url = '/';
+                if (contentId === 'datasetContent') url = '/datasets';
+                else if (contentId === 'promptTemplateContent') url = '/prompts';
+                window.history.pushState({}, '', url);
+                handleRoute();
+            });
+        });
+        // On load, show correct tab
+        handleRoute();
+
+        // Add this after the existing event listeners
+        document.querySelectorAll('.left-menu li').forEach(menuItem => {
+            menuItem.addEventListener('click', () => {
+                // Update active state
+                document.querySelectorAll('.left-menu li').forEach(item => {
+                    item.classList.remove('active');
+                });
+                menuItem.classList.add('active');
+
+                // Show/hide content
+                const contentId = menuItem.dataset.content;
+                document.querySelectorAll('.content-area > div').forEach(content => {
+                    content.style.display = 'none';
+                });
+                document.getElementById(contentId).style.display = 'block';
+
+                if (contentId === 'promptTemplateContent') {
+                    loadPromptTemplates();
+                } else if (contentId === 'datasetContent') {
+                    loadDatasets();
+                }
+            });
+        });
+
+        async function loadPromptTemplates() {
+            try {
+                const currentPort = window.location.port || '8000'; // default to 8000 if no port
+                const apiUrl = `http://${window.location.hostname}:${currentPort}/api/prompts`;
+                const token = localStorage.getItem('access_token');
+                const response = await fetch(apiUrl, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const data = await response.json();
+                
+                const tableBody = document.getElementById('promptTemplateTableBody');
+                tableBody.innerHTML = '';
+                
+                data.prompt_templates.forEach(template => {
+                    const row = document.createElement('tr');
+                    const createdAt = new Date(template.created_at).toLocaleString();
+                    const deploymentTime = template.deployment_time ? new Date(template.deployment_time).toLocaleString() : '-';
+                    // Add deployed-row class if template is deployed
+                    if (template.is_deployed) {
+                        row.classList.add('deployed-row');
+                    }
+                    row.innerHTML = `
+                        <td>${template.asset_name}</td>
+                        <td>${template.asset_description}</td>
+                        <td>${template.asset_version}</td>
+                        <td>${createdAt}</td>
+                        <td class="evaluation-cell">${template.system_prompt_template.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>
+                        <td class="evaluation-cell">${template.user_prompt_template.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>
+                        <td>${deploymentTime}</td>
+                        <td>${template.is_deployed ? '✓' : '✗'}</td>
+                        <td>${template.user_id ?? '-'}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error fetching prompt templates:', error);
+            }
+        }
+
+        async function loadDatasets() {
+            try {
+                const currentPort = window.location.port || '8000'; // default to 8000 if no port
+                const apiUrl = `http://${window.location.hostname}:${currentPort}/api/datasets`;
+                const token = localStorage.getItem('access_token');
+                const response = await fetch(apiUrl, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const data = await response.json();
+                
+                const tableBody = document.getElementById('datasetTableBody');
+                tableBody.innerHTML = '';
+                
+                data.datasets.forEach(dataset => {
+                    const row = document.createElement('tr');
+                    const createdAt = new Date(dataset.created_at).toLocaleString();
+                    row.innerHTML = `
+                        <td>${dataset.asset_name}</td>
+                        <td>${dataset.asset_description}</td>
+                        <td>${dataset.asset_version}</td>
+                        <td>${createdAt}</td>
+                        <td class="evaluation-cell">${dataset.file_path}</td>
+                        <td>${dataset.user_id ?? '-'}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error fetching datasets:', error);
+            }
+        }
+
+        // --- ADMIN TAB UI ---
+        // Add Admin tab content
+        if (!document.getElementById('adminContent')) {
+            const adminDiv = document.createElement('div');
+            adminDiv.id = 'adminContent';
+            adminDiv.style.display = 'none';
+            adminDiv.innerHTML = `
+                <h1>User Management</h1>
+                <form id="addUserForm" style="margin-bottom:20px;display:flex;gap:10px;align-items:center;">
+                    <input type="text" id="newUsername" placeholder="Username" required style="padding:6px;">
+                    <input type="password" id="newPassword" placeholder="Password" required style="padding:6px;">
+                    <select id="newRole" required style="padding:6px;">
+                        <option value="engineer">Engineer</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                    <button type="submit">Add User</button>
+                    <span id="addUserError" style="color:#e74c3c;margin-left:10px;"></span>
+                </form>
+                <table id="userTable" style="width:100%;background:#fff;">
+                    <thead><tr><th>Username</th><th>Role</th><th>Created At</th><th>Action</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            `;
+            document.querySelector('.content-area').appendChild(adminDiv);
+        }
+        async function loadUsers() {
+            const currentPort = window.location.port || '8000';
+            const apiUrl = `http://${window.location.hostname}:${currentPort}/api/users`;
+            const token = localStorage.getItem('access_token');
+            const resp = await fetch(apiUrl, { headers: { 'Authorization': 'Bearer ' + token } });
+            const data = await resp.json();
+            const tbody = document.querySelector('#userTable tbody');
+            tbody.innerHTML = '';
+            data.users.forEach(user => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${user.username}</td><td>${user.role}</td><td>${new Date(user.created_at).toLocaleString()}</td><td><button class="removeUserBtn" data-username="${user.username}">Remove</button></td>`;
+                tbody.appendChild(tr);
+            });
+            // Remove user event
+            document.querySelectorAll('.removeUserBtn').forEach(btn => {
+                btn.onclick = async function() {
+                    if (!confirm('Remove user ' + this.dataset.username + '?')) return;
+                    const currentPort = window.location.port || '8000';
+                    const apiUrl = `http://${window.location.hostname}:${currentPort}/api/users/${this.dataset.username}`;
+                    const token = localStorage.getItem('access_token');
+                    const resp = await fetch(apiUrl, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+                    const result = await resp.json();
+                    if (result.success) loadUsers();
+                    else alert(result.message || 'Failed to remove user');
+                };
+            });
+        }
+        // Add user event
+        document.addEventListener('submit', async function(e) {
+            if (e.target && e.target.id === 'addUserForm') {
+                e.preventDefault();
+                const username = document.getElementById('newUsername').value;
+                const password = document.getElementById('newPassword').value;
+                const role = document.getElementById('newRole').value;
+                const errorSpan = document.getElementById('addUserError');
+                errorSpan.textContent = '';
+                const currentPort = window.location.port || '8000';
+                const apiUrl = `http://${window.location.hostname}:${currentPort}/api/users`;
+                const token = localStorage.getItem('access_token');
+                const resp = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, role })
+                });
+                const result = await resp.json();
+                if (result.success) {
+                    document.getElementById('addUserForm').reset();
+                    loadUsers();
+                } else {
+                    errorSpan.textContent = result.message || 'Failed to add user';
+                }
+            }
+        });
+        // Show admin tab logic in showTab
+        function showTab(tab) {
+            // Remove active from all
+            document.querySelectorAll('.left-menu li').forEach(item => item.classList.remove('active'));
+            // Hide all content
+            document.querySelectorAll('.content-area > div').forEach(content => content.style.display = 'none');
+            // Show selected
+            document.getElementById(tab).style.display = 'block';
+            // Set active nav
+            const navItem = Array.from(document.querySelectorAll('.left-menu li')).find(li => li.dataset.content === tab);
+            if (navItem) navItem.classList.add('active');
+            // Load data if needed
+            if (tab === 'promptTemplateContent') loadPromptTemplates();
+            else if (tab === 'datasetContent') loadDatasets();
+            else if (tab === 'adminContent') loadUsers();
+        }
+        // On load, show correct tab and admin tab if needed
+        handleRoute();
+        if (getUserRole() === 'admin') {
+            showApp();
+        }
+
+        // --- PROFILE ICON & DROPDOWN ---
+        // Add profile icon and dropdown
+        if (!document.getElementById('profileMenu')) {
+            const profileMenu = document.createElement('div');
+            profileMenu.id = 'profileMenu';
+            profileMenu.style.position = 'fixed';
+            profileMenu.style.top = '24px';
+            profileMenu.style.right = '36px';
+            profileMenu.style.zIndex = '2100';
+            profileMenu.innerHTML = `
+                <div id="profileIcon" style="width:36px;height:36px;border-radius:50%;background:#2980b9;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(44,62,80,0.08);">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 12C14.7614 12 17 9.76142 17 7C17 4.23858 14.7614 2 12 2C9.23858 2 7 4.23858 7 7C7 9.76142 9.23858 12 12 12Z" fill="white"/>
+                        <path d="M12 14C7.58172 14 4 17.5817 4 22H20C20 17.5817 16.4183 14 12 14Z" fill="white"/>
+                    </svg>
+                </div>
+                <div id="profileDropdown" style="display:none;position:absolute;right:0;top:44px;background:#fff;border-radius:8px;box-shadow:0 2px 12px rgba(44,62,80,0.12);min-width:180px;">
+                    <div class="profile-username" id="profileUsername" style="padding:12px 18px;border-bottom:1px solid #eee;font-weight:600;color:#2c3e50;background-color:#f8fafc;">User</div>
+                    <div class="profile-option" id="showTokenOption" style="padding:12px 18px;cursor:pointer;border-bottom:1px solid #eee;">Auth Token</div>
+                    <div class="profile-option" id="logoutOption" style="padding:12px 18px;cursor:pointer;">Logout</div>
+                </div>
+            `;
+            document.body.appendChild(profileMenu);
+            
+            // Update username if logged in
+            if (isLoggedIn()) {
+                const username = getUsername();
+                const profileUsernameElement = document.getElementById('profileUsername');
+                if (profileUsernameElement) {
+                    profileUsernameElement.textContent = username;
+                }
+            }
+        }
+        // Profile icon dropdown logic (safe checks)
+        const profileIcon = document.getElementById('profileIcon');
+        const profileDropdown = document.getElementById('profileDropdown');
+        if (profileIcon && profileDropdown) {
+            profileIcon.onclick = function(e) {
+                e.stopPropagation();
+                profileDropdown.style.display = profileDropdown.style.display === 'block' ? 'none' : 'block';
+            };
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('#profileMenu')) {
+                    profileDropdown.style.display = 'none';
+                }
+            });
+        }
+        // Show JWT token modal (safe checks)
+        const showTokenOption = document.getElementById('showTokenOption');
+        const closeTokenModal = document.getElementById('closeTokenModal');
+        if (showTokenOption && document.getElementById('tokenModal')) {
+            showTokenOption.onclick = function() {
+                const token = localStorage.getItem('access_token') || '';
+                document.getElementById('jwtTokenText').textContent = token;
+                document.getElementById('tokenModal').style.display = 'block';
+                if (profileDropdown) profileDropdown.style.display = 'none';
+            };
+        }
+        if (closeTokenModal) {
+            closeTokenModal.onclick = function() {
+                document.getElementById('tokenModal').style.display = 'none';
+            };
+        }
+        // Logout option (safe check)
+        const logoutOption = document.getElementById('logoutOption');
+        if (logoutOption) {
+            logoutOption.onclick = function() {
+                localStorage.removeItem('access_token');
+                showLogin();
+                if (profileDropdown) profileDropdown.style.display = 'none';
+            };
+        }
+    </script>
+</body>
+</html>
