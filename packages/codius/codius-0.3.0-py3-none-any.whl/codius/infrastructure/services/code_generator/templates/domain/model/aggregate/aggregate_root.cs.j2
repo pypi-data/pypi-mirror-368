@@ -1,0 +1,35 @@
+﻿using OpenDDD.Domain.Model.Base;
+using System;
+
+namespace {{ namespace }}
+{
+    public class {{ aggregate_name }} : AggregateRootBase<Guid>
+    {
+        {% for prop in properties %}
+        public {{ prop.type }} {{ prop.name }} { get; private set; }
+        {% endfor %}
+
+        private {{ aggregate_name }}() { }  // Needed if persistence provider is EF Core..
+
+        {% if properties %}
+        private {{ aggregate_name }}(Guid id{% for prop in properties if prop.name != "Id" %}, {{ prop.type }} {{ prop.name|lower }}{% endfor %}) : base(id)
+        {
+            {% for prop in properties if prop.name != "Id" %}
+            {{ prop.name }} = {{ prop.name|lower }};
+            {% endfor %}
+        }
+        {% endif %}
+
+        public static {{ aggregate_name }} Create({% for prop in properties if prop.name != "Id" %}{{ prop.type }} {{ prop.name|lower }}{% if not loop.last %}, {% endif %}{% endfor %})
+        {
+            return new {{ aggregate_name }}(Guid.NewGuid(){% for prop in properties if prop.name != "Id" %}, {{ prop.name|lower }}{% endfor %});
+        }
+
+        {% for method in methods %}
+        public void {{ method.name }}({% for param in method.parameters %}{{ param.type }} {{ param.name }}{% if not loop.last %}, {% endif %}{% endfor %})
+        {
+            // TODO: Implement {{ method.name }}
+        }
+        {% endfor %}
+    }
+}

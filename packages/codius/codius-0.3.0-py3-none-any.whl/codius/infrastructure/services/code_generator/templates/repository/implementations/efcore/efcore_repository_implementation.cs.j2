@@ -1,0 +1,28 @@
+﻿using Microsoft.EntityFrameworkCore;
+using OpenDDD.Infrastructure.Persistence.UoW;
+using OpenDDD.Infrastructure.Repository.EfCore;
+using {{ domain_namespace }};
+
+namespace {{ implementation_namespace }}
+{
+    public class EfCore{{ aggregate_name }}Repository : EfCoreRepository<{{ aggregate_name }}, Guid>, I{{ aggregate_name }}Repository
+    {
+        private readonly ILogger<EfCore{{ aggregate_name }}Repository> _logger;
+
+        public EfCore{{ aggregate_name }}Repository(IUnitOfWork unitOfWork, ILogger<EfCore{{ aggregate_name }}Repository> logger)
+            : base(unitOfWork)
+        {
+            _logger = logger;
+        }
+
+{% for method in custom_methods %}
+        public async Task{% if method.return_type %}<{{ method.return_type }}>{% endif %} {{ method.name }}({% for p in method.parameters %}{{ p.type }} {{ p.name }}, {% endfor %}CancellationToken ct)
+        {
+            throw new NotImplementedException();
+        }
+{% if not loop.last %}
+
+{% endif %}
+{% endfor %}
+    }
+}

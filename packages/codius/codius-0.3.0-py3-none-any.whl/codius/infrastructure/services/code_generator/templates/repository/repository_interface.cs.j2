@@ -1,0 +1,11 @@
+﻿using OpenDDD.Domain.Model;
+
+namespace {{ namespace }}
+{
+    public interface I{{ aggregate_name }}Repository : IRepository<{{ aggregate_name }}, Guid>
+    {
+        {% for method in custom_methods %}
+        Task{% if method.return_type %}<{{ method.return_type }}>{% endif %} {{ method.name }}({% for p in method.parameters %}{{ p.type }} {{ p.name }}, {% endfor %}CancellationToken ct);
+        {% endfor %}
+    }
+}
