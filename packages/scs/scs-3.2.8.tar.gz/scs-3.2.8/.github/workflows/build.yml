@@ -1,0 +1,183 @@
+name: build
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
+
+jobs:
+
+  build_openmp:
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash -l {0}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest ]
+        python-version: [ 3.9, "3.10", "3.11" ]
+
+    env:
+      PYTHON_VERSION: ${{ matrix.python-version }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: prefix-dev/setup-pixi@v0.8.14
+        with:
+          cache: false
+          pixi-version: v0.46.0
+      - name: Add .pixi/envs/default to the $PATH
+        run: echo "$(pwd)/.pixi/envs/default/bin" >> $GITHUB_PATH
+        shell: bash
+      - name: Install dependencies
+        run: pixi add scipy numpy pip pytest meson meson-python openblas python==${{ matrix.python-version }}
+      - name: Test
+        run: |
+          pixi r python -m pip install -v . --no-build-isolation -Csetup-args=-Duse_openmp=true
+          pixi r pytest
+          rm -rf build/
+
+  build_mkl:
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash -l {0}
+    strategy:
+      fail-fast: false
+      matrix:
+        # macos-13 runners have intel chips. macos-14 and above
+        # runners have Apple silicon chips.
+        os: [ ubuntu-latest ]
+        python-version: [ 3.9, "3.10", "3.11", "3.12", "3.13"]
+        link_mkl: [true]
+
+    env:
+      PYTHON_VERSION: ${{ matrix.python-version }}
+      LINK_MKL: ${{ matrix.link_mkl }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set Additional Envs
+        shell: bash
+        run: |
+          echo "PYTHON_SUBVERSION=$(echo $PYTHON_VERSION | cut -c 3-)" >> $GITHUB_ENV
+      - uses: prefix-dev/setup-pixi@v0.8.14
+        with:
+          cache: false
+          pixi-version: v0.46.0
+      - name: Add .pixi/envs/default to the $PATH
+        run: echo "$(pwd)/.pixi/envs/default/bin" >> $GITHUB_PATH
+        shell: bash
+      - name: Install dependencies
+        run: |
+          if [[ "$LINK_MKL" == "true" ]]; then
+            BLAS_PKGS="blas-devel=*=*mkl"
+          else
+            BLAS_PKGS="blas-devel=*=*openblas"
+          fi
+          pixi add $BLAS_PKGS pip scipy numpy pytest mkl mkl-devel pkg-config meson meson-python
+      - name: Build
+        run: |
+          pixi r python -c "import numpy as np;print(np.show_config())"
+          if [[ "$LINK_MKL" == "true" ]]; then
+
+            pixi r python -m pip install --verbose --no-build-isolation -Csetup-args=-Dlink_mkl=true .
+          else
+            pixi r python -m pip install --verbose --no-build-isolation .
+          fi
+      - name: Test
+        run: |
+          pixi r pytest
+          rm -rf build/
+
+  # from here to end it's a copy-paste, with few changes, of
+  # https://github.com/pypa/cibuildwheel/blob/main/examples/github-deploy.yml
+
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        # macos-13 is an intel runner, macos-14 is apple silicon
+        os: [ubuntu-latest, macos-14, windows-latest, macos-13]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Set up QEMU for aarch64 compilation on Linux
+        if: runner.os == 'Linux'
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: all
+
+      - name: Install conda on Windows
+        if: runner.os == 'Windows'
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniconda-version: "latest"
+          channels: conda-forge, anaconda
+
+      - name: Install openblas from conda on Windows
+        if: runner.os == 'Windows'
+        run: conda install -y openblas pkgconfig
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v3.1.3
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
+          path: ./wheelhouse/*.whl
+
+  build_sdist:
+    name: Build source distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Build sdist
+        run: pipx run build --sdist -Csetup-args=-Dsdist_mode=true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cibw-sdist
+          path: dist/*.tar.gz
+
+  upload_pypi:
+    needs: [build_wheels, build_sdist]
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    # We can also upload always, with skip-existing: true, below
+    # We upload on every push event (only master, above) that is a new tag
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
+    # Only run this step on GH release
+    # if: github.event_name == 'release' && github.event.action == 'published'
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          # unpacks all CIBW artifacts into dist/
+          pattern: cibw-*
+          path: dist
+          merge-multiple: true
+
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: false # Fail loudly for duplicates.
+        # To test:
+        # with:
+        #  repository-url: https://test.pypi.org/legacy/
