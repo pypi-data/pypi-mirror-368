@@ -1,0 +1,1 @@
+"""Tests for Ethical AI Validator package.""" 
