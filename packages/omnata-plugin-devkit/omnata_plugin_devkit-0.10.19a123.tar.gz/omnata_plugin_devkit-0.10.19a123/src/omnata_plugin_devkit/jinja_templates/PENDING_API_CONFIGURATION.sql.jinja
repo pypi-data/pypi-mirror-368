@@ -1,0 +1,36 @@
+create or replace procedure PLUGIN.PENDING_API_CONFIGURATION(APP_DATABASE VARCHAR)
+   returns object
+   language javascript
+   COMMENT = $$
+   Returns true if there are External Access configuration changes made by UPDATE_API_CONFIGURATION that have not been applied via CONFIGURE_APIs.
+   $$
+   execute as owner
+as
+$$
+// snowflake object automatically injected by Snowpark
+
+try{
+    var regResults = snowflake.createStatement( {
+        sqlText: `select * from DATA.OMNATA_REGISTRATION where APPLICATION_NAME=?
+                    and (EXTERNAL_ACCESS_INTEGRATIONS_APPLIED is null
+                    or OBJECT_KEYS(EXTERNAL_ACCESS_INTEGRATIONS)!=OBJECT_KEYS(EXTERNAL_ACCESS_INTEGRATIONS_APPLIED)
+                    )`,
+        binds:[APP_DATABASE]
+    } ).execute();
+    return {
+        "success": true,
+        "data": regResults.next() // returns true if a row was found, hence api configuration is pending
+    }
+}
+catch(e){
+   return {
+      "success": false,
+      "error": `PENDING_API_CONFIGURATION: ${String(e)}`
+   }
+}
+$$
+;
+
+grant usage on procedure PLUGIN.PENDING_API_CONFIGURATION(VARCHAR)
+to application role OMNATA_MANAGEMENT;
+

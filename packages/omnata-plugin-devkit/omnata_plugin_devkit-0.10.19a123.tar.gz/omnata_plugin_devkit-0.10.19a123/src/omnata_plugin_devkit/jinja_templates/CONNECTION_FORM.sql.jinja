@@ -1,0 +1,64 @@
+create or replace procedure PLUGIN.CONNECTION_FORM(CONNECTIVITY_OPTION VARCHAR)
+returns object
+language python
+RUNTIME_VERSION = '3.10'
+PACKAGES = ({{packages}})
+IMPORTS = ('/app.zip')
+HANDLER = 'run'
+COMMENT = $$
+Returns a connection configuration form definition for creating a new connection.
+$$
+execute as owner
+as
+$$
+from logging import getLogger
+from omnata_plugin_runtime.logging import log_exception
+import json
+logger = getLogger(__name__)
+def run(session, connectivity_option):
+   try:
+      logger.info('plugin entrypoint wrapper')
+      from omnata_plugin_runtime.plugin_entrypoints import PluginEntrypoint
+      logger.info('importing plugin {{plugin_class_name}} from module {{plugin_class_module}}')
+      entrypoint = PluginEntrypoint(session=session,
+         plugin_fqn='{{plugin_fqn}}',
+         module_name='{{plugin_class_module}}',
+         class_name='{{plugin_class_name}}'
+      )
+      result = entrypoint.connection_form(connectivity_option)
+      logger.debug(f'result from plugin: {result}')
+      return {
+         "success": True,
+         "data": result
+      }
+   except Exception as exception:
+      log_exception(exception,logger)
+      return {
+         "success": False,
+         "error": f"CONNECTION_FORM: {str(exception)}"
+      }
+$$
+;
+   
+grant usage on procedure PLUGIN.CONNECTION_FORM(VARCHAR)
+to application role OMNATA_MANAGEMENT;
+
+
+-- legacy method, can be removed once all plugins pass runtime version 0.7.0
+-- and sync engine no longer calls this
+create or replace procedure PLUGIN.CONNECTION_FORM()
+returns object
+language SQL 
+as
+$$
+DECLARE res OBJECT;
+  BEGIN
+    CALL PLUGIN.CONNECTION_FORM(
+         'direct') INTO :res;
+    return res;
+  END;
+$$;
+
+
+grant usage on procedure PLUGIN.CONNECTION_FORM()
+to application role OMNATA_MANAGEMENT;

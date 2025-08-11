@@ -1,0 +1,36 @@
+create or replace procedure PLUGIN.LIST_STAGES()
+returns object
+language python
+RUNTIME_VERSION = '3.10'
+PACKAGES = ({{packages}})
+IMPORTS = ('/app.zip')
+HANDLER = 'run'
+COMMENT = $$
+Retrieves a list of stages visible to the plugin.
+$$
+execute as owner
+as
+$$
+from logging import getLogger
+from omnata_plugin_runtime.logging import log_exception
+logger = getLogger(__name__)
+def run(session):
+   try:
+      results = session.sql('show stages in account').collect()
+      logger.debug(f'result from plugin: {results}')
+      stages = [r.as_dict() for r in results]
+      return {
+         "success": True,
+         "data": stages
+      }
+   except Exception as exception:
+      log_exception(exception,logger)
+      return {
+         "success": False,
+         "error": f"LIST_STAGES: {str(exception)}"
+      }
+$$
+;
+   
+grant usage on procedure PLUGIN.LIST_STAGES()
+to application role OMNATA_MANAGEMENT;
