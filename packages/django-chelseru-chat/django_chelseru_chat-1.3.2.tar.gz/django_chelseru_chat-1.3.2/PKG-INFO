@@ -1,0 +1,209 @@
+Metadata-Version: 2.4
+Name: django-chelseru-chat
+Version: 1.3.2
+Summary: Real-time one-on-one chat system for Django projects, powered by WebSocket and JWT authentication.
+Home-page: https://pip-chat.chelseru.com
+Author: Sobhan Bahman Rashnu
+Author-email: bahmanrashnu@gmail.com
+Project-URL: Documentation, https://github.com/Chelseru/django-chelseru-chat-lour/
+Project-URL: Telegram Group, https://t.me/bahmanpy
+Project-URL: Telegram Channel, https://t.me/ChelseruCom
+Keywords: djangochelseruchat djangochat drfchat online-chat online real-time chat iran chelseru lor lur bahman rashnu sobhan چت  سبحان بهمن رشنو چلسرو جنگو پایتون لر لور آنلاین ریل تایم
+Classifier: Programming Language :: Python :: 3
+Classifier: Framework :: Django
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: Django>=5.1.6
+Requires-Dist: djangorestframework==3.15.2
+Requires-Dist: djangorestframework_simplejwt==5.5.0
+Requires-Dist: channels==4.2.2
+Requires-Dist: channels_redis==4.2.1
+Requires-Dist: daphne==4.1.2
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: keywords
+Dynamic: license-file
+Dynamic: project-url
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+# Django Chelseru Chat
+
+A simple real-time chat package for Django using Django Channels and WebSocket. It enables one-on-one private messaging secured with JWT authentication.
+
+---
+
+## Installation
+
+```bash
+pip install django-chelseru-chat
+```
+
+---
+
+## Configuration
+
+Ensure your Django project is ASGI-compatible and set up with JWT authentication for WebSocket connections.
+
+### 1. Add to `INSTALLED_APPS`:
+
+```python
+INSTALLED_APPS = [
+    ...
+    'channels',
+    'chelseru_chat',
+]
+```
+
+### 2. Set `ASGI_APPLICATION` and `CHANNEL_LAYERS` in `settings.py`:
+
+```python
+ASGI_APPLICATION = '<your_project_name>.asgi.application'
+```
+
+> Replace `<your_project_name>` with the actual name of your Django project folder (e.g., `myproject`).
+
+```python
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [('127.0.0.1', 6379)],
+        },
+    },
+}
+```
+
+
+### 3. Use your custom `asgi.py` with `JWTAuthMiddleware`:
+
+```python
+# <your_project_name>/asgi.py
+
+import os
+import django
+from channels.routing import ProtocolTypeRouter, URLRouter
+from django.core.asgi import get_asgi_application
+
+# Set environment and initialize Django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', '<your_project_name>.settings')
+django.setup()
+
+# Import routing and middleware AFTER setup
+import chelseru_chat.routing
+from chelseru_chat.middleware import JWTAuthMiddleware
+
+application = ProtocolTypeRouter({
+    "http": get_asgi_application(),
+    "websocket": JWTAuthMiddleware(
+        URLRouter(
+            chelseru_chat.routing.websocket_urlpatterns
+        )
+    ),
+})
+```
+> Again, replace `<your_project_name>` with your Django project's name.
+
+---
+
+## Models
+
+### `ChatRoom`
+
+```python
+class ChatRoom(models.Model):
+    user_1 = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user1_chats')
+    user_2 = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user2_chats')
+    created_at = models.DateTimeField(auto_now_add=True)
+```
+
+### `Message`
+
+```python
+class Message(models.Model):
+    chat_room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE, related_name='messages')
+    sender = models.ForeignKey(User, on_delete=models.CASCADE)
+    text = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+```
+
+---
+
+## WebSocket Connection
+
+To send and receive messages, connect via WebSocket to:
+
+```
+ws://<your-domain>/ws/chat/<chat_room_id>/?token=<your_jwt_access_token>
+```
+
+**Example:**
+
+```
+ws://qesa.chelseru.com/ws/chat/3/?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+### To send a message:
+
+```json
+> {"message": "Sar barzi, Luria"}
+```
+
+### You will receive a response like:
+
+```json
+< {"message": "Sar barzi, Luria", "sender": "user"}
+```
+
+---
+
+## Create ChatRoom Programmatically
+
+```python
+from chelseru_chat.models import ChatRoom
+chat = ChatRoom.objects.create(user_1=user1, user_2=user2)
+```
+
+---
+
+## JWT WebSocket Authentication
+
+This package uses a custom `JWTAuthMiddleware` for authenticating users via JWT tokens.  
+Token must be provided as a query parameter: `?token=...`
+
+You can use [`djangorestframework-simplejwt`](https://django-rest-framework-simplejwt.readthedocs.io/) to issue tokens.
+
+---
+
+## Features
+
+- Private 1-on-1 chat
+- Real-time messaging via WebSocket
+- JWT-authenticated WebSocket
+- Message history per room
+- Simple model structure
+
+---
+
+## TODO
+
+- Group chat support
+- Message read status
+- Typing indicators
+
+---
+
+## License
+
+MIT License
+
+Sobhan Bahman | Rashnu
+
