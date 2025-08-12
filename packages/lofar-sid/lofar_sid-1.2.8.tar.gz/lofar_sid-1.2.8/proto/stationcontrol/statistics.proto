@@ -1,0 +1,103 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+service Statistics {
+  rpc Bst(BstRequest) returns (BstReply) {}
+  rpc Sst(SstRequest) returns (SstReply) {}
+  rpc Xst(XstRequest) returns (XstReply) {}
+}
+
+message FrequencyBand {
+  string antenna_type = 1;
+  int32 clock = 2;
+  int32 nyquist_zone = 3;
+}
+
+message BstRequest {
+  string antenna_field = 1;
+  optional uint32 maxage = 2;
+}
+
+message BstResult {
+  google.protobuf.Timestamp timestamp = 1;
+  FrequencyBand frequency_band = 2;
+  float integration_interval = 3;
+
+  message BstBeamlet {
+    int32 beamlet = 1;
+    float x_power_db = 2;
+    float y_power_db = 3;
+  }
+
+  repeated BstBeamlet beamlets = 4;
+}
+
+message BstReply {
+  BstResult result = 3;
+}
+
+
+message SstRequest {
+  string antenna_field = 1;
+  optional uint32 maxage = 2;
+}
+
+message SstResult {
+  google.protobuf.Timestamp timestamp = 1;
+  FrequencyBand frequency_band = 2;
+  float integration_interval = 3;
+
+  message SstSubband {
+    int32 subband = 1;
+    float frequency = 2;
+
+    message SstAntenna {
+      int32 antenna = 1;
+      float x_power_db = 2;
+      float y_power_db = 3;
+    }
+
+    repeated SstAntenna antennas = 3;
+  }
+
+  repeated SstSubband subbands = 4;
+}
+
+message SstReply {
+  SstResult result = 3;
+}
+
+message XstRequest {
+  string antenna_field = 1;
+  optional uint32 maxage = 2;
+}
+
+message XstResult {
+  google.protobuf.Timestamp timestamp = 1;
+  FrequencyBand frequency_band = 2;
+  float integration_interval = 3;
+  int32 subband = 4;
+  float frequency = 5;
+
+  message XstBaseline {
+    int32 antenna1 = 1;
+    int32 antenna2 = 2;
+
+    message XstValue {
+      float power_db = 1;
+      float phase = 2;
+    }
+
+    XstValue xx = 3;
+    XstValue xy = 4;
+    XstValue yx = 5;
+    XstValue yy = 6;
+  }
+
+  repeated XstBaseline baselines = 6;
+}
+
+message XstReply {
+  XstResult result = 3;
+}

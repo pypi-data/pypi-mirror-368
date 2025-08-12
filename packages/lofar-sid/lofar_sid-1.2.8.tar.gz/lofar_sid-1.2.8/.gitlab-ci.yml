@@ -1,0 +1,153 @@
+default:
+  image:
+    name: $CI_REGISTRY_IMAGE/ci-build-runner:$CI_COMMIT_REF_SLUG
+    pull_policy: always
+  cache:
+    paths:
+      - .cache/pip
+      # Do not cache .tox, to recreate virtualenvs for every step
+
+stages:
+  - prepare
+  - lint
+  - test
+  - package
+  - images
+  - publish # publish instead of deploy
+
+# Caching of dependencies to speed up builds
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+include:
+  - template: Security/SAST.gitlab-ci.yml
+  - template: Security/Dependency-Scanning.gitlab-ci.yml
+  - template: Security/Secret-Detection.gitlab-ci.yml
+
+# Prepare image to run ci on
+trigger_prepare:
+  stage: prepare
+  trigger:
+    strategy: depend
+    include: .prepare.gitlab-ci.yml
+
+.python_before:
+  before_script:
+    - python --version # For debugging
+
+run_lint:
+  stage: lint
+  script:
+    - tox -e lint
+
+sast:
+  variables:
+    SAST_EXCLUDED_ANALYZERS: brakeman, flawfinder, kubesec, nodejs-scan, phpcs-security-audit,
+      pmd-apex, security-code-scan, sobelow, spotbugs
+  stage: test
+
+# Basic setup for all Python versions for which we don't have a base image
+.run_unit_test_version_base:
+  before_script:
+    - python --version # For debugging
+    - python -m pip install --upgrade pip
+    - python -m pip install --upgrade tox twine
+
+# Run all unit tests for Python versions except the base image
+run_unit_tests:
+  extends: .run_unit_test_version_base
+  stage: test
+  image: python:3.${PY_VERSION}
+  script:
+    - tox -e py3${PY_VERSION}
+  parallel:
+    matrix: # use the matrix for testing
+      - PY_VERSION: [10, 11, 12, 13]
+
+# Run code coverage on the base image thus also performing unit tests
+run_unit_tests_coverage:
+  stage: test
+  extends: .python_before
+  script:
+   - tox -e coverage
+  coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+    paths:
+      - htmlcov/*
+
+package_files:
+  stage: package
+  extends: .python_before
+  artifacts:
+    expire_in: 1w
+    paths:
+      - dist/*
+  script:
+    - tox -e build
+
+package_docs:
+  stage: package
+  extends: .python_before
+  artifacts:
+    expire_in: 1w
+    paths:
+      - docs/build/*
+  script:
+    - tox -e docs
+
+publish_on_pypi:
+  stage: publish
+  environment: pypi
+  needs:
+    - package_files
+  when: manual
+  rules:
+    - if: '$CI_COMMIT_TAG && $CI_COMMIT_REF_PROTECTED == "true"'
+  script:
+    - echo "run twine for pypi"
+    - |
+      TWINE_PASSWORD="${PYPI_TOKEN}" \
+      TWINE_USERNAME="__token__" \
+      python -m twine upload dist/*
+
+publish_on_gitlab:
+  stage: publish
+  environment: gitlab
+  needs:
+    - package_files
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    - echo "run twine for gitlab"
+    - |
+      TWINE_PASSWORD=${CI_JOB_TOKEN} \
+      TWINE_USERNAME=gitlab-ci-token \
+      python -m twine upload \
+      --repository-url ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi dist/*
+
+publish_to_readthedocs:
+  stage: publish
+  allow_failure: true
+  environment: readthedocs
+  needs:
+    - package_docs
+  rules:
+    - if: '$CI_COMMIT_TAG && $CI_COMMIT_REF_PROTECTED == "true"'
+  script:
+    - echo "scp docs/* ???"
+    - exit 1
+
+release_job:
+  stage: publish
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  rules:
+    - if: '$CI_COMMIT_TAG && $CI_COMMIT_REF_PROTECTED == "true"'
+  script:
+    - echo "running release_job"
+  release:
+    tag_name: '$CI_COMMIT_TAG'
+    description: '$CI_COMMIT_TAG - $CI_COMMIT_TAG_MESSAGE'

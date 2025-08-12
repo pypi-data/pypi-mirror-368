@@ -1,0 +1,112 @@
+syntax = "proto3";
+
+service Antenna {
+  rpc GetAntenna(GetAntennaRequest) returns (AntennaReply) {}
+  rpc SetAntennaStatus(SetAntennaStatusRequest) returns (AntennaReply) {}
+  rpc SetAntennaUse(SetAntennaUseRequest) returns (AntennaReply) {}
+  rpc GetAntennaPower(GetAntennaPowerRequest) returns (GetAntennaPowerReply) {}
+  rpc SetAntennaPower(SetAntennaPowerRequest) returns (SetAntennaPowerReply) {}
+  rpc GetAntennaElementPower(GetAntennaElementPowerRequest) returns (GetAntennaElementPowerReply) {}
+  rpc SetAntennaElementPower(stream SetAntennaElementPowerRequest) returns (SetAntennaElementPowerReply) {}
+}
+
+enum Antenna_Status {
+  OK = 0;
+  SUSPICIOUS = 1;
+  BROKEN = 2;
+  BEYOND_REPAIR = 3;
+  NOT_AVAILABLE = 4;
+}
+
+enum Antenna_Use {
+  // use antenna only if it's OK or SUSPICIOUS
+  AUTO = 0;
+  // force antenna to be on, regardless of status
+  ON = 1;
+  // force antenna to be off, regardless of status
+  OFF = 2;
+}
+
+enum Antenna_Power_Status {
+  Antenna_POWER_OFF = 0;
+  Antenna_POWER_ON = 1;
+}
+
+message Identifier {
+  // e.g. "LBA"
+  string antennafield_name = 1;
+  // e.g. "LBA00"
+  string antenna_name = 2;
+}
+
+message SetAntennaStatusRequest {
+  Identifier identifier = 1;
+  Antenna_Status antenna_status = 2 ;
+}
+
+message GetAntennaRequest {
+  Identifier identifier = 1;
+}
+
+message SetAntennaUseRequest {
+  Identifier identifier = 1;
+  Antenna_Use antenna_use = 2;
+}
+
+message AntennaResult {
+  Identifier identifier = 1;
+  Antenna_Use antenna_use = 2;
+  Antenna_Status antenna_status = 3;
+}
+
+message AntennaReply {
+  reserved 1,2;
+  AntennaResult result = 3;
+}
+
+message GetAntennaPowerRequest {
+  Identifier identifier = 1;
+}
+
+message SetAntennaPowerRequest {
+  Identifier identifier = 1;
+  Antenna_Power_Status power_status = 2;
+}
+
+message AntennaPowerResult {
+  Identifier identifier = 1;
+  Antenna_Power_Status power_status = 2;
+}
+
+message GetAntennaPowerReply {
+  AntennaPowerResult result = 1;
+}
+
+message SetAntennaPowerReply {
+  AntennaPowerResult result = 1;
+}
+
+message GetAntennaElementPowerRequest {
+  Identifier identifier = 1;
+  int32 element_index = 2;
+}
+
+message AntennaElementPowerResult {
+  Identifier identifier =1;
+  int32 element_index = 2;
+  Antenna_Power_Status power_status = 3;
+}
+
+message GetAntennaElementPowerReply {
+  AntennaElementPowerResult result = 1;
+}
+
+message SetAntennaElementPowerRequest {
+  Identifier identifier = 1;
+  int32 element_index = 2;
+  Antenna_Power_Status power_status = 3;
+}
+
+message SetAntennaElementPowerReply {
+  AntennaElementPowerResult result = 1;
+}

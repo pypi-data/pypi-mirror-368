@@ -1,0 +1,23 @@
+default_stages: [pre-push]
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-yaml
+      - id: check-toml
+      - id: detect-private-key
+  - repo: https://github.com/koalaman/shellcheck-precommit
+    rev: v0.10.0
+    hooks:
+      - id: shellcheck
+  - repo: local
+    hooks:
+      - id: tox-lint
+        name: tox-lint (local)
+        entry: tox
+        language: python
+        types: [file, python]
+        args: ["-e",  "lint", "--"]

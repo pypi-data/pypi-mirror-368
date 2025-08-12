@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+service Antennafield {
+  rpc GetAntennafieldPower(GetAntennafieldRequest) returns (AntennafieldReply) {}
+  rpc SetAntennafieldPower(SetAntennafieldRequest) returns (AntennafieldReply) {}
+}
+
+enum Antennafield_Power_Status {
+  Antennafield_POWER_OFF = 0;
+  Antennafield_POWER_ON = 1;
+}
+
+message AntennafieldIdentifier {
+  // e.g. "LBA","HBA"
+  string antennafield_id = 1;
+}
+
+message SetAntennafieldRequest {
+  AntennafieldIdentifier identifier = 1;
+  Antennafield_Power_Status power_status = 2 ;
+}
+
+message GetAntennafieldRequest {
+  AntennafieldIdentifier identifier = 1;
+}
+
+message AntennafieldResult {
+  AntennafieldIdentifier identifier = 1;
+  Antennafield_Power_Status power_status = 2 ;
+}
+
+message AntennafieldReply {
+  bool success = 1;
+  string exception = 2;
+  AntennafieldResult result = 3;
+}
