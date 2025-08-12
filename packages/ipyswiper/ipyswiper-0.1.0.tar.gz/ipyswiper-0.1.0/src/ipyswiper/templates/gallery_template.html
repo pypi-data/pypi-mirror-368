@@ -1,0 +1,743 @@
+<div id="gallery-{{ unique_id }}" class="gallery-container" tabindex="0">
+    <div class="gallery-content">
+        <div class="swiper main-swiper">
+            <div class="swiper-wrapper">
+                {% for item in images %}
+                <div class="swiper-slide">
+                    <img src="{{ item.image }}" alt="{{ item.label }}" loading="lazy">
+                </div>
+                {% endfor %}
+            </div>
+            <div class="swiper-button-next"></div>
+            <div class="swiper-button-prev"></div>
+        </div>
+    </div>
+
+    <div class="thumbnail-panel">
+        <div class="swiper thumbs-swiper">
+            <div class="swiper-wrapper">
+                {% for item in images %}
+                <div class="swiper-slide">
+                    <div class="thumb-image">
+                        <img src="{{ item.image }}" alt="{{ item.label }}" loading="lazy">
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="swiper-scrollbar"></div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Universal box-sizing rule to prevent Swiper layout issues */
+html {
+    box-sizing: border-box;
+}
+*, *:before, *:after {
+    box-sizing: inherit;
+}
+
+/* Scoped box-sizing reset to prevent positioning issues within gallery only */
+.gallery-container, .gallery-container *, .gallery-container *::before, .gallery-container *::after {
+    box-sizing: border-box;
+}
+
+/* Development Sandbox Styles */
+/* Gallery Container Styles */
+.gallery-container {
+    display: flex;
+    flex-direction: row;
+    height: {{ container_height }}px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    overflow: hidden;
+    outline: none;
+    /* CRITICAL FIX: Allow container to shrink properly without overflow */
+    width: 100%;
+    max-width: 100%; /* Prevent container from exceeding viewport */
+    box-sizing: border-box; /* Include padding/border in width calculations */
+}
+
+/* Main Gallery Content - FIXED: Remove black background */
+.gallery-content {
+    flex: 1 1 auto;
+    position: relative;
+    background-color: #f8f9fa; /* Light gray instead of black */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Fix for progressive image shift - ensure consistent width calculation */
+    min-width: 0; /* Allow flex shrinking but prevent width calculation issues */
+    overflow: hidden; /* Prevent content overflow affecting calculations */
+}
+
+/* Main Swiper Styles - FIXED: Ensure visibility */
+.main-swiper {
+    width: 100%;
+    height: 100%;
+    background: #f8f9fa; /* Light background for better visibility */
+    position: relative;
+}
+
+.main-swiper .swiper-wrapper {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    width: 100%;
+}
+
+.main-swiper .swiper-slide {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: transparent;
+    opacity: 1;
+    width: 100%;
+    height: 100%;
+    /* CRITICAL FIX: Allow Swiper to control positioning - DO NOT override transforms */
+    /* Removed: left: 0 !important; top: 0 !important; transform: none !important; */
+}
+
+.main-swiper .swiper-slide img {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+    opacity: 1;
+    visibility: visible;
+    /* Allow natural centering without transform interference */
+}
+
+/* Navigation Buttons */
+.swiper-button-next,
+.swiper-button-prev {
+    color: #fff;
+    background: rgba(0, 0, 0, 0.5);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    margin-top: -22px;
+}
+
+.swiper-button-next:after,
+.swiper-button-prev:after {
+    font-size: 18px;
+}
+
+.swiper-button-next:hover,
+.swiper-button-prev:hover {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+/* Thumbnail Panel */
+.thumbnail-panel {
+    background: #f8f9fa;
+    border-left: 1px solid #dee2e6;
+    flex: 0 0 {{ thumbnail_panel_width }}px; /* Don't grow, don't shrink, configurable width */
+}
+
+/* Thumbnails Swiper */
+.thumbs-swiper {
+    width: 100%;
+    height: 100%;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+.thumbs-swiper .swiper-wrapper {
+    flex-direction: column;
+}
+
+.thumbs-swiper .swiper-slide {
+    width: 100%;
+    height: auto;
+    margin-bottom: 10px;
+    opacity: 0.6;
+    cursor: pointer;
+    border-radius: 4px;
+    overflow: hidden;
+    transition: opacity 0.3s ease;
+    box-sizing: border-box;
+}
+
+.thumbs-swiper .swiper-slide-thumb-active {
+    opacity: 1;
+    box-shadow: 0 0 0 2px #007bff;
+}
+
+.thumbs-swiper .swiper-slide:hover {
+    opacity: 0.8;
+}
+
+.thumb-image {
+    width: 100%;
+    aspect-ratio: 4/3;
+    overflow: hidden;
+    border-radius: 4px;
+    background: #e9ecef;
+    position: relative;
+    box-sizing: border-box;
+}
+
+.thumb-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: {{ thumbnail_fit }};
+    display: block;
+    box-sizing: border-box;
+}
+
+/* Thumbnail Labels */
+.thumb-label {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 2px 6px;
+    font-size: 11px;
+    font-weight: 500;
+    border-radius: 3px;
+    max-width: calc(100% - 16px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* Scrollbar */
+.swiper-scrollbar {
+    background: rgba(0, 0, 0, 0.1);
+    width: 4px;
+    right: 4px;
+}
+
+.swiper-scrollbar-drag {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 2px;
+}
+
+/* Mobile Responsive - DISABLED to force desktop layout */
+/* 
+@media (max-width: 768px) {
+    .gallery-container {
+        flex-direction: column;
+        height: auto;
+        min-height: 500px;
+    }
+    
+    .gallery-content {
+        height: 400px;
+        order: 1;
+    }
+    
+    .thumbnail-panel {
+        width: 100%;
+        height: 120px;
+        border-left: none;
+        border-top: 1px solid #dee2e6;
+        order: 2;
+    }
+    
+    .thumbs-swiper {
+        padding: 10px;
+    }
+    
+    .thumbs-swiper .swiper-wrapper {
+        flex-direction: row;
+    }
+    
+    .thumbs-swiper .swiper-slide {
+        width: 100px;
+        height: 80px;
+        margin-right: 10px;
+        margin-bottom: 0;
+        flex-shrink: 0;
+    }
+}
+*/
+
+</style>
+
+<script>
+// Global variables - only declare if not already declared
+if (typeof window.galleryInstances === 'undefined') {
+    window.galleryInstances = new Map();
+}
+if (typeof window.keyboardListenerActive === 'undefined') {
+    window.keyboardListenerActive = false;
+}
+
+// Reset mousewheel state to fix scrolling after keyboard navigation
+if (typeof window.resetMousewheelState === 'undefined') {
+    window.resetMousewheelState = () => {
+    // Find the focused gallery container
+    const focusedContainer = document.activeElement?.closest('.gallery-container');
+    if (!focusedContainer) return;
+    
+    // Get the gallery instance for this container
+    const galleryInstance = window.galleryInstances.get(focusedContainer);
+    if (!galleryInstance || !galleryInstance.thumbsSwiper) return;
+    
+    const thumbsSwiper = galleryInstance.thumbsSwiper;
+    if (thumbsSwiper && thumbsSwiper.mousewheel) {
+        thumbsSwiper.mousewheel.disable();
+        setTimeout(() => {
+            if (thumbsSwiper && thumbsSwiper.mousewheel) {
+                thumbsSwiper.mousewheel.enable();
+            }
+        }, 100);
+    }
+    };
+}
+
+// Global keyboard handler function
+if (typeof window.handleKeyboardNavigation === 'undefined') {
+    window.handleKeyboardNavigation = (event) => {
+        console.log('🎹 Keyboard event received:', event.key, 'Active element:', document.activeElement?.tagName, document.activeElement?.id);
+        
+        // Find the focused gallery container
+        let focusedContainer = document.activeElement?.closest('.gallery-container');
+        
+        // If no focused container, try to find any gallery container that might be active
+        if (!focusedContainer) {
+            const allContainers = document.querySelectorAll('.gallery-container');
+            if (allContainers.length === 1) {
+                focusedContainer = allContainers[0];
+                console.log('🎯 Using single gallery container as fallback');
+            } else {
+                console.log('❌ No focused gallery container found, and multiple containers exist');
+                return;
+            }
+        }
+        
+        console.log('✅ Found gallery container:', focusedContainer.id);
+        
+        // Get the gallery instance for this container
+        const galleryInstance = window.galleryInstances.get(focusedContainer);
+        if (!galleryInstance || !galleryInstance.mainSwiper) {
+            console.log('❌ Gallery instance not available for container');
+            return;
+        }
+        
+        const mainSwiper = galleryInstance.mainSwiper;
+        
+        // Only handle arrow keys, and only if they're not being used for other purposes
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(event.key)) {
+            console.log('🔄 Processing arrow key:', event.key);
+            
+            // Don't interfere if user is interacting with form elements or if modifier keys are pressed
+            if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA' || 
+                event.ctrlKey || event.altKey || event.metaKey) {
+                console.log('⏭️ Ignoring key due to target or modifier keys');
+                return;
+            }
+            
+            event.preventDefault();
+            event.stopPropagation();
+            
+            try {
+                switch (event.key) {
+                    case 'ArrowUp':
+                    case 'ArrowLeft':
+                        console.log('⬅️ Navigating to previous slide');
+                        mainSwiper.slidePrev();
+                        window.resetMousewheelState();
+                        console.log('✅ Previous slide navigation complete');
+                        break;
+                    case 'ArrowDown':
+                    case 'ArrowRight':
+                        console.log('➡️ Navigating to next slide');
+                        mainSwiper.slideNext();
+                        window.resetMousewheelState();
+                        console.log('✅ Next slide navigation complete');
+                        break;
+                    case ' ':
+                        // Space key toggles play/pause if slideshow is active
+                        if (mainSwiper.autoplay) {
+                            console.log('⏯️ Toggling autoplay');
+                            mainSwiper.autoplay.running ? 
+                                mainSwiper.autoplay.stop() : 
+                                mainSwiper.autoplay.start();
+                        }
+                        break;
+                }
+            } catch (error) {
+                console.error('💥 Error during keyboard navigation:', error);
+            }
+        } else {
+            console.log('🚫 Key not handled:', event.key);
+        }
+    };
+}
+
+// Keyboard navigation functions
+if (typeof window.enableKeyboardNavigation === 'undefined') {
+    window.enableKeyboardNavigation = () => {
+        if (!window.keyboardListenerActive) {
+            window.keyboardListenerActive = true;
+            console.log('Adding keydown event listener to document and window');
+            
+            // Try multiple targets for better Jupyter compatibility
+            document.addEventListener('keydown', window.handleKeyboardNavigation, true);
+            window.addEventListener('keydown', window.handleKeyboardNavigation, true);
+            
+            // Also add to the focused gallery container if available
+            const focusedContainer = document.activeElement?.closest('.gallery-container');
+            if (focusedContainer) {
+                console.log('Also adding keydown listener to focused container');
+                focusedContainer.addEventListener('keydown', window.handleKeyboardNavigation, true);
+            }
+        }
+    };
+}
+
+if (typeof window.disableKeyboardNavigation === 'undefined') {
+    window.disableKeyboardNavigation = () => {
+        if (window.keyboardListenerActive) {
+            window.keyboardListenerActive = false;
+            console.log('Removing keydown event listeners');
+            
+            // Remove from all targets we added to
+            document.removeEventListener('keydown', window.handleKeyboardNavigation, true);
+            window.removeEventListener('keydown', window.handleKeyboardNavigation, true);
+            
+            // Remove from any gallery containers
+            document.querySelectorAll('.gallery-container').forEach(container => {
+                container.removeEventListener('keydown', window.handleKeyboardNavigation, true);
+            });
+        }
+    };
+}
+
+/**
+ * Initialize Gallery Function
+ * @param {string} containerSelector - CSS selector for the gallery container
+ * @param {Array} images - Array of image objects with {label: string, image: string} format
+ */
+function initializeGallery(containerSelector, images) {
+    console.log('Starting gallery initialization...');
+    
+    const container = document.querySelector(containerSelector);
+    if (!container) {
+        console.error('Gallery container not found:', containerSelector);
+        return null;
+    }
+
+    const mainSwiperWrapper = container.querySelector('.main-swiper .swiper-wrapper');
+    const thumbsSwiperWrapper = container.querySelector('.thumbs-swiper .swiper-wrapper');
+
+    if (!mainSwiperWrapper || !thumbsSwiperWrapper) {
+        console.error('Gallery swiper elements not found in container:', containerSelector);
+        return null;
+    }
+
+    // Clear existing content
+    mainSwiperWrapper.innerHTML = '';
+    thumbsSwiperWrapper.innerHTML = '';
+
+    // Populate slides with image data
+    console.log(`Adding ${images.length} images to the gallery...`);
+    images.forEach((item, index) => {
+        try {
+            console.log(`Adding image ${index + 1}: ${item.label}`);
+            
+            // Create main slide
+            const mainSlide = document.createElement('div');
+            mainSlide.className = 'swiper-slide';
+            mainSlide.innerHTML = `<img src="${item.image}" alt="${item.label}" loading="lazy" class="gallery-main-image">`;
+            console.log(`  - Created main slide with image: ${item.image.substring(0, 50)}...`);
+            
+            // Add load/error handlers to main image
+            const mainImg = mainSlide.querySelector('img');
+            mainImg.onload = () => console.log(`  - Main image ${index + 1} loaded successfully`);
+            mainImg.onerror = (e) => console.error(`  - Error loading main image ${index + 1}:`, e);
+            
+            mainSwiperWrapper.appendChild(mainSlide);
+
+            // Create thumbnail slide
+            const thumbSlide = document.createElement('div');
+            thumbSlide.className = 'swiper-slide';
+            const labelHtml = {{ show_labels|lower }} ? `<div class="thumb-label">${item.label}</div>` : '';
+            thumbSlide.innerHTML = `
+                <div class="thumb-image">
+                    <img src="${item.image}" alt="${item.label}" loading="lazy" class="gallery-thumb-image">
+                    ${labelHtml}
+                </div>
+            `;
+            console.log(`  - Created thumbnail slide`);
+            
+            // Add load/error handlers to thumbnail image
+            const thumbImg = thumbSlide.querySelector('img');
+            thumbImg.onload = () => console.log(`  - Thumbnail ${index + 1} loaded successfully`);
+            thumbImg.onerror = (e) => console.error(`  - Error loading thumbnail ${index + 1}:`, e);
+            
+            thumbsSwiperWrapper.appendChild(thumbSlide);
+        } catch (error) {
+            console.error(`Error adding image ${index + 1}:`, error);
+        }
+    });
+    
+    console.log(`Finished adding ${images.length} images to the gallery`);
+
+    // Initialize thumbnails swiper first
+    console.log('Initializing thumbnails swiper...');
+    const thumbsSwiper = new Swiper(container.querySelector('.thumbs-swiper'), {
+        direction: 'vertical',
+        slidesPerView: {{ thumbnails_per_view }},
+        spaceBetween: 10,
+        freeMode: true,
+        watchSlidesProgress: true,
+        mousewheel: {
+            enabled: true,
+            sensitivity: 1,
+            thresholdDelta: 50,
+        },
+        scrollbar: {
+            el: container.querySelector('.swiper-scrollbar'),
+            draggable: true,
+        },
+    });
+
+    // Initialize main swiper with thumbnails connection
+    console.log('Initializing main swiper...');
+    const mainSwiper = new Swiper(container.querySelector('.main-swiper'), {
+        effect: '{{ transition_effect }}',
+        speed: {{ transition_speed }},
+        spaceBetween: 0,
+        slidesPerView: 1,
+        centeredSlides: false,  // Disable centering to prevent positioning issues
+        centerInsufficientSlides: false,  // Disable insufficient centering
+        // CRITICAL FIX: Handle container width changes properly
+        watchOverflow: true,  // Watch for container overflow
+        watchSlidesProgress: true,  // Watch slide progress for accurate positioning
+        watchSlidesVisibility: true,  // Watch slide visibility
+        navigation: {
+            nextEl: container.querySelector('.swiper-button-next'),
+            prevEl: container.querySelector('.swiper-button-prev'),
+        },
+        thumbs: {
+            swiper: thumbsSwiper,
+        },
+        on: {
+            slideChange: function() {
+                updateActiveThumbnail(this.activeIndex);
+            },
+            resize: function() {
+                // Force complete recalculation to fix progressive image shift
+                this.updateSize();
+                this.updateSlides();
+                this.updateProgress();
+                this.updateSlidesClasses();
+                this.update(); // Force complete update
+                this.slideTo(this.activeIndex, 0, false);
+            },
+            slideChange: function() {
+                // WORKAROUND: Force slide position correction after each slide change
+                setTimeout(() => {
+                    const activeSlide = this.slides[this.activeIndex];
+                    if (activeSlide) {
+                        // Get the container and slide dimensions
+                        const containerWidth = this.wrapperEl.clientWidth;
+                        const slideWidth = activeSlide.offsetWidth;
+                        
+                        // Calculate where the slide should be centered
+                        const expectedOffset = (containerWidth - slideWidth) / 2;
+                        
+                        // Get current slide position
+                        const currentTransform = activeSlide.style.transform;
+                        const currentOffset = currentTransform.match(/translateX\(([^)]+)\)/);
+                        
+                        if (currentOffset) {
+                            const currentX = parseFloat(currentOffset[1]);
+                            const expectedX = expectedOffset;
+                            
+                            // If there's a significant misalignment, force correction
+                            if (Math.abs(currentX - expectedX) > 5) {
+                                console.log(`Correcting slide ${this.activeIndex}: ${currentX}px -> ${expectedX}px`);
+                                activeSlide.style.transform = `translateX(${expectedX}px)`;
+                            }
+                        }
+                    }
+                }, 10);
+                
+                updateActiveThumbnail(this.activeIndex);
+            }
+        }
+    });
+
+    // Update active thumbnail highlighting
+    const updateActiveThumbnail = (activeIndex) => {
+        const thumbnails = container.querySelectorAll('.thumbs-swiper .swiper-slide');
+        thumbnails.forEach((thumb, index) => {
+            if (index === activeIndex) {
+                thumb.classList.add('swiper-slide-thumb-active');
+            } else {
+                thumb.classList.remove('swiper-slide-thumb-active');
+            }
+        });
+    };
+
+    // Make container focusable and set up focus-based keyboard navigation
+    if (!container.hasAttribute('tabindex')) {
+        container.setAttribute('tabindex', '0');
+    }
+    
+    // Add focus event listeners for keyboard navigation
+    container.addEventListener('focusin', () => {
+        console.log('Gallery gained focus - enabling keyboard navigation');
+        window.enableKeyboardNavigation();
+    });
+    
+    container.addEventListener('focusout', (e) => {
+        // Only disable if focus is moving completely outside the container
+        if (!container.contains(e.relatedTarget)) {
+            console.log('Gallery lost focus - disabling keyboard navigation');
+            window.disableKeyboardNavigation();
+        }
+    });
+    
+    // Add multiple click handlers for better Jupyter compatibility
+    container.addEventListener('click', (e) => {
+        console.log('Gallery container clicked - focusing');
+        e.stopPropagation();
+        container.focus();
+    });
+    
+    // Also add click handlers to navigation buttons for debugging and focus management
+    const prevBtn = container.querySelector('.swiper-button-prev');
+    const nextBtn = container.querySelector('.swiper-button-next');
+    
+    if (prevBtn) {
+        prevBtn.addEventListener('click', (e) => {
+            console.log('⬅️ Previous button clicked - switching focus to this gallery');
+            e.stopPropagation();
+            container.focus();
+            console.log(`✅ Gallery ${container.id} focused via prev button`);
+        });
+    }
+    
+    if (nextBtn) {
+        nextBtn.addEventListener('click', (e) => {
+            console.log('➡️ Next button clicked - switching focus to this gallery');
+            e.stopPropagation();
+            container.focus();
+            console.log(`✅ Gallery ${container.id} focused via next button`);
+        });
+    }
+    
+    // Add focus handling to main swiper area
+    const mainSwiperEl = container.querySelector('.main-swiper');
+    if (mainSwiperEl) {
+        mainSwiperEl.addEventListener('click', (e) => {
+            console.log('🖼️ Main image clicked - switching focus to this gallery');
+            e.stopPropagation();
+            container.focus();
+            console.log(`✅ Gallery ${container.id} focused via main image click`);
+        });
+    }
+    
+    // Add thumbnail click handlers for debugging and focus management
+    const thumbnails = container.querySelectorAll('.thumbs-swiper .swiper-slide');
+    thumbnails.forEach((thumb, index) => {
+        thumb.addEventListener('click', (e) => {
+            console.log(`🖼️ Thumbnail ${index} clicked - switching focus to this gallery`);
+            e.stopPropagation();
+            
+            // Focus this gallery container when thumbnail is clicked
+            container.focus();
+            console.log(`✅ Gallery ${container.id} focused via thumbnail click`);
+        });
+    });
+
+    // Add direct keyboard listener to this container as fallback
+    container.addEventListener('keydown', (e) => {
+        console.log('🎹 Direct container keydown:', e.key, 'on container:', container.id);
+        
+        // Handle keyboard navigation directly on this container
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+            console.log('🔄 Direct container processing key:', e.key);
+            
+            // Don't interfere if modifier keys are pressed
+            if (e.ctrlKey || e.altKey || e.metaKey) {
+                console.log('⏭️ Ignoring key due to modifier keys');
+                return;
+            }
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            try {
+                switch (e.key) {
+                    case 'ArrowUp':
+                    case 'ArrowLeft':
+                        console.log('⬅️ Direct navigation to previous slide');
+                        mainSwiper.slidePrev();
+                        window.resetMousewheelState();
+                        break;
+                    case 'ArrowDown':
+                    case 'ArrowRight':
+                        console.log('➡️ Direct navigation to next slide');
+                        mainSwiper.slideNext();
+                        window.resetMousewheelState();
+                        break;
+                    case ' ':
+                        if (mainSwiper.autoplay) {
+                            console.log('⏯️ Direct autoplay toggle');
+                            mainSwiper.autoplay.running ? 
+                                mainSwiper.autoplay.stop() : 
+                                mainSwiper.autoplay.start();
+                        }
+                        break;
+                }
+            } catch (error) {
+                console.error('💥 Error in direct keyboard navigation:', error);
+            }
+        }
+    });
+
+    console.log('Gallery initialization complete');
+    
+    // Create gallery object with utility methods
+    const galleryInstance = {
+        mainSwiper,
+        thumbsSwiper,
+        container,
+        toggleTransitionEffect: (useFade) => {
+            if (mainSwiper) {
+                mainSwiper.changeTransitionEffect(useFade ? 'fade' : 'slide');
+            }
+        }
+    };
+    
+    // Store the instance in the map for this container
+    window.galleryInstances.set(container, galleryInstance);
+    
+    return galleryInstance;
+}
+</script>
+
+<script>
+// Initialize the gallery with the unique ID and image data
+(function() {
+    // Function to initialize when ready
+    function tryInitialize() {
+        // Check if Swiper is loaded and container exists
+        if (typeof Swiper !== 'undefined' && document.querySelector('#gallery-{{ unique_id }}')) {
+            console.log('Initializing gallery {{ unique_id }}...');
+            initializeGallery('#gallery-{{ unique_id }}', {{ images_json }});
+        } else {
+            // Retry after a short delay
+            setTimeout(tryInitialize, 100);
+        }
+    }
+    
+    // Start trying to initialize
+    tryInitialize();
+})();
+</script>
