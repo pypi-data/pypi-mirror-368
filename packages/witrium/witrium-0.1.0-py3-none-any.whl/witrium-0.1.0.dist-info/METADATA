@@ -1,0 +1,55 @@
+Metadata-Version: 2.4
+Name: witrium
+Version: 0.1.0
+Summary: Python client for Witrium cloud browser automation API
+Author-email: Witrium <support@witrium.com>
+License-Expression: MIT
+Project-URL: Homepage, https://witrium.com
+Project-URL: Repository, https://github.com/witrium/witrium-py
+Project-URL: Issues, https://github.com/witrium/witrium-py/issues
+Keywords: automation,browser,web,api,client,witrium
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Operating System :: OS Independent
+Classifier: Typing :: Typed
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: httpx<1.0,>=0.28
+Requires-Dist: pydantic<3,>=2.11
+Requires-Dist: tenacity<10,>=9.1
+Dynamic: license-file
+
+## witrium
+
+Python client for the Witrium cloud browser automation API.
+
+### Installation
+
+```bash
+pip install witrium
+```
+
+### Quick start
+
+```python
+from witrium import SyncWitriumClient, WorkflowRunStatus
+
+with SyncWitriumClient(api_token="your-api-token") as client:
+    run = client.run_workflow(
+        workflow_id="workflow-uuid",
+        args={"key": "value"}
+    )
+    result = client.wait_until_state(
+        run_id=run.run_id,
+        target_status=WorkflowRunStatus.COMPLETED
+    )
+    print(result.result)
+```
+
+For full documentation and advanced patterns, see `witrium/README.md` in this repository.
+
+
