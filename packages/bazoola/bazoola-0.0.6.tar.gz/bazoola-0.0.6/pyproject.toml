@@ -1,0 +1,91 @@
+[tool.poetry]
+name = "bazoola"
+version = "0.0.6"
+description = "A lightweight, file-based database implementation in Python"
+authors = ["Dima Doroshev <github@doroshev.com>"]
+readme = "README.md"
+license = "MIT"
+homepage = "https://github.com/ddoroshev/bazoola"
+repository = "https://github.com/ddoroshev/bazoola"
+documentation = "https://github.com/ddoroshev/bazoola#readme"
+keywords = ["database", "file-based", "educational", "lightweight"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Database",
+    "Topic :: Education",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+packages = [{include = "bazoola"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+[tool.poetry.group.dev.dependencies]
+tqdm = "^4.67.1"
+pytest = "^8.4.1"
+pytest-cov = "^6.2.1"
+mypy = "^1.16.1"
+types-tqdm = "^4.67.0"
+pytest-env = "^1.1.5"
+ruff = "^0.9.10"
+pre-commit = "^4.0.0"
+flask = "^3.1.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+testpaths = [
+    "tests",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["."]
+omit = [
+    "*/conftest.py",
+    "*/tests/*",
+    "main.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "@abstractmethod",
+    "@abc.abstractmethod",
+    "pragma: no cover",
+    "TYPE_CHECKING",
+]
+
+[tool.coverage.html]
+directory = "htmlcov"
+skip_covered = true
+show_contexts = true
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "RUF022"]  # E=pycodestyle errors, F=pyflakes, I=isort, RUF022=sort __all__
+ignore = ["E741"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["bazoola"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*.py" = ["F403", "F405"]
+"main.py" = ["F403", "F405"]
+
+[tool.mypy]
+exclude = [
+    "^demo/",
+]
