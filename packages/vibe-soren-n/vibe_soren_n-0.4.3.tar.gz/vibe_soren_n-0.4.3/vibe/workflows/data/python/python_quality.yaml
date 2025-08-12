@@ -1,0 +1,26 @@
+name: python_quality
+description: "Concise Python code quality (lint, format, types, tests)"
+triggers:
+  - "format.*code"
+  - "lint.*python"
+  - "check.*quality"
+  - "fix.*style"
+  - "ruff.*check"
+  - "black.*format"
+  - "improve.*code"
+  - "quality.*check"
+  - "code.*standards"
+  - "typing.*check"
+steps:
+  - "Lint: `uv run ruff check .`"
+  - "Auto-fix: `uv run ruff check . --fix`"
+  - "Format: `uv run ruff format .`"
+  - "Type-check: `uv run mypy . --hide-error-context --no-error-summary`"
+  - "Tests: `uv run pytest -q --maxfail=1`"
+  - "Optional security: `uv run bandit -r .` or `uv run pip-audit`"
+project_types:
+  - "python"
+conditions:
+  - "file:pyproject.toml"
+  - "file:requirements.txt"
+  - "pattern:*.py"

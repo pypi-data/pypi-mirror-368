@@ -1,0 +1,25 @@
+name: python_session_complete
+description: "🎯 Python session completion with validation and cleanup"
+triggers:
+  - "complete.*session"
+  - "finish.*work"
+  - "session.*cleanup"
+  - "ready.*commit"
+  - "validate.*session"
+  - "session.*done"
+steps:
+  - "🐍 **Validate Python Environment**: Check `python --version` and ensure environment is working correctly"
+  - "🔍 **Final Quality Check**: Run `ruff check .` to ensure no style issues remain before session completion"
+  - "🧾 **Validate Project Files**: If pyproject.toml exists, verify TOML syntax is valid and package configuration is correct"
+  - "🧪 **Test Discovery Check**: If tests exist, run `pytest --collect-only` to ensure test discovery works properly"
+  - "🧹 **Clean Cache Files**: Remove Python cache with `find . -name '*.pyc' -delete` and `rm -rf __pycache__ .pytest_cache`"
+  - "📋 **Check Temporary Files**: Look for `*.tmp`, `*.bak`, `*~` files that should be cleaned up before commit"
+  - "📈 **Session Metrics**: Count Python files, test files, and review overall project health"
+  - "📄 **Git Status Review**: Check `git status --porcelain` to see what changes are ready for commit"
+  - "✨ **Prepare for Commit**: Session validated and cleaned - ready for `git add .` and `git commit`"
+project_types:
+  - "python"
+conditions:
+  - "pattern:*.py"
+dependencies:
+  - "python_quality"

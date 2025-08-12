@@ -1,0 +1,87 @@
+name: "Vibe Self-Hosting Workflows"
+description: "Vibe's self-hosting workflows for dogfooding approach"
+protocol_version: 1
+project_type: "python"
+
+workflows:
+  testing:
+    name: "🧪 Test execution, validation, and quality verification"
+    description: "Test and validate Vibe CLI implementation"
+    triggers:
+      - "test vibe"
+      - "validate code"
+      - "run tests"
+      - "check quality"
+    commands:
+      - "python -m pytest"
+      - "ruff check"
+    guidance: |
+      This workflow validates Vibe's core functionality. Use built-in 'python_test'
+      workflow for general Python testing. For comprehensive testing across projects,
+      query: 'test python code' to access the built-in testing workflows.
+
+  documentation:
+    name: "📚 Generate and update Vibe-specific documentation"
+    description: "Create documentation focused on Vibe's unique workflow architecture"
+    triggers:
+      - "document workflows"
+      - "create vibe docs"
+      - "update documentation"
+      - "workflow docs"
+    commands:
+      - "find vibe/workflows/data -name '*.yaml' -exec echo 'Workflow: {}' \\;"
+      - "python -c \"import vibe.workflows.loader; loader = vibe.workflows.loader.WorkflowLoader(); workflows = loader.load_workflows(); print(f'Loaded {len(workflows)} workflows')\""
+      - "ls -la docs/"
+    guidance: |
+      This workflow generates Vibe-specific documentation. For general documentation
+      tasks, use built-in 'documentation' workflow. For architectural decisions,
+      create ADRs in docs/adr/ following the template.
+
+  mcp:
+    name: "🤖 MCP tools integration and AI-enhanced workflows"
+    description: "Model Context Protocol tools integration for AI-enhanced development"
+    triggers:
+      - "mcp tools"
+      - "ai tools"
+      - "model context protocol"
+      - "ai integration"
+    commands: []
+    guidance: |
+      This workflow provides guidance for MCP tools integration. Vibe is designed to work
+      with AI agents and MCP tools for enhanced development workflows. Use this for AI
+      integration patterns and MCP tool configurations.
+
+  self_test:
+    name: "🔄 Vibe dogfooding and self-validation"
+    description: "Test Vibe using Vibe itself - the ultimate dogfooding approach"
+    triggers:
+      - "dogfood test"
+      - "self test"
+      - "vibe test vibe"
+      - "dogfooding"
+    commands:
+      - "uv run vibe guide 'analyze project'"
+      - "uv run vibe guide 'test python code'"
+      - "uv run vibe guide 'check quality'"
+    guidance: |
+      This workflow demonstrates Vibe's dogfooding approach - using Vibe to develop and
+      test Vibe itself. This showcases the power of workflow orchestration and natural
+      language guidance.
+
+  bootstrap:
+    name: "🚀 Vibe development environment bootstrap"
+    description: "Set up and configure Vibe development environment"
+    triggers:
+      - "setup vibe"
+      - "bootstrap environment"
+      - "configure development"
+      - "vibe setup"
+    commands:
+      - "uv --version || echo 'Install uv: curl -LsSf https://astral.sh/uv/install.sh | sh'"
+      - "uv sync"
+      - "uv run python -c \"import vibe; print('Vibe imported successfully')\""
+      - "uv run vibe guide 'help'"
+    guidance: |
+      This workflow sets up the Vibe development environment. Ensures uv is installed,
+      dependencies are synced, and Vibe is working correctly. For general Python
+      environment setup, use built-in workflows via: 'setup python environment'.

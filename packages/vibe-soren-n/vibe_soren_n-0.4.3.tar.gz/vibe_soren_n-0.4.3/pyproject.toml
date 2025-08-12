@@ -1,0 +1,71 @@
+[project]
+name = "vibe-soren-n"
+dynamic = ["version"]
+description = "A CLI tool for vibe coding with intelligent workflow orchestration"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "click>=8.1.0",
+    "rich>=13.0.0",
+    "pydantic>=2.0.0",
+    "pyyaml>=6.0.0",
+    "typing-extensions>=4.0.0",
+]
+
+[project.scripts]
+vibe = "vibe.cli.main:main"
+
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "vibe/_version.py"
+
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+extend-exclude = ["vibe/_version.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_return_any = false
+warn_unused_ignores = false
+
+[[tool.mypy.overrides]]
+module = "vibe.config"
+disable_error_code = "misc"
+
+[[tool.mypy.overrides]]
+module = "click.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "pydantic"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "pydantic.*"
+ignore_missing_imports = true
+
+[dependency-groups]
+dev = [
+    "black>=25.1.0",
+    "isort>=6.0.1",
+    "mypy>=1.17.1",
+    "pytest>=8.4.1",
+    "pytest-cov>=6.2.1",
+    "ruff>=0.12.8",
+    "types-pyyaml>=6.0.12.20250809",
+    "types-click>=7.1.0",
+    "pre-commit>=4.0.0",
+    "hatch-vcs>=0.4.0",
+    "twine>=6.1.0",
+]

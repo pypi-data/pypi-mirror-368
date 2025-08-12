@@ -1,0 +1,19 @@
+name: python_build
+description: "Build Python package for distribution"
+triggers:
+  - "build.*package"
+  - "create.*dist"
+  - "package.*python"
+  - "build.*wheel"
+  - "prepare.*release"
+steps:
+  - "🔧 **Build Package**: Use `uv build` (preferred) or `python -m build` to create wheel and source distributions"
+  - "📦 **Verify Artifacts**: Check `find dist/ -name '*.whl' -o -name '*.tar.gz' 2>/dev/null || echo 'No dist/ directory found'` to confirm build artifacts"
+  - "✅ **Validate Build**: Ensure package builds successfully and all necessary files are included in distribution"
+dependencies:
+  - "python_test"
+  - "python_quality"
+project_types:
+  - "python"
+conditions:
+  - "file:pyproject.toml"
