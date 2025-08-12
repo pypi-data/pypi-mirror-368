@@ -1,0 +1,46 @@
+name: main
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: uv sync --locked --dev
+
+      - name: Run unit-tests with coverage
+        run: uv run pytest --cov --cov-report=xml
+
+      - name: Run codelimit
+        run: |
+          echo "Scan codebase"
+          uv run codelimit scan .
+          echo "Generate report"
+          uv run codelimit report .
+          echo "Generate report in Markdown"
+          uv run codelimit report --format markdown .
+          echo "Generate findings"
+          uv run codelimit findings .
+          echo "Generate findings (Markdown)"
+          uv run codelimit findings --format markdown .
+
+      - name: Build and run codelimit binary
+        run: |
+          uv run pyinstaller -n codelimit -F codelimit/__main__.py
+          ./dist/codelimit scan .
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
