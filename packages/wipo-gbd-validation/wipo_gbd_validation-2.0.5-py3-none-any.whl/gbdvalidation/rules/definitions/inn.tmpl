@@ -1,0 +1,72 @@
+[0001] {{ doc.st13 | exists }}
+
+[0101] {{ doc.type | exists }}
+
+[0301] {{ doc.markFeature | exists }}
+[0303] {{ doc.markFeature | equals('Word')}}
+
+[0401] {{ doc.registrationOfficeCode | exists }}
+[0403] {{ doc.registrationOfficeCode | equals('WHO') }}
+
+[0501] {{ doc.designatedCountries | exists }}
+[0503] {{ doc.designatedCountries | eachequals(*CC) }}
+
+[0702] {{ _ | ifttt(doc.reference.office | exists,  (doc.reference.application or doc.reference.registration) | pluck('number') | anyexists) }}
+[0802] {{ _ | ifttt(doc.reference.application | exists,  doc.reference.office | exists) }}
+[0802] {{ _ | ifttt(doc.reference.registration | exists,  doc.reference.office | exists) }}
+
+[0901] {{ doc.applicationNumber | exists }}
+[1002] {{ _ | ifttt(doc | istrademark, doc.applicationDate | exists) }}
+[1005] {{ doc.applicationDate | ispast }}
+
+[1102] {{ _ | ifttt(doc | istrademark, doc.gbdStatus | equals('Registered', 'Expired'), doc.registrationNumber | exists)}}
+
+[1202] {{ _ | ifttt(doc | istrademark, doc.gbdStatus | equals('Registered', 'Expired'), doc.registrationDate | exists)}}
+[1205] {{ doc.registrationDate | ispast }}
+[1205] {{ doc.registrationDate | isafter(doc.applicationDate) }}
+
+[1303] {{ doc.applicationLanguageCode | equals(*LC) }}
+[1403] {{ doc.secondLanguageCode | equals(*LC)}}
+
+[1502] {{ _ | ifttt(doc | istrademark, doc.gbdStatus | equals('Registered', 'Expired'), doc.expiryDate | exists)}}
+[1505] {{ _ | ifttt(doc.expiryDate | exists, doc.expiryDate | isafter(doc.applicationDate)) }}
+[1505] {{ _ | ifttt(doc.expiryDate | exists, doc.expiryDate | isafter(doc.registrationDate)) }}
+
+[1801] {{ doc.gbdStatus | exists }}
+[1801] {{ doc.gbdStatus | nequals('Unsupported') }}
+[1803] {{ doc.gbdStatus | equals('Registered','Pending','Ended','Expired','Unknown') }}
+
+[1905] {{ doc.statusDate | ispast }}
+
+[2012] {{ doc.markDisclaimerDetails | pluck('text') | eachexists }}
+[2014] {{ doc.markDisclaimerDetails | pluck('languageCode') | eachexists }}
+
+[3112] {{ doc.markDescriptionDetails | pluck('text') | eachexists }}
+[3114] {{ doc.markDescriptionDetails | pluck('languageCode') | eachexists }}
+
+[2112] {{ _ | ifttt(doc.markFeature | equals('Word'), doc.wordMarkSpecification.markVerbalElement | pluck('text') | anyexists) }}
+[2112] {{ _ | ifttt(doc.markFeature | equals('Combined'), doc.wordMarkSpecification.markVerbalElement | pluck('text') | anyexists) }}
+[2113] {{ doc.wordMarkSpecification.markVerbalElement | pluck('text') | eachexists }}
+[2114] {{ doc.wordMarkSpecification.markVerbalElement | pluck('languageCode') | eachexists }}
+[2124] {{ doc.wordMarkSpecification.markSignificantVerbalElement | pluck('languageCode') | eachexists }}
+[2134] {{ doc.wordMarkSpecification.markTranslation | pluck('languageCode') | eachexists }}
+
+[2433] {{ doc.goodsServicesClassification.class | pluck('code') | eachequals(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,
+                                                                             17,18,19,20,21,22,23,24,25,26,27,28,29,
+                                                                             30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45) }}
+
+[2712] {{ doc.applicants | pluck('fullName') | eachexists }}
+[2712] {{ doc.applicants | pluck('fullName') | flatten | pluck('text') | eachexists }}
+[2714] {{ doc.applicants | pluck('fullName') | flatten | pluck('languageCode') | eachexists }}
+[2732] {{ doc.applicants | pluck('countryCode') | eachexists }}
+
+[2812] {{ doc.representatives | pluck('fullName') | eachexists }}
+[2812] {{ doc.representatives | pluck('fullName') | flatten | pluck('text') | eachexists }}
+[2814] {{ doc.representatives | pluck('fullName') | flatten | pluck('languageCode') | eachexists }}
+[2832] {{ doc.representatives | pluck('countryCode') | eachexists }}
+
+[3023] {{ doc.events | pluck('gbdKind') | eachequals('Filed', 'Registered', 'Published', 'Pending', 'Inactive',
+                                                       'Opposed', 'Withdrawn', 'Expired', 'Examined', 'Invalidated',
+                                                       'Rejected', 'Abandoned', 'Suspended', 'Surrendered', 'Appealed',
+                                                       'Awaiting court action', 'Converted', 'Notification', 'Unknown') }}
+[3032] {{ doc.events | pluck('date') | eachexists }}

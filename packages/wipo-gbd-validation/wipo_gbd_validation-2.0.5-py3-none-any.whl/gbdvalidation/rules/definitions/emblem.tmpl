@@ -1,0 +1,23 @@
+[0001] {{ doc.st13 | exists }}
+[0003] {{ doc.st13 | length(17) }}
+
+[0101] {{ doc.type | exists }}
+[0103] {{ doc.type | equals('EMBLEM') }}
+
+[0203] {{ _ | ifttt(doc.kind | exists, doc.kind | eachequals('Armorial bearings', 'Flag', 'State emblem', 'Emblem', 'Official sign', 'Abbreviation', 'Name')) }}
+
+[0801] {{ doc.reference.office | exists }}
+[0802] {{ doc.reference.office | equals(*CC) }}
+
+[1801] {{ doc.gbdStatus | exists }}
+[1803] {{ doc.gbdStatus | equals('Registered','Pending','Ended','Expired','Unknown') }}
+
+[3112] {{ doc.markDescriptionDetails | pluck('text') | eachexists }}
+[3114] {{ doc.markDescriptionDetails | pluck('languageCode') | eachexists }}
+
+[2112] {{ _ | ifttt(doc.markFeature | equals('Word'), doc.wordMarkSpecification.markVerbalElement | pluck('text') | anyexists) }}
+[2112] {{ _ | ifttt(doc.markFeature | equals('Combined'), doc.wordMarkSpecification.markVerbalElement | pluck('text') | anyexists) }}
+
+[2113] {{ doc.wordMarkSpecification.markVerbalElement | pluck('text') | eachexists }}
+[2114] {{ doc.wordMarkSpecification.markVerbalElement | pluck('languageCode') | eachexists }}
+
