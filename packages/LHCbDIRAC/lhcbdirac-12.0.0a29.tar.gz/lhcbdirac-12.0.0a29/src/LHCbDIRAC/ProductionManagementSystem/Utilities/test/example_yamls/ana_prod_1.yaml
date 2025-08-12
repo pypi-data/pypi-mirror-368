@@ -1,0 +1,70 @@
+- type: AnalysisProduction
+  name: AnaProd#IFT_superliaison#Jpsi_Psi2S_SprucingPass_data_MagDown_VeloCLosed
+  priority: 1b
+  author: cburr
+  inform:
+  - camilla.de.angelis@cern.ch
+  wg: IFT
+  comment: ''
+  input_dataset:
+    conditions_dict:
+      configName: LHCb
+      configVersion: Commissioning23
+      inFileType: BANDQ.DST
+      inProPass: Real Data/SprucingPass23
+      inDataQualityFlag: OK,UNCHECKED
+      inTCKs: ALL
+      inProductionID: ALL
+    conditions_description: Beam6800GeV-VeloClosed-MagDown-Excl-UT
+    event_type: '94000000'
+  steps:
+  - name: AnaProd#v0r0p6192219#Jpsi_Psi2S_SprucingPass_data_MagDown_VeloCLosed
+    processing_pass: AnaProd-v0r0p6192219-Jpsi_Psi2S_SprucingPass_data_VeloCLosed
+    application:
+      name: DaVinci
+      version: v63r11
+    options:
+      entrypoint: IFT_superliaison.DV_Jpsimumu:main
+      extra_options:
+        data_type: Upgrade
+        input_type: ROOT
+        simulation: 'False'
+        input_stream: bandq
+        input_process: TurboPass
+        geometry_version: trunk
+        input_raw_format: '0.5'
+        conditions_version: master
+    data_pkgs:
+    - name: AnalysisProductions
+      version: v0r0p6192219
+    input:
+    - type: BANDQ.DST
+      visible: true
+    output:
+    - type: TUPLE_DATA.ROOT
+      visible: false
+    visible: true
+    ready: true
+    obsolete: true
+  - name: AnaProd#Merge#IFT_superliaison
+    processing_pass: merged
+    application:
+      name: LHCb
+      version: v54r2
+    options:
+      entrypoint: ap_merger:hadd
+      extra_options: {}
+      extra_args:
+      - ZSTD:9
+    data_pkgs:
+    - name: AnalysisProductions
+      version: v0r0p6192219
+    input:
+    - type: TUPLE_DATA.ROOT
+      visible: false
+    output:
+    - type: TUPLE_DATA.ROOT
+      visible: false
+    visible: false
+    ready: true
+    obsolete: true
