@@ -1,0 +1,60 @@
+
+## run.yml
+
+```yaml
+# py-shell-runner is an npm like run configuration and shell scripting package.
+# you can define your commands in a run.yml file and simply run with the run
+# command, like `run build`, `run clean`, etc.
+#
+#       ______   __    __  _______
+#      /      \ /  |  /  |/       \
+#     /$$$$$$  |$$ |  $$ |$$$$$$$  |
+#     $$ |  $$/ $$ |  $$ |$$ |  $$ |
+#     $$ |      $$ \__$$ |$$ |  $$ |
+#     $$ |      $$    $$/ $$ |  $$ |
+#     $$/        $$$$$$/  $$/   $$/
+#
+#
+# Getting started:
+#
+#   # Install with any of the bellow command.
+#   .---------------------------------------.
+#   | uv add py-shell-runner                |
+#   | pip install py-shell-runner           |
+#   '---------------------------------------'
+#
+#   # Create a `run.yml` file in your project root
+#     run --init
+#
+#   # Run the commands defined in `run.yml`
+#     run build
+#
+
+commands:
+
+  push:
+      - desc: Commit and push changes
+      - throw: true
+      - pytest
+      - git add .
+      - git commit
+      - git push
+
+
+  publish:
+      desc: Build and publish the package
+      ensure_env:
+          - UV_PUBLISH_TOKEN
+      cmd:
+          - rm -r dist
+          - throw: true
+          - pytest
+          - uv build
+          - uv publish
+
+
+  clean:
+      - desc: Clean up build artifacts
+      - rm -r dist
+      - rm -r src/py_shell_runner.egg-info
+```
