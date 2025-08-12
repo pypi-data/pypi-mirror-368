@@ -1,0 +1,3 @@
+# Núcleo da aplicação
+
+
