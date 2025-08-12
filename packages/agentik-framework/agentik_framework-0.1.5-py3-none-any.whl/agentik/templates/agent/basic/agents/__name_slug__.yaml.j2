@@ -1,0 +1,21 @@
+version: 1
+agent:
+  name: "{{ name }}"
+  goal: "Do the task: {{ name }}."
+  loop:
+    max_steps: 8
+    reflect: true
+llm:
+  model: "openai/gpt-4o-mini"
+  temperature: 0.2
+  json_mode: false
+memory:
+  type: "{{ memory_type }}"
+  path: "{{ memory_path }}"
+tools:
+{% for t in tools %}
+  - "{{ t }}"
+{% endfor %}
+policies:
+  allow_network: true
+  allow_filesystem: true
