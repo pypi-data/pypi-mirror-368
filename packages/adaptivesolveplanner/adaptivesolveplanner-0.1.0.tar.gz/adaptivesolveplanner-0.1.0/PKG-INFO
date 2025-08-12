@@ -1,0 +1,78 @@
+Metadata-Version: 2.4
+Name: adaptivesolveplanner
+Version: 0.1.0
+Summary: Adaptive tournament planning engine
+Author: SmokiCool
+Author-email: SmokiCool <none@example.com>
+License: MIT
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Intended Audience :: Developers
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: pydantic<3,>=2.6
+Requires-Dist: pydantic-settings<3,>=2.0
+
+# AdaptiveSolvePlanner
+
+AdaptiveSolvePlanner is a production-oriented adaptive tournament planner and solver. It supports sequential and process-parallel search over retention/decay parameters to produce "nice" tournament round plans (groups, qualifiers, wildcards) while honoring configurable limits.
+
+## Quickstart
+
+Install (recommended using Poetry):
+
+```bash
+python -m pip install "poetry>=1.4"
+poetry install
+poetry run asp-check   # lint + tests (provided script)
+```
+
+Or editable install:
+
+```bash
+pip install -e .
+```
+
+## Example:
+
+```python
+from adaptive_solve_planner import plan
+
+p = plan(start_guess=100, finals_target=12, rounds_desired=5, strictness="generous",
+         prefer_wc=True, allow_wc_down=True, top_k_per_round=12, max_nodes=300000, time_limit=12.0)
+print(p["_meta"])
+for r in p["rows"]:
+    print(r)
+```
+
+## API
+
+Two primary entry points:
+* `plan(...)` — sequential single-process planner
+* `parallel_plan(...)` — process-parallel planner with auto-tuning
+
+Both return a dict with:
+* `rows` — per-round dicts
+* `final_total` — final number of players
+* `_meta` — diagnostic metadata
+* `_score` — score used for selecting best plan
+
+See `examples`/ for runnable samples.
+
+## Configuration
+
+`PlannerConfig` centralizes defaults and can be overridden from environment variables using the `ASP_` prefix (e.g. `ASP_WC_PCT=0.12`). See `adaptive_solve_planner/config.py`.
+
+## Development
+
+Run checks:
+
+```bash
+poetry run asp-check
+```
+This runs ruff, mypy and pytest.
+
+## Contributing
+
+See `CONTRIBUTING.md`.
