@@ -1,0 +1,604 @@
+metadata:
+  title: |
+    LAWV Solid Foundations
+  short title: |
+    LAWV Solid Foundations
+  description: |
+    Root file for logic of the Solid Foundations project.  This file controls logic 
+    flow and importation of other question files.
+  authors:
+    - name: Dane W. Henry, Esq.
+      organization: Legal Aid of West Virginia, Inc.
+  revision_date: 2025-05-14
+  unlisted: True
+---
+sections:
+  - overview: Overview
+  - info: Enter Information
+    subsections:
+      - personal: Personal
+      - children: Children
+      - parents: Parents
+  - reviewinfo: Review
+  - documents: Assemble Documents
+  - collect: Collect Documents
+---
+features:
+  javascript: docassemble.LAWVCommon:data/static/force_lightmode.js
+  progress bar: False
+  navigation: True
+  ## bootstrap theme: bootstrap.min.css
+  css: docassemble.LAWVCommon:data/static/lawv.css
+  cache documents: False
+---
+imports:
+  - itertools
+  - geopy.distance
+---
+modules:
+  - docassemble.LAWVCommon.progressivedisclosure
+---
+include:
+  - generic-questions.yml
+  - guardianship-questions.yml
+  - docassemble.LAWVCommon:common_info.yml
+  - adoption-questions.yml
+  - will-clinic.yml
+---
+objects:
+  - interviewee: Individual
+  - cokin: Individual
+  - minor_list: DAList.using(object_type=Individual, there_are_any=True)
+  - minor_list[i].parent1: Individual
+  - minor_list[i].parent2: Individual  
+  - bundles: DAList.using(object_type=DAList.using(auto_gather=False), auto_gather=False)
+  - bundles[i]: DAList.using(object_type=Individual, there_are_any=True, there_is_another=False), auto_gather=False)
+  - bundles[i][j].first_past_residency_address: Address
+  - bundles[i][j].second_past_residency_address: Address
+  - bundles[i][j].third_past_residency_address: Address
+  - endpoint: DADict  
+---
+terms:
+  property: |
+    Property can include land, vehicles, trusts, and inheritances.  Property does **not** include toys or clothing.
+---
+initial: True
+code: |
+  if 'guided' in url_args:
+    guided = url_args['guided']
+    del url_args['guided']
+  if 'document' in url_args:
+    document = url_args['document']
+    del url_args['document']
+  if 'set_vars' in url_args:
+    set_vars = True
+    del url_args['set_vars']
+  if returning_user(minutes=0.5):
+    welcome_back
+---
+mandatory: True
+comment: |
+  Interview logic control
+code: |
+  # ----------------------
+  ## Initial Declarations
+  # ----------------------
+  failure_reason = ""
+  caution_language = ""
+  closest = 999999
+  closest_library = ""
+  date = current_datetime()
+
+  # ----------------------
+  ## Gonna start our nice and easy, make sure that the interviewee understands
+  ## what we are going to be doing here, and that we do not represent them
+  # ----------------------  
+  if introduction == 'exit':
+    command('exit')
+  document
+
+  bundles.gathered = True
+  if defined('set_vars') and not defined('vars_set'):
+    setVars()
+  interviewee.name.first
+  
+  ## Library
+  interviewee.address.geocode()
+  cords = (interviewee.address.location.latitude,interviewee.address.location.longitude)
+  for library in libraries:
+    distance = geopy.distance.geodesic(cords, (libraries[library]["lat"], libraries[library]["long"])).miles
+    if distance < closest:
+      closest = distance
+      closest_library = library
+
+  ## County
+  interviewee.address.county = interviewee.address.county.rsplit(" ")[0]
+  interviewee.address.county = interviewee.address.county.capitalize()
+  upper_county = interviewee.address.county.upper()
+
+  cokin_present
+  if cokin_present:
+    cokin.address.geocode()
+    cokin.address.county = cokin.address.county.rsplit(" ")[0]
+  minor_list.gather()  
+  total_minors = minor_list.number()
+
+  # ----------------------
+  ## Now we gather parent information for the child(ren)
+  ## If there is 1 child, get parent information.
+  ## If there are multiple, we need to see if they have common
+  ## parents to avoid making the user enter the same information multiple times
+  # ----------------------
+  if total_minors > 1:
+    if common_parents:
+      minor_list[0].address.geocode()
+      minor_list[0].address.county = minor_list[0].address.county.rsplit(" ")[0]
+      minor_list[0].parent1.name.first
+      minor_list[0].parent1.address.geocode()
+      minor_list[0].parent1.address.county = minor_list[0].parent1.address.county.rsplit(" ")[0]
+      if minor_list[0].no_second_parent:
+        minor_list[0].parent2.name.first = "None"
+        minor_list[0].parent2.name.last = ""
+      else:
+        minor_list[0].parent2.address.geocode()
+        minor_list[0].parent2.address.county = minor_list[0].parent2.address.county.rsplit(" ")[0]
+      for minor in minor_list[1:]:
+        minor.parent1 = minor_list[0].parent1
+        minor.parent2 = minor_list[0].parent2
+        minor.no_second_parent = minor_list[0].no_second_parent
+    else:
+      for minor in minor_list:
+        minor.parent1.name.first
+        minor.parent1.address.geocode()
+        minor.parent1.address.county = minor.parent1.address.county.rsplit(" ")[0]
+        if minor.no_second_parent:
+          minor.parent2.name.first = "None"
+          minor.parent2.name.last = ""
+        else:
+          minor.parent2.address.geocode()
+          minor.parent2.address.county = minor.parent2.address.county.rsplit(" ")[0]
+  else:
+    minor_list[0].address.geocode()
+    minor_list[0].address.county = minor_list[0].address.county.rsplit(" ")[0]
+    minor_list[0].parent1.name.first
+    minor_list[0].parent1.address.geocode()
+    minor_list[0].parent1.address.county = minor_list[0].parent1.address.county.rsplit(" ")[0]
+    if minor_list[0].no_second_parent:
+      minor_list[0].parent2.name.first = "None"
+      minor_list[0].parent2.name.last = ""
+    else:
+      minor_list[0].parent2.address.geocode()
+      minor_list[0].parent2.address.county = minor_list[0].parent2.address.county.rsplit(" ")[0]
+
+  info_reviewed
+
+  if document == "ig":
+    # --------------------------
+    ## Infant Guardianship
+    # --------------------------
+    bundles_made    
+    
+    # --------------------------
+    ## Minor Information (Residing, Estate/Person, Reason for need)
+    # --------------------------
+    ## We now need to ask all the below questions for each *bundle*
+    ## because the answers are going to be different for each sibling group
+    if len(bundles) >= 2:
+      ig_warning2
+    counter = 1
+    for bundle in bundles:
+      ## This next section can probably be expanded out to
+      ## a more guided approach, but time is short and the
+      ## deadline grows near.
+      section = 'bundle_' + str(counter)
+      counter += 1
+      bundle[0].ig_need
+      bundle[0].ig_proper
+
+      bundle[0].support_received
+      bundle[0].support_amount = ""
+      if bundle[0].support_received and bundle[0].cs_received:
+        bundle[0].support_amount = bundle[0].support_detail + ". " + bundle[0].cs_detail
+      elif bundle[0].support_received:
+        bundle[0].support_amount = bundle[0].support_detail
+      elif bundle[0].cs_received:
+        bundle[0].support_amount = bundle[0].cs_detail
+
+      if bundle[0].address.line_one() == interviewee.address.line_one():
+        bundle[0].resides_with = "interviewee"
+      elif bundle[0].address.line_one() == minor.parent1.address.line_one():
+        bundle[0].resides_with = "parent1"
+      elif not bundle[0].no_second_parent and bundle[0].address.line_one() == minor.parent2.address.line_one():
+        bundle[0].resides_with = "parent2"
+      bundle[0].residency
+      if bundle[0].resides_with == "interviewee":
+        bundle[0].resides_with = interviewee.name.full()
+        bundle[0].residency_address = interviewee.address.on_one_line()
+        bundle[0].residency_phone = interviewee.phone        
+      elif bundle[0].resides_with == "parent1":
+        bundle[0].resides_with = bundle[0].parent1.name.full()
+        bundle[0].residency_address = bundle[0].parent1.address.on_one_line()
+        if defined('bundle[0].parent1.phone'):
+          bundle[0].residency_phone = bundle[0].parent1.phone        
+        else:
+          bundle[0].residency_phone = ""
+      elif bundle[0].resides_with == "parent2":
+        bundle[0].resides_with = bundle[0].parent2.name.full()
+        bundle[0].residency_address = bundle[0].parent2.address.on_one_line()
+        if defined('bundle[0].parent2.phone'):
+          bundle[0].residency_phone = bundle[0].parent2.phone        
+        else:
+          bundle[0].residency_phone = ""
+      elif bundle[0].resides_with == "Other":
+        bundle[0].resides_with = bundle[0].residency_other_name
+        bundle[0].residency_address = bundle[0].residency_other_address
+        bundle[0].residency_phone = bundle[0].residency_other_number
+      bundle[0].past_residency
+      
+      # --------------------------
+      ## Parental Information and history
+      # --------------------------
+      if bundle[0].parent1.terminated:
+        bundle[0].cps_involved = True
+        bundle[0].cps_location = bundle[0].parent1.place_of_termination
+        bundle[0].cps_outcome = "Substantiated"
+      elif not bundle[0].no_second_parent and bundle[0].parent2.terminated:
+        bundle[0].cps_involved = True
+        bundle[0].cps_location = bundle[0].parent2.place_of_termination
+        bundle[0].cps_outcome = "Substantiated"
+      if bundle[0].cps_involved:
+        bundle[0].cps_allegations
+      bundle[0].minor_custody
+      if not bundle[0].parent1.deceased:
+        if not bundle[0].parent1.consent:
+          bundle[0].parent1.contact
+      if not bundle[0].no_second_parent and not bundle[0].parent2.deceased:
+        if not bundle[0].parent2.consent:
+          bundle[0].parent2.contact        
+    # --------------------------
+    ## Guardian information
+    # --------------------------
+    section = "applicant"
+    are_other_adults
+    disclosure
+    if True in disclosure.values():
+      disclosure_detail
+    
+    #guardianship_reviewed
+    generate_guardianship
+    #success_exit 
+  elif document == "adoption":
+    # --------------------------
+    ## Screening questions
+    # --------------------------
+    for minor in minor_list:
+      if minor.parent1.terminated or (not minor.no_second_parent and minor.parent2.terminated):
+        caution_language += "* " + minor.name.full() +": Adoptions with terminated parental rights need specalized documentation that is not avabilable through this service at this time. Please gather the necessary documents and adjust the petition as necessary. \n"  
+      if not minor.continuous_living:
+        caution_language += "* " + minor.name.full() +": Before a hearing on an adoption petition can be held, West Virginia law says that the child(ren) must continuously live with you for six months or more.  [West Virginia Code | §48-22-501](https://code.wvlegislature.gov/48-22-501). Edit the Petition to correct this error. \n"  
+        minor.custody_method = "CHANGE ME"
+        minor.custody_date = "CHANGE ME"
+      elif minor.custody_method == "the biological parents asking you to care for the child":
+        minor.custody_method = "the biological parents asking Petitioner to care for the child"
+    for minor in minor_list:
+      if minor.relationship == "Step-parent":
+        if not spouse_agree:
+          caution_language += "* " + minor.name.full() +": The petition will need to be modified for a non-consenting parent. Please adjust accordingly. \n"  
+        if non_spouse_contest:
+          caution_language += "* " + minor.name.full() +": The petition will need to be modified for a non-consenting parent. Please adjust accordingly. \n"  
+      else:
+        if not minor.parent1.deceased:
+          if minor.parent1.maintain:
+            if not minor.parent1.consent_adopt:
+              caution_language += "* " + minor.name.full() +": The petition will need to be modified for a non-consenting parent. Please adjust accordingly. \n"  
+          else:
+            if not minor.parent1.absent:
+              if not minor.parent1.consent_adopt:
+                caution_language += "* " + minor.name.full() +": A parent is not considered having abandoned a child unless absent for more than 6 months. The petition will need to be modified for a non-consenting parent. Please adjust accordingly. \n"  
+        if not minor.no_second_parent:
+          if not minor.parent2.deceased:
+            if minor.parent2.maintain:
+              if not minor.parent2.consent_adopt:
+                caution_language += "* " + minor.name.full() +": The petition will need to be modified for a non-consenting parent. Please adjust accordingly. \n"  
+            else:
+              if not minor.parent1.absent:
+                if not minor.parent1.consent_adopt:
+                  caution_language += "* " + minor.name.full() +": A parent is not considered having abandoned a child unless absent for more than 6 months. The petition will need to be modified for a non-consenting parent. Please adjust accordingly. \n"  
+        else:
+          if minor.parent1.relationship == 'Mother':
+            if minor.probable_identity:
+              minor.parent2.address.geocode()
+              minor.parent2.address.county = minor.parent2.address.county.rsplit(" ")[0]
+              minor.presumed_father = True
+    for minor in minor_list:
+      minor.name_change
+    adopter_disclosure
+    if True in adopter_disclosure.values():
+      adopter_disclosure_detail
+
+    #adoption_reviewed
+    generate_adoption
+    #success_exit
+  
+  nav.hide()
+  if will_required:
+    if cokin_present and cokin.relationship == "spouse":
+      married = True
+      children_of_marriage.gather()
+      if children_of_marriage.there_are_any:
+        review_marriage_children
+      else:
+        review_basic
+    else:
+      married = False
+      children_of_marriage.there_are_any = False
+    other_children.gather()
+    if other_children.there_are_any:
+      review_other_children
+    specific_assets.gather()
+    if specific_assets.there_are_any:
+      for asset in specific_assets:
+        asset.relation = asset.relation.lower()
+      review_specific_assets
+    general_assets.gather()
+    if general_assets.there_are_any:
+      for asset in specific_assets:
+        asset.relation = asset.relation.lower()
+      review_general_assets
+    residual.beneficiary
+    residual.method = residual.method.lower()
+    executor.name.first
+    executor.relation = executor.relation.lower()
+    alt_executor.relation = alt_executor.relation.lower()
+    guardian_required
+    review_additional_information
+
+    generate_will
+  
+  success_exit
+---
+code: |
+  ## Creating the bundles of children  
+  count = 0    
+  for minor in minor_list:    
+    if count == 0:
+      bundles.appendObject(DAList)
+      bundles[0].append(minor, set_instance_name=True)
+      bundles[0].there_is_another = False
+      count = 1
+    else:
+      for child_list in bundles:
+        if minor.parent1.name.full() == child_list[0].parent1.name.full():
+          if (minor.no_second_parent == True and child_list[0].no_second_parent == True) or (minor.parent2.name.full() == child_list[0].parent2.name.full()):
+            bundles[bundles.index(child_list)].append(minor, set_instance_name=True)
+            break
+          else:
+            bundles.appendObject(DAList)
+            bundles[-1].append(minor, set_instance_name=True)
+            bundles[-1].there_is_another = False
+            break
+        else:
+          bundles.appendObject(DAList)
+          bundles[-1].append(minor, set_instance_name=True)
+          bundles[-1].there_is_another = False
+          break
+  bundles.there_is_another = False
+
+  # Setting up expanded navigation menu
+  new_section = []
+  new_subsections = dict()
+  insert_sub = []
+  counter = 1
+  for bundle in bundles:
+    temp_dict = {'bundle_'+ str(counter): 'Bundle ' + str(counter)}
+    insert_sub.append(temp_dict)
+    counter += 1
+  temp_dict = {"applicant":"Applicant Information"}
+  insert_sub.append(temp_dict)
+  inserting = {"documents":"Assemble Documents", "subsections": insert_sub}  
+  the_sections = nav.get_sections()
+  the_sections[3] = inserting
+  nav.set_sections(the_sections)
+
+  bundles_made = True
+---
+code: |
+  def setVars ():
+    global cokin_present
+    interviewee.name.first = "Dane"
+    interviewee.name.last = "Henry"
+    interviewee.birthdate = today().minus(years=40)
+    interviewee.email = "dane@dwhenry.com"
+    interviewee.phone = "304-702-5048"
+    interviewee.address.address = "85 Prune Lane"
+    interviewee.address.city = "Martinsburg"
+    interviewee.address.state = "WV"
+    interviewee.address.zip = "25403"
+    interviewee.address.county = "Berkeley County"
+
+    cokin_present = True
+    cokin.name.first = "Amanda"
+    cokin.name.last = "Gavin"
+    cokin.birthdate = today().minus(years=40)
+    cokin.email = "amandak.gavin@gmail.com"
+    cokin.phone = "304-702-5049"
+    cokin.address.address = "85 Prune Lane"
+    cokin.address.city = "Martinsburg"
+    cokin.address.state = "WV"
+    cokin.address.zip = "25403"
+    cokin.address.county = "Berkeley County"
+
+    minor_list[0].name.first = "Alexzander"
+    minor_list[0].name.middle = "Scott"
+    minor_list[0].name.last = "Gates"
+    minor_list[0].birthdate = today().minus(years=8)
+    minor_list[0].address.address = "85 Prune Lane"
+    minor_list[0].address.city = "Martinsburg"
+    minor_list[0].address.state = "WV"
+    minor_list[0].address.zip = "25403"
+    minor_list[0].address.county = "Berkeley County"
+    minor_list[0].relationship = "Non-relative"
+    minor_list[0].parent1.name.first = "Melinda"
+    minor_list[0].parent1.name.last = "Gates"
+    minor_list[0].parent1.birthdate = today().minus(years=40)
+    minor_list[0].parent1.address.address = "123 Main Street"
+    minor_list[0].parent1.address.city = "Edison"
+    minor_list[0].parent1.address.state = "NJ"
+    minor_list[0].parent1.address.zip = "08817"
+    minor_list[0].parent1.address.county = "Middlesex County"
+    minor_list[0].parent1.relationship = "Mother"
+    minor_list[0].parent1.terminated = False
+    minor_list[0].parent1.deceased = False
+    minor_list[0].no_second_parent = False
+    minor_list[0].parent2.name.first = "Bill"
+    minor_list[0].parent2.name.last = "Gates"
+    minor_list[0].parent2.birthdate = today().minus(years=40)
+    minor_list[0].parent2.address.address = "123 Main Street"
+    minor_list[0].parent2.address.city = "Edison"
+    minor_list[0].parent2.address.state = "NJ"
+    minor_list[0].parent2.address.zip = "08817"
+    minor_list[0].parent2.address.county = "Middlesex County"
+    minor_list[0].parent2.relationship = "Father"
+    minor_list[0].parent2.terminated = False
+    minor_list[0].parent2.deceased = True
+    minor_list[0].parent2.dod = today().minus(days=30)
+    minor_list[0].parent2.place_of_death = "Berkeley County, WV"
+    minor_list[0].complete = True
+
+    minor_list[1].name.first = "Arabella"
+    minor_list[1].name.middle = "Lynn"
+    minor_list[1].name.last = "Smith"
+    minor_list[1].birthdate = today().minus(years=17)
+    minor_list[1].address.address = "85 Prune Lane"
+    minor_list[1].address.city = "Martinsburg"
+    minor_list[1].address.state = "WV"
+    minor_list[1].address.zip = "25403"
+    minor_list[1].address.county = "Berkeley County"
+    minor_list[1].relationship = "Non-relative"
+    minor_list[1].parent1.name.first = "Sarah"
+    minor_list[1].parent1.name.last = "Smith"
+    minor_list[1].parent1.birthdate = today().minus(years=40)
+    minor_list[1].parent1.address.address = "123 Main Street"
+    minor_list[1].parent1.address.city = "New York City"
+    minor_list[1].parent1.address.state = "NY"
+    minor_list[1].parent1.address.zip = "08817"
+    minor_list[1].parent1.address.county = "Greenbrier County"
+    minor_list[1].parent1.relationship = "Mother"
+    minor_list[1].parent1.terminated = False
+    minor_list[1].parent1.deceased = False
+    minor_list[1].no_second_parent = False
+    minor_list[1].parent2.name.first = "Franklin"
+    minor_list[1].parent2.name.last = "Smith"
+    minor_list[1].parent2.birthdate = today().minus(years=40)
+    minor_list[1].parent2.address.address = "123 Main Street"
+    minor_list[1].parent2.address.city = "New York City"
+    minor_list[1].parent2.address.state = "NY"
+    minor_list[1].parent2.address.zip = "08817"
+    minor_list[1].parent2.address.county = "Greenbrier County"
+    minor_list[1].parent2.relationship = "Father"
+    minor_list[1].parent2.terminated = False
+    minor_list[1].parent2.deceased = False
+    minor_list[1].complete = True
+    
+    minor_list[2].name.first = "Illianna"
+    minor_list[2].name.middle = "Lynn"
+    minor_list[2].name.last = "Gates"
+    minor_list[2].birthdate = today().minus(years=14)
+    minor_list[2].address.address = "85 Prune Lane"
+    minor_list[2].address.city = "Martinsburg"
+    minor_list[2].address.state = "WV"
+    minor_list[2].address.zip = "25403"
+    minor_list[2].address.county = "Berkeley County"
+    minor_list[2].relationship = "Non-relative"
+    minor_list[2].parent1.name.first = "Melinda"
+    minor_list[2].parent1.name.last = "Gates"
+    minor_list[2].parent1.birthdate = today().minus(years=40)
+    minor_list[2].parent1.address.address = "123 Main Street"
+    minor_list[2].parent1.address.city = "Edison"
+    minor_list[2].parent1.address.state = "NJ"
+    minor_list[2].parent1.address.zip = "08817"
+    minor_list[2].parent1.address.county = "Middlesex County"
+    minor_list[2].parent1.relationship = "Mother"
+    minor_list[2].parent1.terminated = False
+    minor_list[2].parent1.deceased = False
+    minor_list[2].no_second_parent = False
+    minor_list[2].parent2.name.first = "Bill"
+    minor_list[2].parent2.name.last = "Gates"
+    minor_list[2].parent2.birthdate = today().minus(years=40)
+    minor_list[2].parent2.address.address = "123 Main Street"
+    minor_list[2].parent2.address.city = "Edison"
+    minor_list[2].parent2.address.state = "NJ"
+    minor_list[2].parent2.address.zip = "08817"
+    minor_list[2].parent2.address.county = "Middlesex County"
+    minor_list[2].parent2.relationship = "Father"
+    minor_list[2].parent2.terminated = False
+    minor_list[2].parent2.deceased = True
+    minor_list[2].parent2.dod = today().minus(days=30)
+    minor_list[2].parent2.place_of_death = "Berkeley County, WV"
+    minor_list[2].complete = True
+    
+    minor_list[3].name.first = "Kathryn"
+    minor_list[3].name.middle = "Lynn"
+    minor_list[3].name.last = "Gates"
+    minor_list[3].birthdate = today().minus(years=11)
+    minor_list[3].address.address = "85 Prune Lane"
+    minor_list[3].address.city = "Martinsburg"
+    minor_list[3].address.state = "WV"
+    minor_list[3].address.zip = "25403"
+    minor_list[3].address.county = "Berkeley County"
+    minor_list[3].relationship = "Non-relative"
+    minor_list[3].parent1.name.first = "Melinda"
+    minor_list[3].parent1.name.last = "Gates"
+    minor_list[3].parent1.birthdate = today().minus(years=40)
+    minor_list[3].parent1.address.address = "123 Main Street"
+    minor_list[3].parent1.address.city = "Edison"
+    minor_list[3].parent1.address.state = "NJ"
+    minor_list[3].parent1.address.zip = "08817"
+    minor_list[3].parent1.address.county = "Middlesex County"
+    minor_list[3].parent1.relationship = "Mother"
+    minor_list[3].parent1.terminated = False
+    minor_list[3].parent1.deceased = False
+    minor_list[3].no_second_parent = False
+    minor_list[3].parent2.name.first = "Bill"
+    minor_list[3].parent2.name.last = "Gates"
+    minor_list[3].parent2.birthdate = today().minus(years=40)
+    minor_list[3].parent2.address.address = "123 Main Street"
+    minor_list[3].parent2.address.city = "Edison"
+    minor_list[3].parent2.address.state = "NJ"
+    minor_list[3].parent2.address.zip = "08817"
+    minor_list[3].parent2.address.county = "Middlesex County"
+    minor_list[3].parent2.relationship = "Father"
+    minor_list[3].parent2.terminated = False
+    minor_list[3].parent2.deceased = True
+    minor_list[3].parent2.dod = today().minus(days=30)
+    minor_list[3].parent2.place_of_death = "Berkeley County, WV"
+    minor_list[3].complete = True
+
+    minor_list[4].name.first = "Mikal"
+    minor_list[4].name.middle = "Herbert"
+    minor_list[4].name.last = "Smith"
+    minor_list[4].birthdate = today().minus(years=15)
+    minor_list[4].address.address = "85 Prune Lane"
+    minor_list[4].address.city = "Martinsburg"
+    minor_list[4].address.state = "WV"
+    minor_list[4].address.zip = "25403"
+    minor_list[4].address.county = "Berkeley County"
+    minor_list[4].relationship = "Non-relative"
+    minor_list[4].parent1.name.first = "Sarah"
+    minor_list[4].parent1.name.last = "Smith"
+    minor_list[4].parent1.birthdate = today().minus(years=40)
+    minor_list[4].parent1.address.address = "123 Main Street"
+    minor_list[4].parent1.address.city = "New York City"
+    minor_list[4].parent1.address.state = "NY"
+    minor_list[4].parent1.address.zip = "08817"
+    minor_list[4].parent1.address.county = "Greenbrier County"
+    minor_list[4].parent1.relationship = "Mother"
+    minor_list[4].parent1.terminated = False
+    minor_list[4].parent1.deceased = False
+    minor_list[4].no_second_parent = True
+    minor_list[4].parent2.name.first = "None"
+    minor_list[4].parent2.name.last = ""
+    minor_list[4].complete = True
+
+    global vars_set
+    vars_set = True

@@ -1,0 +1,1020 @@
+metadata:
+  authors:
+    - name: Dane W. Henry, Esq.
+      organization: Legal Aid of West Virginia, Inc.
+  revision_date: 2025-05-14
+---
+ga id: SF_igSummary
+question: |
+  <div class="banner-image" id="guardianshipOverviewHeader">
+    [FILE guardianship.png]
+  </div>
+  ### Overview
+  # Getting Started with Guardianship
+subquestion: |
+  Guardianship is when someone other than a child's birth parent asks a court to give them custody of a child. 
+  If approved by a court, guardianship gives the guardian the rights and responsibilities of a parent.  
+  
+  Guardianship stays in place until:
+  
+  * Someone asks a court to end it, or 
+  * The child turns 18.
+
+  **What you'll need**
+  
+  [FILE circle-icon-time1x.svg] Time - The questions will take 10-15 minutes
+  
+  [FILE circle-icon-id1x.svg] Information needed - You will need to know names, birthdates, and
+  contact information for yourself as well as the child(ren) and parents.  Additionally, you will need to know
+  court history for the parents and child(ren) so proper notice can be given to the parties.
+section: overview
+continue button field: ig_summary
+---
+ga id: SF_igWarning
+question: |
+  <div class="banner-image" id="guardianshipOverviewHeader">
+    [FILE guardianship.png]
+  </div>
+  ### Overview
+  # Limitations of this tool
+subquestion: |
+  This tool is meant for simple kinship situations.  If your situation is complex, you should consider [applying for Legal Aid help](https://legalaidwv.org/get-help/apply-for-help/)
+  or [talking to a lawyer](https://wvlawyerreferral.org/).  Here are examples of when you should seek legal help:
+
+  * There is an open abuse and neglect case in court involving the children.
+  * You are seeking custody of children who own property or get money/benefits for themselves.
+  * When children, parents, or kinship caregivers live in different states.
+  * This is an emergency situation involving child safety.
+
+  Finally, if you are kinship caregiver caring for multiple children with different parents, completing this tool will be more complicated and may take longer.
+section: overview
+continue button field: ig_warning
+---
+ga id: SF_igWarning
+question: |
+  <div class="banner-image" id="guardianshipOverviewHeader">
+    [FILE guardianship.png]
+  </div>
+  ### Overview
+  # Sibling groups
+subquestion: |
+  Based on your information, we have grouped the children together.  This will help the court and limit the number of petitions you have to file.
+  
+  **Total groups: ${len(bundles)}**
+  % for bundle in bundles:
+  
+  Number of children in group: ${len(bundle)}  
+  % for child in bundle:
+  ${child.name.full()}
+  % endfor
+
+  % endfor
+
+  For *each group of children*, the tool will ask you a series of questions needed to complete the guardianship paperwork.  Pay close attention to which group of children the question refers to.
+section: documents
+continue button field: ig_warning2
+---
+ga id: SF_igNeed
+question: |
+  Why is guardianship necessary for
+  % for child in bundle:
+  % if len(bundle) == 1:
+  ${child.name.first}?
+  % elif child == bundle[-1]:
+  & ${child.name.first}?
+  % else:
+  ${child.name.first}, 
+  % endif
+  % endfor
+subquestion: |
+  Examples Include:
+
+  - Biological parents are deceased or have abandoned the child(ren).
+  - Biological parents are incarcerated or incapable of caring for the child(ren).
+  - Any other reason that the child(ren) would be better cared for with you.
+fields: 
+  - no label: bundles[i][j].ig_need
+    datatype: area
+section: ${section}
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+---
+ga id: SF_igProper
+question: |
+  Why should you be the guardian for
+  % for child in bundle:
+  % if len(bundle) == 1:
+  ${child.name.first}?
+  % elif child == bundle[-1]:
+  & ${child.name.first}?
+  % else:
+  ${child.name.first}, 
+  % endif
+  % endfor
+subquestion: |
+  What makes you the best fit to be the guardian?
+fields: 
+  - no label: bundles[i][j].ig_proper
+    datatype: area
+section: ${section}
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+---
+ga id: SF_minorSupport
+question: |
+  Support Information for
+  % for child in bundle:
+  % if len(bundle) == 1:
+  ${child.name.first}
+  % elif child == bundle[-1]:
+  & ${child.name.first}
+  % else:
+  ${child.name.first}, 
+  % endif
+  % endfor
+fields:
+  - Does the **child** receive social security or child support directly?: bundles[i][j].support_received
+    datatype: yesnoradio
+  - Please describe the amount and how often: bundles[i][j].support_detail
+    datatype: area
+    show if: bundles[i][j].support_received
+  - Does one of the child(ren)'s **parents** receive child support?: bundles[i][j].cs_received
+    datatype: yesnoradio
+  - Please describe the amount and how often: bundles[i][j].cs_detail
+    datatype: area
+    show if: bundles[i][j].cs_received  
+section: ${section}
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+---
+ga id: SF_propertyDetail
+question:
+  Specific Property
+fields:
+  - Real Property: bundles[i][j].minor_real_property
+  - Personal Property: bundles[i][j].minor_personal_property
+  - Other: bundles[i][j].minor_other_property
+section: ${section}
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+---
+ga id: SF_minorResides
+question: |
+  Residency Questions for
+  % for child in bundle:
+  % if len(bundle) == 1:
+  ${child.name.first}
+  % elif child == bundle[-1]:
+  & ${child.name.first}
+  % else:
+  ${child.name.first}, 
+  % endif
+  % endfor
+fields:
+  - Has/Have the child(ren) lived in West Virginia for the past six months?: bundles[i][j].residency
+    datatype: yesnoradio
+  - Please provide details why a guardianship is necessary earlier than six months: bundles[i][j].extraordinary_circumstances
+    datatype: area
+    show if: 
+      variable: bundles[i][j].residency
+      is: False
+    help: |
+      Examples include death of parents, incarceration, and abandonment.
+  - Who does/do the child(ren) live with?: bundles[i][j].resides_with
+    datatype: radio
+    choices:
+      code: residential_options
+  - What is their name?: bundles[i][j].residency_other_name
+    show if:
+     variable: bundles[i][j].resides_with
+     is: Other
+  - What is their phone number?: bundles[i][j].residency_other_number
+    show if:
+      variable: bundles[i][j].resides_with
+      is: Other
+  - What is their address?: bundles[i][j].residency_other_address
+    show if:
+      variable: bundles[i][j].resides_with
+      is: Other
+section: ${section}
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+---
+code: |
+  if bundles[i][j].no_second_parent == True:
+    residential_options = \
+      [{'interviewee': "With me"},
+       {'parent1': "With Parent 1"},
+       {'Other': "Other"}]
+  else:
+    residential_options = \
+      [{'interviewee': "With me"},
+       {'parent1': "With Parent 1"},
+       {'parent2': "With Parent 2"},
+       {'Other': "Other"}]
+---
+ga id: SF_pastResidency
+question: |
+  % if len(bundle) == 1:
+  Has
+  % else:
+  Have
+  % endif
+  % for child in bundle:
+  % if len(bundle) == 1:
+  ${child.name.first}
+  % elif child == bundle[-1]:
+  & ${child.name.first}
+  % else:
+  ${child.name.first}, 
+  % endif
+  % endfor
+  moved in the last 5 years?
+fields:
+  - no label: bundles[i][j].past_residency
+    datatype: yesnoradio
+  - note: |
+      *Past Residence 1*
+    show if: bundles[i][j].past_residency
+  - Address of previous home/apartment: bundles[i][j].first_past_residency_address.address
+    show if: bundles[i][j].past_residency 
+    address autocomplete: True
+  - field: bundles[i][j].first_past_residency_address.city
+    input type: hidden
+  - field: bundles[i][j].first_past_residency_address.state
+    input type: hidden
+  - field: bundles[i][j].first_past_residency_address.zip
+    input type: hidden
+  - Name of adult(s) in the home: bundles[i][j].first_past_residency_adults
+    show if: bundles[i][j].past_residency
+  - Dates occupied: bundles[i][j].first_past_residency_dates
+    show if: bundles[i][j].past_residency
+    hint: e.g., 01/2022 - 07/2022
+  - note: |
+      *Past Residence 2*
+    js show if: |
+      val('bundles[i][j].past_residency') == true && val('bundles[i][j].first_past_residency_address.address') != ''
+  - Address of previous home/apartment: bundles[i][j].second_past_residency_address.address
+    js show if: |
+      val('bundles[i][j].past_residency') == true && val('bundles[i][j].first_past_residency_address.address') != ''
+    address autocomplete: True
+    required: False
+  - field: bundles[i][j].second_past_residency_address.city
+    input type: hidden
+  - field: bundles[i][j].second_past_residency_address.state
+    input type: hidden
+  - field: bundles[i][j].second_past_residency_address.zip
+    input type: hidden
+  - Name of adult(s) in the home: bundles[i][j].second_past_residency_adults
+    js show if: |
+      val('bundles[i][j].past_residency') == true && val('bundles[i][j].first_past_residency_address.address') != ''
+    required: False
+  - Dates occupied: bundles[i][j].second_past_residency_dates
+    js show if: |
+      val('bundles[i][j].past_residency') == true && val('bundles[i][j].first_past_residency_address.address') != ''
+    required: False
+    hint: e.g., 01/2022 - 07/2022
+  - note: |
+      *Past Residence 3*
+    js show if: |
+      val('bundles[i][j].past_residency') == true && val('bundles[i][j].first_past_residency_address.address') != '' && val('bundles[i][j].second_past_residency_address.address') != ''
+  - Address of previous home/apartment: bundles[i][j].third_past_residency_address.address
+    js show if: |
+      val('bundles[i][j].past_residency') == true && val('bundles[i][j].first_past_residency_address.address') != '' && val('bundles[i][j].second_past_residency_address.address') != ''
+    address autocomplete: True
+    required: False
+  - field: bundles[i][j].third_past_residency_address.city
+    input type: hidden
+  - field: bundles[i][j].third_past_residency_address.state
+    input type: hidden
+  - field: bundles[i][j].third_past_residency_address.zip
+    input type: hidden
+  - Name of adult(s) in the home: bundles[i][j].third_past_residency_adults
+    js show if: |
+      val('bundles[i][j].past_residency') == true && val('bundles[i][j].first_past_residency_address.address') != '' && val('bundles[i][j].second_past_residency_address.address') != ''
+    required: False
+  - Dates occupied: bundles[i][j].third_past_residency_dates
+    js show if: |
+      val('bundles[i][j].past_residency') == true && val('bundles[i][j].first_past_residency_address.address') != '' && val('bundles[i][j].second_past_residency_address.address') != ''
+    required: False
+    hint: e.g., 01/2022 - 07/2022
+section: ${section}
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+---
+ga id: SF_pastResidencyReview
+question: |
+  Past residences
+subquestion: |
+  Address 1:
+  ${bundle[0].first_past_residency_address.address}
+  ${bundle[0].first_past_residency_address.city}, ${bundle[0].first_past_residency_address.state} ${bundle[0].first_past_residency_address.zip}
+
+  ${bundle[0].first_past_residency_address.on_one_line()}
+continue button field: past_residency_review
+---
+ga id: SF_cpsInformation
+question: |
+  Has there been a Child Protective Services investigation for
+  % for child in bundle:
+  % if len(bundle) == 1:
+  ${child.name.first}?
+  % elif child == bundle[-1]:
+  & ${child.name.first}?
+  % else:
+  ${child.name.first}, 
+  % endif
+  % endfor
+fields:
+  - no label: bundles[i][j].cps_involved
+    datatype: yesnoradio
+  - Allegations: bundles[i][j].cps_allegations
+    datatype: area
+    show if: bundles[i][j].cps_involved
+    required: False
+  - Outcome: bundles[i][j].cps_outcome
+    choices:
+      - Substantiated
+      - Unsubstantiated
+    show if: bundles[i][j].cps_involved
+    required: False
+  - County and State: bundles[i][j].cps_location
+    show if: bundles[i][j].cps_involved
+    required: False
+section: ${section}
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+---
+ga id: SF_custodyInformation
+question: |
+  Has there ever been a custody determination by any court for
+  % for child in bundle:
+  % if len(bundle) == 1:
+  ${child.name.first}?
+  % elif child == bundle[-1]:
+  & ${child.name.first}?
+  % else:
+  ${child.name.first}, 
+  % endif
+  % endfor
+subquestion: |
+  Even if not in West Virginia, the court will need to know if there are existing
+  court orders.
+fields:
+  - no label: bundles[i][j].minor_custody
+    datatype: yesnoradio
+  - Name of Court: bundles[i][j].custody_court
+    show if: bundles[i][j].minor_custody
+    required: False
+  - Case Number: bundles[i][j].custody_num
+    show if: bundles[i][j].minor_custody
+    required: False
+  - County and State: bundles[i][j].custody_location
+    show if: bundles[i][j].minor_custody
+    required: False
+  - Type of Proceeding: bundles[i][j].custody_type
+    choices:
+      - Divorce with Custody: divorce
+      - Custody only: custody
+      - Abuse and Neglect: abuse
+    show if: bundles[i][j].minor_custody
+    required: False
+  - Outcome of Proceeding: bundles[i][j].custody_outcome
+    help: |
+      What was the break down of custody? 50/50? Supervised visits?
+    show if: bundles[i][j].minor_custody
+    required: False
+section: ${section}
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+---
+ga id: SF_p1Consent
+question: |
+  Will
+  % for child in bundle:
+  % if len(bundle) == 1:
+  ${child.name.first}'s
+  % elif child == bundle[-1]:
+  & ${child.name.first}'s
+  % else:
+  ${child.name.first}, 
+  % endif
+  % endfor
+  ${ bundle[0].parent1.relationship } consent to the guardianship?
+yesno: bundles[i][j].parent1.consent
+section: ${section}
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+---
+ga id: SF_p1Contact
+question: |
+  Describe the level of contact ${ bundle[0].parent1.relationship } had with
+  % for child in bundle:
+  % if len(bundle) == 1:
+  ${child.name.first}.
+  % elif child == bundle[-1]:
+  & ${child.name.first}.
+  % else:
+  ${child.name.first}, 
+  % endif
+  % endfor
+fields:
+  - Does the parent maintain contact with the child?: bundles[i][j].parent1.contact
+    datatype: yesnoradio
+  - How so?: bundles[i][j].parent1.contact_method
+    datatype: checkboxes
+    choices:
+      - Visits
+      - Phone/Video Calls
+      - Texts/Messages/Cards/Letters/Gifts
+    show if: bundles[i][j].parent1.contact
+  - What is the last date the parent had contact with the child?: bundles[i][j].parent1.contact_date
+    datatype: date
+    show if: 
+      variable: bundles[i][j].parent1.contact
+      is: False
+  - What issue is keeping the parent from being able to parent the child?: bundles[i][j].parent1.contact_reason
+    datatype: dropdown
+    choices:
+      - Incarceration
+      - Drug/alcohol use
+      - Homeless/Unstable living environment
+      - Abandonment
+      - Has not been involved in child's life since birth
+    show if:
+      variable: bundles[i][j].parent1.contact
+      is: False
+section: ${section}
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+---
+ga id: SF_p2Consent
+question: |
+  Will
+  % for child in bundle:
+  % if len(bundle) == 1:
+  ${child.name.first}'s
+  % elif child == bundle[-1]:
+  & ${child.name.first}'s
+  % else:
+  ${child.name.first}, 
+  % endif
+  % endfor
+  ${ bundle[0].parent2.relationship } consent to the guardianship?
+yesno: bundles[i][j].parent2.consent
+section: ${section}
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+---
+ga id: SF_p2Contact
+question: |
+  Describe the level of contact ${ minor.possessive(bundles[i][j].parent2.relationship) } had with ${ minor.name.first }.
+fields:
+  - Does the parent maintain contact with the child?: bundles[i][j].parent2.contact
+    datatype: yesnoradio
+  - How so?: bundles[i][j].parent2.contact_method
+    datatype: checkboxes
+    choices:
+      - Visits
+      - Phone/Video Calls
+      - Texts/Messages/Cards/Letters/Gifts
+    show if: bundles[i][j].parent2.contact
+  - What is the last date the parent had contact with the child?: bundles[i][j].parent2.contact_date
+    datatype: date
+    show if: 
+      variable: bundles[i][j].parent2.contact
+      is: False
+  - What issue is keeping the parent from being able to parent the child?: bundles[i][j].parent2.contact_reason
+    datatype: dropdown
+    choices:
+      - Incarceration
+      - Drug/alcohol use
+      - Homeless/Unstable living environment
+      - Abandonment
+      - Has not been involved in child's life since birth
+    show if:
+      variable: bundles[i][j].parent2.contact
+      is: False
+section: ${section}
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+---
+ga id: SF_guardianInformation
+question: |
+  % if cokin_present == True:
+    Do any of the following apply to you or your co-applicant?
+  % else:
+    Do any of the following apply to you?
+  % endif
+subquestion: |
+  Please select all that apply
+fields:
+  - no label: disclosure
+    datatype: checkboxes
+    choices:
+      - Required to register as a sex offender under W. Va. Code § 15-12: offender
+      - Record of any misdemeanor or felony conviction: convict
+      - Restraining order or final protective order filed against you: po
+      - Substantiated report alleging child abuse, neglect, or sexual abuse in any jurisdiction against you: cps
+      - Use any illegal substances, such as drugs, or misuses prescriptions: drugs
+      - Abuse alcohol: alcohol
+      - Another person living in the home is involved in any of the matters stated above: others
+section: ${section}
+below: |
+  Please note, checking these boxes does not make you ineligible for adoption,
+   but it is important to be truthful in disclosing relevant background.
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+---
+ga id: SF_guardianInformationDetail
+question: |
+  Additional Detail
+subquestion: |
+  Please provide more information about:
+
+  % if disclosure['offender']:
+  * Required to register as a sex offender under W. Va. Code § 15-12;
+  % endif
+  % if disclosure['convict']:
+  * Record of any misdemeanor or felony conviction;
+  % endif 
+  % if disclosure['po']:
+  * Restraining order or final protective order filed against you;
+  % endif 
+  % if disclosure['cps']:
+  * Substantiated report alleging child abuse, neglect, or sexual abuse in any jurisdiction against you;
+  % endif 
+  % if disclosure['drugs']:
+  * Use any illegal substances, such as drugs, or misuses prescriptions;
+  % endif 
+  % if disclosure['alcohol']:
+  * Abuse alcohol;
+  % endif 
+  % if disclosure['others']:
+  * Another person living in the home is involved in any of the matters on the previous screen;
+  % endif
+fields:
+  - no label: disclosure_detail
+    datatype: area
+section: ${section}
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+---
+ga id: SF_otherAdults
+question: |
+  Other Adults
+subquestion: |
+  % if cokin_present:
+    Are there other adults living in your home other than yourself or your co-applicant?
+  % else:
+    Are there other adults living in your home?
+  % endif
+fields:
+  - no label: are_other_adults
+    datatype: yesnoradio
+  - Full names of all other adults: other_adults
+    show if: are_other_adults
+section: ${section}
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+---
+ga id: SF_reviewGuardianship
+question: |
+  Review Your information
+review:
+  - Edit: bundles[i][j].ig_need
+    button: |
+      Reason for Guardianship: ${ bundles[i][j].ig_need }
+  - Edit: residency
+    button: |
+      % if residency:
+        The minor(s) has/have lived in WV for six months.
+      % else:
+        The minor(s) has/have not lived in WV for six months, and this is why guardianship is necessary now: ${ extraordinary_circumstances }
+      % endif
+
+      % if bundle[0].resides_with == "interviewee":
+        The minor(s) lives with: ${ interviewee.name.full() }
+      % elif bundle[0].resides_with == "parent1":
+        The minor(s) lives with: ${ bundle[0].parent1.name.full() }
+      % elif bundle[0].resides_with == "parent2":
+        The minor(s) lives with: ${ bundle[0].parent2.name.full() }
+      % elif bundle[0].resides_with == "Other":
+        % if not residency_is_address:
+          ${ residency_other_name } at ${ residency_other_address }
+        % else:
+          ${ residency_other_name } at ${ bundle[0].address.on_one_line() }
+        % endif
+      % endif
+  - Edit: past_residency
+    button: |
+      % if past_residency:
+        Prior address: ${ past_residency_address } with ${ past_residency_adults } during ${ past_residency_dates }
+      % else:
+        The minor(s) has/have not moved in the last 5 years.
+      % endif
+  - Edit: minor_custody
+    button: |
+      % if not minor_custody:
+        There is no court order concerning custody.
+      % else:
+        A court has determined custody:
+          ${ custody_num } (${ custody_type }) with ${ custody_court } in ${ custody_location } giving ${ custody_outcome }
+      % endif
+  - Edit: bundles[i][j].parent1.consent
+    button: |
+      % for count, y in enumerate(bundle):
+      **Minor ${ count+1 }**:  
+      ${ y.name.full() }  
+      
+      % if y.no_second_parent == True and y.parent1.deceased == True:
+      No biological parents present to consent
+      % elif y.no_second_parent == True and y.parent1.deceased == False:
+      Parent 1: ${ y.parent1.relationship }|Parent 2:
+      -------------------------------------|-------------------------------------
+      ${ y.parent1.name.full() }[BR]Consents: ${ y.parent1.consent }|**None**
+      % elif y.no_second_parent == False and y.parent1.deceased == True and y.parent2.deceased == True: 
+      Parent 1: ${ y.parent1.relationship } *(Deceased)*|Parent 2: ${ y.parent1.relationship } *(Deceased)*
+      -------------------------------------|-------------------------------------
+      No biological parents present to consent      
+      % elif y.no_second_parent == False and y.parent1.deceased == True and y.parent2.deceased == False: 
+      Parent 1: ${ y.parent1.relationship } *(Deceased)*|Parent 2: ${ y.parent1.relationship }
+      -------------------------------------|-------------------------------------
+      **Consent not available**|${ y.parent2.name.full() }[BR]${ y.parent2.consent }
+      % elif y.no_second_parent == False and y.parent1.deceased == False and y.parent2.deceased == True: 
+      Parent 1: ${ y.parent1.relationship }|Parent 2: ${ y.parent1.relationship } *(Deceased)*
+      -------------------------------------|-------------------------------------
+      ${ y.parent1.name.full() }[BR]${ y.parent1.consent }|**Consent not available**
+      % elif y.no_second_parent == False and y.parent1.deceased == False and y.parent2.deceased == False: 
+      Parent 1: ${ y.parent1.relationship }|Parent 2: ${ y.parent1.relationship }
+      -------------------------------------|-------------------------------------
+      ${ y.parent1.name.full() }[BR]${ y.parent1.consent }|${ y.parent2.name.full() }[BR]${ y.parent2.consent }
+      % endif
+
+      ___
+      % endfor
+  - Edit: other_adults
+    button: |
+      % if are_other_adults:
+        The other adults in the home are: ${ other_adults }.
+      % else:
+        There are no other adults in the home.
+      % endif
+  - Edit: disclosure
+    button: |
+      % if not disclosure:
+        No disclosures were required.
+      % else:
+        % if disclosure['offender']:
+          * Required to register as a sex offender under W. Va. Code § 15-12;
+        % endif
+        % if disclosure['convict']:
+          * Record of any misdemeanor or felony conviction;
+        % endif 
+        % if disclosure['po']:
+          * Restraining order or final protective order filed against you;
+        % endif 
+        % if disclosure['cps']:
+          * Substantiated report alleging child abuse, neglect, or sexual abuse in any jurisdiction against you;
+        % endif 
+        % if disclosure['drugs']:
+          * Use any illegal substances, such as drugs, or misuses prescriptions;
+        % endif 
+        % if disclosure['alcohol']:
+          * Abuse alcohol;
+        % endif 
+        % if disclosure['others']:
+          * Another person living in the home is involved in any of the matters on the previous screen;
+        % endif
+        Additional details: ${ disclosure_detail }
+      % endif
+continue button field: guardianship_reviewed
+section: ${section}
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+---
+ga id: SF_guardianshipEndpoint
+question: Guardianship Files
+subquestion: |  
+  You can download your **Guardianship Packet** below.  
+  
+  Here is the collection of documents in your packet:
+
+  * <i class="file-pdf"></i> Instructions  
+  % for collection in bundles:
+  * <i class="file-pdf"></i> Petition bundle for 
+  % for child in collection:
+  % if len(collection) == 1:
+  ${child.name.first}.
+  % elif child == collection[-1]:
+  & ${child.name.first}.
+  % else:
+  ${child.name.first}, 
+  % endif
+  % endfor
+  % endfor
+
+  ${ action_button_html(ig_bundle.url_for(), classname='btn btn-da btn-primary', label='Download All', icon='file-pdf') }
+  ${ action_button_html(url_action('send_ig_files'), classname='btn btn-da btn-primary', label='Email these to me', icon='envelope') }
+attachment code: guardianship_documents
+manual attachment list: True
+allow emailing: True
+section: collect
+field: generate_guardianship
+buttons:
+  - Start Will Process
+under: |
+  **More Resources**
+
+  [Guardianship Resources](https://legalaidwv.org/legal-information/infant-guardianship/)
+---
+code: |
+  guardianship_documents = [guardianship_instructions]
+  for bundle in bundles:
+    guardianship_documents.append(bundle[0].guardianship)    
+    guardianship_documents.append(interviewee.verification)
+    if cokin_present == True:
+      guardianship_documents.append(cokin.verification)
+    if bundle[0].parent1.deceased == False and bundle[0].parent1.terminated == False and bundle[0].parent1.consent:
+      guardianship_documents.append(bundle[0].parent1.waiver)
+    if not bundle[0].no_second_parent and bundle[0].parent2.deceased == False and bundle[0].parent2.terminated == False and bundle[0].parent2.consent:
+      guardianship_documents.append(bundle[0].parent2.waiver)
+    for child in bundle:
+      if child.age_in_years() >= 13:
+        guardianship_documents.append(child.nomination)  
+  ig_bundle = pdf_concatenate(guardianship_documents, filename=interviewee.name.full() + " Guardianship Packet.pdf")
+---
+attachment:
+  - name: Guardianship Instructions
+    filename: Guardianship Instructions
+    pdf template file: guardianship_instructions.pdf
+    editable: False
+    variable name: guardianship_instructions
+    fields:
+      - court_address: ${ interviewee.address.county + " County Circuit Clerk\n" + cir_address[interviewee.address.county] }
+      - library_address: ${ closest_library + "\n" + libraries[closest_library]["address"] }
+---
+attachment:
+  - name: Guardianship Petition
+    filename: ${ bundle[0].name.full() } Guardianship Petition
+    pdf template file: igp.pdf
+    editable: False
+    variable name: bundles[i][j].guardianship
+    fields:
+      - "upper_court": 'FAMILY'
+      - "upper_county": ${ interviewee.address.county.upper() }
+      - "c1": ${ bundle[0].name.full(middle="full") }
+      - "c2": |
+          ${ bundle[1].name.full(middle="full") if len(bundle) >= 2 else ''}
+      - "c3": |
+          ${ bundle[2].name.full(middle="full") if len(bundle) >= 3 else ''}
+      - "g1": |
+          ${ interviewee.name.full() if not cokin_present else interviewee.name.full() + " and " + cokin.name.full()}
+      - "c1_age": ${ bundle[0].age_in_years() }
+      - "c1_dob": ${ bundle[0].birthdate }
+      - "c2_age": |
+          ${ bundle[1].age_in_years() if len(bundle) >= 2 else ''}
+      - "c2_dob": |
+          ${ bundle[1].birthdate if len(bundle) >= 2 else ''}
+      - "c3_age": |
+          ${ bundle[2].age_in_years() if len(bundle) >= 3 else ''}
+      - "c3_dob": |
+          ${ bundle[2].birthdate if len(bundle) >= 3 else ''}
+      - "c4_age": |
+          ${ bundle[3].age_in_years() if len(bundle) >= 4 else ''}
+      - "c4_dob": |
+          ${ bundle[3].age_in_years() if len(bundle) >= 4 else ''}
+      - "c4": |
+          ${ bundle[3].name.full(middle="full") if len(bundle) >= 4 else ''}
+      - "c5_age": |
+          ${ bundle[4].age_in_years() if len(bundle) >= 5 else ''}
+      - "c5_dob": |
+          ${ bundle[4].age_in_years() if len(bundle) >= 5 else ''}
+      - "c5": |
+          ${ bundle[4].name.full(middle="full") if len(bundle) >= 5 else ''}
+      - "ig_need": ${ bundle[0].ig_need }
+      - "residency": |
+          ${ 'yes' if bundle[0].residency else 'no' }
+      - "extraordinary_circumstances": |
+          ${ bundle[0].extraordinary_circumstances if bundle[0].residency == False else ''}
+      - "resides_with": ${ bundle[0].resides_with }
+      - "residency_address": ${ bundle[0].residency_address }
+      - "residency_phone": ${ bundle[0].residency_phone }
+      - "past_name1": ${ 'All' if bundle[0].past_residency == True else '' }
+      - "past_info1": ${ bundle[0].first_past_residency_address.on_one_line() + "; " + bundle[0].first_past_residency_adults if bundle[0].past_residency == True else '' }
+      - "past_dates1": ${ bundle[0].first_past_residency_dates if bundle[0].past_residency == True else '' }
+      - "past_name2": ${ 'All' if bundle[0].past_residency == True else '' }
+      - "past_info2": ${ bundle[0].second_past_residency_address.on_one_line() + "; " + bundle[0].second_past_residency_adults if defined('bundle[0].second_past_residency_adults') else '' }
+      - "past_dates2": ${ bundle[0].second_past_residency_dates if defined('bundle[0].second_past_residency_dates') else '' }
+      - "past_name3": ${ 'All' if bundle[0].past_residency == True else '' }
+      - "past_info3": ${ bundle[0].third_past_residency_address.on_one_line() + "; " + bundle[0].third_past_residency_adults if defined('bundle[0].third_past_residency_adults') else '' }
+      - "past_dates3": ${ bundle[0].third_past_residency_dates if defined('bundle[0].third_past_residency_dates') else '' }
+      - "c1_p1_name": ${ bundle[0].parent1.name.full() }
+      - "c1_p1_address_one": ${ bundle[0].parent1.address.line_one() }
+      - "c1_p1_deceased": ${ "yes" if bundle[0].parent1.deceased == True else "no" }
+      - "c1_p1_address_two": ${ bundle[0].parent1.address.line_two() }
+      - "c1_p1_phone": ${ bundle[0].parent1.phone if defined('bundle[0].parent1.phone') else '' }
+      - "c1_p2_name": ${ bundle[0].parent2.name.full() if bundle[0].no_second_parent == False else '' }
+      - "c1_p2_address_one": ${ bundle[0].parent2.address.line_one() if bundle[0].no_second_parent == False else '' }
+      - "c1_p2_deceased": ${ "yes" if defined('bundle[0].parent2.deceased') and bundle[0].parent2.deceased == True else "no"}
+      - "c1_p2_address_two": ${ bundle[0].parent2.address.line_two() if bundle[0].no_second_parent == False else '' }
+      - "c1_p2_phone": ${ bundle[0].parent2.phone if bundle[0].no_second_parent == False and defined('bundle[0].parent2.phone') else '' }
+      - "c1_deceased_parent1_name": ${ bundle[0].parent1.name.full() if bundle[0].parent1.deceased == True else '' }
+      - "c1_deceased_parent1_dod": ${ bundle[0].parent1.dod if bundle[0].parent1.deceased == True else '' }
+      - "c1_deceased_parent1_location": ${ bundle[0].parent1.place_of_death if bundle[0].parent1.deceased == True else '' }
+      - "c1_deceased_parent2_name": ${ bundle[0].parent2.name.full() if defined('bundle[0].parent2.deceased') and bundle[0].parent2.deceased == True else '' }
+      - "c1_deceased_parent2_dod": ${ bundle[0].parent2.dod if defined('bundle[0].parent2.deceased') and bundle[0].parent2.deceased == True else '' }
+      - "c1_deceased_parent2_location": ${ bundle[0].parent2.place_of_death if defined('bundle[0].parent2.deceased') and bundle[0].parent2.deceased == True else '' }
+      - "c1_terminated_parent1_name": ${ bundle[0].parent1.name.full() if bundle[0].parent1.terminated == True else '' }
+      - "c1_terminated_parent1_date": ${ bundle[0].parent1.terminated_date if bundle[0].parent1.terminated == True else '' }
+      - "c1_terminated_parent1_location": ${ bundle[0].parent1.place_of_termination if bundle[0].parent1.terminated == True else '' }
+      - "c1_terminated_parent2_name": ${ bundle[0].parent2.name.full() if defined('bundle[0].parent2.terminated') and bundle[0].parent2.terminated == True else '' }
+      - "c1_terminated_parent2_date": ${ bundle[0].parent2.terminated_date if defined('bundle[0].parent2.terminated') and bundle[0].parent2.terminated == True else '' }
+      - "c1_terminated_parent2_location": ${ bundle[0].parent2.place_of_termination if defined('bundle[0].parent2.terminated') and bundle[0].parent2.terminated == True else '' }
+      - "cps_allegations": ${ bundle[0].cps_allegations if bundle[0].cps_involved == True else '' }
+      - "cps_outcome": ${ bundle[0].cps_outcome if bundle[0].cps_involved == True else '' }
+      - "cps_location": ${ bundle[0].cps_location if bundle[0].cps_involved == True else '' }
+      - "custody_court": ${ bundle[0].custody_court if bundle[0].minor_custody == True else '' }
+      - "custody_num": ${ bundle[0].custody_num if bundle[0].minor_custody == True else '' }
+      - "custody_location": ${ bundle[0].custody_location if bundle[0].minor_custody == True else '' }
+      - "custody_type": ${ bundle[0].custody_type if bundle[0].minor_custody == True else '' }
+      - "custody_outcome": ${ bundle[0].custody_outcome if bundle[0].minor_custody == True else '' }
+      - "g1_address": ${ interviewee.address.on_one_line() }
+      - "g1_phone": ${ interviewee.phone }
+      - "g1_dob": ${ interviewee.birthdate }
+      - "g1_relationship": ${ bundle[0].relationship }
+      - "other_adults": ${ other_adults if are_other_adults == True else '' }
+      - "ig_proper": ${ bundle[0].ig_proper }
+      - "offender": ${ 'yes' if disclosure['offender'] == True else 'no' }
+      - "convict": ${ 'yes' if disclosure['convict'] == True else 'no' }
+      - "po": ${ 'yes' if disclosure['po'] == True else 'no' }
+      - "cps": ${ 'yes' if disclosure['cps'] == True else 'no' }
+      - "drugs": ${ 'yes' if disclosure['drugs'] == True else 'no' }
+      - "alcohol": ${ 'yes' if disclosure['alcohol'] == True else 'no' }
+      - "others": ${ 'yes' if disclosure['others'] == True else 'no' }
+      - "disclosure_detail": ${ disclosure_detail if defined('disclosure_detail') else '' }
+      - "support_received": ${ 'yes' if bundle[0].support_received == True else 'no' }
+      - "cs_received": ${ 'yes' if bundle[0].cs_received == True else 'no' }
+      - "support_detail": |
+          % if bundle[0].support_received and bundle[0].cs_received:
+            ${ bundle[0].support_detail + " " + bundle[0].cs_detail }
+          % elif bundle[0].support_received:
+            ${ bundle[0].support_detail }
+          % elif bundle[0].cs_received:
+            ${ bundle[0].cs_detail}
+          % else:
+            ${ '' }
+          % endif
+      - "temp_relief": "no"
+---
+attachment:
+  - name: ${ interviewee.name.full() } Verification
+    filename: ${ interviewee.name.full() } Verification
+    pdf template file: igv.pdf
+    editable: False
+    variable name: interviewee.verification
+    fields:
+      - "upper_county": ${ interviewee.address.county.upper() }      
+      - "g1": ${ interviewee.name.full() }
+---
+attachment:
+  - name: ${ cokin.name.full() } Verification
+    filename: ${ cokin.name.full() } Verification
+    pdf template file: igv.pdf
+    editable: False
+    variable name: cokin.verification
+    fields:
+      - "upper_county": ${ cokin.address.county.upper() }      
+      - "g1": ${ cokin.name.full() }
+---
+attachment:
+  - name: ${ bundle[0].parent1.name.full() } Waiver
+    filename: ${ bundle[0].parent1.name.full() } Waiver
+    pdf template file: igw.pdf
+    editable: False
+    variable name: bundles[i][0].parent1.waiver
+    fields:
+      - "court": 'FAMILY'
+      - "county": ${ interviewee.address.county.upper() }      
+      - "c1": ${ bundle[0].name.full() }
+      - "c2": |
+          ${ bundle[1].name.full() if len(bundle) >= 2 else ''}
+      - "c3": |
+          ${ bundle[2].name.full() if len(bundle) >= 3 else ''}
+      - "fm": ${ bundle[0].parent1.relationship } 
+      - "parent": ${ bundle[0].parent1.name.full() }
+      - "c1_age": ${ bundle[0].age_in_years() }
+      - "c1_dob": ${ bundle[0].birthdate }
+      - "c2_dob": |
+          ${ bundle[1].birthdate if len(bundle) >= 2 else ''}
+      - "c2_age": |
+          ${ bundle[1].age_in_years() if len(bundle) >= 2 else ''}
+      - "c3_age": |
+          ${ bundle[2].age_in_years() if len(bundle) >= 3 else ''}
+      - "c3_dob": |          
+          ${ bundle[2].birthdate if len(bundle) >= 3 else ''}
+      - "type": "person"
+      - "nominate": Yes
+      - "g1": |
+          ${ interviewee.name.full() if not cokin_present else interviewee.name.full() + " and " + cokin.name.full()}
+---
+attachment:
+  - name: ${ bundle[0].parent2.name.full() } Waiver
+    filename: ${ bundle[0].parent2.name.full() } Waiver
+    pdf template file: igw.pdf
+    editable: False
+    variable name: bundles[i][0].parent2.waiver
+    fields:
+      - "court": 'FAMILY'
+      - "county": ${ interviewee.address.county.upper() }
+      - "c1": ${ bundle[0].name.full() }
+      - "c2": |
+          ${ bundle[1].name.full() if len(bundle) >= 2 else ''}
+      - "c3": |
+          ${ bundle[2].name.full() if len(bundle) >= 3 else ''}
+      - "fm": ${ bundle[0].parent2.relationship } 
+      - "parent": ${ bundle[0].parent2.name.full() }
+      - "c1_age": ${ bundle[0].age_in_years() }
+      - "c1_dob": ${ bundle[0].birthdate }
+      - "c2_dob": |
+          ${ bundle[1].birthdate if len(bundle) >= 2 else ''}
+      - "c2_age": |
+          ${ bundle[1].age_in_years() if len(bundle) >= 2 else ''}
+      - "c3_age": |
+          ${ bundle[2].age_in_years() if len(bundle) >= 3 else ''}
+      - "c3_dob": |          
+          ${ bundle[2].birthdate if len(bundle) >= 3 else ''}
+      - "type": "person"
+      - "nominate": Yes
+      - "g1": |
+          ${ interviewee.name.full() if not cokin_present else interviewee.name.full() + " and " + cokin.name.full()}
+---
+attachment:
+  - name: ${ bundles[i][j].name.full() } Nomination
+    filename: ${ bundles[i][j].name.full() } Nomination
+    pdf template file: nom.pdf
+    editable: False
+    variable name: bundles[i][j].nomination
+    fields:
+      - "court": 'FAMILY'
+      - "county": ${ interviewee.address.county.upper() }
+      - "c1": ${ bundle[0].name.full(middle="full") }
+      - "c2": |
+          ${ bundle[1].name.full(middle="full") if len(bundle) >= 2 else ''}
+      - "c3": |
+          ${ bundle[2].name.full(middle="full") if len(bundle) >= 3 else ''}
+      - "nom_minor": ${ bundles[i][j].name.full() }
+      - "dob_month": ${ bundles[i][j].birthdate.month }
+      - "dob_day": ${ bundles[i][j].birthdate.day }
+      - "dob_year": ${ bundles[i][j].birthdate.year }
+      - "g1": |
+          ${ interviewee.name.full() if not cokin_present else interviewee.name.full() + " and " + cokin.name.full()}
+      - "person_initials": ${ bundles[i][j].name.first[0].upper() + bundles[i][j].name.last[0].upper() }
+---
+template: ig_step_one
+subject: |
+  Step One: Download or Email
+content: |
+  Here is the collection of documents in your packet:
+
+  * <i class="file-pdf"></i> Instructions  
+  % for collection in bundles:
+  * <i class="file-pdf"></i> Petition bundle for 
+  % for child in collection:
+  % if len(collection) == 1:
+  ${child.name.first}.
+  % elif child == collection[-1]:
+  & ${child.name.first}.
+  % else:
+  ${child.name.first}, 
+  % endif
+  % endfor
+  % endfor
+
+  ${ action_button_html(ig_bundle.url_for(), classname='btn btn-da btn-primary', label='Download All', icon='file-pdf') }
+  ${ action_button_html(url_action('send_ig_files'), classname='btn btn-da btn-primary', label='Email these to me', icon='envelope') }
+---
+template: ig_step_two
+subject: |
+  Step Two: Print
+content: |
+  Print two (2) copies of your document.  One copy you will keep for yourself, the other will be 
+  filed with the court at the address in the next step.  Visit your local library for low-cost or free printing:
+
+  ${ closest_library}  
+  ${ libraries[closest_library]["address"]}
+---
+template: ig_step_three
+subject: |
+  Step Three: File
+content: |
+  Bring a copy to your local courthouse.  There is a fee for filing.  If you cannot afford the fee,
+  you can file a [Financial Affidavit](http://courtswv.gov/legal-community/court-rules/civil-procedure/pdf/Affidavit.pdf)
+  to see if you are eligible to have your filing fee waived.
+
+  ${ interviewee.address.county } Circuit Clerk  
+  ${ cir_address_html[interviewee.address.county] }
+---
+event: send_ig_files
+code: |
+  send_email(to=interviewee, attachments=ig_bundle,template=email_all_files)

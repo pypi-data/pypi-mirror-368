@@ -1,0 +1,482 @@
+metadata:
+  authors:
+    - name: Dane W. Henry, Esq.
+      organization: Legal Aid of West Virginia, Inc.
+  revision_date: 2025-05-14
+---
+ga id: SF_adoptSummary
+question: |
+  <div class="banner-image" id="adoptionHeader">
+    [FILE adoption.png]
+  </div>
+  ### Overview
+  # Getting Started with Adoption
+subquestion: |
+  Adoption is when someone other than the birth parent(s) asks a court
+  to give them legal rights and responsibilities of a parent.  If granted, 
+  the birth parents will no longer have rights to the child(ren).  **Adoption is permanent.**
+
+  **What you'll need**
+  
+  [FILE circle-icon-time1x.svg] Time - The questions will take 10-15 minutes
+  
+  [FILE circle-icon-id1x.svg] Information needed - You will need to know names, birthdates, and
+  contact information for yourself as well as the child(ren) and parents.  Additionally, you will need to know
+  court history for the parents and child(ren) so proper notice can be given to the parties.
+section: overview
+continue button field: adoption_summary
+---
+ga id: SF_adoptWarning
+question: |
+  <div class="banner-image" id="adoptionHeader">
+    [FILE adoption.png]
+  </div>
+  ### Overview
+  # Limitations of this tool
+subquestion: |
+  This tool is meant for simple kinship situations.  If your situation is complex, you should consider [applying for Legal Aid help](https://legalaidwv.org/get-help/apply-for-help/)
+  or [talking to a lawyer](https://wvlawyerreferral.org/).  Here are examples of when you should seek legal help:
+
+  * There is an open abuse and neglect case in court involving the children.
+  * One or more of the child's parents would contest the adoption.
+  * One or more of the child's parents have had their rights terminated.
+  * You or the child rely on benefits or assistance (Food Stamps, WV Works/TANF, Medicaid, etc.) that could end if the child is adopted.
+  * This is an emergency situation involving child safety.
+
+  Finally, if you are kinship caregiver caring for multiple children with different parents, completing this tool will be more complicated and may take longer.
+section: overview
+continue button field: adopt_warning
+---
+ga id: SF_contLiving
+question: |
+  Timing of care for ${ minor_list[i].name.first }
+fields:
+  - Has ${ minor_list[i].name.first } been living with you continuously for the last six months?: minor_list[i].continuous_living
+    datatype: yesnoradio
+    hint: This does not include temporary breaks like vacations, etc.
+  - When did you begin to take care of ${ minor_list[i].name.first }?: minor_list[i].custody_date
+    datatype: date
+    max: ${ today().minus(months=6) }
+    show if: minor_list[i].continuous_living
+  - How did you come into the care of ${ minor_list[i].name.first }?: minor_list[i].custody_method
+    choices:
+      - Being appointed guardian by order of Family or Circuit Court: "being appointed guardian by order of Family or Circuit Court"
+      - The biological parents asking you to care for the child: "the biological parents asking you to care for the child"
+      - Other
+    show if: minor_list[i].continuous_living
+  - "Complete the sentence: You came into the care of ${ minor_list[i].name.first } by...": minor_list[i].custody_method
+    datatype: area
+    show if: 
+      variable: minor_list[i].custody_method
+      is: Other
+section: documents
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+---
+ga id: SF_newName
+question: |
+  Will ${ minor_list[i].possessive('name') } change?
+fields:
+  - no label: minor_list[i].name_change
+    datatype: yesnoradio
+  - New First Name: minor_list[i].new_first
+    default: ${ minor_list[i].name.first }
+    show if: minor_list[i].name_change
+  - New Middle Name: minor_list[i].new_middle
+    default: ${ minor_list[i].name.middle }
+    show if: minor_list[i].name_change
+  - New Last Name: minor_list[i].new_last
+    default: ${ interviewee.name.last }
+    show if: minor_list[i].name_change
+section: documents
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+---
+ga id: SF_spouseAgree
+question: |
+  % if total_minors == 1:
+    Does the child's biological parent (your spouse) agree to the adoption?
+  % else:
+    Does the children's biological parent (your spouse) agree to the adoption?
+  % endif
+yesno: spouse_agree
+section: documents
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+---
+ga id: SF_nonSpouseContest
+question: |
+  % if total_minors == 1:
+    Does the child's other biological parent (**NOT** your spouse) still have contact with the child, maintain his or her parental rights, AND contest the adoption?
+  % else:
+    Does the children's biological parent (**NOT** your spouse) still have contact with the child, maintain his or her parental rights, AND contest the adoption?
+  % endif
+yesno: non_spouse_contest
+section: documents
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+---
+ga id: SF_parent1MaintainAndConsent
+question: |
+  % if total_minors > 1 and common_parents:
+  Does ${ minor_list[i].parent1.name.full() } maintain contact with the children?
+  % else:
+  Does ${ minor_list[i].parent1.name.full() } maintain contact with ${ minor_list[i].name.first }?
+  % endif
+fields:
+  - no label: minor_list[i].parent1.maintain
+    datatype: yesnoradio
+  - Has the parent been absent for more than 6 months?: minor_list[i].parent1.absent
+    datatype: yesnoradio
+    show if: 
+      variable: minor_list[i].parent1.maintain
+      is: False
+  - What sort of contact?: minor_list[i].parent1.contact_type
+    datatype: checkboxes
+    choices:
+      - Visits
+      - Phone/Video Calls
+      - Texts/Messages/Cards/Letters/Gifts
+    show if: minor_list[i].parent1.maintain
+  - Will the parent consent to the adoption?: minor_list[i].parent1.consent_adopt
+    datatype: yesnoradio
+    show if: minor_list[i].parent1.maintain
+  - Will the parent consent to the adoption?: minor_list[i].parent1.consent_adopt
+    datatype: yesnoradio
+    show if:
+      variable: minor_list[i].parent1.absent
+      is: False
+section: documents
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+---
+ga id: SF_parent2MaintainAndConsent
+question: |
+  % if total_minors > 1 and common_parents:
+  Does ${ minor_list[i].parent2.name.full() } maintain contact with the children?
+  % else:
+  Does ${ minor_list[i].parent2.name.full() } maintain contact with ${ minor_list[i].name.first }?
+  % endif
+fields:
+  - no label: minor_list[i].parent2.maintain
+    datatype: yesnoradio
+  - Has the parent been absent for more than 6 months?: minor_list[i].parent2.absent
+    datatype: yesnoradio
+    show if:
+      variable: minor_list[i].parent2.maintain
+      is: False
+  - What sort of contact?: minor_list[i].parent2.contact_type
+    datatype: checkboxes
+    choices:
+      - Visits
+      - Phone/Video Calls
+      - Texts/Messages/Cards/Letters/Gifts
+    show if: minor_list[i].parent2.maintain
+  - Will the parent consent to the adoption?: minor_list[i].parent2.consent_adopt
+    datatype: yesnoradio
+    show if: minor_list[i].parent2.maintain
+section: documents
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+---
+ga id: SF_parent2ProbableIdentity
+question: |
+  Was ${ minor_list[i].parent1.name.full() } married to or living with a man at the time of ${ minor_list[i].possessive('birth') }?
+subquestion: |
+  In adoptions there can be a presumed father, even if one is not named on the birth certificate.
+fields:
+  - no label: minor_list[i].probable_identity
+    datatype: yesnoradio
+  - First Name: minor_list[i].parent2.name.first
+    show if: minor_list[i].probable_identity
+  - Last Name: minor_list[i].parent2.name.last
+    show if: minor_list[i].probable_identity
+  - Birthdate: minor_list[i].parent2.birthdate
+    datatype: date    
+    max: ${ today().minus(years=18) }
+    show if: minor_list[i].probable_identity
+  - Address: minor_list[i].parent2.address.address
+    address autocomplete: True
+    show if: minor_list[i].probable_identity
+  - Unit/Apt.: minor_list[i].parent2.address.unit
+    required: False
+    show if: minor_list[i].probable_identity
+  - City: minor_list[i].parent2.address.city
+    show if: minor_list[i].probable_identity
+  - State: minor_list[i].parent2.address.state
+    code: states_list()
+    default: WV
+    show if: minor_list[i].probable_identity
+  - Zip: minor_list[i].parent2.address.zip
+    show if: minor_list[i].probable_identity
+  - County: minor_list[i].parent2.address.county
+    show if: minor_list[i].probable_identity
+  - Relationship to child: minor_list[i].parent2.relationship
+    input type: dropdown
+    choices:
+      - Mother
+      - Father
+    show if: minor_list[i].probable_identity
+section: documents
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+---
+ga id: SF_adopterInformation
+question: |
+  % if cokin_present == True:
+    Do any of the following apply to you or your co-applicant?
+  % else:
+    Do any of the following apply to you?
+  % endif
+subquestion: |
+  Please select all that apply
+fields:
+  - no label: adopter_disclosure
+    datatype: checkboxes
+    choices:
+      - Required to register as a sex offender under W. Va. Code § 15-12: offender
+      - Record of any misdemeanor or felony conviction: convict
+      - Restraining order or final protective order filed against you: po
+      - Substantiated report alleging child abuse, neglect, or sexual abuse in any jurisdiction against you: cps
+      - Use any illegal substances, such as drugs, or misuses prescriptions: drugs
+      - Abuse alcohol: alcohol
+      - Another person living in the home is involved in any of the matters stated above: others
+section: documents
+below: |
+  Please note, checking these boxes does not make you ineligible for adoption,
+   but it is important to be truthful in disclosing relevant background.
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+---
+ga id: SF_adopterInformationDetail
+question: |
+  Additional Detail
+subquestion: |
+  Please provide more information about:
+
+  % if adopter_disclosure['offender']:
+  * Required to register as a sex offender under W. Va. Code § 15-12;
+  % endif
+  % if adopter_disclosure['convict']:
+  * Record of any misdemeanor or felony conviction;
+  % endif 
+  % if adopter_disclosure['po']:
+  * Restraining order or final protective order filed against you;
+  % endif 
+  % if adopter_disclosure['cps']:
+  * Substantiated report alleging child abuse, neglect, or sexual abuse in any jurisdiction against you;
+  % endif 
+  % if adopter_disclosure['drugs']:
+  * Use any illegal substances, such as drugs, or misuses prescriptions;
+  % endif 
+  % if adopter_disclosure['alcohol']:
+  * Abuse alcohol;
+  % endif 
+  % if adopter_disclosure['others']:
+  * Another person living in the home is involved in any of the matters on the previous screen;
+  % endif
+fields:
+  - no label: adopter_disclosure_detail
+    datatype: area
+section: documents
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+---
+ga id: SF_reviewAdoption
+question: |
+  Review Your information
+review:
+  - Edit: minor_list[0].continuous_living
+    button: |
+      The minor(s) have lived with you continuously for six months or more.
+  - Edit: adopter_disclosure
+    button: |
+      % if not adopter_disclosure:
+        No disclosures were required.
+      % else:
+        % if adopter_disclosure['offender']:
+          * Required to register as a sex offender under W. Va. Code § 15-12;
+        % endif
+        % if adopter_disclosure['convict']:
+          * Record of any misdemeanor or felony conviction;
+        % endif 
+        % if adopter_disclosure['po']:
+          * Restraining order or final protective order filed against you;
+        % endif 
+        % if adopter_disclosure['cps']:
+          * Substantiated report alleging child abuse, neglect, or sexual abuse in any jurisdiction against you;
+        % endif 
+        % if adopter_disclosure['drugs']:
+          * Use any illegal substances, such as drugs, or misuses prescriptions;
+        % endif 
+        % if adopter_disclosure['alcohol']:
+          * Abuse alcohol;
+        % endif 
+        % if adopter_disclosure['others']:
+          * Another person living in the home is involved in any of the matters on the previous screen;
+        % endif
+        Additional details: ${ adopter_disclosure_detail }
+      % endif
+continue button field: adoption_reviewed
+section: documents
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+---
+ga id: SF_adoptionEndpoint
+question: Adoption Files
+subquestion: |
+  You can download your **Adoption Packet** below.
+
+  ${ caution_language }
+
+  * <i class="file-pdf"></i> [Instructions](${ adoption_instructions.url_for(attachment=True) })
+  % for minor in minor_list:
+  * <i class="file-pdf"></i> [Adoption Petition for ${ minor.name.full(middle="full")}](${ minor.adoption_petition.url_for(attachment=True) })
+  % if minor.age_in_years() >= 12:
+  * <i class="file-pdf"></i> [${ minor.name.full(middle="full")} Consent](${ minor.adoption_consent.url_for(attachment=True) })
+  % endif
+  % if not minor.parent1.deceased and not minor.parent1.terminated:
+  % if minor.parent1.maintain:
+  * <i class="file-pdf"></i> [${ minor.parent1.name.full() } Consent to Adopt ${ minor.name.full()}](${ minor.parent1.adoption_consent.url_for(attachment=True) })
+  % endif
+  % endif
+  % if not minor.no_second_parent and not minor.parent2.terminated and not minor.parent2.deceased:
+  % if minor.parent2.maintain:
+  * <i class="file-pdf"></i> [${ minor.parent2.name.full() } Consent to Adopt ${ minor.name.full()}](${ minor.parent2.adoption_consent.url_for(attachment=True) })
+  % endif
+  % endif
+  % endfor
+
+  ${ action_button_html(adopt_bundle.url_for(), classname='btn btn-da btn-primary', label='Download All as Single PDF', icon='file-pdf') }
+  ${ action_button_html(url_action('send_adopt_files'), classname='btn btn-da btn-primary', label='Email PDFs to Client', icon='envelope') }
+attachment code: adoption_documents
+manual attachment list: True
+allow emailing: True
+allow downloading: True
+section: collect
+field: generate_adoption
+buttons:
+  - Start Will Process
+under: |
+  **More Resources**
+
+  [Adoption Information](https://legalaidwv.org/legal-information/adoption/)
+---
+code: |
+  adoption_documents = [adoption_instructions]
+  for minor in minor_list:
+    adoption_documents.append(minor.adoption_petition)
+    if minor.age_in_years() >= 13:
+      adoption_documents.append(minor.adoption_consent)
+    if not minor.parent1.terminated and not minor.parent1.deceased:
+      if minor.parent1.maintain:
+        adoption_documents.append(minor.parent1.adoption_consent)
+    if not minor.no_second_parent and not minor.parent2.terminated and not minor.parent2.deceased:
+      if minor.parent2.maintain:
+        adoption_documents.append(minor.parent2.adoption_consent)
+  adopt_bundle = pdf_concatenate(adoption_documents, filename=interviewee.name.full() + " Adoption Packet.pdf")
+---
+attachment:
+  - name: Adoption Instructions
+    filename: Adoption Instructions
+    pdf template file: adoption_instructions.pdf
+    editable: False
+    variable name: adoption_instructions
+    fields:
+      - court_address: ${ interviewee.address.county + " County Circuit Clerk\n" + cir_address[interviewee.address.county] }
+      - library_address: ${ closest_library + "\n" + libraries[closest_library]["address"] }
+---
+attachment:
+  - name: ${ minor_list[i].name.full(middle="full") } Adoption Petition
+    filename: ${ minor_list[i].name.full(middle="full") } Adoption Petition
+    docx template file: adoption_petition.docx
+    editable: False
+    variable name: minor_list[i].adoption_petition
+    valid formats:
+      - docx
+      - pdf
+---
+attachment:
+  - name: ${ minor_list[i].parent1.name.full() } Consent to Adopt ${ minor_list[i] }
+    filename: ${ minor_list[i].parent1.name.full() } Consent to Adopt ${ minor_list[i] }
+    docx template file: p1_consent.docx
+    editable: False
+    variable name: minor_list[i].parent1.adoption_consent
+    valid formats:
+      - docx
+      - pdf
+---
+attachment:
+  - name: ${ minor_list[i].parent2.name.full() } Consent to Adopt ${ minor_list[i] }
+    filename: ${ minor_list[i].parent2.name.full() } Consent to Adopt ${ minor_list[i] }
+    docx template file: p2_consent.docx
+    editable: False
+    variable name: minor_list[i].parent2.adoption_consent
+    valid formats:
+      - docx
+      - pdf
+---
+attachment:
+  - name: ${ minor_list[i].name.full() } Consent
+    filename: ${ minor_list[i].name.full() } Consent
+    docx template file: minor_consent.docx
+    editable: False
+    variable name: minor_list[i].adoption_consent
+    valid formats:
+      - docx
+      - pdf
+---
+template: adopt_step_one
+subject: |
+  Step One: Download or Email
+content: |
+  * <i class="file-pdf"></i> [Instructions](${ adoption_instructions.url_for(attachment=True) })
+  % for minor in minor_list:
+  * <i class="file-pdf"></i> [Adoption Petition for ${ minor.name.full(middle="full")}](${ minor.adoption_petition.url_for(attachment=True) })
+  % if minor.age_in_years() >= 12:
+  * <i class="file-pdf"></i> [${ minor.name.full(middle="full")} Consent](${ minor.adoption_consent.url_for(attachment=True) })
+  % endif
+  % if not minor.parent1.deceased and not minor.parent1.terminated:
+  % if minor.parent1.maintain:
+  * <i class="file-pdf"></i> [${ minor.parent1.name.full() } Consent to Adopt ${ minor.name.full()}](${ minor.parent1.adoption_consent.url_for(attachment=True) })
+  % endif
+  % endif
+  % if not minor.no_second_parent and not minor.parent2.terminated and not minor.parent2.deceased:
+  % if minor.parent2.maintain:
+  * <i class="file-pdf"></i> [${ minor.parent2.name.full() } Consent to Adopt ${ minor.name.full()}](${ minor.parent2.adoption_consent.url_for(attachment=True) })
+  % endif
+  % endif
+  % endfor
+
+  ${ action_button_html(adopt_bundle.url_for(), classname='btn btn-da btn-primary', label='Download All', icon='file-pdf') }
+  ${ action_button_html(url_action('send_adopt_files'), classname='btn btn-da btn-primary', label='Email these to me', icon='envelope') }
+---
+template: adopt_step_two
+subject: |
+  Step Two: Print
+content: |
+  Print two (2) copies of your document.  One copy you will keep for yourself, the other will be 
+  filed with the court at the address in the next step.  Visit your local library for low-cost or free printing:
+
+  ${ closest_library}  
+  ${ libraries[closest_library]["address"]}
+---
+template: adopt_step_three
+subject: |
+  Step Three: File
+content: |
+  Bring a copy to your local courthouse.  There is a fee for filing.  If you cannot afford the fee,
+  you can file a [Financial Affidavit](http://courtswv.gov/legal-community/court-rules/civil-procedure/pdf/Affidavit.pdf)
+  to see if you are eligible to have your filing fee waived.
+
+  ${ interviewee.address.county } Circuit Clerk  
+  ${ cir_address_html[interviewee.address.county] }
+---
+event: send_adopt_files
+code: |
+  send_email(to=interviewee, attachments=adoption_documents,template=email_all_files)
+---
+code: |
+  # * <i class="file-pdf"></i> [${ minor.name.full(middle="full") } Consent](${ minor.adoption_consent.url_for(attachment=True) })
+  # * <i class="file-pdf"></i> [${ minor.parent1.name.full() } Consent to Adopt ${ minor.name.full()}](${ minor.parent1.adoption_consent.url_for(attachment=True) })
+  # * <i class="file-pdf"></i> [${ minor.parent2.name.full() } Consent to Adopt ${ minor.name.full()}](${ minor.parent2.adoption_consent.url_for(attachment=True) })

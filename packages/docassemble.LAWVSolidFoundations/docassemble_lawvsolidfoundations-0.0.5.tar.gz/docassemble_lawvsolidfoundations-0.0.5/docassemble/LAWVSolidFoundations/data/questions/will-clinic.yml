@@ -1,0 +1,639 @@
+metadata:  
+  authors:
+    - name: Dane W. Henry, Esq.
+      organization: Legal Aid of West Virginia, Inc.
+  revision_date: 2025-05-14
+---
+features:
+  javascript: docassemble.LAWVCommon:data/static/force_lightmode.js
+  css: docassemble.LAWVCommon:data/static/lawv.css
+  cache documents: False
+  suppress autofill: True
+---
+include:
+  - docassemble.LAWVCommon:common_info.yml
+---
+imports:
+  - itertools
+  - geopy.distance
+---
+modules:
+  - docassemble.LAWVCommon.progressivedisclosure
+---
+objects:
+  - endpoint: DADict
+  - testator: Individual
+  - spouse: Individual
+  - children_of_marriage: DAList.using(object_type=Individual)
+  - other_children: DAList.using(object_type=Individual)
+  - specific_assets: DAList.using(object_type=DAObject, complete_attribute='complete')
+  - general_assets: DAList.using(object_type=DAObject, complete_attribute='complete')
+  - residual: DAObject.using(complete_attribute='beneficiary')
+  - executor: Individual
+  - alt_executor: Individual
+  - guardian: Individual
+  - alt_guardian: Individual 
+---
+question: |
+  Does the testator have children from **this** marriage?
+subquestion: |
+  There will be opportunity to provide information for children from other
+  relationships at a later time.
+yesno: children_of_marriage.there_are_any
+---
+question: |
+  What is the name of the ${ ordinal(i) } child?
+fields:
+  - First Name: children_of_marriage[i].name.first
+  - Middle Name: children_of_marriage[i].name.middle
+    required: False
+  - Last Name: children_of_marriage[i].name.last
+  - Suffix: children_of_marriage[i].name.suffix
+    required: False
+    code: name_suffix()
+---
+question: |
+  So far, you have listed ${ children_of_marriage.number_as_word() } children.
+  They are:
+  % for child in children_of_marriage:
+  ## ${'\n'} * ${ child.name.full(middle="full") }
+  % endfor
+subquestion: |
+  Are there any others?
+yesno: children_of_marriage.there_is_another
+---
+question: |
+  Review the information
+review:
+  - Edit Testator: interviewee.name.first
+    button: |
+      Testator: **${ interviewee.name.full(middle="full") }**
+  - Edit Spouse: cokin.name.first
+    button: |
+      The testator is married to **${ cokin.name.full(middle="full") }**.
+  - Edit Children: children_of_marriage.revisit
+    button: |
+      The children of the marriage are: 
+      
+      % for child in children_of_marriage:
+        * ${ child.name.full(middle="full") }
+      % endfor
+tabular: table table-striped
+continue button field: review_marriage_children
+---
+field: children_of_marriage.revisit
+question: |
+  Edit the children
+subquestion: |
+  ${ children_of_marriage.table }
+
+  ${ children_of_marriage.add_action() }
+---
+table: children_of_marriage.table
+rows: children_of_marriage
+columns:
+  - Name: |
+      row_item.name.full()
+edit:
+  - name.first
+---
+question: |
+  Review the information
+review:
+  - Edit Testator: interviewee.name.first
+    button: |
+      Testator: **${ interviewee.name.full(middle="full") }**
+  - Edit Spouse: cokin.name.first
+    button: |
+      The testator is married to **${ cokin.name.full(middle="full") }**.  
+tabular: table table-striped
+continue button field: review_basic
+---
+question: |
+  Does the testator have children from another relationship?
+subquestion: |
+  This can be out-of-wedlock or prior marriages.
+yesno: other_children.there_are_any
+---
+question: |
+  What is the name of the ${ ordinal(i) } child?
+fields:
+  - First Name: other_children[i].name.first
+  - Middle Name: other_children[i].name.middle
+    required: False
+  - Last Name: other_children[i].name.last
+  - Suffix: other_children[i].name.suffix
+    required: False
+    code: name_suffix()
+---
+question: |
+  So far, you have listed ${ other_children.number_as_word() } children.
+  They are:
+  % for child in other_children:
+  ## ${'\n'} * ${ child.name.full(middle="full") }
+  % endfor
+subquestion: |
+  Are there any others?
+yesno: other_children.there_is_another
+---
+question: |
+  Review the information
+review:  
+  - Edit Children: other_children.revisit
+    button: |
+      Children from other relationships are: 
+      
+      % for child in other_children:
+        * ${ child.name.full(middle="full") }
+      % endfor
+tabular: table table-striped
+continue button field: review_other_children
+---
+field: other_children.revisit
+question: |
+  Edit the children
+subquestion: |
+  ${ other_children.table }
+
+  ${ other_children.add_action() }
+---
+table: other_children.table
+rows: other_children
+columns:
+  - Name: |
+      row_item.name.full()
+edit:
+  - name.first
+---
+ga id: SF_SpecificAssets
+section: Specific Gifts
+question: |
+  Does the testator have Specific Gifts?
+subquestion: |
+  A specific gift will be a specific asset that is bequeathed to an individual or group.
+yesno: specific_assets.there_are_any
+---
+question: |
+  Specify the ${ ordinal(i) } specific gift
+fields:
+  - Description: specific_assets[i].description
+    hint: |
+      Ex: 1978 Datsun 280Z
+  - Giving to: specific_assets[i].method
+    choices:
+      - Individual: individual
+      - Group: group
+  - Relation to testator: specific_assets[i].relation
+    hint: |
+      Ex: child/children, sibling/siblings, etc.
+  - Beneficiary: specific_assets[i].beneficiary
+    datatype: combobox
+    code: list_of_names
+    hint: |
+      Select a name or Type a new person
+  - Beneficiary 2:  specific_assets[i].beneficiary2
+    datatype: combobox
+    code: list_of_names
+    js show if: |
+      val('specific_assets[i].method') == 'group'
+  - Beneficiary 3:  specific_assets[i].beneficiary3
+    required: False
+    datatype: combobox
+    code: list_of_names
+    js show if: |
+      val('specific_assets[i].method') == 'group' && val('specific_assets[i].beneficiary2') != ''
+  - Beneficiary 4:  specific_assets[i].beneficiary4
+    required: False
+    datatype: combobox
+    code: list_of_names
+    js show if: |
+      val('specific_assets[i].method') == 'group' && val('specific_assets[i].beneficiary2') != '' && val('specific_assets[i].beneficiary3') != ''
+  - note: |
+      If additional beneficiaries are required, you will have to manually edit the Word Document at the end of the process
+    js show if: |
+      val('specific_assets[i].method') == 'group' && val('specific_assets[i].beneficiary2') != '' && val('specific_assets[i].beneficiary3') != ''
+  - What happens if the gift fails?: specific_assets[i].gift_fail
+    choices:
+      - Pass to descendants of intended recipient: descendants
+      - Pass to other: other
+  - Alternate beneficiary's relation to testator: specific_assets[i].alt_relation
+    show if:
+      variable: specific_assets[i].gift_fail
+      is: other
+  - Alternate beneficiary: specific_assets[i].alt_beneficiary
+    datatype: combobox
+    code: list_of_names
+    show if:
+      variable: specific_assets[i].gift_fail
+      is: other
+---
+question: |
+  **Specific Gifts**
+
+  So far, you have listed ${ specific_assets.number_as_word() } assets.
+
+  % for asset in specific_assets:
+  % if asset.method == 'group' and (defined('asset.beneficiary2') and asset.beneficiary2 != '') and (defined('asset.beneficiary3') and asset.beneficiary3 != '') and (defined('asset.beneficiary4') and asset.beneficiary4 != ''):
+  ## ${'\n'} * ${ asset.description } to ${ asset.beneficiary }, ${ asset.beneficiary2 }, ${ asset.beneficiary3 }, ${ asset.beneficiary4 }
+  % elif asset.method == 'group' and (defined('asset.beneficiary2') and asset.beneficiary2 != '') and (defined('asset.beneficiary3') and asset.beneficiary3 != ''):
+  ## ${'\n'} * ${ asset.description } to ${ asset.beneficiary }, ${ asset.beneficiary2 }, ${ asset.beneficiary3 }
+  % elif asset.method == 'group':
+  ## ${'\n'} * ${ asset.description } to ${ asset.beneficiary }, ${ asset.beneficiary2 }
+  % else:
+  ## ${'\n'} * ${ asset.description } to ${ asset.beneficiary }
+  % endif
+  % endfor
+subquestion: |
+  Are there any others?
+yesno: specific_assets.there_is_another
+---
+question: |
+  Review the specific gifts
+review:  
+  - Edit Specific Gifts: specific_assets.revisit
+    button: |
+      The specific gifts are: 
+      
+      % for asset in specific_assets:
+      % if asset.method == 'group' and (defined('asset.beneficiary2') and asset.beneficiary2 != '') and (defined('asset.beneficiary3') and asset.beneficiary3 != '') and (defined('asset.beneficiary4') and asset.beneficiary4 != ''):
+      ## ${'\n'} * ${ asset.description } to ${ asset.beneficiary }, ${ asset.beneficiary2 }, ${ asset.beneficiary3 }, ${ asset.beneficiary4 }
+      % elif asset.method == 'group' and (defined('asset.beneficiary2') and asset.beneficiary2 != '') and (defined('asset.beneficiary3') and asset.beneficiary3 != ''):
+      ## ${'\n'} * ${ asset.description } to ${ asset.beneficiary }, ${ asset.beneficiary2 }, ${ asset.beneficiary3 }
+      % elif asset.method == 'group':
+      ## ${'\n'} * ${ asset.description } to ${ asset.beneficiary }, ${ asset.beneficiary2 }
+      % else:
+      ## ${'\n'} * ${ asset.description } to ${ asset.beneficiary }
+      % endif
+      % endfor
+tabular: table table-striped
+continue button field: review_specific_assets
+---
+field: specific_assets.revisit
+question: |
+  Review the Specific Gifts
+subquestion: |
+  The specific gifts are:
+
+  ${ specific_assets.table }
+
+  ${ specific_assets.add_action() }
+---
+table: specific_assets.table
+rows: specific_assets
+columns:
+  - Description: |
+      row_item.description
+  - First/Sole Beneficiary: |
+      row_item.relation + ' - ' + row_item.beneficiary
+  - Additional Beneficiaries: |
+      row_item.beneficiary2 + ', ' + row_item.beneficiary3 + ', ' + row_item.beneficiary4 if defined('row_item.beneficiary4') and row_item.beneficiary4 != '' else (row_item.beneficiary2 + ', ' + row_item.beneficiary3 if defined('row_item.beneficiary3') and row_item.beneficiary3 != '' else (row_item.beneficiary2 if defined('row_item.beneficiary2') and row_item.beneficiary2 != '' else ''))             
+  - Alternate Beneficiary: |
+      row_item.alt_beneficiary if row_item.gift_fail == 'other' else 'Pass to descendants of intended recipient'
+edit:
+  - description
+---
+ga id: SF_GeneralAssets
+section: General Gifts
+question: |
+  Does the testator have General Gifts?
+subquestion: |
+  A general gift will be a collection of assets that is bequeathed to an individual or group.
+
+  "All my silverware"
+yesno: general_assets.there_are_any
+---
+question: |
+  Specify the ${ ordinal(i) } general gift
+fields:
+  - All of the Testator's ...: general_assets[i].description
+    hint: |
+      Ex: silverware, baseball cards, Longaberger baskets
+  - Giving to: general_assets[i].method
+    choices:
+      - Individual: individual
+      - Group: group
+  - Relation to testator: general_assets[i].relation
+    hint: |
+      Ex: child/children, sibling/siblings, etc.
+  - Beneficiary: general_assets[i].beneficiary
+    datatype: combobox
+    code: list_of_names
+  - Beneficiary 2:  general_assets[i].beneficiary2
+    datatype: combobox
+    code: list_of_names
+    js show if: |
+      val('general_assets[i].method') == 'group'
+  - Beneficiary 3:  general_assets[i].beneficiary3
+    required: False
+    datatype: combobox
+    code: list_of_names
+    js show if: |
+      val('general_assets[i].method') == 'group' && val('general_assets[i].beneficiary2') != ''
+  - Beneficiary 4:  general_assets[i].beneficiary4
+    required: False
+    datatype: combobox
+    code: list_of_names
+    js show if: |
+      val('general_assets[i].method') == 'group' && val('general_assets[i].beneficiary2') != '' && val('general_assets[i].beneficiary3') != ''
+  - note: |
+      If additional beneficiaries are required, you will have to manually edit the Word Document at the end of the process
+    js show if: |
+      val('general_assets[i].method') == 'group' && val('general_assets[i].beneficiary2') != '' && val('general_assets[i].beneficiary3') != ''
+  - What happens if the gift fails?: general_assets[i].gift_fail
+    choices:
+      - Pass to descendants of intended recipient: descendants
+      - Pass to other: other
+  - Alternate beneficiary's relation to testator: general_assets[i].alt_relation
+    show if:
+      variable: general_assets[i].gift_fail
+      is: other
+  - Alternate beneficiary: general_assets[i].alt_beneficiary
+    datatype: combobox
+    code: list_of_names
+    show if:
+      variable: general_assets[i].gift_fail
+      is: other
+---
+question: |
+  **General Gifts**
+
+  So far, you have listed ${ general_assets.number_as_word() } assets.
+
+  % for asset in general_assets:
+  % if asset.method == 'group' and (defined('asset.beneficiary2') and asset.beneficiary2 != '') and (defined('asset.beneficiary3') and asset.beneficiary3 != '') and (defined('asset.beneficiary4') and asset.beneficiary4 != ''):
+  ## ${'\n'} * ${ asset.description } to ${ asset.beneficiary }, ${ asset.beneficiary2 }, ${ asset.beneficiary3 }, ${ asset.beneficiary4 }
+  % elif asset.method == 'group' and (defined('asset.beneficiary2') and asset.beneficiary2 != '') and (defined('asset.beneficiary3') and asset.beneficiary3 != ''):
+  ## ${'\n'} * ${ asset.description } to ${ asset.beneficiary }, ${ asset.beneficiary2 }, ${ asset.beneficiary3 }
+  % elif asset.method == 'group':
+  ## ${'\n'} * ${ asset.description } to ${ asset.beneficiary }, ${ asset.beneficiary2 }
+  % else:
+  ## ${'\n'} * ${ asset.description } to ${ asset.beneficiary }
+  % endif
+  % endfor
+subquestion: |
+  Are there any others?
+yesno: general_assets.there_is_another
+---
+question: |
+  Review the general gifts
+review:  
+  - Edit Specific Gifts: general_assets.revisit
+    button: |
+      The specific gifts are: 
+      
+      % for asset in general_assets:
+      % if asset.method == 'group' and (defined('asset.beneficiary2') and asset.beneficiary2 != '') and (defined('asset.beneficiary3') and asset.beneficiary3 != '') and (defined('asset.beneficiary4') and asset.beneficiary4 != ''):
+      ## ${'\n'} * ${ asset.description } to ${ asset.beneficiary }, ${ asset.beneficiary2 }, ${ asset.beneficiary3 }, ${ asset.beneficiary4 }
+      % elif asset.method == 'group' and (defined('asset.beneficiary2') and asset.beneficiary2 != '') and (defined('asset.beneficiary3') and asset.beneficiary3 != ''):
+      ## ${'\n'} * ${ asset.description } to ${ asset.beneficiary }, ${ asset.beneficiary2 }, ${ asset.beneficiary3 }
+      % elif asset.method == 'group':
+      ## ${'\n'} * ${ asset.description } to ${ asset.beneficiary }, ${ asset.beneficiary2 }
+      % else:
+      ## ${'\n'} * ${ asset.description } to ${ asset.beneficiary }
+      % endif
+      % endfor
+tabular: table table-striped
+continue button field: review_general_assets
+---
+field: general_assets.revisit
+question: |
+  Review the Specific Gifts
+subquestion: |
+  The specific gifts are:
+
+  ${ general_assets.table }
+
+  ${ general_assets.add_action() }
+---
+table: general_assets.table
+rows: general_assets
+columns:
+  - Description - "All of my ...": |
+      row_item.description
+  - First/Sole Beneficiary: |
+      row_item.relation + ' - ' + row_item.beneficiary
+  - Additional Beneficiaries: |
+      row_item.beneficiary2 + ', ' + row_item.beneficiary3 + ', ' + row_item.beneficiary4 if defined('row_item.beneficiary4') and row_item.beneficiary4 != '' else (row_item.beneficiary2 + ', ' + row_item.beneficiary3 if defined('row_item.beneficiary3') and row_item.beneficiary3 != '' else (row_item.beneficiary2 if defined('row_item.beneficiary2') and row_item.beneficiary2 != '' else ''))             
+  - Alternate Beneficiary: |
+      row_item.alt_beneficiary if row_item.gift_fail == 'other' else 'Pass to descendants of intended recipient'
+edit:
+  - description
+---
+ga id: SF_ResidualInformation
+question: |
+  Specify the residual beneficiary
+fields:
+  - Residual goes to a/an: residual.method
+    choices:
+      - Individual: individual
+      - Group: group
+  - Relation to testator: residual.relation
+    hint: |
+      Ex: child/children, sibling/siblings, etc.
+  - Beneficiary: residual.beneficiary
+    datatype: combobox
+    code: list_of_names
+  - Beneficiary 2:  residual.beneficiary2
+    datatype: combobox
+    code: list_of_names
+    js show if: |
+      val('residual.method') == 'group'
+  - Beneficiary 3:  residual.beneficiary3
+    required: False
+    datatype: combobox
+    code: list_of_names
+    js show if: |
+      val('residual.method') == 'group' && val('residual.beneficiary2') != ''
+  - Beneficiary 4:  residual.beneficiary4
+    required: False
+    datatype: combobox
+    code: list_of_names
+    js show if: |
+      val('residual.method') == 'group' && val('residual.beneficiary2') != '' && val('residual.beneficiary3') != ''
+  - note: |
+      If additional beneficiaries are required, you will have to manually edit the Word Document at the end of the process
+    js show if: |
+      val('residual.method') == 'group' && val('residual.beneficiary2') != '' && val('residual.beneficiary3') != ''
+  - What happens if the residual fails?: residual.gift_fail
+    choices:
+      - Pass to descendants of intended recipient: descendants
+      - Pass to other: other
+  - Alternate beneficiary's relation to testator: residual.alt_relation
+    show if:
+      variable: residual.gift_fail
+      is: other
+  - Alternate beneficiary: residual.alt_beneficiary
+    datatype: combobox
+    code: list_of_names
+    show if:
+      variable: residual.gift_fail
+      is: other
+---
+ga id: SF_ExecutorInformation
+question: |
+  Executor Information
+fields:
+  - note: |
+      *Primary Executor*
+  - First Name: executor.name.first
+  - Middle Name: executor.name.middle
+    required: False
+  - Last Name: executor.name.last
+  - Suffix: executor.name.suffix
+    required: False
+    code: name_suffix()
+  - Relation to Testator: executor.relation
+  - note: |
+      _____  
+      *Alternate Executor*
+  - First Name: alt_executor.name.first
+  - Middle Name: alt_executor.name.middle
+    required: False
+  - Last Name: alt_executor.name.last
+  - Suffix: alt_executor.name.suffix
+    required: False
+    code: name_suffix()
+  - Relation to Testator: alt_executor.relation
+---
+ga id: SF_GuardianInformation
+question: |
+  Guardian Information
+fields:
+  - Is a guardian required?: guardian_required
+    datatype: yesnoradio
+  - note: |
+      *Primary Guardian*
+    show if: guardian_required
+  - First Name: guardian.name.first
+    show if: guardian_required
+  - Middle Name: guardian.name.middle
+    show if: guardian_required
+    required: False
+  - Last Name: guardian.name.last
+    show if: guardian_required
+  - Suffix: guardian.name.suffix
+    required: False
+    code: name_suffix()
+    show if: guardian_required
+  - Relation to Testator: guardian.relation
+    show if: guardian_required
+  - note: |
+      _____  
+      *Alternate Guardian*
+    show if: guardian_required
+  - First Name: alt_guardian.name.first
+    show if: guardian_required
+  - Middle Name: alt_guardian.name.middle
+    required: False
+    show if: guardian_required
+  - Last Name: alt_guardian.name.last
+    show if: guardian_required
+  - Suffix: alt_guardian.name.suffix
+    required: False
+    code: name_suffix()
+    show if: guardian_required
+  - Relation to Testator: alt_guardian.relation
+    show if: guardian_required
+---
+question: |
+  Review Additional Information
+review:
+  - Edit Residual: residual.beneficiary
+    button: |
+      **Residual Beneficiary**:
+      % if residual.method == 'group' and (defined('residual.beneficiary2') and residual.beneficiary2 != '') and (defined('residual.beneficiary3') and residual.beneficiary3 != '') and (defined('residual.beneficiary4') and residual.beneficiary4 != ''):
+      ${ residual.beneficiary }, ${ residual.beneficiary2 }, ${ residual.beneficiary3 }, ${ residual.beneficiary4 }
+      % elif residual.method == 'group' and (defined('residual.beneficiary2') and residual.beneficiary2 != '') and (defined('residual.beneficiary3') and residual.beneficiary3 != ''):
+      ${ residual.beneficiary }, ${ residual.beneficiary2 }, ${ residual.beneficiary3 }
+      % elif residual.method == 'group':
+      ${ residual.beneficiary }, ${ residual.beneficiary2 }
+      % else:
+      ${ residual.beneficiary }
+      % endif
+
+      Upon Failure:
+      % if residual.gift_fail == 'other':
+      ${ residual.alt_beneficiary }
+      % else:
+      Pass to descendants of intended recipient
+      % endif
+      ___
+  - Edit Executor: executor.name.first
+    button: |
+      **Executor**: ${ executor.name.full(middle="full") }  
+      **Alternate Executor**: ${ alt_executor.name.full(middle="full") }
+      ___
+  - Edit Guardian: guardian_required
+    button: |
+      % if guardian_required == True:
+        **Guardian**: ${ guardian.name.full(middle="full") }
+        **Alternate Guardian**: ${ alt_guardian.name.full(middle="full") }
+      % else:
+        **Guardian**: No Guardian Needed
+      % endif
+continue button field: review_additional_information
+tabular: table table-striped
+---
+ga id: willClinicEndpoint
+question: Final Information
+subquestion: |
+  You can download the files for the **Will Packet** below.  
+attachment:
+  name: ${ interviewee.name.full(middle="full") } Last Will and Testament
+  filename: ${ interviewee.name.full(middle="full") } Last Will and Testament
+  docx template file: last_will_and_testament.docx
+  editable: True
+  variable name: interviewee.will
+  valid formats:
+    - docx
+field: generate_will
+buttons:
+  - All done
+under: |
+  **More Resources**
+
+  [Wills Information](https://legalaidwv.org/legal-information/wills-basic-questions-and-answers/)
+---
+code: |
+  if cokin_present:
+    list_of_names = [cokin.name.full(middle="full")]
+  else:
+    list_of_names = []
+  if children_of_marriage.there_are_any:
+    for child in children_of_marriage:
+      list_of_names.append(child.name.full(middle="full"))
+  if other_children.there_are_any:
+    for child in other_children:
+      list_of_names.append(child.name.full(middle="full"))
+---
+code: |
+  specific_assets[i].description
+  if specific_assets[i].beneficiary not in list_of_names:
+    list_of_names.append(specific_assets[i].beneficiary)
+  if specific_assets[i].method == 'group':
+    if defined('specific_assets[i].beneficiary2') and specific_assets[i].beneficiary2 != '' and specific_assets[i].beneficiary2 not in list_of_names:
+      list_of_names.append(specific_assets[i].beneficiary2)
+    if defined('specific_assets[i].beneficiary3') and specific_assets[i].beneficiary3 != '' and specific_assets[i].beneficiary3 not in list_of_names:
+      list_of_names.append(specific_assets[i].beneficiary3)
+    if defined('specific_assets[i].beneficiary4') and specific_assets[i].beneficiary4 != '' and specific_assets[i].beneficiary4 not in list_of_names:
+      list_of_names.append(specific_assets[i].beneficiary4)
+  if specific_assets[i].gift_fail == 'other':
+    if specific_assets[i].alt_beneficiary not in list_of_names:
+      list_of_names.append(specific_assets[i].alt_beneficiary)
+  specific_assets[i].complete = True
+---
+code: |
+  general_assets[i].description
+  if general_assets[i].beneficiary not in list_of_names:
+    list_of_names.append(general_assets[i].beneficiary)
+  if general_assets[i].method == 'group':
+    if defined('general_assets[i].beneficiary2') and general_assets[i].beneficiary2 != '' and general_assets[i].beneficiary2 not in list_of_names:
+      list_of_names.append(general_assets[i].beneficiary2)
+    if defined('general_assets[i].beneficiary3') and general_assets[i].beneficiary3 != '' and general_assets[i].beneficiary3 not in list_of_names:
+      list_of_names.append(general_assets[i].beneficiary3)
+    if defined('general_assets[i].beneficiary4') and general_assets[i].beneficiary4 != '' and general_assets[i].beneficiary4 not in list_of_names:
+      list_of_names.append(general_assets[i].beneficiary4)
+  if general_assets[i].gift_fail == 'other':
+    if general_assets[i].alt_beneficiary not in list_of_names:
+      list_of_names.append(general_assets[i].alt_beneficiary)
+  general_assets[i].complete = True

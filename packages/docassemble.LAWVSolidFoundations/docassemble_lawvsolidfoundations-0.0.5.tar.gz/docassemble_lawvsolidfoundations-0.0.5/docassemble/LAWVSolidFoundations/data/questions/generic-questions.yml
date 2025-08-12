@@ -1,0 +1,474 @@
+metadata:
+  authors:
+    - name: Dane W. Henry, Esq.
+      organization: Legal Aid of West Virginia, Inc.
+  revision_date: 2025-05-14
+---
+event: reviewinfo
+section: reviewinfo
+question: |
+  Review Collected Information
+review:
+  - Edit: interviewee.name.first
+    button: |
+      **Applicant**:  
+      ${ interviewee.name.full() }  
+      ${ interviewee.birthdate }  
+      ${ interviewee.email }  
+      ${ interviewee.address.on_one_line() }  
+      ${ interviewee.address.county } County
+      ___
+  - Edit: cokin_present
+    button: |
+      **Co-Applicant**:  
+      % if cokin_present == True:
+        ${ cokin.name.full() }  
+        ${ cokin.birthdate }  
+        ${ cokin.email }  
+        ${ cokin.address.on_one_line() }  
+        ${ cokin.address.county } County
+      % else:
+        None
+      % endif
+      ___
+  - Edit: minor_list.revisit
+    button: |
+      % for count, y in enumerate(minor_list, start=1):
+      **Child ${ count }**:  
+      ${ y.name.full() }  
+      ${ y.address.on_one_line() }  
+      ${ y.address.county }  
+      Born: ${ y.birthdate }  
+
+      % if y.no_second_parent == True and y.parent1.deceased == True:
+      Parent 1: ${ y.parent1.relationship } *(Deceased)*|Parent 2:
+      -------------------------------------|-------------------------------------
+      ${ y.parent1.name.full() }[BR]${ y.parent1.birthdate }[BR]${ y.parent1.address.line_one() }[BR]${ y.parent1.address.line_two() }[BR]${ y.parent1.address.county }|**None**
+      % elif y.no_second_parent == True and y.parent1.deceased == False:
+      Parent 1: ${ y.parent1.relationship }|Parent 2:
+      -------------------------------------|-------------------------------------
+      ${ y.parent1.name.full() }[BR]${ y.parent1.birthdate }[BR]${ y.parent1.address.line_one() }[BR]${ y.parent1.address.line_two() }[BR]${ y.parent1.address.county }|**None**
+      % elif y.no_second_parent == False and y.parent1.deceased == True and y.parent2.deceased == True: 
+      Parent 1: ${ y.parent1.relationship } *(Deceased)*|Parent 2: ${ y.parent2.relationship } *(Deceased)*
+      -------------------------------------|-------------------------------------
+      ${ y.parent1.name.full() }[BR]${ y.parent1.birthdate }[BR]${ y.parent1.address.line_one() }[BR]${ y.parent1.address.line_two() }[BR]${ y.parent1.address.county }|${ y.parent2.name.full() }[BR]${ y.parent2.birthdate }[BR]${ y.parent2.address.line_one() }[BR]${ y.parent2.address.line_two() }[BR]${ y.parent2.address.county }
+      % elif y.no_second_parent == False and y.parent1.deceased == True and y.parent2.deceased == False: 
+      Parent 1: ${ y.parent1.relationship } *(Deceased)*|Parent 2: ${ y.parent2.relationship }
+      -------------------------------------|-------------------------------------
+      ${ y.parent1.name.full() }[BR]${ y.parent1.birthdate }[BR]${ y.parent1.address.line_one() }[BR]${ y.parent1.address.line_two() }[BR]${ y.parent1.address.county }|${ y.parent2.name.full() }[BR]${ y.parent2.birthdate }[BR]${ y.parent2.address.line_one() }[BR]${ y.parent2.address.line_two() }[BR]${ y.parent2.address.county }
+      % elif y.no_second_parent == False and y.parent1.deceased == False and y.parent2.deceased == True: 
+      Parent 1: ${ y.parent1.relationship }|Parent 2: ${ y.parent2.relationship } *(Deceased)*
+      -------------------------------------|-------------------------------------
+      ${ y.parent1.name.full() }[BR]${ y.parent1.birthdate }[BR]${ y.parent1.address.line_one() }[BR]${ y.parent1.address.line_two() }[BR]${ y.parent1.address.county }|${ y.parent2.name.full() }[BR]${ y.parent2.birthdate }[BR]${ y.parent2.address.line_one() }[BR]${ y.parent2.address.line_two() }[BR]${ y.parent2.address.county }
+      % elif y.no_second_parent == False and y.parent1.deceased == False and y.parent2.deceased == False: 
+      Parent 1: ${ y.parent1.relationship }|Parent 2: ${ y.parent2.relationship }
+      -------------------------------------|-------------------------------------
+      ${ y.parent1.name.full() }[BR]${ y.parent1.birthdate }[BR]${ y.parent1.address.line_one() }[BR]${ y.parent1.address.line_two() }[BR]${ y.parent1.address.county }|${ y.parent2.name.full() }[BR]${ y.parent2.birthdate }[BR]${ y.parent2.address.line_one() }[BR]${ y.parent2.address.line_two() }[BR]${ y.parent2.address.county }
+      % endif
+
+      *Your relationship to the child*: ${ y.relationship }
+      ___
+      % endfor
+continue button field: info_reviewed
+---
+ga id: SF_introduction
+section: overview
+question: |
+  #### Introduction
+
+  # Welcome to the Solid Foundations Project
+subquestion: |
+  ## What do you need?
+  <p class="flex center">[FILE diy.png, 50px]<span>Depending on the type of form, you will need to know names, birthdates, and addresses for children and parents.  Also, knowing any court history such as dates and locations is important.</span></p>
+field: introduction
+buttons:
+  - Let's get started: continue
+  - Exit: exit
+    color: danger
+under: |
+
+  ***
+  #### <span style="color:red">Note:</span> Legal Aid of West Virginia does not retain any of the information entered. Sessions are encrypted and only available to you. At the conclusion of the process, all data entered is wiped to ensure your privacy.
+  ***
+---
+ga id: SF_documentChoice
+section: overview
+sets: document
+question: |
+  Please select the document packet you want to create
+subquestion: |
+  <div class="result-wrapper" id="guardianshipResult"><h4>Guardianship</h4><div class="flex result-body"><div><p>Guardianship is a formal process that sets the caregiver as the person(s) responsible for the well-being of the child(ren).  The parent(s) are no longer in charge of the child(ren) until the guardianship is removed.</p><a href="${ url_action('set_doc',doccy="ig") }" class="btn btn-primary">Guardianship</a></div><div><div class="flex center">[FILE icon-clock1x.svg]<p>Usually takes 15-20 minutes</p></div><div class="flex center">[FILE icon-bank1x.svg]<p>Requires court appearances</p></div><div class="flex center">[FILE icon-info1x.svg]<p><a href="https://legalaidwv.org/legal-information/infant-guardianship/" target="_blank">More information</a></p></div></div></div></div>  
+  &nbsp;
+  <div class="result-wrapper" id="adoptionResult"><h4>Adoption</h4><div class="flex result-body"><div><p>Adoption replaces the birth parent(s) name(s) on the birth certificate with that of the new parents.  The birth parent(s) permanently relinquish all rights to the child(ren).</p><a href="${ url_action('set_doc',doccy="adoption") }" class="btn btn-primary">Adoption</a></div><div><div class="flex center">[FILE icon-clock1x.svg]<p>Usually takes 15-20 minutes</p></div><div class="flex center">[FILE icon-bank1x.svg]<p>Requires court appearances</p></div><div class="flex center">[FILE icon-info1x.svg]<p><a href="https://legalaidwv.org/legal-information/adoption/" target="_blank">More information</a></p></div></div></div></div>  
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+---
+event: set_doc
+code: |
+  document = action_argument('doccy')
+---
+ga id: SF_intervieweeInfo
+question: |
+  Please enter your information
+fields:
+  - First Name: interviewee.name.first
+  - Middle Name: interviewee.name.middle
+  - Last Name: interviewee.name.last
+  - Suffix: interviewee.name.suffix
+    required: False
+    code: name_suffix()
+  - Birthdate: interviewee.birthdate
+    datatype: date
+    max: ${ today().minus(years=18) }
+  - Phone Number: interviewee.phone
+  - Address: interviewee.address.address
+    address autocomplete: True
+  - Unit/Apt.: interviewee.address.unit
+    required: False
+  - City: interviewee.address.city
+  - State: interviewee.address.state
+    code: states_list()
+    default: WV
+  - Zip: interviewee.address.zip
+section: personal
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+validation code: |
+  if not phone_number_is_valid(interviewee.phone):
+    validation_error('Please enter a valid phone number.', field='interviewee.phone')
+---
+ga id: SF_coIntervieweeInfo
+question: |
+  Co-Caregiver
+fields:
+  - Is there someone else who is going to be named as a caretaker with you?: cokin_present
+    datatype: yesnoradio
+  - What is your relationship to this person?: cokin.relationship
+    choices:
+      - Legally Married / Spouse: spouse
+      - Non-Married Partner: non-spouse
+    show if: cokin_present
+  - note: |
+      ***
+    show if: cokin_present
+  - First Name: cokin.name.first
+    show if: cokin_present
+  - Middle Name: cokin.name.middle
+    show if: cokin_present
+  - Last Name: cokin.name.last
+    show if: cokin_present
+  - Suffix: cokin.name.suffix
+    required: False
+    code: name_suffix()
+    show if: cokin_present
+  - Birthdate: cokin.birthdate
+    datatype: date
+    max: ${ today().minus(years=18) }
+    show if: cokin_present
+  - Phone Number: cokin.phone
+    show if: cokin_present
+    required: False
+  - Address: cokin.address.address
+    address autocomplete: True
+    default: ${ interviewee.address.address }
+    show if: cokin_present
+  - Unit/Apt.: cokin.address.unit
+    required: False
+    default: ${ interviewee.address.unit }
+    show if: cokin_present
+  - City: cokin.address.city
+    default: ${ interviewee.address.city }
+    show if: cokin_present
+  - State: cokin.address.state
+    code: states_list()
+    default: WV
+    show if: cokin_present
+  - Zip: cokin.address.zip
+    default: ${ interviewee.address.zip }
+    show if: cokin_present
+section: personal
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+validation code: |
+  if cokin_present:
+    if cokin.phone:
+      if not phone_number_is_valid(cokin.phone):
+        validation_error('Please enter a valid phone number.', field='cokin.phone')
+---
+ga id: SF_minorInfo
+question: |
+  Please provide information for the ${ ordinal(i) } child.
+fields:
+  - First Name: minor_list[i].name.first
+  - Middle Name: minor_list[i].name.middle
+    required: False
+  - Last Name: minor_list[i].name.last
+  - Suffix: minor_list[i].name.suffix
+    required: False
+    code: name_suffix()
+  - Birthdate: minor_list[i].birthdate
+    datatype: date
+    max: ${ today() }
+    min: ${ today().minus(years=18) }
+  - Address: minor_list[i].address.address
+    address autocomplete: True
+  - Unit/Apt.: minor_list[i].address.unit
+    required: False
+  - City: minor_list[i].address.city
+  - State: minor_list[i].address.state
+    code: states_list()
+    default: WV
+  - Zip: minor_list[i].address.zip
+  - Your relationship to the child: minor_list[i].relationship
+    input type: dropdown
+    choices:
+      - Grandparent
+      - Aunt/Uncle
+      - Other family
+      - Non-relative
+  - What is the family relationship: minor_list[i].relationship
+    show if:
+      variable: minor_list[i].relationship
+      is: "Other family"
+section: children
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+---
+ga id: SF_moreMinors
+question: |
+  So far, you have listed ${ minor_list.number_as_word() } minor children.
+  They are:
+  % for minor in minor_list:
+  ## ${'\n'} * ${ minor.name } - ${ minor.age_in_years() }
+  % endfor
+subquestion: |
+  Are there any others?
+yesno: minor_list.there_is_another
+section: children
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+---
+ga id: SF_minorParents
+question: |
+  Do **all** of the children you listed have the same parents?
+yesno: common_parents
+section: children
+---
+ga id: SF_parent1Info
+question: |
+  Please provide information for ${ minor_list[i].possessive('first parent')}.
+fields:
+  - First Name: minor_list[i].parent1.name.first
+  - Last Name: minor_list[i].parent1.name.last
+  - Birthdate: minor_list[i].parent1.birthdate
+    datatype: date
+    max: ${ today().minus(years=18) }
+  - Phone Number: minor_list[i].parent1.phone
+    required: False
+  - note: |
+      If current address is unknown, please fill in last known address
+  - Address: minor_list[i].parent1.address.address
+    address autocomplete: True
+  - Unit/Apt.: minor_list[i].parent1.address.unit
+    required: False
+  - City: minor_list[i].parent1.address.city
+  - State: minor_list[i].parent1.address.state
+    code: states_list()
+    default: WV
+  - Zip: minor_list[i].parent1.address.zip
+  - Relationship to child: minor_list[i].parent1.relationship
+    input type: dropdown
+    choices:
+      - Mother
+      - Father
+  - Is deceased?: minor_list[i].parent1.deceased
+    datatype: yesno
+  - Date of death: minor_list[i].parent1.dod
+    datatype: date
+    show if: minor_list[i].parent1.deceased
+  - Place of death (County and State): minor_list[i].parent1.place_of_death
+    show if: minor_list[i].parent1.deceased
+  - Rights Terminated?: minor_list[i].parent1.terminated
+    datatype: yesno
+    help: |
+      Terminating a parent's rights means that the person's rights as a parent are taken away. In West Virginia, a person's parental rights can only be terminated in a court case, like abuse and neglect, or adoption cases.
+  - Date of Termination: minor_list[i].parent1.terminated_date
+    datatype: date
+    show if: minor_list[i].parent1.terminated
+  - Place of Termination (County and State): minor_list[i].parent1.place_of_termination
+    show if: minor_list[i].parent1.terminated
+section: parents
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+validation code: |
+  if minor_list[i].parent1.phone:
+    if not phone_number_is_valid(minor_list[i].parent1.phone):
+      validation_error('Please enter a valid phone number.', field='minor_list[i].parent1.phone')
+---
+ga id: SF_parent2Info
+question: |
+  Please provide information for ${ minor_list[i].possessive('second parent')}.
+fields:
+  - Check here if no second name on the birth certificate: minor_list[i].no_second_parent
+    datatype: yesno
+    default: False
+    disable others: True
+  - First Name: minor_list[i].parent2.name.first
+  - Last Name: minor_list[i].parent2.name.last
+  - Birthdate: minor_list[i].parent2.birthdate
+    datatype: date
+    max: ${ today().minus(years=18) }
+  - Phone Number: minor_list[i].parent2.phone
+    required: False
+  - note: |
+      If current address is unknown, please fill in last known address
+  - Address: minor_list[i].parent2.address.address
+    address autocomplete: True
+  - Unit/Apt.: minor_list[i].parent2.address.unit
+    required: False
+  - City: minor_list[i].parent2.address.city
+  - State: minor_list[i].parent2.address.state
+    code: states_list()
+    default: WV
+  - Zip: minor_list[i].parent2.address.zip
+  - Relationship to child: minor_list[i].parent2.relationship
+    input type: dropdown
+    choices:
+      - Mother
+      - Father
+  - Is deceased?: minor_list[i].parent2.deceased
+    datatype: yesno
+  - Date of death: minor_list[i].parent2.dod
+    datatype: date
+    show if: minor_list[i].parent2.deceased
+  - Place of death (County and State): minor_list[i].parent2.place_of_death
+    show if: minor_list[i].parent2.deceased
+  - Rights Terminated?: minor_list[i].parent2.terminated
+    datatype: yesno
+  - Date of Termination: minor_list[i].parent2.terminated_date
+    datatype: date
+    show if: minor_list[i].parent2.terminated
+  - Place of Termination (County and State): minor_list[i].parent2.place_of_termination
+    show if: minor_list[i].parent2.terminated
+section: parents
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+validation code: |
+  if not minor_list[i].no_second_parent:
+    if minor_list[i].parent2.phone:
+      if not phone_number_is_valid(minor_list[i].parent2.phone):
+        validation_error('Please enter a valid phone number.', field='minor_list[i].parent2.phone')
+---
+ga id: SF_WillRequired
+question: |
+  Do you want to draft a will at this time?
+yesno: will_required
+---
+template: email_all_files
+subject: |
+  KINship Document Packet
+content: |
+  Your document(s) is/are attached.  Included in the bundle are instructions for the next steps.
+
+  Additional information can always be found at [Legal Aid of West Virginia](https://legalaidwv.org/).
+
+  *NOTE: This email address is not monitored.  Please do not reply to this message.*
+---
+field: minor_list.revisit
+question: |
+  Edit the children
+subquestion: |
+  ${ minor_list.table }
+
+  ${ minor_list.add_action() }
+---
+table: minor_list.table
+rows: minor_list
+columns:
+  - Name: |
+      row_item.name.full()
+  - Parent 1: |
+      row_item.parent1.name.full()
+  - Parent 2: |
+      row_item.parent2.name.full() if row_item.no_second_parent == False else 'None'
+edit:
+  - name.first
+  - parent1.name.first
+  - no_second_parent
+post: |
+  [Restart or exit form](${ url_action('escape_hatch')})
+---
+ga id: SF_failureEndpoint
+question: |
+  We're Sorry.
+subquestion: |
+  Unfortunately, it appears your situation is beyond this tool's capabilities for the following reason:
+  
+  **${ failure_reason }**
+
+  You can contact Legal Aid of West Virginia to apply for free legal assistance or [talk to an attorney](https://wvlawyerreferral.org/) in your community.
+  
+  [Contact Legal Aid of West Virginia](https://legalaidwv.org/get-help/apply-for-help/)
+field: endpoint['ineligible']
+buttons: 
+  - Exit: exit
+---
+event: welcome_back
+question: |
+  Welcome back!
+subquestion: |
+  You are currently in the
+  **${ nav.get_section(display=True) }**
+  section.
+
+  ${ nav }
+
+  Press "Continue" to pick up
+  where you left off.
+buttons:
+  Continue: continue
+---
+ga id: SF_escapeHatch
+event: escape_hatch
+question: |
+  Do you want to end the session?
+buttons:
+  - Start Over: restart
+  - Exit Completely: exit
+  - Take me back: continue
+---
+ga id: SF_successExit
+event: success_exit
+question: |
+  Thank you for using the tool!
+subquestion: |
+  We hope this tool was useful.  Once you click exit below, your information will be purged
+  from our system.  Please be sure you have downloaded all documents or emailed them to yourself.
+buttons:
+  - Exit Completely: exit
+back button: True
+back button label: |
+  Wait, go back
+---
+ga id: SF_intervieweeSignature
+question: |
+  How would you like the name signed?
+subquestion: |
+  **Typed** will insert '/s/ ${ interviewee.name.full()}'
+
+  **Digitally Sign** will allow you to use the mouse, trackpad,
+  or finger (device depending) to sign your name
+fields:
+  - Method: interviewee_method
+    choices:
+      - Type: type
+      - Digitally Sign: sign
+  - signature: interviewee.signature
+    show if:
+      variable: interviewee_method
+      is: sign
+  - note: |
+      ${ interviewee.name.full() }
+    show if:
+      variable: interviewee_method
+      is: sign
