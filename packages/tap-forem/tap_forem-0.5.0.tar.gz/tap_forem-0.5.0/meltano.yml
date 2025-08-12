@@ -1,0 +1,46 @@
+version: 1
+send_anonymous_usage_stats: true
+project_id: dda4156e-bb27-489c-93ca-aeacbc92a478
+venv:
+  backend: uv
+plugins:
+  extractors:
+  - name: tap-forem
+    namespace: tap_forem
+    pip_url: -e .
+    capabilities:
+    - state
+    - catalog
+    - discover
+    settings:
+    - name: api_key
+      kind: string
+      sensitive: true
+    - name: tag
+      kind: string
+    - name: api_url
+      kind: string
+    config:
+      start_date: '2010-01-01T00:00:00Z'
+  loaders:
+  - name: target-sqlite
+    variant: meltanolabs
+    pip_url: git+https://github.com/MeltanoLabs/target-sqlite.git
+    config:
+      database: output/${MELTANO_EXTRACT__LOAD_SCHEMA}.db
+environments:
+- name: dev
+- name: meltano
+  config:
+    plugins:
+      extractors:
+      - name: tap-forem
+        config:
+          tag: meltano
+- name: dataops
+  config:
+    plugins:
+      extractors:
+      - name: tap-forem
+        config:
+          tag: dataops

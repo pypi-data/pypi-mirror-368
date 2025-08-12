@@ -1,0 +1,148 @@
+[build-system]
+build-backend = "hatchling.build"
+requires = [
+  "hatch-vcs",
+  "hatchling",
+]
+
+[project]
+name = "tap-forem"
+description = "`tap-forem` is a Singer tap for Forem, built with the Meltano SDK for Singer Taps."
+readme = "README.md"
+keywords = [
+  "ELT",
+  "Forem",
+  "singer.io",
+]
+license.file = "LICENSE"
+maintainers = [
+  { name = "Edgar Ramírez-Mondragón", email = "edgarrm358@gmail.com" },
+]
+authors = [
+  { name = "Edgar Ramírez-Mondragón", email = "edgarrm358@gmail.com" },
+]
+requires-python = ">=3.10"
+classifiers = [
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+]
+dynamic = [
+  "version",
+]
+dependencies = [
+  "singer-sdk~=0.48.0",
+]
+urls."Issue Tracker" = "https://github.com/edgarrmondragon/tap-forem/issues"
+urls.Repository = "https://github.com/edgarrmondragon/tap-forem"
+scripts."tap-forem" = "tap_forem.tap:TapForem.cli"
+
+[dependency-groups]
+dev = [
+  { include-group = "testing" },
+  { include-group = "typing" },
+]
+testing = [
+  "deptry>=0.12",
+  "pytest>=7.4",
+  "singer-sdk[testing]",
+]
+typing = [
+  "mypy",
+]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.ruff]
+line-length = 88
+src = [
+  "[[ tap_package_import_name ]]",
+  "tests",
+]
+
+lint.select = [
+  "ALL",
+]
+lint.ignore = [
+  "COM812", # missing-trailing-comma
+  "DJ",     # flake8-django
+  "FIX002", # line-contains-todo
+  "ISC001", # single-line-implicit-string-concatenation
+]
+lint.per-file-ignores."noxfile.py" = [
+  "ANN",
+]
+lint.per-file-ignores."tests/*" = [
+  "ANN201", # missing-return-type-public-function
+  "S101",   # assert
+  "SLF001", # private-member-access
+]
+lint.unfixable = [
+  "ERA001", # commented-out-code
+]
+lint.flake8-annotations.allow-star-arg-any = true
+lint.isort.known-first-party = [
+  "tap_forem",
+]
+lint.isort.required-imports = [
+  "from __future__ import annotations",
+]
+lint.pydocstyle.convention = "google"
+
+[tool.deptry.package_module_name_map]
+mypy = "mypy"
+
+[tool.pyproject-fmt]
+max_supported_python = "3.14"
+
+[tool.pytest.ini_options]
+addopts = "-vvv"
+filterwarnings = [
+  "error",
+  "default:Fields in transformed catalog but not in records:UserWarning",
+  # Deprecation message introduced in Python 3.14. Upstream PR: https://github.com/litl/backoff/pull/220
+  "default:'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16:DeprecationWarning",
+]
+
+[tool.tox]
+min_version = "4.22"
+env_list = [
+  "dependencies",
+  "typing",
+  "3.14",
+  "3.13",
+  "3.12",
+  "3.11",
+  "3.10",
+]
+
+[tool.tox.env_run_base]
+runner = "uv-venv-lock-runner"
+pass_env = [ "TAP_FOREM_*" ]
+dependency_groups = [ "testing" ]
+commands = [ [ "pytest", { replace = "posargs", default = [ "tests" ], extend = true } ] ]
+
+[tool.tox.env.dependencies]
+dependency_groups = [ "testing" ]
+commands = [ [ "deptry", "." ] ]
+
+[tool.tox.env.typing]
+dependency_groups = [ "testing", "typing" ]
+commands = [ [ "mypy", "--strict", { replace = "posargs", default = [ "tap_forem", "tests" ], extend = true } ] ]
+
+[tool.mypy]
+warn_no_return = true
+warn_redundant_casts = true
+warn_unreachable = true
+warn_unused_configs = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = [
+  "backoff.*",
+]
+ignore_missing_imports = true
