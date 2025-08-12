@@ -1,0 +1,70 @@
+name: Build Docker Image
+
+on:
+  workflow_call:
+    inputs:
+      image-name:
+        description: 'Docker image name (including tag)'
+        required: false
+        default: mcp-selenium-grid:latest
+        type: string
+      context:
+        description: 'Build context path'
+        required: false
+        default: .
+        type: string
+      dockerfile:
+        description: 'Dockerfile path'
+        required: false
+        default: Dockerfile
+        type: string
+      push:
+        description: 'Whether to push the image (true/false)'
+        required: false
+        default: false
+        type: boolean
+      extra-tag:
+        description: 'An extra tag to apply to the image (e.g., latest)'
+        required: false
+        default: ''
+        type: string
+    outputs:
+      version:
+        description: 'Extracted version from pyproject.toml'
+        value: ${{ jobs.build-docker.outputs.version }}
+
+jobs:
+  build-docker:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+      - name: Dump GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: echo "$GITHUB_CONTEXT"
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Get Version from pyproject.toml
+        uses: ./.github/actions/get-version
+        id: get_version
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Log in to GitHub Container Registry
+        if: ${{ inputs.push == true }}
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and (optionally) push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ inputs.context }}
+          file: ${{ inputs.dockerfile }}
+          push: ${{ inputs.push }}
+          tags: |
+            ${{ inputs.image-name }}
+            ${{ inputs.extra-tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
