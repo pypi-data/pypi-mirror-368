@@ -1,0 +1,91 @@
+[project]
+name = "pybricksdev"
+version = "2.0.1"
+description = "Pybricks developer tools"
+authors = [{ name = "The Pybricks Authors", email = "dev@pybricks.com" }]
+maintainers = [
+    { name = "Laurens Valk", email = "laurens@pybricks.com" },
+    { name = "David Lechner", email = "david@pybricks.com" }
+]
+license = { text = "MIT" }
+readme = "README.md"
+classifiers = [
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+]
+requires-python = ">=3.10"
+dynamic = ["dependencies"]
+
+[project.urls]
+homepage = "https://pybricks.com"
+repository = "https://github.com/pybricks/pybricksdev"
+documentation = "https://docs.pybricks.com/projects/pybricksdev"
+"Changelog" = "https://github.com/pybricks/pybricksdev/blob/master/CHANGELOG.md"
+"Support" = "https://github.com/pybricks/support/discussions"
+"Issues" = "https://github.com/pybricks/support/issues"
+
+[project.scripts]
+pybricksdev = 'pybricksdev.cli:main'
+
+[tool.poetry]
+include = [
+    "AUTHORS.md"
+]
+
+[tool.poetry.dependencies]
+argcomplete = ">=3.6.2"
+bleak = ">=1.1.0"
+mpy-cross-v5 = ">=1.1.1"
+mpy-cross-v6 = ">=1.1.1"
+tqdm = ">=4.62.3"
+pyusb = ">=1.0.2"
+semver = ">=2.13.0"
+appdirs = ">=1.4.4"
+prompt-toolkit = ">=3.0.18"
+packaging = ">=22"
+typing-extensions = ">=4.3.0"
+reactivex = {version = ">=4.0.4", python = "<4"}
+hidapi = ">=0.14.0"
+pybricks = {version = ">=3", allow-prereleases = true, python = "<4"}
+
+[tool.poetry.group.lint.dependencies]
+black = ">=23,<25"
+flake8 = ">=6.0.0"
+isort = ">=5.12.0"
+
+[tool.poetry.group.docs.dependencies]
+sphinx = ">=6.1.3"
+sphinx-rtd-theme = ">=1.2.0"
+toml = ">=0.10.2"
+typing-extensions = ">=4.5.0"
+
+[tool.poetry.group.test.dependencies]
+coverage = {extras = ["toml"], version = ">=7.2.3"}
+pytest = ">=7.3.1"
+pytest-asyncio = ">=0.21.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+target-version = ['py38']
+
+[tool.isort]
+profile = "black"
+src_paths = ["demo", "pybricksdev", "tests"]
+known_third_party = ["usb"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "strict"
+filterwarnings = [
+    "error",
+    # Known issue with reactivex package
+    "ignore::DeprecationWarning:reactivex.internal",
+]
+
+[tool.coverage.run]
+branch = true
+command_line = "-m pytest"
+source = ["pybricksdev"]
