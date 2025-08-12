@@ -1,0 +1,19 @@
+from __future__ import annotations
+import numpy
+import resim.transforms.python.se3_python
+import typing
+__all__ = ['OrientedBox']
+class OrientedBox:
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    def __init__(self, *, reference_from_box: resim.transforms.python.se3_python.SE3, extents: numpy.ndarray[tuple[typing.Literal[3], typing.Literal[1]], numpy.dtype[numpy.float64]]) -> None:
+        ...
+    def extents(self) -> numpy.ndarray[tuple[typing.Literal[3], typing.Literal[1]], numpy.dtype[numpy.float64]]:
+        ...
+    def reference_from_box(self) -> resim.transforms.python.se3_python.SE3:
+        ...
+    def set_extents(self, arg0: numpy.ndarray[tuple[typing.Literal[3], typing.Literal[1]], numpy.dtype[numpy.float64]]) -> None:
+        ...
+    def set_reference_from_box(self, arg0: resim.transforms.python.se3_python.SE3) -> None:
+        ...
