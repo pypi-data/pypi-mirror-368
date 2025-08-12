@@ -1,0 +1,120 @@
+{% ckan_extends %}
+
+{% import 'macros/form.html' as form %}
+
+{% block contact_form_legend_content %}
+    {% set package_id = h.get_request_param('package_id', None) %}
+    {% if not package_id %}
+        {{ _('Choose a department to enquire about a specific area of the collection. To contact
+              the Data Portal team, select Data Portal / Other.') }}
+    {% else %}
+        {{ _('Use this form to contact the owner of this dataset.') }}
+    {% endif %}
+{% endblock %}
+
+{% block contact_form_fields %}
+
+    {{ form.input('name', label=_('Your name'), id='field-name', value=data.name, error=errors.name, classes=['control-medium'], is_required=true) }}
+
+    {{ form.input('email', label=_('Your email'), id='field-email', type='email', value=data.email, error=errors.email, classes=['control-medium'], is_required=true) }}
+
+     {# Add resource name and ID hidden field#}
+
+    {% set package_id = h.get_request_param('package_id', None) %}
+
+    {% if package_id %}
+        {% set package = h.get_package(package_id) %}
+
+        {# If this is the collections dataset, still add the department select #}
+        {% if package['name'] == 'collection-specimens' %}
+            {{ form.select('department', label=_('Department or team'), options=h.get_contact_form_department_options(), selected=data.department, error=errors.department, is_required=true) }}
+        {% endif %}
+
+        <div class="control-group control-medium">
+            <label class="control-label">Dataset</label>
+            <div class="controls ">
+                <p>{{ package['title'] or package['name'] }}</p>
+            </div>
+        </div>
+
+        {{ form.hidden('package_id', package_id) }}
+        {{ form.hidden('package_name', package['name']) }}
+
+    {% else %}
+
+       {# Add department selection (for non dataset forms)  #}
+       {{ form.select('department', label=_('Department or team'), options=h.get_contact_form_department_options(), selected=data.department, error=errors.department, is_required=true) }}
+
+    {% endif %}
+
+    {# Add resource name and ID hidden field#}
+
+    {% set resource_id = h.get_request_param('resource_id', None) %}
+
+    {% if resource_id %}
+
+        {% set resource = h.get_resource(resource_id) %}
+
+        <div class="control-group control-medium">
+            <label class="control-label">Resource</label>
+            <div class="controls ">
+                <p>{{ resource['name'] or resource['id'] }}</p>
+            </div>
+        </div>
+
+        {{ form.hidden('resource_id', resource_id) }}
+
+    {% endif %}
+
+    {# Add record name and record ID hidden field#}
+
+    {% set record_id = h.get_request_param('record_id', None) %}
+
+    {% if record_id and resource %}
+
+        {% set record = h.get_record(resource_id, record_id) %}
+
+            {% if record %}
+
+                {# Add title of record #}
+                <div class="control-group control-medium">
+                    <label class="control-label">Record</label>
+                    <div class="controls ">
+
+                        <p>
+                            {% if record['Catalog number'] %}
+                                {{ record['Catalog number'] }}
+                            {% elif record['Occurrence ID'] %}
+                                {{ record['Occurrence ID'] }}
+                            {% else %}
+                                {{ record['_id'] }}
+                            {% endif %}
+                        </p>
+
+                    </div>
+                </div>
+
+            {% endif %}
+
+        {{ form.hidden('record_id', record_id) }}
+
+    {% endif %}
+
+    {{ form.input('subject', label=_('Subject'), id='field-subject',
+                  value=data.subject, error=errors.subject, classes=['control-medium'],
+                  is_required=false, placeholder=_('Optional subject')) }}
+
+    {# using a max length of of 1500 on the text box as the WAF has a 1500 character limit on #}
+    {# this parameter and will block requests that exceed it #}
+    {{ form.markdown('content', label=_('Your request'), id='field-content', value=data.content,
+                     error=errors.content, is_required=true, attrs={'maxlength': 1500}) }}
+
+{% endblock %}
+
+{% block contact_form_actions %}
+    <div class="action-info small">
+      <p><i>{{ _('Data Protection') }}</i></p>
+      <p>{{ _('The Natural History Museum will use your personal data in accordance with data protection legislation to process your requests. For more information please read our') }} <a href="{{ h.url_for('legal_privacy') }}">privacy notice</a>.</p>
+    </div>
+    {{ super() }}
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends "record/specimen.html" %}
+
+{% block content_primary_nav %}
+    {% if g.additional_view %}
+        {% for nav in h.build_specimen_nav_items(g.pkg.name, res.id, rec._id, g.version) %}
+            <li>
+                {{ nav }}
+            </li>
+        {% endfor %}
+    {% endif %}
+{% endblock %}
+
+{% macro dwc_row(term, uri=None) %}
+    {%- set extra_html = caller() if caller -%}
+    {% set value = g.record_dict[term] %}
+
+    {% if not value %}
+        {% set cls = 'empty' %}
+        {% set value = '' %}
+    {% else %}
+        {% set cls = 'not-empty' %}
+    {% endif %}
+
+    <tr class="{{ cls }}">
+        <th>
+
+            {% if uri %}
+                <a href="{{ uri }}" target="_blank" title="{{ uri }}">{{ term }}</a>
+            {% else %}
+                {{ term }}
+            {% endif %}
+
+        </th>
+
+        <td>{{ value }}</td>
+    </tr>
+
+{% endmacro %}
+
+{% block record_data %}
+
+    <table class="toggle-empty-rows table-responsive table-record" data-module="toggle-empty-rows">
+
+        {% for group, terms in g.dwc_terms.items() %}
+
+            <thead>
+            <tr>
+                <th colspan="2">{{ group }}</th>
+            </tr>
+            </thead>
+
+            <tbody>
+
+            {% for uri, term in terms.items() %}
+                {{ dwc_row(term, uri) }}
+            {% endfor %}
+
+            </tbody>
+
+        {% endfor %}
+
+        <thead>
+        <tr>
+            <th colspan="2">Dynamic properties</th>
+        </tr>
+        </thead>
+
+        {% for uri, properties in g.dynamic_properties.items() %}
+            {% for property in properties %}
+                {{ dwc_row(property) }}
+            {% endfor %}
+        {% endfor %}
+
+    </table>
+
+    {% asset 'ckanext-nhm/toggle-empty-rows' %}
+
+{% endblock %}

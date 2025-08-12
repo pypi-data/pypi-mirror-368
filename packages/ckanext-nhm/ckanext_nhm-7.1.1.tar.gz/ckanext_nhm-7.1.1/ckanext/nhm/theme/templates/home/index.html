@@ -1,0 +1,164 @@
+{% extends "page.html" %}
+
+{% block subtitle %}{{ _("Welcome") }}{% endblock %}
+
+{% block maintag %}
+    <div role="main" class="homepage">{% endblock %}{% block toolbar %}{% endblock %}
+
+{% block styles %}
+{{ super() }}
+    <link rel="alternate" type="text/n3"
+          href="{{ h.url_for('dcat.read_catalog', _format='n3', qualified=True) }}"/>
+    <link rel="alternate" type="text/ttl"
+          href="{{ h.url_for('dcat.read_catalog', _format='ttl', qualified=True) }}"/>
+    <link rel="alternate" type="application/rdf+xml"
+          href="{{ h.url_for('dcat.read_catalog', _format='xml', qualified=True) }}"/>
+    <link rel="alternate" type="application/rdf+xml"
+          href="{{ h.url_for('dcat.read_catalog', _format='rdf', qualified=True) }}"/>
+{% endblock -%}
+
+{% set collection_stats = h.collection_stats() %}
+{% set stats = h.get_site_statistics() %}
+
+{% block header %}
+    <div class="extended-masthead" id="content">
+
+        {{ super() }}
+
+        <div class="container specimen-collection default-text-color">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="module-content">
+                        <div class="flex-container flex-stretch-first flex-nowrap pre-search">
+                            <div>
+                                <h3 id="specimens-title">
+                                    Search
+                                    <a href="/search/specimens" aria-labelledby="specimens-title">
+                                        {{ h.delimit_number(collection_stats['specimens']) }}
+                                    </a>
+                                    of the Museum's 80 million specimens.
+                                </h3>
+                                <h3 id="collections-title" style="display: none">
+                                    Search
+                                    <a href="/search/collections" aria-labelledby="collections-title">
+                                        {{ h.delimit_number(collection_stats['total']) }}
+                                    </a>
+                                    of the Museum's 80 million objects.
+                                </h3>
+                                <h3 id="everything-title" style="display: none">
+                                    Search
+                                    <a href="/search/everything" aria-labelledby="everything-title">
+                                        {{ h.delimit_number(stats.record_count) }}
+                                    </a>
+                                    records from the Museum's collections and research datasets.
+                                </h3>
+                            </div>
+                            <div class="no-pad-h stats-container">
+                                {% block stats %}
+                                    {% snippet 'home/snippets/stats.html' %} {% endblock %}
+                            </div>
+                        </div>
+                        {% block search %} {% snippet 'home/snippets/search.html' %} {% endblock %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+{% endblock %}
+
+{% block main_content %}
+    {% block primary_content %}
+        {% asset 'ckanext-nhm/home-search' %}
+        <div class="container collection-stats full-width">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="module-content">
+                        <ul class="list-unstyled list-inline flex-container flex-smallwrap flex-around flex-top" id="scope-specimen-stats">
+                            {% for collection_code, count in collection_stats['collectionCodes'].items() %} {% if collection_code %}
+                                {% set dept = h.get_department(collection_code) %}
+                                <li>
+                                    <a class="collection-block" href="/search/{{ dept.lower() }}">
+                                        <div class="flex-container flex-smallwrap flex-center">
+                                            <svg class="{{ dept|lower }} collection-icon"></svg>
+                                            <span class="collection-code">{{ collection_code|replace('bmnh(e)','ent')|upper }}</span>
+                                        </div>
+                                        <div class="flex-column collection-block-text">
+                                                <span class="collection-count"> {{ h.delimit_number(count) }}</span>
+                                            <span class="collection-name default-text">{{ dept }}</span>
+                                        </div>
+                                    </a>
+                                </li>
+                            {% endif %} {% endfor %}
+                        </ul>
+                        <ul class="list-unstyled list-inline flex-container flex-smallwrap flex-around flex-top" id="scope-collection-stats" style="display: none">
+                            <li>
+                                <a class="collection-block" href="/search/specimens">
+                                    <div class="flex-container flex-smallwrap flex-center">
+                                        <svg class="botany collection-icon"></svg>
+                                        <span class="collection-code">{{ _('Specimens') }}</span>
+                                    </div>
+                                    <div class="flex-column collection-block-text">
+                                            <span class="collection-count"> {{ h.delimit_number(collection_stats['specimens']) }}</span>
+                                        <span class="collection-name default-text">{{ _('Specimens') }}</span>
+                                    </div>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="collection-block" href="/search/indexlots">
+                                    <div class="flex-container flex-smallwrap flex-center">
+                                        <svg class="entomology collection-icon"></svg>
+                                        <span class="collection-code">{{ _('Index lots') }}</span>
+                                    </div>
+                                    <div class="flex-column collection-block-text">
+                                            <span class="collection-count"> {{ h.delimit_number(collection_stats['indexlots']) }}</span>
+                                        <span class="collection-name default-text">{{ _('Index lots') }}</span>
+                                    </div>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="collection-block" href="/search/artefacts">
+                                    <div class="flex-container flex-smallwrap flex-center">
+                                        <svg class="mineralogy collection-icon"></svg>
+                                        <span class="collection-code">{{ _('Artefacts') }}</span>
+                                    </div>
+                                    <div class="flex-column collection-block-text">
+                                            <span class="collection-count"> {{ h.delimit_number(collection_stats['artefacts']) }}</span>
+                                        <span class="collection-name default-text">{{ _('Artefacts') }}</span>
+                                    </div>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container full-width">
+            {{ self.flash() }}
+        </div>
+
+        <div class="container full-width">
+            <div class="row">
+                <div class="col-md-12">
+                    <h4 class="homepage-section-header">Featured</h4>
+                    <div class="featured-container">
+                        {% snippet 'home/snippets/featured/dataset1.html' %} {% snippet'home/snippets/featured/dataset2.html' %} {% snippet'home/snippets/featured/dataset3.html' %} {% snippet'home/snippets/featured/dataset4.html' %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container full-width">
+            <div class="row">
+                <div class="col-md-12">
+                    <h4 class="homepage-section-header">Use the data</h4>
+                    <div
+                            class="flex-container flex-equal flex-wrap flex-wrap-spacing flex-between flex-stretch-height">
+                        {% snippet 'home/snippets/actions/explore.html' %} {% snippet'home/snippets/actions/download.html' %} {% snippet'home/snippets/actions/cite.html' %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endblock %}
+{% endblock %}
