@@ -1,0 +1,82 @@
+name: Benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_duration:
+        description: 'Duration of each test in seconds'
+        required: true
+        default: '3'
+      iterations:
+        description: 'Number of iterations for each test'
+        required: true
+        default: '3'
+
+jobs:
+  benchmark:
+    name: Benchmark on ${{ matrix.os }} with Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Modify benchmark parameters
+        run: python benchmark/update_benchmark.py
+        env:
+          TEST_DURATION: ${{ github.event.inputs.test_duration }}
+          NUM_ITERATIONS: ${{ github.event.inputs.iterations }}
+
+      - name: Run benchmark
+        run: python benchmark/benchmark.py
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-${{ matrix.os }}-python-${{ matrix.python-version }}
+          path: |
+            benchmark/benchmark_results.json
+            benchmark/benchmark_stats.json
+            benchmark/benchmark_report.md
+
+  combine-reports:
+    name: Combine benchmark reports
+    needs: benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create combined report
+        run: python benchmark/combine_reports.py artifacts unified_benchmark_report.md ${{ github.event.inputs.test_duration }} ${{ github.event.inputs.iterations }}
+
+      - name: Upload unified report
+        uses: actions/upload-artifact@v4
+        with:
+          name: unified-benchmark-report
+          path: unified_benchmark_report.md
