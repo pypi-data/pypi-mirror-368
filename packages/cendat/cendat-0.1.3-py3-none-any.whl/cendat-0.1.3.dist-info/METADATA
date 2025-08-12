@@ -1,0 +1,202 @@
+Metadata-Version: 2.4
+Name: cendat
+Version: 0.1.3
+Summary: A helper library for exploring and fetching data from the U.S. Census Bureau API.
+Project-URL: Homepage, https://github.com/your_username/cendat
+Project-URL: Bug Tracker, https://github.com/your_username/cendat/issues
+Author-email: "G. Lance Couzens" <lance.couzens@gmail.com>
+License-File: LICENSE
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Requires-Python: >=3.8
+Requires-Dist: requests
+Provides-Extra: all
+Requires-Dist: pandas; extra == 'all'
+Requires-Dist: polars; extra == 'all'
+Provides-Extra: pandas
+Requires-Dist: pandas; extra == 'pandas'
+Provides-Extra: polars
+Requires-Dist: polars; extra == 'polars'
+Description-Content-Type: text/markdown
+
+# cendat: A Python Helper for the Census API
+
+cendat is a Python library designed to simplify the process of exploring and retrieving data from the U.S. Census Bureau's API. It provides a high-level, intuitive workflow for discovering available datasets, filtering geographies and variables, and fetching data concurrently.
+
+The library handles the complexities of the Census API's structure, such as geographic hierarchies and inconsistent product naming, allowing you to focus on getting the data you need.
+
+# Installation
+
+You can install cendat using pip.
+
+```bash
+pip install cendat
+```
+The library has optional dependencies for converting the response data into pandas or polars DataFrames. You can install the support you need:
+
+## Install with pandas support
+
+```bash
+pip install cendat[pandas]
+```
+## Install with polars support
+
+```bash
+pip install cendat[polars]
+```
+
+## Install with both
+
+```bash
+pip install cendat[all]
+```
+
+# Core Workflow
+
+The library is designed around a simple, four-step "List -> Set -> Get -> Convert" workflow:
+
+List: Use the list_* methods (list_products, list_geos, list_variables) with patterns to explore what's available and filter down to what you need.
+
+Set: Use the set_* methods (set_products, set_geos, set_variables) to lock in your selections. You can call these methods without arguments to use the results from your last "List" call.
+
+Get: Call the get_data() method to build and execute all the necessary API calls. This method handles complex geographic requirements automatically and utilizes thread pooling for speed.
+
+Convert: Use the to_polars() or to_pandas() methods on the response object to get your data in a ready-to-use DataFrame format.
+
+# Usage Examples
+
+## Example 1: Microdata (PUMS) Request
+This example demonstrates a complete workflow for retrieving Public Use Microdata Sample (PUMS) data for specific geographic areas in Alabama and Arizona.
+
+```python
+import polars as pl
+from dotenv import load_dotenv
+import os
+from cendat import CenDatHelper
+
+# Load environment variables (e.g., for CENSUS_API_KEY)
+load_dotenv()
+
+# 1. Initialize the helper for a set of years and provide API key
+cd = CenDatHelper(years=[2017], key=os.getenv("CENSUS_API_KEY"))
+
+# 2. Find and select the desired data product
+# Use patterns to find the 5-year ACS PUMS product for 2017
+potential_products = cd.list_products(
+    patterns=[
+        "american community|acs",
+        "public use micro|pums",
+        "5-year",
+        "^(?!.*puerto rico).*$",
+    ]
+)
+
+for product in potential_products:
+    print(product["title"], product["vintage"])
+
+# Call set_products() with no arguments to use the filtered results
+cd.set_products()
+
+# 3. Find and select the desired geography
+# For PUMAs we can use 'public use microdata area' (sumlev 795)
+cd.list_geos(to_dicts=True)
+cd.set_geos("795")
+
+# 4. Find and select variables
+# Find variables related to income, weights, or PUMA
+potential_vars = cd.list_variables(
+    to_dicts=True,
+    patterns=["income", "person weight", "public.*area"],
+    logic=any,
+)
+
+for var in potential_vars:
+    print(var["name"], var["label"])
+
+cd.set_variables(["PUMA", "PWGTP", "HINCP", "ADJINC"])
+
+# 5. Get the data
+# Provide a list of dictionaries to `within` to make multiple
+#  specific geographic requests in one call.
+# For microdata requests - due to the volume of data returned - this
+#  level of specificity is required.
+response = cd.get_data(
+    within=[
+        {"state": "1", "public use microdata area": ["400", "2500"]},
+        {"state": "4", "public use microdata area": "105"},
+    ]
+)
+
+# 6. Convert to a DataFrame
+# The response object can be converted to a list of Polars DataFrames
+pums_dataframes = response.to_polars()
+if pums_dataframes:
+    pums_df = pl.concat(pums_dataframes)
+    print(pums_df.head())
+```
+
+## Example 2: Aggregate Data Request
+This example shows how to retrieve aggregate data for a more complex geography (place) that requires parent-level information (state).
+
+```python
+import polars as pl
+from dotenv import load_dotenv
+import os
+from cendat import CenDatHelper
+
+load_dotenv()
+
+# 1. Initialize for multiple years
+cdh = CenDatHelper(years=[2022, 2023], key=os.getenv("CENSUS_API_KEY"))
+
+# 2. Find and select products
+# Find the standard 5-year detailed tables, excluding special tables
+potential_products = cdh.list_products(
+    to_dicts=True,
+    patterns=[
+        "american community|acs",
+        "5-year",
+        "detailed",
+        "^(?!.*(alaska|aian|selected)).*$",
+    ],
+)
+
+for product in potential_products:
+    print(product["title"], product["vintage"])
+
+cdh.set_products()
+
+# 3. Find and select geography
+# Set the geography to 'place' (sumlev 160). The success message will inform us
+# that this geography requires 'state' to be specified in the `within` clause.
+cdh.set_geos("160")
+
+# 4. Find and select variables
+potential_variables = cdh.list_variables(
+    to_dicts=True, patterns=["total", "less.*high"]
+)
+
+for var in potential_variables:
+    print(var["name"], var["label"])
+
+cdh.set_variables(["B07009_002E", "B16010_009E"])
+
+# 5. Get the data
+# Since we provide no `within`, this will fetch data for all
+#  places in the U.S.
+# Note that `within` is not required for queries of aggregate products and
+#  get_data will issue an API query for every required parent geography. For
+#  places, and with no `within` specified, the below issues 104 queries
+#  (one for each state by year)
+response = cdh.get_data(
+    max_workers=200,
+)
+
+# 6. Convert and combine DataFrames
+# The result will be a list of DataFrames (one for each product/vintage).
+# We can concatenate them into a single DataFrame for analysis.
+if response and response.to_polars():
+    final_df = pl.concat(response.to_polars())
+    print(final_df.head())
+```
