@@ -1,0 +1,81 @@
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pyjudilibre"
+version = "0.5.2"
+description = "Python client for the JUDILIBRE public API"
+readme = "README.md"
+license = {file = 'LICENSE'}
+requires-python = ">=3.9"
+authors = [{ name = "Paul", email = "you@example.com" }]
+dependencies = [
+  "tqdm==4.65.0", 
+  "pydantic>=2.10.2", 
+  "requests==2.31.0", 
+  "aenum>=3.1.15", 
+  "httpx==0.28.1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest==8.4.1",
+  "jupyterlab==4.0.1",
+  "twine<=6.0.1",
+  "isort==6.0.1",
+  "ruff==0.12.8",
+  "python-dotenv==1.1.1",
+]
+build = [
+  "twine<=6.0.1",
+  "build",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourname/pyjudilibre"
+Issues   = "https://github.com/yourname/pyjudilibre/issues"
+
+# Tell Hatchling where your package lives
+[tool.hatch.build.targets.wheel]
+packages = ["lib/pyjudilibre"]
+
+# (Optional) tighten what goes into sdist
+[tool.hatch.build.targets.sdist]
+include = [
+  "README.md",
+  "LICENSE",
+  "lib/pyjudilibre",
+  "tests",
+]
+
+[tool.bumpversion]
+current_version = "0.5.2"
+parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
+serialize = ["{major}.{minor}.{patch}"]
+search = "{current_version}"
+replace = "{new_version}"
+regex = false
+ignore_missing_version = false
+ignore_missing_files = false
+tag = true
+sign_tags = false
+tag_name = "v{new_version}"
+tag_message = "Bump version: {current_version} → {new_version}"
+allow_dirty = true
+commit = false
+message = "Bump version: {current_version} → {new_version}"
+moveable_tags = []
+commit_args = "n"
+setup_hooks = []
+pre_commit_hooks = []
+post_commit_hooks = []
+
+[tool.bumpversion.files."pyproject.toml"]
+search = 'version = "{current_version}"'
+replace = 'version = "{new_version}"'
+
+[tool.bumpversion.files."lib/pyjudilibre/pyjudilibre.py"]
+search = '__version__ = "{current_version}"'
+replace = '__version__ = "{new_version}"'
