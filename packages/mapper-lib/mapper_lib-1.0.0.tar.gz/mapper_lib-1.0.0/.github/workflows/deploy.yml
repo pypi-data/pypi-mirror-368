@@ -1,0 +1,110 @@
+name: Deploy to PyPI
+
+on:
+  release:
+    types: [published]
+  push:
+    branches: [main, develop]
+
+jobs:
+  build-and-deploy:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu, windows, macos]
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+        exclude:
+          # Exclude Python 3.8 on Windows as it's not supported by cibuildwheel
+          - os: windows-latest
+            python-version: '3.8'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Build wheels
+      uses: pypa/cibuildwheel@v2.16.4
+      with:
+        python-versions: ${{ matrix.python-version }}
+        platform: ${{ matrix.os }}
+        output-dir: dist/
+        package-dir: .
+        before-build: |
+          python -m pip install --upgrade pip
+          pip install build
+        # Ensure proper platform detection
+        environment: |
+          CIBW_PLATFORM: ${{ matrix.os }}
+        # Add specific platform mappings
+        build-verbosity: 1
+    
+    - name: Build source distribution
+      run: |
+        python -m build --sdist
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist-${{ matrix.os }}-${{ matrix.python-version }}
+        path: dist/
+    
+  deploy:
+    needs: build-and-deploy
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' || github.ref == 'refs/heads/main'
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: dist/
+    
+    - name: Combine artifacts
+      run: |
+        mkdir -p combined-dist
+        find dist -name "*.whl" -exec cp {} combined-dist/ \;
+        find dist -name "*.tar.gz" -exec cp {} combined-dist/ \;
+        mv combined-dist/* dist/
+        rmdir combined-dist
+    
+    - name: Verify wheel platform tags
+      run: |
+        echo "Verifying wheel platform tags..."
+        for wheel in dist/*.whl; do
+          if [[ -f "$wheel" ]]; then
+            echo "Checking: $wheel"
+            python -c "
+import wheel
+import zipfile
+with zipfile.ZipFile('$wheel', 'r') as zf:
+    for name in zf.namelist():
+        if name.endswith('.dist-info/WHEEL'):
+            content = zf.read(name).decode('utf-8')
+            print(f'Wheel info: {content}')
+            break
+"
+          fi
+        done
+    
+    - name: Publish to PyPI
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+      run: |
+        twine upload dist/*
+    
+    - name: Create GitHub Release
+      if: github.event_name == 'release'
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
