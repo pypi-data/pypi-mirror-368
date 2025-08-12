@@ -1,0 +1,26 @@
+name: Publish releases when new tag
+on:
+  push:
+    tags:
+      - v[0-9]+**
+
+jobs:
+  package_build:
+    name: Build and push to PyPI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prep Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build
+        run: pipx run build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.AUTH_TOKEN }}
