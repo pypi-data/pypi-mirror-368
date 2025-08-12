@@ -1,0 +1,39 @@
+import typing as t
+from hashlib import sha256
+
+from ._pyaes_snippet import AESModeOfOperationCBC
+from .formatter import formatters
+
+
+def decrypt_file(
+    file_i: str, file_o: str = None, *, key: str
+) -> t.Optional[bytes]:
+    with open(file_i, 'rb') as f:
+        dec = decrypt_data(f.read(), key)
+    if file_o:
+        with open(file_o, 'wb') as f:
+            f.write(dec)
+    else:
+        return dec
+
+
+def decrypt_data(
+    enc: bytes,
+    key: str,
+    size: int = 16,
+    fmt: str = 'base64',
+) -> bytes:
+    enc2 = formatters[fmt].decode(enc)  # type: bytes
+    key2 = sha256(key.encode('utf-8')).digest()  # type: bytes
+    
+    cipher = AESModeOfOperationCBC(key2)
+    
+    dec2 = b''
+    for i in range(0, len(enc2), size):
+        dec2 += cipher.decrypt(enc2[i:i + size])
+    dec = _unpad(dec2)  # type: bytes
+    return dec
+
+
+def _unpad(s: bytes) -> bytes:
+    return s[:-ord(s[len(s) - 1:])]
