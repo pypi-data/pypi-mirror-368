@@ -1,0 +1,84 @@
+[tool.poetry]
+name = "kognitos-bdk-runtime-client-cli"
+version = "1.9.0"
+description = "CLI tool for interacting with BDK books and invoking procedures using the Kognitos BDK runtime client"
+authors = ["Ignacio Delmont <ignacio@kognitos.com>"]
+readme = "README.md"
+license = "Proprietary"
+packages = [{ include = "kognitos", from = "src" }]
+
+[tool.poetry.dependencies]
+python = "^3.11,<3.13"
+typer = "^0.12.3"
+click = "<8.2.0"
+requests = "^2.31.0"
+kognitos-bdk-runtime-client = "^1.25.0"
+questionary = "^2.0.1"
+pyyaml = "^6.0.1"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.2.0"
+pytest-docker = "^3.1.1"
+black = "^24.4.2"
+isort = "^5.13.2"
+pylint = "^3.2.0"
+pyright = "^1.1.362"
+syrupy = "^4.6.1"
+coverage = "^7.5.3"
+pyinstaller = "^6.8.0"
+toml = "^0.10.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+bdkctl = "kognitos.bdk.cli.main:app"
+tests = "poetry_scripts:run_tests"
+format = "poetry_scripts:run_format"
+lint = "poetry_scripts:run_lint"
+type-check = "poetry_scripts:run_type_check"
+coverage-report = 'poetry_scripts:run_coverage_report'
+make-executable = 'poetry_scripts:run_pyinstaller'
+check-all = 'poetry_scripts:run_check_all'
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
+[tool.isort]
+src_paths = ["src"]
+known_first_party = ["kognitos"]
+
+[tool.pylint.messages_control]
+disable = [
+	"missing-final-newline",
+	"missing-module-docstring",
+	"missing-function-docstring",
+	"missing-class-docstring",
+	"too-few-public-methods",
+	"too-many-branches",
+	"too-many-return-statements",
+	"too-many-statements",
+	"too-many-locals",
+	"too-many-lines",
+	"too-many-arguments",
+	"too-many-instance-attributes",
+	"protected-access",
+	"duplicate-code",
+	"too-many-nested-blocks",
+	"line-too-long",
+	"wrong-import-order",
+	"too-many-positional-arguments",
+	"broad-exception-caught",
+]
+
+[tool.black]
+line-length = 180
+
+[tool.pyright]
+include = ["src"]
+pythonVersion = "3.11"
+pythonPlatform = "Linux"
+reportAttributeAccessIssue = "none"
