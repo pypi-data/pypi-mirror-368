@@ -1,0 +1,219 @@
+{% from 'navigation.tmpl' import match %}
+
+<Transaction xmlns="http://www.wipo.int/standards/XMLSchema/trademarks" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"  xsi:schemaLocation="http://www.wipo.int/standards/XMLSchema/trademarks">
+  <TradeMarkTransactionBody>
+    <TransactionContentDetails>
+      <TransactionIdentifier></TransactionIdentifier>
+      <TransactionCode>Trade Mark Information</TransactionCode>
+      <TransactionData>
+        <TradeMarkDetails>
+          <TradeMark>
+            <RegistrationOfficeCode>{{ brand.registrationOfficeCode }}</RegistrationOfficeCode>
+            <ReceivingOfficeCode>{{ brand.registrationOfficeCode }}</ReceivingOfficeCode>
+
+            <ApplicationNumber>{{ brand.applicationNumber }}</ApplicationNumber>
+            <ApplicationDate>{{ brand.applicationDate }}</ApplicationDate>
+
+            <RegistrationNumber>{{ brand.registrationNumber }}</RegistrationNumber>
+            <RegistrationDate>{{ brand.registrationDate }}</RegistrationDate>
+
+            <MarkCurrentStatusCode>{{ brand.gbdStatus | translate_status }}</MarkCurrentStatusCode>
+            <MarkCurrentStatusDate>{{ brand.markCurrentStatusDate }}</MarkCurrentStatusDate>
+
+            <ApplicationLanguageCode>{{ brand.applicationLanguageCode }}</ApplicationLanguageCode>
+            <SecondLanguageCode>{{ brand.secondLanguageCode }}</SecondLanguageCode>
+
+            <ExpiryDate>{{ brand.expiryDate }}</ExpiryDate>
+            <TerminationDate>{{ brand.terminationDate }}</TerminationDate>
+
+            <KindMark>{{ brand.kindMark }}</KindMark>
+            <MarkFeature>{{ brand.markFeature }}</MarkFeature>
+
+            <MarkDisclaimerDetails>
+            {% call(disclaimer) match('markDisclaimer', brand) %}
+                <MarkDisclaimer languageCode="{{ disclaimer.languageCode }}">{{ disclaimer.text }}</MarkDisclaimer>
+            {% endcall %}
+            </MarkDisclaimerDetails>
+
+            <FilingPlace>{{ brand.filingPlace }}</FilingPlace>
+            <ApplicationReference>{{ brand.applicationRefNumber }}</ApplicationReference>
+
+            <WordMarkSpecification>
+            {% call(wordSpec) match('wordMarkSpecification', brand) %}
+              {% call(verbal) match('markVerbalElement', wordSpec) %}
+                <MarkVerbalElementText languageCode="{{ verbal.languageCode }}">{{ verbal.text }}</MarkVerbalElementText>
+              {% endcall %}
+              {% call(signif) match('markSignificantVerbalElement', wordSpec) %}
+                <MarkSignificantVerbalElement languageCode="{{ signif.languageCode }}">{{ signif.text }}</MarkSignificantVerbalElement>
+              {% endcall %}
+              {% call(tlit) match('markTransliteration', wordSpec) %}
+                <MarkTransliteration transliterationKind="{{ tlit.kind }}">{{ tlit.text }}</MarkTransliteration>
+              {% endcall %}
+            {% endcall %}
+            </WordMarkSpecification>
+
+            <MarkImageDetails>
+              {% call(markImage) match('markImageDetails', brand) %}
+              <MarkImage>
+                <MarkImageFilename>{{ brand.applicationNumber }}-th.jpg</MarkImageFilename>
+                <MarkImageFileFormat>JPEG</MarkImageFileFormat>
+                <MarkImageColourIndicator>{{ markImage.colourIndicator | get_true_or_false}}</MarkImageColourIndicator>
+                {% call(claim) match('colorClaimed', markImage) %}
+                <MarkImageColourClaimedText>{{ claim }}</MarkImageColourClaimedText>
+                {% endcall %}
+
+                <MarkImageCategory>
+                  <CategoryKind>{{ markImage.classification.kind }}</CategoryKind>
+                  <CategoryVersion>{{ markImage.classification.version }}</CategoryVersion>
+                  <CategoryCodeDetails>
+                    {% call(code) match('classification.code', markImage) %}
+                    <CategoryCode>{{ code }}</CategoryCode>
+                    {% endcall %}
+                  </CategoryCodeDetails>
+                </MarkImageCategory>
+              </MarkImage>
+              {% endcall %}
+            </MarkImageDetails>
+
+            <GoodsServicesDetails>
+              <GoodsServices>
+                <ClassificationKindCode>Nice</ClassificationKindCode>
+                <ClassDescriptionDetails>
+                  {% call(gs) match('goodsServices', brand) %}
+                  <ClassDescription>
+                    <ClassNumber>{{ gs.nice }}</ClassNumber>
+                    {% call(gsline) match('terms', gs) %}
+                    <GoodsServicesDescription languageCode="{{ gsline.languageCode }}">{{ gsline.text }}</GoodsServicesDescription>
+                    {% endcall %}
+                  </ClassDescription>
+                  {% endcall %}
+                </ClassDescriptionDetails>
+              </GoodsServices>
+            </GoodsServicesDetails>
+
+            <PriorityDetails>
+              {% call(priority) match('priorities', brand) %}
+              <Priority>
+                <PriorityCountryCode>{{ priority.countryCode }}</PriorityCountryCode>
+                <PriorityNumber>{{ priority.number }}</PriorityNumber>
+                <PriorityDate>{{ priority.date }}</PriorityDate>
+                <Comment>{{ priority.comment }}</Comment>
+              </Priority>
+              {% endcall %}
+            </PriorityDetails>
+
+            <PublicationDetails>
+              {% call(publication) match('publications', brand) %}
+              <Publication>
+                <PublicationIdentifier>{{ publication.identifier }}</PublicationIdentifier>
+                <PublicationDate>{{ publication.date }}</PublicationDate>
+              </Publication>
+              {% endcall %}
+            </PublicationDetails>
+
+            <MarkEventDetails>
+              {% call(event) match('events', brand)%}
+              {% if event.gbdKind %}
+                <MarkEvent>
+                  <MarkEventDate>{{ event.date }}</MarkEventDate>
+                  <MarkEventCode>{{ event.gbdKind | translate_event }}</MarkEventCode>
+                </MarkEvent>
+              {% endif %}
+              {% endcall %}
+            </MarkEventDetails>
+
+            <ApplicantDetails>
+              {% call(applicant) match('applicants', brand) %}
+              <Applicant>
+                <ApplicantIdentifier>{{ applicant.identifier }}</ApplicantIdentifier>
+                <ApplicantAddressBook>
+                  <FormattedNameAddress>
+                    <Name>
+                      <FreeFormatName>
+                        <NameKind>{{ applicant.kind }}</NameKind>
+                        <FreeFormatNameDetails>
+                          {% call(name) match('fullName', applicant) %}
+                          <FreeFormatNameLine languageCode="{{ name.languageCode }}">{{ name.text }}</FreeFormatNameLine>
+                          {% endcall %}
+                        </FreeFormatNameDetails>
+                      </FreeFormatName>
+                    </Name>
+                    <Address>
+                      <AddressCountryCode>{{ applicant.countryCode }}</AddressCountryCode>
+                      <FormattedAddress>
+                        {% call(address) match('fullAddress', applicant) %}
+                        <FreeFormatAddressLine languageCode="{{ address.languageCode }}">{{ address.text }}</FreeFormatAddressLine>
+                        {% endcall %}
+                      </FormattedAddress>
+                    </Address>
+                  </FormattedNameAddress>
+                </ApplicantAddressBook>
+              </Applicant>
+              {% endcall %}
+            </ApplicantDetails>
+
+            <RepresentativeDetails>
+              {% call(representative) match('representatives', brand) %}
+              <Representative>
+                <RepresentativeIdentifier>{{ representative.identifier }}</RepresentativeIdentifier>
+                <RepresentativeAddressBook>
+                  <FormattedNameAddress>
+                    <Name>
+                      <FreeFormatName>
+                        <FreeFormatNameDetails>
+                          {% call(name) match('fullName', representative) %}
+                          <FreeFormatNameLine languageCode="{{ name.languageCode }}">{{ name.text }}</FreeFormatNameLine>
+                          {% endcall %}
+                        </FreeFormatNameDetails>
+                      </FreeFormatName>
+                    </Name>
+                    <Address>
+                      <AddressCountryCode>{{ representative.countryCode }}</AddressCountryCode>
+                      <FormattedAddress>
+                         <FormattedAddress>
+                            {% call(address) match('fullAddress', representative) %}
+                            <FreeFormatAddressLine languageCode="{{ address.languageCode }}">{{ address.text }}</FreeFormatAddressLine>
+                            {% endcall %}
+                         </FormattedAddress>
+                      </FormattedAddress>
+                    </Address>
+                  </FormattedNameAddress>
+                </RepresentativeAddressBook>
+              </Representative>
+              {% endcall %}
+            </RepresentativeDetails>
+
+            {% call(correspondence) match('correspondence', brand) %}
+            <CorrespondenceAddress>
+              <CorrespondenceAddressBook>
+                <FormattedNameAddress>
+                  <Name>
+                    <FreeFormatName>
+                        <FreeFormatNameDetails>
+                          {% call(name) match('fullName', correspondence) %}
+                          <FreeFormatNameLine languageCode="{{ name.languageCode }}">{{ name.text }}</FreeFormatNameLine>
+                          {% endcall %}
+                        </FreeFormatNameDetails>
+                    </FreeFormatName>
+                  </Name>
+                  <Address>
+                    <AddressCountryCode>{{ correspondence.countryCode }}</AddressCountryCode>
+                    <FormattedAddress>
+                         <FormattedAddress>
+                            {% call(address) match('fullAddress', correspondence) %}
+                            <FreeFormatAddressLine languageCode="{{ address.languageCode }}">{{ address.text }}</FreeFormatAddressLine>
+                            {% endcall %}
+                         </FormattedAddress>
+                      </FormattedAddress>
+                  </Address>
+                </FormattedNameAddress>
+              </CorrespondenceAddressBook>
+            </CorrespondenceAddress>
+            {% endcall %}
+
+          </TradeMark>
+        </TradeMarkDetails>
+      </TransactionData>
+    </TransactionContentDetails>
+  </TradeMarkTransactionBody>
+</Transaction>

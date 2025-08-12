@@ -1,0 +1,85 @@
+{% from 'navigation.tmpl' import match %}
+
+{% set feature =  mark.Markenart | translate_feature %}
+{% set (gstatus, ostatus) = mark.Status | translate_status(feature) %}
+
+{% set (appnum, appyear) = mark.Anmeldenummer | parse_appnum %}
+
+
+st13: {{ mark.Anmeldenummer | st13("AT", appdate=appyear) }}
+registrationOfficeCode: AT
+type: TRADEMARK
+gbdStatus: {{ gstatus }}
+
+{% if not gstatus == 'Delete' %}
+
+kind:
+  - Individual
+markFeature: {{ feature }}
+designatedCountries:
+  - AT
+
+applicationNumber: {{ mark.Anmeldenummer }}
+applicationDate: {{ mark.AnmeldeDatum | convertdate('%d.%m.%Y') }}
+publicationDate: {{ mark.PublikationsDatum | convertdate('%d.%m.%Y') }}
+registrationNumber: {{ mark.RegisterNr }}
+registrationDate: {{ mark.RegisterDatum | convertdate('%d.%m.%Y') }}
+applicationLanguageCode: de
+officeStatus: {{ ostatus }}
+statusDate: {{ mark.PublikationsDatum | convertdate('%d.%m.%Y')}}
+wordMarkSpecification:
+  markVerbalElement:
+    - languageCode: {{ mark.MarkenName | guess_language('de') }}
+      text: {{ mark.MarkenName }}
+markImageDetails:
+  - name: {{ mark.Pfad}}
+
+{% call(nc_gs) match('GoodsAndServices', mark) %}
+goodsServicesClassification:
+  kind: Nice
+  version: {{ ASK_THE_OFFICE }}
+  class:
+  {% call(nice) match('item', nc_gs) %}
+  - code: {{ nice.Klassen | int }}
+    terms:
+      {% call(gs) match('Beschreibung', nice) %}
+      de:
+      {% for gsline in gs | remove_trailing('.') | lower | split_terms %}
+        - {{ gsline }}
+      {% endfor %}
+      {% endcall %}
+   {% endcall %}
+{% endcall %}
+
+priorities:
+  {% call(priority) match('Priorities.item', mark) %}
+    - countryCode: {{ priority.PrioLand }}
+      number: {{ priority.Prioritaetsnummer}}
+      date: {{ priority.PrioDatum | convertdate('%d.%m.%Y') }}
+  {% endcall %}
+
+applicants:
+  {% call(applicant) match('Applicants.item', mark) %}
+      - identifier: {{ applicant.PersonenAuswahlId }}
+        fullName:
+          - text: {{ applicant | get_name }}
+            languageCode: de
+        fullAddress:
+          - languageCode: de
+            text: {{ applicant | get_address }}
+        countryCode: {{ applicant.Land }}
+  {% endcall %}
+
+representatives:
+  {% call(rep) match('Representatives.item', mark) %}
+      - identifier: {{ rep.PersonenAuswahlId }}
+        fullName:
+          - text: {{ rep | get_name }}
+            languageCode: de
+        fullAddress:
+          - languageCode: de
+            text: {{ rep | get_address }}
+        countryCode: {{ rep.Land }}
+  {% endcall %}
+
+{% endif %}

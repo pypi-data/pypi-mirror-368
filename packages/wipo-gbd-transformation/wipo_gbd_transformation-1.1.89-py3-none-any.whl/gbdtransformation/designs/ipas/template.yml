@@ -1,0 +1,174 @@
+{% from 'navigation.tmpl' import match %}
+
+{% call(header) match('DesignTransactionBody.TransactionContentDetails', Transaction) %}
+
+{% set design = Transaction.DesignTransactionBody.TransactionContentDetails.TransactionData.DesignApplicationDetails.DesignApplication %}
+{% set design_count = design | get_designs_count(header) %}
+{% set design_pos = design | get_designs_pos(header) %}
+{% set kind = design | translate_kind(header) %}
+type: 'DESIGN'
+subtype: 'OPEN'
+designGrouping: 'MULTIPLE'
+designsCount: {{ design_count }}
+kind:
+  - {{kind}}
+registrationOfficeCode: {{ design.RegistrationOfficeCode }}
+designatedCountries:
+{% if design.DesignatedCountryDetails %}
+{% call(designations) match('DesignatedCountry', design.DesignatedCountryDetails) %}
+    - {{ designations.DesignatedCountryCode }}
+{% endcall %}
+{% else %}
+    - {{ design.RegistrationOfficeCode }}
+{% endif %}
+reference:
+{% if header | is_international %}
+  registration:
+    - number: {{ design.DesignApplicationNumber | get_ir_refnum }}
+      office: WO
+  {% endif %}
+{% if not kind == 'Industrial Design' %}
+  registration:
+    - number: {{ design.RegistrationNumber }}
+{% endif %}
+
+{% set idstatus = design.DesignDetails.Design | translate_status %}
+{% set appdate = design.DesignApplicationDate | get_appdate(design.DesignApplicationNumber) %}
+
+st13: {{ design.DesignApplicationNumber | st13(None, design.RegistrationOfficeCode, design_pos, appdate=appdate, roffice=design.ReceivingOfficeCode) }}
+
+applicationNumber: {{ design.DesignApplicationNumber }}
+applicationDate: {{ design.DesignApplicationDate }}
+registrationNumber: {{ design.DesignDetails.Design | get_registration_nb(idstatus) | remove_trailing('-') }}
+registrationDate: {{ design.DesignDetails.Design | get_registration_date(idstatus) }}
+
+publicationDates: {{ design.DesignDetails.Design | deduplicate_publication_dates }}
+earliestPublicationDate: {{ design.DesignDetails.Design | select_earliest_date }}
+
+expiryDate: {{ design.DesignDetails.Design | get_expiry_date(idstatus) }}
+
+applicationLanguageCode: {{ design.DesignApplicationLanguageCode }}
+
+applicants:
+  {% call(applicant) match('ApplicantDetails.Applicant', design.DesignDetails.Design) %}
+    {% call(details) match('ApplicantAddressBook.FormattedNameAddress.Name.FreeFormatName', applicant) %}
+      - identifier: {{ details.ApplicantIdentifier }}
+        fullName:
+          {% call(nameline) match('FreeFormatNameDetails.FreeFormatNameLine', details) %}
+          {% if nameline | has_value %}
+          - text: {{ nameline }}
+            languageCode: {{ nameline.__value | guess_language(nameline._languageCode, design.DesignApplicationLanguageCode) }}
+          {% endif %}
+          {% endcall %}
+      {% endcall %}
+      {% call(address) match('ApplicantAddressBook.FormattedNameAddress.Address', applicant) %}
+        fullAddress:
+          {% call(adrline) match('FreeFormatAddress.FreeFormatAddressLine', address) %}
+          {% if adrline | has_value %}
+          - text: {{ adrline }}
+            languageCode: {{ adrline | guess_language(adrline._languageCode, design.DesignApplicationLanguageCode) }}
+          {% endif %}
+          {% endcall %}
+        countryCode: {{ address.AddressCountryCode | remove_trailing('-', '.') | remove_numerics }}
+      {% endcall %}
+    {% endcall %}
+
+representatives:
+  {% call(representative) match('RepresentativeDetails.Representative', design.DesignDetails.Design) %}
+    {% call(details) match('RepresentativeAddressBook.FormattedNameAddress.Name.FreeFormatName', representative) %}
+      - identifier: {{ details.RepresentativeIdentifier }}
+        fullName:
+          {% call(nameline) match('FreeFormatNameDetails.FreeFormatNameLine', details) %}
+          - text: {{ nameline }}
+            languageCode: {{ nameline.__value | guess_language(nameline._languageCode, design.DesignApplicationLanguageCode) }}
+          {% endcall %}
+      {% endcall %}
+      {% call(address) match('RepresentativeAddressBook.FormattedNameAddress.Address', representative) %}
+        fullAddress:
+          {% call(adrline) match('FreeFormatAddress.FreeFormatAddressLine', address) %}
+          {% if not adrline == '-' %}
+          - text: {{ adrline }}
+            languageCode: {{ adrline | guess_language(adrline._languageCode, design.DesignApplicationLanguageCode) }}
+          {% endif %}
+          {% endcall %}
+        countryCode: {{ address.AddressCountryCode | remove_trailing('-', '.') | remove_numerics }}
+      {% endcall %}
+    {% endcall %}
+
+designs:
+  - designPos: {{ design_pos }}
+    officeStatus: {{ design.DesignDetails.Design.DesignCurrentStatusCode | parseStatus }}
+    gbdStatus: {{ idstatus }}
+    statusDate: {{ design.DesignDetails.Design.DesignCurrentStatusDate }}
+
+    productIndication:
+    {% call(indic) match('DesignTitle', design.DesignDetails.Design) %}
+      - languageCode: {{ indic | guess_language(indic._languageCode, design.DesignApplicationLanguageCode) }}
+        text: {{ indic }}
+      {% endcall %}
+
+    designDescription:
+      - languageCode: {{ design.DesignDetails.Design.DesignDescription | guess_language(design.DesignApplicationLanguageCode) }}
+        text: {{ design.DesignDetails.Design.DesignDescription }}
+
+    designImageDetails:
+    {% call(sheet) match('DesignRepresentationSheetDetails.DesignRepresentationSheet', design.DesignDetails.Design) %}
+    {% call(img) match('RepresentationSheetFilename',sheet) %}
+      - name: {{ img }}
+    {% endcall %}
+    {% endcall %}
+
+
+    designer:
+      {% call(designer) match('DesignerDetails.Designer', design.DesignDetails.Design) %}
+        {% call(details) match('DesignerAddressBook.FormattedNameAddress.Name.FreeFormatName', designer) %}
+          - identifier: {{ details.DesignerIdentifier }}
+            fullName:
+              {% call(nameline) match('FreeFormatNameDetails.FreeFormatNameLine', details) %}
+              - text: {{ nameline }}
+                languageCode: {{ nameline.__value | guess_language(nameline._languageCode, design.DesignApplicationLanguageCode) }}
+              {% endcall %}
+          {% endcall %}
+          {% call(address) match('DesignerAddressBook.FormattedNameAddress.Address', designer) %}
+            fullAddress:
+              {% call(adrline) match('FreeFormatAddress.FreeFormatAddressLine', address) %}
+              {% if not adrline == '-' %}
+              - text: {{ adrline }}
+                languageCode: {{ adrline | guess_language(adrline._languageCode, design.DesignApplicationLanguageCode) }}
+              {% endif %}
+              {% endcall %}
+            countryCode: {{ address.AddressCountryCode | remove_trailing('-', '.') | remove_numerics }}
+          {% endcall %}
+        {% endcall %}
+
+    productIndicationClasses:
+    {% call(indicationProducts) match('IndicationProductDetails.IndicationProduct', design.DesignDetails.Design) %}
+      - kind: {{ indicationProducts.ClassificationKindCode | lower }}
+        version: {{ indicationProducts.ClassificationVersion}}
+        classes:
+          - {{ indicationProducts.ClassDescriptionDetails.ClassDescription | deduplicate_classes }}
+    {% endcall %}
+
+    priorities:
+      {% call(priority) match('PriorityDetails.Priority', design.DesignDetails.Design) %}
+        - countryCode: {{ priority.PriorityCountryCode }}
+          number: {{ priority.PriorityNumber }}
+          date: {{ priority.PriorityDate }}
+      {% endcall %}
+
+    noveltyStatement:
+    {% call(indic) match('NoveltyStatement', design.DesignDetails.Design) %}
+      - languageCode: {{ indic | remove_trailing('-', '.')  | guess_language(indic._languageCode, design.DesignApplicationLanguageCode) }}
+        text: {{ indic | remove_trailing('-', '.') }}
+    {% endcall %}
+
+    {% set earliestDesignPub = design.DesignDetails.Design.PublicationDetails.Publication | select_earliest_date %}
+    earliestPublications:
+      identifier: {{ earliestDesignPub.PublicationIdentifier}}
+      date: {{ earliestDesignPub.PublicationDate}}
+      section:
+
+    publications:
+      - {{ design.DesignDetails.Design.PublicationDetails.Publication | deduplicate_publications }}
+
+{% endcall %}

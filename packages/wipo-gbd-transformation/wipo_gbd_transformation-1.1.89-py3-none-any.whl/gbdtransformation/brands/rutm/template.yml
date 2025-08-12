@@ -1,0 +1,105 @@
+{% from 'navigation.tmpl' import match %}
+{% set TradeMark, status = TrademarkTransaction.TrademarkTransactionBody.TransactionContentBag.TransactionData | get_trademark %}
+
+type: TRADEMARK
+kind: {{ TradeMark.MarkCategory  | translate_kind }}
+st13: {{ TradeMark.ApplicationNumber.ApplicationNumberText | st13('RU', appdate=TradeMark.ApplicationDate) }}
+gbdStatus: {{ status }}
+officeStatus: {{ status }}
+markFeature: {{ TradeMark | translate_feature }}
+registrationOfficeCode: {{ TradeMark.RegistrationOfficeCode }}
+designatedCountries:
+  - {{ TradeMark.RegistrationOfficeCode }}
+applicationLanguageCode: 'ru'
+applicationNumber: {{ TradeMark.ApplicationNumber.ApplicationNumberText }}
+applicationDate: {{ TradeMark.ApplicationDate | convertdate('%Y-%m-%d') }}
+registrationNumber: {{ TradeMark.RegistrationNumber }}
+registrationDate: {{ TradeMark.RegistrationDate }}
+expiryDate: {{ TradeMark.ExpiryDate | convertdate('%Y-%m-%d')  }}
+
+markDisclaimerDetails:
+  {% call(desc) match('MarkDisclaimerBag.MarkDisclaimerText', TradeMark) %}
+  - text: {{ desc }}
+    languageCode: {{ desc | guess_language(TradeMark.ApplicationLanguageCode, 'ru') }}
+  {% endcall %}
+markDescriptionDetails:
+  {% call(desc) match('MarkDescriptionBag.MarkDescriptionText', TradeMark) %}
+  - text: {{ desc }}
+    languageCode: {{ desc | guess_language(TradeMark.ApplicationLanguageCode, 'ru') }}
+  {% endcall %}
+wordMarkSpecification:
+  markVerbalElement:
+    {% call(desc) match('MarkRepresentation.MarkReproduction.WordMarkSpecification.MarkSignificantVerbalElementText', TradeMark) %}
+    - text: {{ desc }}
+      languageCode: {{ desc | guess_language(TradeMark.ApplicationLanguageCode, 'ru') }}
+    {% endcall %}
+markImageDetails:
+  {% call(img) match('MarkRepresentation.MarkReproduction.MarkImageBag.MarkImage', TradeMark) %}
+  - name: {{ img.ImageFileName }}
+    colourIndicator: {{ img.MarkImageColourClaimedText | get_true_or_false }}
+    colourClaimed:
+      {% call(desc) match('MarkImageColourClaimedText', img) %}
+      - text: {{ desc }}
+        languageCode: {{ desc | guess_language(TradeMark.ApplicationLanguageCode, 'ru') }}
+      {% endcall %}
+  {% endcall %}
+
+{% call(nc_gs) match('GoodsServicesBag.GoodsServices.ClassDescriptionBag', TradeMark) %}
+goodsServicesClassification:
+  kind: Nice
+  class:
+    {% call(nice) match('ClassDescription', nc_gs) %}
+    - code: {{ nice.ClassNumber | int }}
+      terms:
+      {% if nice.GoodsServicesDescriptionText | has_value %}
+      {% call(desc) match('GoodsServicesDescriptionText', nice) %}
+        ru:
+        {% for gsline in desc | remove_trailing('.') | split_terms %}
+          - {{ gsline | lower }}
+        {% endfor %}
+      {% endcall %}
+      {% endif %}
+    {% endcall %}
+{% endcall %}
+
+priorities:
+  {% call(priority) match('PriorityBag.Priority', TradeMark) %}
+  - countryCode: {{ priority.PriorityCountryCode }}
+    number: {{ priority.ApplicationNumberText }}
+    date: {{ priority.PriorityRegistrationDate }}
+  {% endcall %}
+
+publications:
+  {% call(publication) match('RecordPublicationBag.RecordPublication', TradeMark) %}
+  - identifier: {{ publication.PublicationIdentifier }}
+    date: {{ publication.PublicationDate }}
+  {% endcall %}
+
+applicants:
+  {% call(Applicant) match('ApplicantBag.Applicant', TradeMark) %}
+  - identifier: {{ Applicant.AssignmentIdentifier }}
+    fullName:
+      - text: {{ Applicant.LegalEntityName  }}
+        languageCode: {{ Applicant.LegalEntityName | guess_language('ru') }}
+    fullAddress:
+      {% call(adrline) match('Contact.PostalAddressBag.PostalAddress.PostalAddressText', Applicant) %}
+      - text: {{ adrline }}
+        languageCode: {{ adrline | guess_language('ru') }}
+    countryCode: {{ Applicant.NationalityCode }}
+
+      {% endcall %}
+  {% endcall %}
+
+correspondence:
+  {% call(corespondance) match('CorrespondenceAddress.Contact', TradeMark) %}
+  fullName:
+    {% call(adrline) match('Name.EntityName', corespondance) %}
+    - text: {{ adrline }}
+      languageCode: {{ adrline | guess_language('ru') }}
+  {% endcall %}
+  fullAddress:
+    {% call(adrline) match('PostalAddressBag.PostalAddress.PostalAddressText', corespondance) %}
+    - text: {{ adrline}}
+      languageCode: {{ adrline | guess_language('ru') }}
+    {% endcall %}
+  {% endcall %}

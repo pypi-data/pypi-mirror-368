@@ -1,0 +1,72 @@
+{% from 'navigation.tmpl' import match %}
+
+{% set status = TradeMark.Status | translate_status %}
+
+type: TRADEMARK
+kind: {{ TradeMark.KindMark | translate_kind }}
+st13: {{ TradeMark.ApplicationNumber | st13('MA', appdate=TradeMark.ApplicationDate | convertdate('%d%m%Y')) }}
+gbdStatus: {{ status }}
+markFeature: {{ TradeMark.MarkFeature | translate_feature(TradeMark) }}
+registrationOfficeCode: {{ TradeMark.RegistrationOfficeCode }}
+designatedCountries:
+  - {{ TradeMark.RegistrationOfficeCode }}
+applicationNumber: {{ TradeMark.ApplicationNumber }}
+applicationDate: {{ TradeMark.ApplicationDate | convertdate('%d%m%Y') }}
+registrationNumber: {{ TradeMark.RegistrationNumber}}
+registrationDate: {{ TradeMark.RegistrationDate | convertdate('%d%m%Y') }}
+applicationLanguageCode: fr
+officeStatus: {{ TradeMark.Status }}
+expiryDate: {{ TradeMark.ExpiryDate  | convertdate('%d%m%Y')  }}
+publicationDate: {{ TradeMark.PublicationDate | convertdate('%d%m%Y') }}
+
+wordMarkSpecification:
+  markVerbalElement:
+    {% call(desc) match('MarkVerbalElementText', TradeMark) %}
+    - text: {{ desc }}
+      languageCode: {{ desc | guess_language('fr') }}
+    {% endcall %}
+
+markImageDetails:
+  {% call(img) match('MarkImage', TradeMark) %}
+  - name: {{ img }}
+  {% endcall %}
+
+{% call(nc_gs) match('GoodsServicesDetails', TradeMark) %}
+goodsServicesClassification:
+  kind: Nice
+  version: {{ ASK_THE_OFFICE }}
+  class:
+  {% call(nice) match('GoodsServicesDetail', nc_gs) %}
+    - code: {{ nice.ClassNumber | int }}
+      terms:
+      {% if nice.GoodsServicesDescription | has_value %}
+        fr:
+        {% for gsline in nice.GoodsServicesDescription | split_terms %}
+          - {{ gsline | trim | lower }}
+        {% endfor %}
+      {% endif %}
+  {% endcall %}
+{% endcall %}
+
+priorities:
+  {% call(priority) match('PriorityDetails.PriorityDetail', TradeMark) %}
+  - countryCode: {{ priority.Priority.CountryCode }}
+    number: {{ priority.Priority.PriorityNumber }}
+    date: {{ priority.Priority.PriorityDate }}
+  {% endcall %}
+applicants:
+  {% call(Applicant) match('ApplicantDetails.ApplicantDetail.Applicant', TradeMark) %}
+  - fullName:
+      - text: {{ Applicant.FullName}}
+        languageCode: 'fr'
+    fullAddress:
+      - text: {{ Applicant.AddressLine}}
+        languageCode: 'fr'
+    countryCode: {{ Applicant.AddressCountry }}
+  {% endcall %}
+representatives:
+  {% call(Representative) match('RepresentativeDetails.RepresentativeDetail.Representative', TradeMark) %}
+  - fullName:
+      - text: {{ Representative.FullName}}
+        languageCode: 'fr'
+  {% endcall %}

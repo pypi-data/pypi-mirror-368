@@ -1,0 +1,125 @@
+{% from 'navigation.tmpl' import match %}
+
+{% set _space = " " %}
+{% set status = TradeMark | translate_status %}
+{% set st13 = TradeMark.ApplicationNumber | st13('EM') %}
+
+st13: {{ TradeMark.ApplicationNumber | st13('EM') }}
+gbdStatus: {{ status }}
+registrationOfficeCode: EM
+type: TRADEMARK
+
+{% if not status == 'Delete' %}
+kind: {{ TradeMark.KindMark | translate_kind }}
+markFeature: {{ TradeMark.MarkFeature | translate_feature }}
+designatedCountries:
+  - {{ TradeMark.RegistrationOfficeCode }}
+applicationNumber: {{ TradeMark.ApplicationNumber }}
+applicationDate: {{ TradeMark.ApplicationDate | convertdate('%Y-%m-%d') }}
+registrationNumber: {{ TradeMark | get_registration_nb(TradeMark.MarkCurrentStatusCode)}}
+registrationDate: {{ TradeMark.RegistrationDate }}
+applicationLanguageCode: {{ TradeMark.ApplicationLanguageCode }}
+secondLanguageCode: {{ TradeMark.SecondLanguageCode }}
+expiryDate:  {{ TradeMark.ExpiryDate }}
+officeStatus: {{ TradeMark.MarkCurrentStatusCode }}
+terminationDate: {{ TradeMark.MarkCurrentStatusDate | get_termination(status) }}
+statusDate: {{ TradeMark.MarkCurrentStatusDate | convertdate('%Y-%m-%d') }}
+markDisclaimerDetails:
+  {% call(desc) match('MarkDisclaimerDetails.MarkDisclaimer', TradeMark) %}
+  - text: {{ desc }}
+    languageCode: {{ desc | guess_language(desc._languageCode, TradeMark.ApplicationLanguageCode) }}
+  {% endcall %}
+markDescriptionDetails:
+  {% call(desc) match('MarkDescriptionDetails.MarkDescription', TradeMark) %}
+  - text: {{ desc }}
+    languageCode: {{ desc | guess_language(desc._languageCode, TradeMark.ApplicationLanguageCode) }}
+  {% endcall %}
+wordMarkSpecification:
+  markVerbalElement:
+    {% call(desc) match('WordMarkSpecification.MarkVerbalElementText', TradeMark) %}
+    - text: {{ desc | remove_cr }}
+      languageCode: {{ desc | guess_language(desc._languageCode, TradeMark.ApplicationLanguageCode) }}
+    {% endcall %}
+markImageDetails:
+  {% call(img) match('MarkImageDetails.MarkImage', TradeMark) %}
+  - name: {{ img.MarkImageFilename }}
+    colourIndicator: {{ img.MarkImageColourClaimedText | get_true_or_false }}
+    colourClaimed:
+      {% call(desc) match('MarkImageColourClaimedText', img) %}
+      - text: {{ desc }}
+        languageCode: {{ desc | guess_language(desc._languageCode, TradeMark.ApplicationLanguageCode) }}
+      {% endcall %}
+    classification:
+      kind: Vienna
+      version: {{ ASK_THE_OFFICE }}
+      code:
+      {% call(code) match('MarkImageCategory.CategoryCodeDetails.CategoryCode', img) %}
+        - {{ code }}
+      {% endcall %}
+  {% endcall %}
+markSoundDetails:
+  {% call(sound) match('MarkSoundDetails.MarkSound', TradeMark) %}
+  - filename: {{ sound.MarkSoundFilename }}
+    fileformat: {{ sound.MarkSoundFileFormat }}
+  {% endcall %}
+markVideoDetails:
+  {% call(video) match('MarkVideoDetails.MarkVideo', TradeMark) %}
+  - filename: {{ video.MarkVideoFilename }}
+    fileformat: {{ video.MarkVideoFileFormat }}
+  {% endcall %}
+
+{% call(nc_gs) match('GoodsServicesDetails.GoodsServices', TradeMark) %}
+goodsServicesClassification:
+  kind: Nice
+  version: {{ ASK_THE_OFFICE }}
+  class:
+    {% call(nice) match('ClassDescriptionDetails.ClassDescription', nc_gs) %}
+    - code: {{ nice.ClassNumber | int }}
+      terms:
+      {% call(desc) match('GoodsServicesDescription', nice) %}
+        {{ desc | guess_language(desc._languageCode, TradeMark.ApplicationLanguageCode) | field_name }}:
+        {% for gsline in desc.__value | remove_trailing('.') | split_terms %}
+          - {{ gsline }}
+        {% endfor %}
+      {% endcall %}
+    {% endcall %}
+{% endcall %}
+
+priorities:
+  {% call(priority) match('PriorityDetails.Priority', TradeMark) %}
+    - countryCode: {{ priority.PriorityCountryCode }}
+      number: {{ priority.PriorityNumber }}
+      date: {{ priority.PriorityDate }}
+      comment: {{ priority.PriorityStatusCode }}
+  {% endcall %}
+publications:
+  {% call(publication) match('PublicationDetails.Publication', TradeMark) %}
+    - identifier: {{ publication.PublicationIdentifier }}
+      date: {{ publication.PublicationDate }}
+      section: {{ publication.PublicationSection }}
+  {% endcall %}
+appeals:
+  {% call(apeal) match('AppealDetails.Appeal.AppealEventDetails.AppealEvent', TradeMark) %}
+  - kind: {{ apeal.AppealEventCode }}
+    date: {{ apeal.AppealEventDate }}
+  {% endcall %}
+applicants:
+  {% call(applicant) match('ApplicantDetails.ApplicantKey', TradeMark) %}
+  {% if not applicant._operationCode == 'Delete' %}
+  - {{ applicant.Identifier | get_entity_from_db(TradeMark.RegistrationOfficeCode, 'APP', st13) | field_name}}
+  {% endif %}
+  {% endcall %}
+
+representatives:
+  {% call(rep) match('RepresentativeDetails.RepresentativeKey', TradeMark) %}
+  {% if not representative._operationCode == 'Delete' %}
+  - {{ rep.Identifier | get_entity_from_db(TradeMark.RegistrationOfficeCode, 'REP', st13) | field_name}}
+  {% endif %}
+  {% endcall %}
+
+correspondence:
+  {% call(rep) match('CorrespondenceAddress', TradeMark) %}
+    {{ rep.CorrespondenceAddressIdentifier | get_entity_from_db('EM', rep.CorrespondenceAddressParty, st13) | field_name}}
+  {% endcall %}
+
+{% endif %}

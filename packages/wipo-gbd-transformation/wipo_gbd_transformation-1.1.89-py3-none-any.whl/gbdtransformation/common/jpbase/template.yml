@@ -1,0 +1,51 @@
+kind: {{tm.base.app_typ_group|first|to_str|translate_kind}}
+applicationNumber: {{tm.base.app_num|first}}
+applicationDate: {{tm.base.app_dt|first|to_str|convertdate('%Y%m%d') }}
+
+registrationNumber: {{tm.base.reg_num|first}}
+registrationDate: {{tm.base.set_reg_dt|first|to_str|convertdate('%Y%m%d')}}
+
+expiryDate: {{ tm.base.conti_prd_expire_dt|first|to_str|convertdate('%Y%m%d') }}
+
+officeStatus: {{tm.base.rec_status_id|status_office}}
+gbdStatus: {{tm.base.rec_status_id|status_gbd}}
+
+statusDate: {{tm.base.rec_latest_updt_dt|first|to_str|convertdate('%Y%m%d') }}
+
+reference:
+{% if not tm.base.intl_reg_num|first|to_str == '0' %}
+  office: WO
+  registration:
+    - number: {{ tm.base.intl_reg_num|first|to_str }}
+      date: {{ tm.base.intl_reg_dt|first|to_str|convertdate('%Y%m%d') }}
+{% endif %}
+
+wordMarkSpecification:
+  {% if tm.txt_std_char.size > 0 %}
+  markVerbalElement:
+    {% for t in tm.txt_std_char.itertuples() %}
+    - {{ t.standard_char_t | try_to_8bit }}
+    {% endfor %}
+  {% endif %}
+
+  {% if tm.txt_search.size > 0 %}
+  markSignificantVerbalElement:
+    {% for t in tm.txt_search.itertuples() %}
+    - {{t.search_use_t | try_to_8bit }}
+    {% endfor %}
+  {% endif %}
+
+  {% if tm.txt_transliteration.size > 0 %}
+  markTransliteration:
+  {% for t in tm.txt_transliteration.itertuples() %}
+    - {{ t.dsgnt }}
+  {% endfor %}
+  {% endif %}
+
+{% if tm.vienna.size > 0 %}
+markImageDetails:
+  class:
+  {% for v in tm.vienna.itertuples() %}
+    - {{'%02d' %  v.grphc_term_large_class }}.{{ '%02d' % v.grphc_term_mid_class}}.{{'%02d' % v.grphc_term_small_class}}
+  {% endfor %}
+{% endif %}

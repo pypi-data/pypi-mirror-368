@@ -1,0 +1,102 @@
+{% from 'navigation.tmpl' import match %}
+{% set status = RECORD | translate_status %}
+
+type: TRADEMARK
+kind:
+  - Individual
+
+st13: {{ RECORD.APPNO | st13('PH') }}
+
+markFeature: {{ RECORD.SIGN_TYPE | translate_feature}}
+registrationOfficeCode: PH
+designatedCountries:
+  - PH
+
+applicationNumber: {{ RECORD.APPNO }}
+applicationDate: {{ RECORD.FILING_DATE | convertdate('%Y-%m-%dT%H:%M:%S')}}
+registrationNumber: {{ RECORD.REGISTRATION_NBR }}
+registrationDate: {{ RECORD.REGISTRATION_DATE | convertdate('%Y-%m-%dT%H:%M:%S')}}
+
+reference:
+{% if RECORD.APPL_TYP == 'M' %}
+  office: WO
+  registration:
+    - number: {{ RECORD.FILE_NBR }}
+{% endif %}
+
+applicationLanguageCode: en
+expiryDate: {{ RECORD.EXPIRATION_DATE | convertdate('%Y-%m-%dT%H:%M:%S')}}
+{% if status == 'Ended' %}
+terminationDate: {{ RECORD.EXPIRATION_DATE | convertdate('%Y-%m-%dT%H:%M:%S')}}
+{% endif %}
+
+officeStatus: {{ RECORD.STATUS_NAME }}
+gbdStatus: {{ status }}
+statusDate: {{ RECORD.STATUS_DATE | convertdate2('%m/%d/%Y;%b\t%d\t%Y')}}
+
+{% if RECORD.TITLE %}
+wordMarkSpecification:
+  markVerbalElement:
+  - languageCode: en
+    text: {{ RECORD.TITLE}}
+{% endif %}
+
+{% if RECORD.SIGN_TYPE == 'B' or RECORD.SIGN_TYPE == 'L' %}
+markImageDetails:
+  - name: {{ RECORD.LOGO.LOGO }}
+    {% if RECORD.VIENNA %}
+    classification:
+      kind: Vienna
+      code:
+      {% call(vienna) match('VIENNA', RECORD) %}
+      - {{ vienna.VIENNA_TEXT | pad_vienna }}
+      {% endcall %}
+    {% endif %}
+{% endif %}
+
+{% if RECORD.NICE_CLASS %}
+goodsServicesClassification:
+  kind: Nice
+  version: {{ ASK_THE_OFFICE }}
+  class:
+  {% call(nice) match('NICE_CLASS', RECORD) %}
+    - code: {{ nice.NICE_CLASS_CODE | int }}
+      terms:
+        en:
+          {% for gsline in nice.NICE_CLASS_DESCRIPTION | split_terms %}
+          - {{ gsline | remove_trailing('.') | lower }}
+          {% endfor %}
+  {% endcall %}
+{% endif %}
+
+priorities:
+  {% call(priority) match('PRIORITIES', RECORD) %}
+    - countryCode: {{ priority.COUNTRY_CODE }}
+      number: {{ priority.PRIORITY_APPL_ID | remove_trailing('-') }}
+      date: {{ priority.PRIORITY_DATE  | convertdate('%Y-%m-%dT%H:%M:%S')}}
+  {% endcall %}
+
+applicants:
+  {% call(applicant) match('OWNER', RECORD) %}
+      - fullName:
+          - text: {{ applicant.PERSON_NAME }}
+            languageCode: en
+        countryCode: {{ applicant.RESIDENCE_COUNTRY_CODE | remove_trailing('-', '.') }}
+        fullAddress:
+          - text: {{ applicant | get_address }}
+            languageCode: en
+  {% endcall %}
+
+representatives:
+  {% call(rep) match('AGENT', RECORD) %}
+  {% if rep.PERSON_NAME %}
+  - identifier: {{ rep.AGENT_CODE }}
+    fullName:
+    - text: {{ rep.PERSON_NAME }}
+      languageCode: en
+    countryCode: PH
+    fullAddress:
+    - text: {{ rep | get_address }}
+      languageCode: en
+  {% endif %}
+  {% endcall %}

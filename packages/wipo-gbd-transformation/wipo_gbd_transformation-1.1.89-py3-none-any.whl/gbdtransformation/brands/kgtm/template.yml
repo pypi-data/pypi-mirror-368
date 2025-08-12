@@ -1,0 +1,58 @@
+{% from 'navigation.tmpl' import match %}
+
+type: {{ mark.type }}
+kind:
+  - {{ mark.kind | translate_kind}}
+markFeature: {{ mark.markFeature | translate_feature}}
+registrationOfficeCode: {{ mark.registrationOfficeCode}}
+designatedCountries:
+  - {{ mark.registrationOfficeCode}}
+st13: {{ mark.applicationNumber | st13(mark.registrationOfficeCode) }}
+applicationNumber: {{ mark.applicationNumber }}
+applicationDate: {{ mark.applicationDate }}
+registrationNumber: {{ mark.registrationNumber }}
+registrationDate: {{ mark.registrationDate }}
+applicationLanguageCode: ky
+expiryDate: {{ mark.expiryDate }}
+officeStatus: {{ mark.expiryDate | translate_status}}
+gbdStatus: {{ mark.expiryDate | translate_status}}
+statusDate:  {{ mark.registrationDate }}
+wordMarkSpecification:
+  markVerbalElement:
+    - languageCode: {{ mark.verbalElement | guess_language(lang='ky', default='en') }}
+      text: {{mark.verbalElement}}
+  markTransliteration: {{ mark.transliteration }}
+markImageDetails:
+  - name: {{ mark.image }}
+
+goodsServicesClassification:
+  kind: Nice
+  class:
+   {% call(nice) match('goodsServices.item', mark) %}
+    - code: {{ nice.nice | int }}
+      terms:
+        ky:
+        {% call(gsline) match('terms.item', nice) %}
+          - {{ gsline }}
+        {% endcall %}
+   {% endcall %}
+
+priorities:
+  {% call(priority) match('priorities.item', mark) %}
+    - countryCode: {{ priority.countryCode }}
+      number: {{ priority.number}}
+      date: {{ priority.date }}
+  {% endcall %}
+
+applicants:
+    {% if mark.holder.name | has_value %}
+    - fullName:
+        - text: {{ mark.holder.name }}
+          languageCode: ky
+    {% endif %}
+    {% if mark.holder.address | has_value %}
+      fullAddress:
+        - text: {{ mark.holder.address }}
+          languageCode: ky
+    {% endif %}
+      countryCode: {{ mark.holder.countryCode }}
