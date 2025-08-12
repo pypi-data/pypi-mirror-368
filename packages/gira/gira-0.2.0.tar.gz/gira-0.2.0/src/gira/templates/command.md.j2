@@ -1,0 +1,83 @@
+# `gira {{ command.name }}`
+
+{{ command.description }}
+
+## Usage
+
+```bash
+gira {{ command.name }}{% if command.arguments %} {% for arg in command.arguments %}{% if arg.required %}<{{ arg.name }}>{% else %}[{{ arg.name }}]{% endif %}{% endfor %}{% endif %}{% if command.options %} [options]{% endif %}
+```
+
+{% if command.arguments %}
+## Arguments
+
+{% for arg in command.arguments %}
+### `{{ arg.name }}`
+
+{{ arg.description }}
+
+- **Required**: {% if arg.required %}Yes{% else %}No{% endif %}
+{% if arg.type %}
+- **Type**: `{{ arg.type }}`
+{% endif %}{% if arg.default is not none %}
+- **Default**: `{{ arg.default }}`
+{% endif %}{% if arg.min_length %}
+- **Min length**: {{ arg.min_length }}
+{% endif %}{% if arg.max_length %}
+- **Max length**: {{ arg.max_length }}
+{% endif %}{% if arg.pattern %}
+- **Pattern**: `{{ arg.pattern }}`
+{% endif %}{% if arg.semantic_type %}
+- **Semantic type**: {{ arg.semantic_type }}
+{% endif %}{% if arg.examples %}
+- **Examples**: {% for ex in arg.examples %}`{{ ex }}`{% if not loop.last %}, {% endif %}{% endfor %}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if command.options %}
+## Options
+
+{% for opt in command.options %}
+### `{% if opt.short_name %}{{ opt.short_name }}, {% endif %}--{{ opt.name.lstrip('-') }}`
+
+{{ opt.description }}
+{% if opt.type %}
+- **Type**: `{{ opt.type }}`
+{% endif %}{% if opt.choices %}
+- **Choices**: {% for choice in opt.choices %}`{{ choice }}`{% if not loop.last %}, {% endif %}{% endfor %}
+{% endif %}{% if opt.default is not none and opt.default != '' and (opt.type != 'boolean' or opt.default != false) %}
+- **Default**: `{{ opt.default }}`
+{% endif %}{% if opt.min_length %}
+- **Min length**: {{ opt.min_length }}
+{% endif %}{% if opt.max_length %}
+- **Max length**: {{ opt.max_length }}
+{% endif %}{% if opt.pattern %}
+- **Pattern**: `{{ opt.pattern }}`
+{% endif %}{% if opt.semantic_type %}
+- **Semantic type**: {{ opt.semantic_type }}
+{% endif %}{% if opt.examples %}
+- **Examples**: {% for ex in opt.examples %}`{{ ex }}`{% if not loop.last %}, {% endif %}{% endfor %}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if command.examples %}
+## Examples
+
+{% for example in command.examples %}
+### Example {{ loop.index }}
+
+```bash
+{{ example }}
+```
+
+{% endfor %}
+{% endif %}
+
+## See Also
+
+- [CLI Reference](./cli-reference.md) - Complete reference for all Gira commands
+- [Getting Started](../01-getting-started/README.md) - Quick start guide for Gira

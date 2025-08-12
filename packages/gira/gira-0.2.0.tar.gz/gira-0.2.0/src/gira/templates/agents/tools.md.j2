@@ -1,0 +1,562 @@
+# GIRA_TOOLS_REFERENCE.md - Complete Gira Command Reference
+
+This document provides a comprehensive reference of all Gira commands and their usage patterns.
+
+## 📚 Command Categories
+
+1. [Ticket Management](#ticket-management)
+2. [Epic Management](#epic-management)
+3. [Sprint Management](#sprint-management)
+4. [Board and Workflow](#board-and-workflow)
+5. [Comments and Collaboration](#comments-and-collaboration)
+6. [Search and Filter](#search-and-filter)
+7. [Git Integration](#git-integration)
+8. [Configuration](#configuration)
+9. [Import/Export](#import-export)
+10. [Shell Completion](#shell-completion)
+
+---
+
+## 🎫 Ticket Management
+
+### Create Ticket
+```bash
+# Basic ticket creation
+gira ticket create "Title of the ticket"
+
+# With options
+gira ticket create "Fix login bug" \
+    --type bug \
+    --priority high \
+    --assignee user@example.com \
+    --epic EPIC-001 \
+    --labels "backend,auth" \
+    --story-points 3
+
+# With description from editor
+gira ticket create "Complex feature" --edit
+```
+
+### List Tickets
+```bash
+# List all tickets
+gira ticket list
+
+# Filter by status
+gira ticket list --status "in progress"
+gira ticket list --status todo --status blocked
+
+# Filter by priority
+gira ticket list --priority high
+
+# Filter by type
+gira ticket list --type bug
+
+# Filter by assignee
+gira ticket list --assignee user@example.com
+
+# Filter by epic
+gira ticket list --epic EPIC-001
+
+# Combine filters
+gira ticket list --status todo --priority high --type bug
+
+# Output formats
+gira ticket list --format json
+gira ticket list --format csv
+```
+
+### Show Ticket Details
+```bash
+# Show full ticket details
+gira ticket show TICKET-1
+
+# Show multiple tickets
+gira ticket show TICKET-1 TICKET-2 TICKET-3
+```
+
+### Update Ticket
+```bash
+# Update title
+gira ticket update TICKET-1 --title "New title"
+
+# Update description
+gira ticket update TICKET-1 --description "New description"
+
+# Update priority
+gira ticket update TICKET-1 --priority critical
+
+# Update assignee
+gira ticket update TICKET-1 --assignee new@example.com
+
+# Update multiple fields
+gira ticket update TICKET-1 \
+    --title "Updated title" \
+    --priority high \
+    --story-points 5 \
+    --labels "frontend,urgent"
+
+# Open editor for description
+gira ticket update TICKET-1 --edit
+```
+
+### Move Ticket Status
+```bash
+# Move to different status
+gira ticket move TICKET-1 "in progress"
+gira ticket move TICKET-1 review
+gira ticket move TICKET-1 done
+
+# Valid statuses
+# - todo
+# - in progress  
+# - review
+# - done
+# - blocked
+```
+
+### Delete Ticket
+```bash
+# Delete a ticket (requires confirmation)
+gira ticket delete TICKET-1
+
+# Force delete without confirmation
+gira ticket delete TICKET-1 --force
+```
+
+### Assign/Unassign Tickets
+```bash
+# Assign to user
+gira ticket update TICKET-1 --assignee user@example.com
+
+# Assign to self
+gira ticket update TICKET-1 --assignee me
+
+# Unassign
+gira ticket update TICKET-1 --assignee none
+```
+
+### Ticket Labels
+```bash
+# Add labels
+gira ticket label add TICKET-1 "backend" "api" "urgent"
+
+# Remove labels
+gira ticket label remove TICKET-1 "urgent"
+
+# List labels
+gira ticket label list TICKET-1
+```
+
+---
+
+## 🏔️ Epic Management
+
+### Create Epic
+```bash
+# Create epic
+gira epic create "Epic title" \
+    --description "Epic description" \
+    --owner owner@example.com
+
+# With editor
+gira epic create "Large feature" --edit
+```
+
+### List Epics
+```bash
+# List all epics
+gira epic list
+
+# Filter by status
+gira epic list --status active
+gira epic list --status planned
+
+# Show with progress
+gira epic list --show-progress
+```
+
+### Show Epic Details
+```bash
+# Show epic with all tickets
+gira epic show EPIC-001
+
+# Show multiple epics
+gira epic show EPIC-001 EPIC-002
+```
+
+### Update Epic
+```bash
+# Update epic
+gira epic update EPIC-001 \
+    --title "New epic title" \
+    --status active \
+    --owner newowner@example.com
+
+# Add/remove tickets
+gira epic update EPIC-001 --add-ticket TICKET-1 TICKET-2
+gira epic update EPIC-001 --remove-ticket TICKET-3
+```
+
+### Delete Epic
+```bash
+# Delete epic
+gira epic delete EPIC-001
+
+# Force delete
+gira epic delete EPIC-001 --force
+```
+
+---
+
+## 🏃 Sprint Management
+
+### Create Sprint
+```bash
+# Create sprint
+gira sprint create "Sprint 1" \
+    --goal "Complete authentication" \
+    --start 2024-01-15 \
+    --duration 14
+
+# With specific dates
+gira sprint create "Sprint 2" \
+    --start 2024-01-01 \
+    --end 2024-01-14
+```
+
+### List Sprints
+```bash
+# List all sprints
+gira sprint list
+
+# Filter by status
+gira sprint list --status active
+gira sprint list --status completed
+
+# Show current sprint
+gira sprint current
+```
+
+### Show Sprint Details
+```bash
+# Show sprint details
+gira sprint show SPRINT-001
+
+# Show with burndown data
+gira sprint show SPRINT-001 --burndown
+```
+
+### Update Sprint
+```bash
+# Update sprint
+gira sprint update SPRINT-001 \
+    --name "Updated Sprint 1" \
+    --goal "New sprint goal"
+
+# Add/remove tickets
+gira sprint update SPRINT-001 --add-ticket TICKET-1 TICKET-2
+gira sprint update SPRINT-001 --remove-ticket TICKET-3
+```
+
+### Sprint Actions
+```bash
+# Start sprint
+gira sprint start SPRINT-001
+
+# Complete sprint
+gira sprint complete SPRINT-001
+
+# Extend sprint
+gira sprint extend SPRINT-001 --days 7
+```
+
+---
+
+## 📋 Board and Workflow
+
+### View Board
+```bash
+# Show kanban board
+gira board
+
+# Show specific columns
+gira board --columns "todo,in progress"
+
+# Show with filters
+gira board --assignee me
+gira board --priority high
+gira board --epic EPIC-001
+
+# Compact view
+gira board --compact
+```
+
+### Workflow Management
+```bash
+# Show current workflow
+gira workflow show
+
+# List available workflows
+gira workflow list
+
+# Switch workflow
+gira workflow use kanban
+gira workflow use scrum
+```
+
+---
+
+## 💬 Comments and Collaboration
+
+### Add Comments
+```bash
+# Add comment (opens editor)
+gira comment add TICKET-1
+
+# Add inline comment
+gira comment add TICKET-1 --message "Quick update: fixed the bug"
+
+# Add comment with mentions
+gira comment add TICKET-1 --message "Fixed as discussed @john"
+```
+
+### List Comments
+```bash
+# List all comments for a ticket
+gira comment list TICKET-1
+
+# List recent comments across project
+gira comment recent
+
+# Filter by author
+gira comment list TICKET-1 --author user@example.com
+```
+
+### Edit/Delete Comments
+```bash
+# Edit comment
+gira comment edit TICKET-1 COMMENT-ID
+
+# Delete comment
+gira comment delete TICKET-1 COMMENT-ID
+```
+
+---
+
+## 🔍 Search and Filter
+
+### Search Tickets
+```bash
+# Search by text
+gira search "login bug"
+
+# Search in specific fields
+gira search "authentication" --fields title,description
+
+# Search with filters
+gira search "bug" --status "in progress" --priority high
+```
+
+### Advanced Filtering
+```bash
+# Complex queries
+gira ticket list --query "priority:high AND status:todo"
+gira ticket list --query "assignee:me OR assignee:none"
+gira ticket list --query "created:>2024-01-01"
+```
+
+---
+
+## 🔗 Git Integration
+
+### Ticket Blame
+```bash
+# Find tickets that modified files
+gira ticket blame src/main.py
+
+# Blame specific lines
+gira ticket blame src/main.py -L 10,20
+
+# Blame multiple files
+gira ticket blame src/*.py
+
+# Output formats
+gira ticket blame src/ --json
+gira ticket blame src/ --ids-only
+```
+
+### Git Hooks
+```bash
+# Install git hooks
+gira init --install-hooks
+
+# Validate commit message
+gira git validate-commit-msg "feat(TICKET-1): add feature"
+```
+
+---
+
+## ⚙️ Configuration
+
+### Project Configuration
+```bash
+# Show current config
+gira config show
+
+# Set configuration values
+gira config set project.name "My Project"
+gira config set ticket.prefix "PROJ"
+gira config set workflow.type "kanban"
+
+# Get specific value
+gira config get project.name
+```
+
+### User Configuration
+```bash
+# Set user info
+gira config set user.name "John Doe"
+gira config set user.email "john@example.com"
+
+# Set preferences
+gira config set ui.color true
+gira config set ui.emoji false
+```
+
+---
+
+## 📤 Import/Export
+
+### Export Data
+```bash
+# Export tickets
+gira export tickets --format json > tickets.json
+gira export tickets --format csv > tickets.csv
+
+# Export specific tickets
+gira export tickets --ids TICKET-1,TICKET-2,TICKET-3
+
+# Export epics
+gira export epics --format json > epics.json
+
+# Export everything
+gira export all --output backup/
+```
+
+### Import Data
+```bash
+# Import from JSON
+gira import tickets tickets.json
+
+# Import from CSV
+gira import tickets tickets.csv --format csv
+
+# Import from Jira
+gira import jira --url https://company.atlassian.net --project PROJ
+```
+
+---
+
+## 🔧 Shell Completion
+
+### Generate Completion
+```bash
+# Bash
+gira completion bash > ~/.bash_completion.d/gira
+
+# Zsh
+gira completion zsh > ~/.zsh/completions/_gira
+
+# Fish
+gira completion fish > ~/.config/fish/completions/gira.fish
+
+# PowerShell
+gira completion powershell > ~/.config/powershell/gira.ps1
+```
+
+### Install Completion
+```bash
+# Install for current shell
+gira completion install
+
+# Install for specific shell
+gira completion install --shell zsh
+```
+
+---
+
+## 🏷️ Aliases and Shortcuts
+
+Common aliases to set up:
+```bash
+# Ticket shortcuts
+alias gt='gira ticket'
+alias gtl='gira ticket list'
+alias gts='gira ticket show'
+alias gtm='gira ticket move'
+
+# Board shortcut
+alias gb='gira board'
+
+# Epic shortcuts
+alias ge='gira epic'
+alias gel='gira epic list'
+
+# Sprint shortcuts
+alias gs='gira sprint'
+alias gsc='gira sprint current'
+```
+
+---
+
+## 📊 Reporting and Analytics
+
+### Generate Reports
+```bash
+# Sprint velocity
+gira report velocity --sprints 5
+
+# Ticket statistics
+gira report stats --period month
+
+# Burndown chart
+gira report burndown SPRINT-001
+
+# Team performance
+gira report team --assignee all
+```
+
+---
+
+## 🆘 Help and Documentation
+
+### Get Help
+```bash
+# General help
+gira --help
+gira -h
+
+# Command help
+gira ticket --help
+gira ticket create --help
+
+# Show version
+gira --version
+```
+
+### Generate Documentation
+```bash
+# Generate CLI reference
+gira docs generate
+
+# Generate agent docs
+gira docs generate --type agents
+
+# Generate workflow docs
+gira docs generate --type workflow
+```
+
+---
+
+*This reference includes all available Gira commands and their usage patterns.*

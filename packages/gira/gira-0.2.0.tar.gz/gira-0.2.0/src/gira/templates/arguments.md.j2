@@ -1,0 +1,24 @@
+{% if arguments %}
+**Arguments:**
+{% for arg in arguments %}
+- `{{ arg.name }}` - {{ arg.description }}{% if not arg.required %} (optional{% if arg.default is not none %}, default: {{ arg.default }}{% endif %}){% else %} (required){% endif %}
+  {%- if arg.type and arg.type != 'string' %}
+  - Type: {{ arg.type }}
+  {%- endif %}
+  {%- if arg.min_length %}
+  - Min length: {{ arg.min_length }}
+  {%- endif %}
+  {%- if arg.max_length %}
+  - Max length: {{ arg.max_length }}
+  {%- endif %}
+  {%- if arg.pattern %}
+  - Pattern: `{{ arg.pattern }}`
+  {%- endif %}
+  {%- if arg.semantic_type %}
+  - Format: {{ arg.semantic_type }}
+  {%- endif %}
+  {%- if arg.examples %}
+  - Examples: {{ arg.examples | join(', ') }}
+  {%- endif %}
+{% endfor %}
+{% endif %}

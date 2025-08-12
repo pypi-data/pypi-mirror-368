@@ -1,0 +1,205 @@
+# AI_AGENT_GUIDE.md - Gira Usage Guide for AI Agents
+
+This guide provides instructions for AI agents (ChatGPT, Claude, Gemini, and others) on how to use Gira for project management.
+
+## 🎯 What is Gira?
+
+Gira is a Git-native project management tool that stores all project data as JSON files in the `.gira/` directory, making it perfect for version control and AI collaboration.
+
+## 🚀 Quick Start
+
+### Understanding Project Status
+```bash
+# View the project board
+gira board
+
+# List all tickets
+gira ticket list
+
+# View specific ticket
+gira ticket show TICKET-ID
+```
+
+### Working with Tickets
+```bash
+# Move ticket to in-progress when starting work
+gira ticket move TICKET-ID "in progress"
+
+# Update ticket status
+gira ticket move TICKET-ID review
+gira ticket move TICKET-ID done
+
+# Add comments to track progress
+gira comment add TICKET-ID
+```
+
+## 📋 Essential Gira Commands
+
+### Viewing Information
+| Command | Description |
+|---------|-------------|
+| `gira board` | View kanban board |
+| `gira ticket list` | List all tickets |
+| `gira ticket show ID` | Show ticket details |
+| `gira epic list` | List all epics |
+| `gira sprint list` | List sprints |
+
+### Creating and Managing Tickets
+| Command | Description |
+|---------|-------------|
+| `gira ticket create "Title"` | Create new ticket |
+| `gira ticket move ID STATUS` | Change ticket status |
+| `gira ticket update ID` | Update ticket details |
+| `gira comment add ID` | Add comment to ticket |
+
+### Common Status Values
+- `todo` - Not started
+- `in progress` - Currently working
+- `review` - Ready for review
+- `done` - Completed
+- `blocked` - Blocked by dependency
+
+## 🏗️ Gira Project Structure
+
+```
+.gira/                  # All Gira data lives here
+├── config.json        # Project configuration
+├── board/             # Tickets organized by status
+│   ├── todo/
+│   ├── in_progress/
+│   ├── review/
+│   └── done/
+├── epics/             # Epic definitions
+├── sprints/           # Sprint information
+└── comments/          # Ticket comments
+```
+
+## 📝 Git Integration
+
+### Commit Message Format
+
+When referencing Gira tickets in commits:
+
+```
+<type>(<ticket-id>): <description>
+
+[optional body]
+
+Gira: <ticket-id>
+```
+
+### Common Commit Types
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation only
+- `test`: Adding tests
+- `refactor`: Code refactoring
+- `style`: Formatting changes
+- `chore`: Maintenance tasks
+
+### Examples
+```bash
+# Feature with ticket
+git commit -m "feat(ABC-123): add new search functionality
+
+- Implement fuzzy search
+- Add search filters
+- Update UI components
+
+Gira: ABC-123"
+
+# Fix without specific ticket
+git commit -m "fix: resolve edge case in data parsing
+
+Relates-to: general bug fixes"
+```
+
+## 🔍 Finding Information
+
+### Search and Filter Tickets
+```bash
+# Filter by status
+gira ticket list --status "in progress"
+
+# Filter by assignee
+gira ticket list --assignee user@example.com
+
+# Filter by priority
+gira ticket list --priority high
+
+# Combine filters
+gira ticket list --status todo --priority high
+```
+
+### Understanding Code Changes
+```bash
+# See what tickets modified a file
+gira ticket blame path/to/file.py
+
+# Find tickets for specific lines
+gira ticket blame path/to/file.py -L 10,20
+```
+
+## 💡 Best Practices for AI Agents
+
+1. **Check Current State**: Always run `gira board` or `gira ticket show ID` before making changes
+2. **Update Status**: Move tickets through the workflow as you progress
+3. **Document Progress**: Use `gira comment add ID` to document decisions and progress
+4. **Reference Tickets**: Include ticket IDs in commit messages when applicable
+5. **Stay Synchronized**: Check ticket status before starting work to avoid conflicts
+
+## 🔧 Common Operations
+
+### Starting Work on a Ticket
+```bash
+# 1. Check the ticket details
+gira ticket show TICKET-ID
+
+# 2. Move to in progress
+gira ticket move TICKET-ID "in progress"
+
+# 3. Add a comment about starting work
+gira comment add TICKET-ID
+```
+
+### Completing Work
+```bash
+# 1. Move to review or done
+gira ticket move TICKET-ID review
+
+# 2. Add completion notes
+gira comment add TICKET-ID
+```
+
+### Creating Related Tickets
+```bash
+# Create a new ticket
+gira ticket create "New feature description" --type feature --priority medium
+
+# Link to an epic
+gira ticket create "Subtask description" --epic EPIC-001
+```
+
+## ❓ Troubleshooting
+
+### Cannot Find a Ticket
+```bash
+# List all tickets
+gira ticket list
+
+# Search in ticket titles
+gira ticket list | grep -i "search term"
+```
+
+### Understanding Workflow States
+```bash
+# View the board to see available states
+gira board
+
+# Check project workflow configuration
+cat .gira/config.json | grep -A 5 "workflow"
+```
+
+---
+
+*This guide helps AI agents work effectively with Gira's Git-native project management system.*

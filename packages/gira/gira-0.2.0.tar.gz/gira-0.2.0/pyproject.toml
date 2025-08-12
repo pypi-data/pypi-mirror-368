@@ -1,0 +1,180 @@
+[build-system]
+requires = ["setuptools>=65", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gira"
+version = "0.2.0"
+description = "Git-based project management for developers and AI agents"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "GoatBytes", email = "contact@goatbytes.dev"},
+]
+maintainers = [
+    {name = "Jared Rummler", email = "jared@goatbytes.dev"},
+]
+keywords = ["project-management", "git", "cli", "agile", "tickets", "ai-agents"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Bug Tracking",
+    "Topic :: Software Development :: Version Control :: Git",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Environment :: Console",
+    "Operating System :: OS Independent",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "typer[all]>=0.16.0",
+    "pydantic>=2.11.7",
+    "pydantic[email]>=2.11.7",
+    "pydantic-settings>=2.0.0",
+    "rich>=14.0.0",
+    "GitPython>=3.1.45",
+    "jsonpath-ng>=1.6.0",
+    "Jinja2>=3.1.0",
+    "cryptography>=45.0.5",
+    "urllib3>=2.0.0",
+    "pytz>=2024.1",
+    "fastmcp>=1.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.4.1",
+    "pytest-cov>=5.0.0",
+    "pytest-mock>=3.14.0",
+    "pytest-asyncio>=0.23.6",
+    "pytest-timeout>=2.3.1",
+    "pytest-xdist>=3.5.0",
+    "black>=25.1.0",
+    "ruff>=0.4.4",
+    "mypy>=1.16.1",
+    "pre-commit>=3.7.1",
+    "faker>=25.2.0",
+    "freezegun>=1.4.0",
+    "hypothesis>=6.100.0",
+    "pyfakefs>=5.5.0",
+]
+jira = [
+    "jira>=3.8.0",
+]
+gcs = [
+    "google-cloud-storage>=3.2.0",
+]
+azure = [
+    "azure-storage-blob>=12.26.0",
+    "azure-identity>=1.23.1",
+]
+s3 = [
+    "boto3>=1.34.0",
+]
+docs = [
+    "mkdocs-material>=9.5.0",
+    "mkdocs-gen-files>=0.5.0",
+    "mkdocstrings[python]>=0.24.0",
+    "pymdown-extensions>=10.7.0",
+    # Enhanced Documentation Plugins (GCM-824)
+    "mkdocs-glightbox>=0.3.4",
+    "mkdocs-git-authors-plugin>=0.7.2", 
+    "mkdocs-mermaid2-plugin>=1.1.1",
+    "mkdocs-rss-plugin>=1.12.2",
+    "mkdocs-charts-plugin>=0.0.10",
+    "mkdocs-diagrams>=1.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/goatbytes/gira"
+Documentation = "https://github.com/goatbytes/gira/tree/main/docs"
+Repository = "https://github.com/goatbytes/gira.git"
+Issues = "https://github.com/goatbytes/gira/issues"
+
+[project.scripts]
+gira = "gira.cli.main:app"
+gira-mcp = "gira.mcp.server:main"
+
+[tool.scripts]
+# Documentation generation
+docs-generate = "gira docs generate"
+docs-generate-full = "gira docs generate --output docs/05-reference/cli-reference.md"
+docs-generate-agents = "gira docs generate --type agents --output docs/06-development/ai-agent-guides-generated/agents.md"
+docs-generate-workflows = "gira docs generate --type workflow --output docs/02-user-guide/workflows-generated/workflows.md"
+docs-generate-all = "gira docs generate --type all"
+docs-generate-commands = "./scripts/generate-command-docs.sh"
+# MkDocs documentation
+docs-serve = "mkdocs serve"
+docs-build = "mkdocs build"
+docs-clean = "mkdocs build --clean"
+docs-deploy = "mkdocs gh-deploy"
+# Git hooks
+install-hooks = "./scripts/install-git-hooks.sh"
+# Complete documentation workflow
+docs-full-rebuild = "bash -c 'gira docs generate --output docs/05-reference/cli-reference.md && gira docs generate --type agents --output docs/06-development/ai-agent-guides-generated/agents.md && mkdocs build'"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+gira = ["py.typed", "templates/**/*.j2"]
+
+[tool.black]
+line-length = 88
+target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
+
+[tool.ruff]
+line-length = 88
+target-version = "py38"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "SIM", # flake8-simplify
+]
+ignore = [
+    "E501",  # line too long (handled by black)
+]
+
+[tool.mypy]
+python_version = "3.8"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+no_implicit_reexport = true
+namespace_packages = true
+show_error_codes = true
+show_column_numbers = true
+pretty = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --cov=gira --cov-report=html --cov-report=term"
+
+[tool.coverage.run]
+source = ["src/gira"]
+omit = ["*/tests/*", "*/__pycache__/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if __name__ == .__main__.:",
+    "raise AssertionError",
+    "raise NotImplementedError",
+]

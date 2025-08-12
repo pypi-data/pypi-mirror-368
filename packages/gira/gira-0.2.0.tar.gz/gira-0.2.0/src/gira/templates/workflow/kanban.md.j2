@@ -1,0 +1,277 @@
+# Kanban Workflow Guide
+
+This guide explains how to use Gira with a Kanban workflow for your project.
+
+## 📋 Kanban Overview
+
+Kanban is a visual workflow management method that helps teams visualize work, limit work-in-progress, and maximize efficiency. Gira provides a kanban board to manage your development flow.
+
+### Typical Board Configuration
+- **Columns**: Todo, In Progress, Review, Done
+- **Optional Columns**: Blocked, Testing, Staging
+- **WIP Limits**: Can be configured per column
+
+## 🔄 Workflow States
+
+### 1. **Todo** (Backlog)
+- New tickets start here
+- Prioritized list of work items
+- No work has begun
+
+**Actions**:
+```bash
+# Create new ticket in todo
+gira ticket create "Feature description" --priority medium
+
+# View todo items
+gira board --columns todo
+```
+
+### 2. **In Progress** (Active Work)
+- Work actively being done
+- Should have an assignee
+- Consider setting a WIP limit
+
+**Actions**:
+```bash
+# Move ticket to in progress
+gira ticket move TICKET-ID "in progress"
+
+# Assign to yourself
+gira ticket update TICKET-ID --assignee me
+
+# View work in progress
+gira board --columns "in progress"
+```
+
+### 3. **Review** (Quality Check)
+- Work completed, awaiting review
+- Code review, testing, or approval needed
+- Consider setting a WIP limit
+
+**Actions**:
+```bash
+# Move to review
+gira ticket move TICKET-ID review
+
+# Add review comment
+gira comment add TICKET-ID --message "Ready for review: [PR link]"
+```
+
+### 4. **Done** (Completed)
+- Work fully completed and deployed
+- No further action needed
+- Can be archived periodically
+
+**Actions**:
+```bash
+# Mark as done
+gira ticket move TICKET-ID done
+
+# View completed work
+gira ticket list --status done
+```
+
+### 5. **Blocked** (Optional)
+- Work cannot proceed due to dependencies
+- Requires action to unblock
+- Should have blocking reason in comments
+
+**Actions**:
+```bash
+# Mark as blocked
+gira ticket move TICKET-ID blocked
+
+# Add blocking reason
+gira comment add TICKET-ID --message "Blocked: waiting for API access"
+```
+
+## 📊 Kanban Metrics
+
+### Work In Progress (WIP)
+Current WIP across columns:
+```bash
+# Check current WIP
+gira board --show-counts
+
+# List over-limit columns
+gira board --check-wip
+```
+
+### Cycle Time
+Average time from "In Progress" to "Done":
+```bash
+# View cycle time report
+gira report cycle-time --days 30
+```
+
+### Throughput
+Number of items completed per week:
+```bash
+# View throughput
+gira report throughput --weeks 4
+```
+
+## 🎯 Best Practices
+
+### 1. **Respect WIP Limits**
+- Don't exceed column limits
+- Finish work before starting new items
+- Help blocked items before taking new work
+
+### 2. **Pull, Don't Push**
+- Pull work when you have capacity
+- Don't assign work to others
+- Let team members choose their tasks
+
+### 3. **Make Work Visible**
+```bash
+# Update ticket regularly
+gira ticket update TICKET-ID --description "Progress: 60% complete"
+
+# Add blockers immediately
+gira comment add TICKET-ID --message "Blocked: need design approval"
+```
+
+### 4. **Focus on Flow**
+- Move tickets promptly when state changes
+- Don't let tickets stagnate
+- Address bottlenecks quickly
+
+## 🚀 Daily Workflow
+
+### Morning Standup
+```bash
+# View board state
+gira board
+
+# Check blocked items
+gira ticket list --status blocked
+
+# Review your items
+gira ticket list --assignee me
+```
+
+### During the Day
+```bash
+# When starting work
+gira ticket move TICKET-ID "in progress"
+gira ticket update TICKET-ID --assignee me
+
+# When blocked
+gira ticket move TICKET-ID blocked
+gira comment add TICKET-ID  # Explain blockage
+
+# When ready for review
+gira ticket move TICKET-ID review
+```
+
+### End of Day
+```bash
+# Update progress
+gira ticket update TICKET-ID --description "Today's progress..."
+
+# Check tomorrow's work
+gira board --columns todo --limit 5
+```
+
+## 📈 Continuous Improvement
+
+### Weekly Metrics Review
+```bash
+# Generate weekly report
+gira report weekly
+
+# Analyze bottlenecks
+gira report bottlenecks --days 7
+
+# Review cycle times
+gira report cycle-time --by-type
+```
+
+### Retrospective Actions
+1. Review completed tickets
+2. Identify process improvements
+3. Adjust WIP limits if needed
+4. Update workflow documentation
+
+## 🔧 Customizing Your Kanban
+
+### Adjust WIP Limits
+```bash
+# Set WIP limit for column
+gira config set workflow.wip.in_progress 5
+gira config set workflow.wip.review 3
+```
+
+### Add Custom Columns
+```bash
+# Add new column
+gira config set workflow.columns "todo,in progress,testing,review,done"
+```
+
+### Set Up Automation
+```bash
+# Auto-assign on move to in progress
+gira config set workflow.auto_assign true
+
+# Auto-move to done on PR merge
+gira config set workflow.github_integration true
+```
+
+## 🚨 Common Issues
+
+### WIP Limit Exceeded
+```bash
+# Find over-limit columns
+gira board --check-wip
+
+# List items in column
+gira ticket list --status "in progress"
+
+# Move items back or forward
+gira ticket move TICKET-ID review
+```
+
+### Stagnant Tickets
+```bash
+# Find old in-progress items
+gira ticket list --status "in progress" --older-than 7d
+
+# Add update or move
+gira comment add TICKET-ID
+gira ticket move TICKET-ID blocked
+```
+
+### Unclear Priorities
+```bash
+# Review and update priorities
+gira ticket list --status todo --sort priority
+
+# Reprioritize
+gira ticket update TICKET-ID --priority high
+```
+
+## 📚 Kanban Resources
+
+### Recommended Reading
+- "Kanban: Successful Evolutionary Change for Your Technology Business" - David J. Anderson
+- "Making Work Visible" - Dominica DeGrandis
+
+### Common Integrations
+- GitHub/GitLab: Link PRs to tickets
+- CI/CD: Auto-update ticket status
+- Slack: Notifications for ticket changes
+
+## 🎓 Kanban Principles
+
+1. **Visualize the Workflow** - Use `gira board`
+2. **Limit WIP** - Respect column limits
+3. **Manage Flow** - Monitor cycle time
+4. **Make Policies Explicit** - Document your process
+5. **Implement Feedback Loops** - Regular reviews
+6. **Improve Collaboratively** - Team retrospectives
+
+---
+
+*Workflow type: Kanban*
