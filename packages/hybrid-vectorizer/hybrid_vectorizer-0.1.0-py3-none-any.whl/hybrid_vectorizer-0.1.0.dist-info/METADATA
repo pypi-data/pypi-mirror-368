@@ -1,0 +1,255 @@
+Metadata-Version: 2.4
+Name: hybrid-vectorizer
+Version: 0.1.0
+Summary: Unified embedding for tabular, text, and multimodal data
+Author-email: Hari Narayanan <hari.dataprojects@gmail.com>
+License: Apache-2.0
+Project-URL: Homepage, https://github.com/hariharaprabhu/hybrid-vectorizer
+Project-URL: Repository, https://github.com/hariharaprabhu/hybrid-vectorizer
+Project-URL: Issues, https://github.com/hariharaprabhu/hybrid-vectorizer/issues
+Project-URL: Documentation, https://github.com/hariharaprabhu/hybrid-vectorizer#readme
+Keywords: machine-learning,embeddings,similarity-search,multimodal,vectorization
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE.txt.txt
+Requires-Dist: pandas>=1.3.0
+Requires-Dist: numpy>=1.21.0
+Requires-Dist: scikit-learn>=1.0.0
+Requires-Dist: sentence-transformers>=2.0.0
+Requires-Dist: torch>=1.9.0
+Requires-Dist: joblib>=1.0.0
+Provides-Extra: dev
+Requires-Dist: pytest>=6.0; extra == "dev"
+Requires-Dist: black>=21.0; extra == "dev"
+Requires-Dist: flake8>=3.8; extra == "dev"
+Provides-Extra: test
+Requires-Dist: pytest>=6.0; extra == "test"
+Dynamic: license-file
+
+# HybridVectorizer
+
+**Unified embedding for tabular, text, and multimodal data with powerful similarity search.**
+
+HybridVectorizer automatically handles mixed data types (numerical, categorical, text, dates) and creates high-quality vector representations for similarity search, recommendation systems, and machine learning pipelines.
+
+## 🚀 Quick Start
+
+```python
+import pandas as pd
+from hybrid_vectorizer import HybridVectorizer
+
+# Your data with mixed types
+df = pd.DataFrame({
+    'id': [1, 2, 3, 4, 5],
+    'description': [
+        'AI machine learning platform for enterprises',
+        'Data analytics and business intelligence',
+        'Computer vision technology for robots', 
+        'Natural language processing chatbots',
+        'Predictive analytics for healthcare'
+    ],
+    'category': ['AI', 'Analytics', 'Vision', 'NLP', 'Healthcare'],
+    'funding': [1000000, 2500000, 800000, 1200000, 1800000],
+    'employees': [50, 150, 30, 80, 200]
+})
+
+# Initialize and fit
+hv = HybridVectorizer(index_column='id')
+vectors = hv.fit_transform(df)
+
+# Search for similar items
+query = {
+    'description': 'artificial intelligence startup',
+    'category': 'AI',
+    'employees': 100
+}
+
+results = hv.similarity_search(query, top_n=3)
+print(results[['description', 'similarity']])
+```
+
+## 📦 Installation
+
+```bash
+pip install hybrid-vectorizer
+```
+
+**Requirements:**
+- Python 3.8+
+- pandas, numpy, scikit-learn
+- sentence-transformers, torch
+
+## ✨ Key Features
+
+### 🔄 **Automatic Data Type Handling**
+- **Numerical**: Auto-normalized with MinMaxScaler
+- **Categorical**: One-hot or frequency encoding (smart threshold)
+- **Text**: SentenceTransformer embeddings
+- **Dates**: Extract features or ignore
+- **Mixed**: Handles missing values, inf, NaN gracefully
+
+### 🎯 **Powerful Similarity Search**
+- **Late Fusion**: Combines modalities with configurable weights
+- **Block-level Control**: Weight text vs. numerical vs. categorical separately
+- **Explanation**: See which features drive similarity
+
+### 🛠️ **Production Ready**
+- **Memory Efficient**: Optimized for large datasets
+- **GPU Support**: Automatic GPU detection for text encoding
+- **Persistence**: Save/load trained models
+- **Error Handling**: Informative custom exceptions
+
+## 💡 Usage Examples
+
+### Basic Usage
+```python
+# Fit and transform
+hv = HybridVectorizer()
+vectors = hv.fit_transform(df)
+
+# Simple query
+results = hv.similarity_search({'description': 'machine learning'})
+```
+
+### Advanced Configuration
+```python
+hv = HybridVectorizer(
+    column_encodings={'description': 'text', 'category': 'categorical'},
+    ignore_columns=['id', 'created_at'],
+    index_column='id',
+    onehot_threshold=15,
+    text_batch_size=64
+)
+```
+
+### Weighted Search
+```python
+# Emphasize text over numerical features
+results = hv.similarity_search(
+    query,
+    block_weights={'text': 3, 'categorical': 2, 'numerical': 1}
+)
+```
+
+### Text-Only Search
+```python
+results = hv.similarity_search(
+    'AI startup', 
+    text_column='description'
+)
+```
+
+## 🔧 Configuration Options
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `column_encodings` | Manual type overrides | `{}` |
+| `ignore_columns` | Skip these columns | `[]` |
+| `index_column` | ID column (preserved in results) | `None` |
+| `onehot_threshold` | Max categories for one-hot encoding | `10` |
+| `default_text_model` | SentenceTransformer model | `'all-MiniLM-L6-v2'` |
+| `text_batch_size` | Batch size for text encoding | `128` |
+
+## 📊 Data Type Detection
+
+HybridVectorizer automatically detects:
+
+- **Numerical**: `int64`, `float64`, etc. → MinMax normalization
+- **Categorical**: `object` with ≤10 unique values → One-hot encoding
+- **Text**: `object` with >10 unique values → SentenceTransformer embeddings
+- **Dates**: `datetime64` → Extract year/month/day or ignore
+
+Override with `column_encodings={'col': 'text'}` if needed.
+
+## 🎛️ Advanced Features
+
+### Model Persistence
+```python
+# Save trained model
+hv.save('my_vectorizer.pkl')
+
+# Load later
+hv2 = HybridVectorizer.load('my_vectorizer.pkl')
+results = hv2.similarity_search(query)
+```
+
+### Encoding Report
+```python
+# See how each column was processed
+report = hv.get_encoding_report()
+print(report)
+```
+
+### External Vector Database
+```python
+import faiss
+
+# Use FAISS for faster search
+index = faiss.IndexFlatIP(vectors.shape[1])
+index.add(vectors)
+hv.set_vector_db(index)
+```
+
+## 🚨 Error Handling
+
+```python
+from hybrid_vectorizer import HybridVectorizerError, ModelNotFittedError
+
+try:
+    results = hv.similarity_search(query)
+except ModelNotFittedError:
+    print("Call fit_transform() first!")
+except HybridVectorizerError as e:
+    print(f"HybridVectorizer error: {e}")
+```
+
+## 📈 Performance
+
+Typical performance on modern hardware:
+
+| Dataset Size | Fit Time | Search Time | Memory |
+|--------------|----------|-------------|--------|
+| 1K rows | <1s | <1ms | ~50MB |
+| 10K rows | <10s | <10ms | ~200MB |
+| 100K rows | <2min | <100ms | ~1GB |
+
+*With mixed data types including text columns*
+
+## 🛠️ Development
+
+```bash
+# Clone repository
+git clone https://github.com/hariharaprabhu/hybrid-vectorizer
+cd hybrid-vectorizer
+
+# Install in development mode
+pip install -e .
+
+# Run tests
+python tests/test_basic.py
+```
+
+## 📄 License
+
+MIT License - see LICENSE file for details.
+
+## 📞 Support
+
+- **Issues**: [GitHub Issues](https://github.com/hariharaprabhu/hybrid-vectorizer/issues)
+- **Documentation**: See this README and docstrings
+- **Questions**: Open an issue for questions or feature requests
+
+---
+
+**HybridVectorizer** - Making multimodal similarity search simple and powerful. 🚀
