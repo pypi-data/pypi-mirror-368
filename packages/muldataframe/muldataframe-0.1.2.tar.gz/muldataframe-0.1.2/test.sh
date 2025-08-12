@@ -1,0 +1,1 @@
+pytest --cov=muldataframe --cov-report term-missing -s
