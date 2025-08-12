@@ -1,0 +1,240 @@
+Metadata-Version: 2.3
+Name: llmprogram
+Version: 0.1.1
+Summary: A Python package for creating and running LLM programs.
+License: MIT
+Author: Dipankar Sarkar
+Author-email: me@dipankar.name
+Requires-Python: >=3.9
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Requires-Dist: aiosqlite (>=0.21.0,<0.22.0)
+Requires-Dist: jinja2 (>=3.1.6,<4.0.0)
+Requires-Dist: jsonschema (>=4.25.0,<5.0.0)
+Requires-Dist: openai (>=1.99.7,<2.0.0)
+Requires-Dist: pyyaml (>=6.0.2,<7.0.0)
+Requires-Dist: redis (>=6.4.0,<7.0.0)
+Description-Content-Type: text/markdown
+
+# LLM Program
+
+`llmprogram` is a Python package that provides a structured and powerful way to create and run programs that use Large Language Models (LLMs). It uses a YAML-based configuration to define the behavior of your LLM programs, making them easy to create, manage, and share.
+
+## How is `llmprogram` different?
+
+There are many libraries and frameworks available for working with LLMs. Here’s what makes `llmprogram` different:
+
+*   **Focus on Programmatic LLM-Chains:** `llmprogram` is designed to create self-contained, reusable "programs" that can be chained together to build more complex applications. The YAML-based configuration makes it easy to define and version these programs.
+*   **Data Quality and Validation:** The built-in input and output validation using JSON schemas ensures that your programs are robust and that the data flowing through them is correct. This is crucial for building reliable LLM-powered applications.
+*   **Dataset Generation as a First-Class Citizen:** `llmprogram` is designed with the entire lifecycle of an LLM application in mind, from development to production and fine-tuning. The automatic logging to a SQLite database makes it incredibly easy to create high-quality datasets for fine-tuning your own models.
+*   **Simplicity and Intuitiveness:** The YAML configuration is easy to read and write, and the Python API is simple and intuitive. This makes it easy to get started and to build complex applications without a steep learning curve.
+
+## Features
+
+*   **YAML-based Configuration:** Define your LLM programs using simple and intuitive YAML files.
+*   **Input/Output Validation:** Use JSON schemas to validate the inputs and outputs of your programs, ensuring data integrity.
+*   **Jinja2 Templating:** Use the power of Jinja2 templates to create dynamic prompts for your LLMs.
+*   **Caching:** Built-in support for Redis caching to save time and reduce costs.
+*   **Execution Logging:** Automatically log program executions to a SQLite database for analysis and debugging.
+*   **Streaming:** Support for streaming responses from the LLM.
+*   **Extensible with Tools:** Extend the functionality of your programs by adding custom tools (functions) that the LLM can call.
+*   **Batch Processing:** Process multiple inputs in parallel for improved performance.
+*   **CLI for Dataset Generation:** A command-line interface to generate instruction datasets for LLM fine-tuning from your logged data.
+
+## Getting Started
+
+### Installation
+
+```bash
+pip install llmprogram
+```
+
+### Usage
+
+1.  **Set your OpenAI API Key:**
+
+    ```bash
+    export OPENAI_API_KEY='your-api-key'
+    ```
+
+2.  **Create a program YAML file:**
+
+    Create a file named `sentiment_analysis.yaml`:
+
+    ```yaml
+    name: sentiment_analysis
+    description: Analyzes the sentiment of a given text.
+    version: 1.0.0
+
+    model:
+      provider: openai
+      name: gpt-4.1-mini
+      temperature: 0.5
+      max_tokens: 100
+      response_format: json_object
+
+    system_prompt: |
+      You are a sentiment analysis expert. Analyze the sentiment of the given text and return a JSON response with the following format:
+      - sentiment (string): "positive", "negative", or "neutral"
+      - score (number): A score from -1 (most negative) to 1 (most positive)
+
+    input_schema:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          description: The text to analyze.
+
+    output_schema:
+      type: object
+      required:
+        - sentiment
+        - score
+      properties:
+        sentiment:
+          type: string
+          enum: ["positive", "negative", "neutral"]
+        score:
+          type: number
+          minimum: -1
+          maximum: 1
+
+    template: |
+      Analyze the following text:
+      {{text}}
+    ```
+
+3.  **Run the program:**
+
+    Create a file named `run_sentiment_analysis.py`:
+
+    ```python
+    import asyncio
+    from llmprogram import LLMProgram
+
+    async def main():
+        program = LLMProgram('sentiment_analysis.yaml')
+        result = await program(text='I love this new product! It is amazing.')
+        print(result)
+
+    if __name__ == '__main__':
+        asyncio.run(main())
+    ```
+
+    Run the script:
+
+    ```bash
+    python run_sentiment_analysis.py
+    ```
+
+## Configuration
+
+The behavior of each LLM program is defined in a YAML file. Here are the key sections:
+
+*   `name`, `description`, `version`: Basic metadata for your program.
+*   `model`: Defines the LLM provider, model name, and other parameters like `temperature` and `max_tokens`.
+*   `system_prompt`: The instructions that are given to the LLM to guide its behavior.
+*   `input_schema`: A JSON schema that defines the expected input for the program. The program will validate the input against this schema before execution.
+*   `output_schema`: A JSON schema that defines the expected output from the LLM. The program will validate the LLM's output against this schema.
+*   `template`: A Jinja2 template that is used to generate the prompt that is sent to the LLM. The template is rendered with the input variables.
+
+## Using with other OpenAI-compatible endpoints
+
+You can use `llmprogram` with any OpenAI-compatible endpoint, such as [Ollama](https://ollama.ai/). To do this, you can pass the `api_key` and `base_url` to the `LLMProgram` constructor:
+
+```python
+program = LLMProgram(
+    'your_program.yaml',
+    api_key='your-api-key',  # optional, defaults to OPENAI_API_KEY env var
+    base_url='http://localhost:11434/v1'  # example for Ollama
+)
+```
+
+## Caching
+
+`llmprogram` supports caching of LLM responses to Redis to improve performance and reduce costs. To enable caching, you need to have a Redis server running.
+
+By default, caching is enabled. You can disable it or configure the Redis connection and cache TTL (time-to-live) when you create an `LLMProgram` instance:
+
+```python
+program = LLMProgram(
+    'your_program.yaml',
+    enable_cache=True,
+    redis_url="redis://localhost:6379",
+    cache_ttl=3600  # in seconds
+)
+```
+
+## Logging and Dataset Generation
+
+`llmprogram` automatically logs every execution of a program to a SQLite database. The database file is created in the same directory as the program YAML file, with a `.db` extension.
+
+This logging feature is not just for debugging; it's also a powerful tool for creating high-quality datasets for fine-tuning your own LLMs. Each record in the log contains:
+
+*   `function_input`: The input given to the program.
+*   `function_output`: The output received from the LLM.
+*   `llm_input`: The prompt sent to the LLM.
+*   `llm_output`: The raw response from the LLM.
+
+### Generating a Dataset
+
+You can use the built-in CLI to generate an instruction dataset from the logged data. The dataset is created in JSONL format, which is commonly used for fine-tuning.
+
+```bash
+llmprogram generate-dataset /path/to/your_program.db /path/to/your_dataset.jsonl
+```
+
+Each line in the output file will be a JSON object with the following keys:
+
+*   `instruction`: The system prompt and the user prompt, combined to form the instruction for the LLM.
+*   `output`: The output from the LLM.
+
+## Command-Line Interface (CLI)
+
+`llmprogram` comes with a command-line interface for common tasks.
+
+### `generate-dataset`
+
+Generate an instruction dataset for LLM fine-tuning from a SQLite log file.
+
+**Usage:**
+
+```bash
+llmprogram generate-dataset <database_path> <output_path>
+```
+
+**Arguments:**
+
+*   `database_path`: The path to the SQLite database file.
+*   `output_path`: The path to write the generated dataset to.
+
+## Examples
+
+You can find more examples in the `examples` directory:
+
+*   **Sentiment Analysis:** A simple program to analyze the sentiment of a piece of text. (`examples/sentiment_analysis.yaml`)
+*   **Code Generator:** A program that generates Python code from a natural language description. (`examples/code_generator.yaml`)
+*   **Email Generator:** A program that generates a professional email based on a few inputs. (`examples/email_generator.yaml`)
+
+To run the examples, navigate to the `examples` directory and run the corresponding `run_*.py` script.
+
+## Development
+
+To run the tests for this package, you will need to install `pytest`:
+
+```bash
+pip install pytest
+```
+
+Then, you can run the tests from the root directory of the project:
+
+```bash
+pytest
+```
