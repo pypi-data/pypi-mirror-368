@@ -1,0 +1,462 @@
+# Custom Workflow Guide
+
+This guide explains how to configure and use custom workflows with Gira.
+
+## 🔧 Custom Workflow Overview
+
+Gira allows you to create custom workflows tailored to your team's specific needs. You can define your own states, transitions, and rules that match your development process.
+
+## 📊 Workflow States
+
+Our custom workflow includes the following states:
+
+{%- if workflow_states %}
+{%- for state in workflow_states %}
+### {{ loop.index }}. **{{ state.name }}** 
+{{ state.description }}
+
+**Entry Criteria**:
+{%- for criteria in state.entry_criteria %}
+- {{ criteria }}
+{%- endfor %}
+
+**Exit Criteria**:
+{%- for criteria in state.exit_criteria %}
+- {{ criteria }}
+{%- endfor %}
+
+**Commands**:
+```bash
+# Move ticket to {{ state.name | lower }}
+gira ticket move {{ ticket_prefix }}-X "{{ state.name | lower }}"
+
+# View tickets in this state
+gira ticket list --status "{{ state.name | lower }}"
+```
+{%- if state.automation %}
+
+**Automation**:
+{{ state.automation }}
+{%- endif %}
+
+---
+{%- endfor %}
+{%- else %}
+
+### 1. **Backlog**
+- New tickets and ideas
+- Not yet prioritized
+- No work started
+
+### 2. **Ready**
+- Prioritized and refined
+- Has clear requirements
+- Ready to be worked on
+
+### 3. **In Development**
+- Active development
+- Has assignee
+- Code being written
+
+### 4. **In Review**
+- Code complete
+- Awaiting peer review
+- Tests passing
+
+### 5. **Testing**
+- Review approved
+- QA testing
+- User acceptance testing
+
+### 6. **Done**
+- All tests passed
+- Deployed to production
+- Ticket closed
+{%- endif %}
+
+## 🔄 Workflow Transitions
+
+### Allowed Transitions
+{%- if transitions %}
+```mermaid
+stateDiagram-v2
+{%- for transition in transitions %}
+    {{ transition.from }} --> {{ transition.to }}: {{ transition.trigger }}
+{%- endfor %}
+```
+{%- else %}
+```mermaid
+stateDiagram-v2
+    Backlog --> Ready: Refined
+    Ready --> InDevelopment: Started
+    InDevelopment --> InReview: Complete
+    InReview --> InDevelopment: Changes Requested
+    InReview --> Testing: Approved
+    Testing --> InDevelopment: Failed
+    Testing --> Done: Passed
+    Done --> [*]
+```
+{%- endif %}
+
+### Transition Commands
+```bash
+# Standard transitions
+gira ticket move {{ ticket_prefix }}-X ready
+gira ticket move {{ ticket_prefix }}-X "in development"
+gira ticket move {{ ticket_prefix }}-X "in review"
+
+# With transition reason
+gira ticket move {{ ticket_prefix }}-X "in development" --reason "Changes requested"
+
+# Bulk transitions
+gira ticket move {{ ticket_prefix }}-1,{{ ticket_prefix }}-2,{{ ticket_prefix }}-3 testing
+```
+
+## 📋 Workflow Rules
+
+{%- if workflow_rules %}
+{%- for rule in workflow_rules %}
+### {{ rule.name }}
+{{ rule.description }}
+
+**Implementation**:
+```bash
+{{ rule.command }}
+```
+{%- endfor %}
+{%- else %}
+
+### Auto-Assignment Rule
+Tickets moved to "In Development" are automatically assigned to the user who moved them.
+
+```bash
+# Configure auto-assignment
+gira config set workflow.auto_assign_on_start true
+```
+
+### Review Required Rule
+Tickets cannot move to "Testing" without at least one approval.
+
+```bash
+# Configure review requirements
+gira config set workflow.require_review true
+gira config set workflow.min_approvals 1
+```
+
+### Time Tracking Rule
+Time must be logged when moving tickets to "Done".
+
+```bash
+# Log time when completing
+gira ticket move {{ ticket_prefix }}-X done --time-spent 4h
+```
+{%- endif %}
+
+## 🎯 Custom Fields
+
+Our workflow uses the following custom fields:
+
+{%- if custom_fields %}
+{%- for field in custom_fields %}
+### {{ field.name }}
+- **Type**: {{ field.type }}
+- **Required**: {{ field.required }}
+- **Description**: {{ field.description }}
+{%- if field.values %}
+- **Allowed Values**: {{ field.values | join(", ") }}
+{%- endif %}
+
+```bash
+# Set {{ field.name | lower }}
+gira ticket update {{ ticket_prefix }}-X --{{ field.key }} "{{ field.example }}"
+```
+{%- endfor %}
+{%- else %}
+
+### Component
+- **Type**: String
+- **Required**: Yes
+- **Description**: System component affected
+
+```bash
+gira ticket update {{ ticket_prefix }}-X --component "backend"
+```
+
+### Customer Impact
+- **Type**: Select
+- **Required**: No
+- **Values**: none, low, medium, high, critical
+
+```bash
+gira ticket update {{ ticket_prefix }}-X --customer-impact high
+```
+
+### Release Version
+- **Type**: String
+- **Required**: No
+- **Description**: Target release version
+
+```bash
+gira ticket update {{ ticket_prefix }}-X --release-version "2.1.0"
+```
+{%- endif %}
+
+## 🏷️ Labeling System
+
+Our custom workflow uses specific labels for categorization:
+
+{%- if label_categories %}
+{%- for category in label_categories %}
+### {{ category.name }}
+{{ category.description }}
+
+**Labels**:
+{%- for label in category.labels %}
+- `{{ label.name }}`: {{ label.description }}
+{%- endfor %}
+
+```bash
+# Add {{ category.name | lower }} label
+gira ticket label add {{ ticket_prefix }}-X "{{ category.labels[0].name }}"
+```
+{%- endfor %}
+{%- else %}
+
+### Priority Labels
+- `urgent`: Needs immediate attention
+- `high-priority`: Important but not urgent
+- `low-priority`: Can be deferred
+
+### Type Labels  
+- `feature`: New functionality
+- `bugfix`: Fixing existing issues
+- `improvement`: Enhancing existing features
+- `maintenance`: Technical debt, refactoring
+
+### Area Labels
+- `frontend`: UI/UX related
+- `backend`: Server-side logic
+- `database`: Data layer
+- `infrastructure`: DevOps, deployment
+{%- endif %}
+
+## 📊 Custom Metrics
+
+Track these metrics specific to our workflow:
+
+{%- if custom_metrics %}
+{%- for metric in custom_metrics %}
+### {{ metric.name }}
+{{ metric.description }}
+
+```bash
+# Generate {{ metric.name | lower }} report
+{{ metric.command }}
+```
+{%- endfor %}
+{%- else %}
+
+### Lead Time
+Time from ticket creation to deployment:
+```bash
+gira report lead-time --days 30
+```
+
+### Cycle Time by State
+Time spent in each workflow state:
+```bash
+gira report state-duration --days 30
+```
+
+### Throughput by Type
+Tickets completed by type:
+```bash
+gira report throughput --group-by type --days 30
+```
+{%- endif %}
+
+## 🔄 Automation and Integrations
+
+{%- if automations %}
+### Configured Automations
+
+{%- for automation in automations %}
+#### {{ automation.name }}
+{{ automation.description }}
+
+**Trigger**: {{ automation.trigger }}
+**Action**: {{ automation.action }}
+
+```bash
+# Configure this automation
+{{ automation.setup_command }}
+```
+{%- endfor %}
+{%- else %}
+
+### GitHub Integration
+- PRs automatically link to tickets
+- Merges trigger status updates
+- CI status reflects in tickets
+
+```bash
+# Setup GitHub integration
+gira config set integrations.github.enabled true
+gira config set integrations.github.repo "owner/repo"
+```
+
+### Slack Notifications
+- Status changes posted to team channel
+- Daily summary of active work
+- Blocked ticket alerts
+
+```bash
+# Setup Slack integration
+gira config set integrations.slack.enabled true
+gira config set integrations.slack.webhook "https://..."
+```
+{%- endif %}
+
+## 🎯 Best Practices
+
+{%- if best_practices %}
+{%- for practice in best_practices %}
+### {{ loop.index }}. {{ practice.title }}
+{{ practice.description }}
+{%- endfor %}
+{%- else %}
+
+### 1. Keep Tickets Small
+Break large work into smaller, manageable tickets that can be completed in 1-3 days.
+
+### 2. Update Regularly
+Add comments and update status as work progresses to maintain visibility.
+
+### 3. Use Templates
+Create ticket templates for common types of work to ensure consistency.
+
+### 4. Review Metrics Weekly
+Check workflow metrics weekly to identify bottlenecks and improvement opportunities.
+
+### 5. Continuous Refinement
+Regularly review and adjust the workflow based on team feedback and metrics.
+{%- endif %}
+
+## 📋 Workflow Templates
+
+### Feature Template
+```bash
+gira ticket create --template feature \
+    --title "Add user preferences" \
+    --component backend \
+    --estimate 5
+```
+
+### Bug Template
+```bash
+gira ticket create --template bug \
+    --title "Fix login timeout" \
+    --severity high \
+    --component auth
+```
+
+### Task Template
+```bash
+gira ticket create --template task \
+    --title "Update dependencies" \
+    --type maintenance
+```
+
+## 🚨 Troubleshooting
+
+### Common Issues
+
+{%- if troubleshooting_items %}
+{%- for item in troubleshooting_items %}
+#### {{ item.issue }}
+**Solution**: {{ item.solution }}
+
+```bash
+{{ item.command }}
+```
+{%- endfor %}
+{%- else %}
+
+#### Ticket Stuck in State
+**Solution**: Check transition rules and requirements
+
+```bash
+# Check ticket status and workflow rules
+gira ticket show {{ ticket_prefix }}-X
+
+# Force transition (admin only)
+gira ticket move {{ ticket_prefix }}-X "next state" --force
+```
+
+#### Missing Required Fields
+**Solution**: Set all required custom fields
+
+```bash
+# List required fields
+gira ticket validate {{ ticket_prefix }}-X
+
+# Set missing fields
+gira ticket update {{ ticket_prefix }}-X --component backend --customer-impact low
+```
+
+#### Automation Not Triggering
+**Solution**: Verify automation configuration
+
+```bash
+# Check automation status
+gira automation status
+
+# Test automation
+gira automation test "automation-name"
+```
+{%- endif %}
+
+## 🔧 Workflow Configuration
+
+### Modifying the Workflow
+```bash
+# Export current workflow
+gira workflow export > workflow.yaml
+
+# Edit workflow.yaml
+
+# Import modified workflow
+gira workflow import workflow.yaml
+
+# Validate workflow
+gira workflow validate
+```
+
+### Workflow Settings
+```bash
+# View all workflow settings
+gira config list workflow.*
+
+# Modify settings
+gira config set workflow.max_wip 10
+gira config set workflow.require_assignee true
+gira config set workflow.allow_skip_states false
+```
+
+## 📚 Additional Resources
+
+{%- if resources %}
+{%- for resource in resources %}
+- [{{ resource.title }}]({{ resource.url }})
+{%- endfor %}
+{%- else %}
+- [Workflow Customization Guide](docs/workflow-customization.md)
+- [Automation Reference](docs/automation.md)
+- [Metrics and Reporting](docs/metrics.md)
+{%- endif %}
+
+---
+
+*Generated on {{ generation_date }} for {{ project_name }} project*
+*Workflow type: Custom*
+*Last modified: {{ workflow_last_modified | default("Not tracked") }}*

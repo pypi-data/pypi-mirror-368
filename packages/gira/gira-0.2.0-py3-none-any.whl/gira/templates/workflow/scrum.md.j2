@@ -1,0 +1,381 @@
+# Scrum Workflow Guide
+
+This guide explains how to use Gira with a Scrum workflow.
+
+## 🏃 Scrum Overview
+
+Scrum is an agile framework that helps teams work together through fixed-length iterations called sprints. Gira provides tools to manage your Scrum process effectively.
+
+### Sprint Configuration
+- **Typical Duration**: 1-4 weeks (commonly 2 weeks)
+- **Key Elements**: Sprint goal, backlog, daily standups, review, retrospective
+- **Velocity**: Track story points completed per sprint
+
+## 📅 Sprint Lifecycle
+
+### 1. Sprint Planning
+Before the sprint starts, the team plans what work to commit to.
+
+```bash
+# Create new sprint
+gira sprint create "Sprint X" \
+    --goal "Sprint goal description" \
+    --start 2024-01-15 \
+    --duration 14
+
+# Add tickets to sprint backlog
+gira sprint update SPRINT-X --add-ticket TICKET-1 TICKET-2
+
+# Review sprint scope
+gira sprint show SPRINT-X
+```
+
+**Planning Checklist**:
+- [ ] Sprint goal defined
+- [ ] Tickets estimated (story points)
+- [ ] Sprint capacity calculated
+- [ ] Tickets prioritized
+- [ ] Sprint backlog committed
+
+### 2. Daily Scrum
+Daily 15-minute sync to coordinate work.
+
+```bash
+# Before daily standup
+gira sprint current --summary
+
+# View team's work
+gira board --sprint current
+
+# Check burndown
+gira sprint show SPRINT-X --burndown
+```
+
+**Daily Questions**:
+1. What did I complete yesterday?
+2. What will I work on today?
+3. Are there any impediments?
+
+### 3. Sprint Execution
+During the sprint, team members work on committed tickets.
+
+```bash
+# Start working on a ticket
+gira ticket move {{ ticket_prefix }}-X "in progress"
+gira ticket update {{ ticket_prefix }}-X --assignee me
+
+# Update progress
+gira ticket update {{ ticket_prefix }}-X --story-points-completed 2
+
+# Log work
+gira comment add {{ ticket_prefix }}-X --message "Completed backend API"
+```
+
+### 4. Sprint Review
+Demonstrate completed work to stakeholders.
+
+```bash
+# List completed tickets
+gira sprint show SPRINT-X --status done
+
+# Generate sprint report
+gira report sprint SPRINT-X --format markdown > sprint-review.md
+
+# Mark tickets as demonstrated
+gira ticket label add {{ ticket_prefix }}-X "demonstrated"
+```
+
+### 5. Sprint Retrospective
+Reflect on the sprint and identify improvements.
+
+```bash
+# View sprint metrics
+gira report sprint-metrics SPRINT-X
+
+# Document retrospective outcomes
+gira sprint update SPRINT-X --retrospective-notes "..."
+
+# Create improvement tickets
+gira ticket create "Improve CI/CD pipeline" --type task --label "process-improvement"
+```
+
+### 6. Sprint Closure
+Complete the sprint and prepare for the next one.
+
+```bash
+# Complete sprint
+gira sprint complete SPRINT-X
+
+# Move incomplete tickets
+gira sprint complete SPRINT-X --move-incomplete-to next
+
+# Archive sprint data
+gira sprint archive SPRINT-X
+```
+
+## 📊 Scrum Metrics
+
+### Velocity
+Story points completed per sprint:
+```bash
+# View velocity trend
+gira report velocity --sprints 6
+
+# Compare planned vs actual
+gira report velocity SPRINT-X --show-planned
+```
+
+### Burndown Chart
+Track remaining work in sprint:
+```bash
+# View current burndown
+gira sprint show SPRINT-X --burndown
+
+# Export burndown data
+gira sprint show SPRINT-X --burndown --format csv > burndown.csv
+```
+
+### Sprint Health
+Monitor sprint progress:
+```bash
+# Check sprint health
+gira sprint health SPRINT-X
+
+# View at-risk items
+gira ticket list --sprint SPRINT-X --at-risk
+```
+
+## 👥 Scrum Roles
+
+### Product Owner
+Manages the product backlog and priorities.
+
+```bash
+# Manage product backlog
+gira ticket list --status todo --no-sprint
+
+# Prioritize tickets
+gira ticket update {{ ticket_prefix }}-X --priority high
+
+# Create epics for features
+gira epic create "User Management System"
+```
+
+### Scrum Master
+Facilitates the process and removes impediments.
+
+```bash
+# Monitor sprint progress
+gira sprint health SPRINT-X
+
+# Track impediments
+gira ticket list --label impediment
+
+# Generate team metrics
+gira report team --sprint SPRINT-X
+```
+
+### Development Team
+Delivers the product increment.
+
+```bash
+# View assigned work
+gira ticket list --assignee me --sprint current
+
+# Collaborate on tickets
+gira comment add {{ ticket_prefix }}-X
+
+# Update estimates
+gira ticket update {{ ticket_prefix }}-X --story-points 5
+```
+
+## 📈 Story Points
+
+### Estimation Guidelines
+{%- if estimation_scale %}
+- **Scale**: {{ estimation_scale | join(", ") }}
+{%- else %}
+- **Scale**: 1, 2, 3, 5, 8, 13, 21 (Fibonacci)
+{%- endif %}
+
+### Estimation Process
+```bash
+# Add estimates during planning
+gira ticket update {{ ticket_prefix }}-X --story-points 5
+
+# Bulk estimate
+gira ticket estimate {{ ticket_prefix }}-1:5 {{ ticket_prefix }}-2:3 {{ ticket_prefix }}-3:8
+
+# View unestimated tickets
+gira ticket list --sprint SPRINT-X --story-points 0
+```
+
+## 🎯 Definition of Done
+
+A ticket is considered "Done" when:
+{%- if definition_of_done %}
+{%- for criteria in definition_of_done %}
+- [ ] {{ criteria }}
+{%- endfor %}
+{%- else %}
+- [ ] Code complete and reviewed
+- [ ] Unit tests written and passing
+- [ ] Integration tests passing
+- [ ] Documentation updated
+- [ ] Deployed to staging
+- [ ] Product Owner approved
+{%- endif %}
+
+### Enforcing DoD
+```bash
+# Review ticket against DoD
+gira ticket show {{ ticket_prefix }}-X --comments
+
+# Add Definition of Done in comments
+gira comment add {{ ticket_prefix }}-X --message "DoD checklist:
+- [ ] Code reviewed
+- [ ] Tests written and passing
+- [ ] Documentation updated"
+```
+
+## 🚀 Sprint Ceremonies
+
+### Sprint Planning (4 hours for 2-week sprint)
+```bash
+# Prepare for planning
+gira ticket list --status todo --epic EPIC-X
+gira report velocity --sprints 3
+
+# During planning
+gira sprint create "Sprint X" --interactive
+gira sprint plan SPRINT-X  # Interactive planning mode
+```
+
+### Daily Scrum (15 minutes)
+```bash
+# Generate standup report
+gira report daily --team
+
+# Quick status update
+gira standup  # Interactive standup mode
+```
+
+### Sprint Review (2 hours)
+```bash
+# Prepare demo list
+gira sprint show SPRINT-X --completed --group-by-epic
+
+# Generate stakeholder report  
+gira report sprint-summary SPRINT-X --audience stakeholder
+```
+
+### Sprint Retrospective (1.5 hours)
+```bash
+# Generate retrospective data
+gira report retrospective SPRINT-X
+
+# Track action items
+gira ticket create "Retrospective action" --type task --sprint next
+```
+
+## 📋 Backlog Management
+
+### Product Backlog
+```bash
+# View product backlog
+gira backlog show
+
+# Refine backlog
+gira backlog refine  # Interactive refinement
+
+# Split large tickets
+gira ticket split {{ ticket_prefix }}-X --into 3
+```
+
+### Sprint Backlog
+```bash
+# View sprint backlog
+gira sprint backlog SPRINT-X
+
+# Adjust during sprint (with care!)
+gira sprint update SPRINT-X --add-ticket {{ ticket_prefix }}-Y
+gira sprint update SPRINT-X --remove-ticket {{ ticket_prefix }}-Z
+```
+
+## 🔧 Scrum Configuration
+
+### Sprint Settings
+```bash
+# Set default sprint duration
+gira config set scrum.sprint_duration 14
+
+# Set sprint start day
+gira config set scrum.sprint_start_day monday
+
+# Set velocity calculation
+gira config set scrum.velocity_calculation "average_3"
+```
+
+### Team Configuration  
+```bash
+# Set team capacity
+gira config set team.capacity 60  # Total story points per sprint
+
+# Set individual capacity
+gira config set team.members.john.capacity 15
+```
+
+## 🚨 Common Anti-patterns
+
+### 1. Changing Sprint Scope
+**Problem**: Adding/removing tickets mid-sprint
+**Solution**: Stick to sprint commitment, use spike tickets for unknowns
+
+### 2. Skipping Ceremonies
+**Problem**: Missing standups or reviews
+**Solution**: Schedule recurring meetings, keep them short
+
+### 3. No Definition of Done
+**Problem**: Unclear completion criteria
+**Solution**: Define and enforce DoD checklist
+
+### 4. Carry-over Work
+**Problem**: Tickets spanning multiple sprints
+**Solution**: Break down large tickets, improve estimation
+
+## 📊 Reports and Analytics
+
+### Sprint Reports
+```bash
+# Comprehensive sprint report
+gira report sprint SPRINT-X --full
+
+# Velocity report
+gira report velocity --team
+
+# Burndown analysis
+gira report burndown-analysis SPRINT-X
+```
+
+### Team Performance
+```bash
+# Individual velocity
+gira report developer-velocity --sprint SPRINT-X
+
+# Team health metrics
+gira report team-health --sprints 6
+```
+
+## 🎓 Scrum Values
+
+1. **Commitment** - To goals and to each other
+2. **Courage** - To do the right thing
+3. **Focus** - On sprint goals
+4. **Openness** - About challenges and progress
+5. **Respect** - For diverse skills and opinions
+
+---
+
+*Generated on {{ generation_date }} for {{ project_name }} project*
+*Workflow type: Scrum*
+*Sprint Duration: {{ sprint_duration | default(14) }} days*

@@ -1,0 +1,1 @@
+"""Git hooks management commands for Gira."""

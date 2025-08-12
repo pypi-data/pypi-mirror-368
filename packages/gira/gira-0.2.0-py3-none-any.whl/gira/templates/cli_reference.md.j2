@@ -1,0 +1,72 @@
+# CLI Reference
+
+Complete reference for all Gira commands and options.
+
+## Table of Contents
+
+{% set grouped_commands = commands | selectattr('group', 'defined') | groupby('group') %}
+{% for group_name, group_commands in grouped_commands | sort %}
+### {{ group_name }}
+
+{% for command in group_commands | sort(attribute='name') %}
+- [`gira {{ command.name }}`](#gira-{{ command.name | replace(' ', '-') }}) - {{ command.description }}
+{% endfor %}
+
+{% endfor %}
+
+## Global Options
+
+These options can be used with any command:
+
+- `--help` - Show help message and exit
+- `--version` - Show version number and exit
+
+## Commands
+
+{% for command in commands %}
+### `gira {{ command.name }}`
+
+{{ command.description }}
+
+```bash
+gira {{ command.name }}{% if command.arguments %} {% for arg in command.arguments %}{% if arg.required %}<{{ arg.name }}>{% else %}[{{ arg.name }}]{% endif %}{% endfor %}{% endif %}{% if command.options %} [options]{% endif %}
+```
+
+{% if command.arguments %}
+**Arguments:**
+{% for arg in command.arguments %}
+- `{{ arg.name }}` - {{ arg.description }}{% if not arg.required %} (optional{% if arg.default is not none %}, default: {{ arg.default }}{% endif %}){% else %} (required){% endif %}
+{% if arg.type %}  - Type: {{ arg.type }}
+{% endif %}{% if arg.min_length %}  - Min length: {{ arg.min_length }}
+{% endif %}{% if arg.max_length %}  - Max length: {{ arg.max_length }}
+{% endif %}{% if arg.pattern %}  - Pattern: `{{ arg.pattern }}`
+{% endif %}{% if arg.examples %}  - Examples: {{ arg.examples | join(', ') }}
+{% endif %}{% endfor %}
+{% endif %}
+
+{% if command.options %}
+**Options:**
+{% for opt in command.options %}
+- `{% if opt.short_name %}{{ opt.short_name }}, {% endif %}--{{ opt.name.lstrip('-') }}` - {{ opt.description }}
+{% if opt.type and opt.type != 'string' %}  - Type: {{ opt.type }}
+{% endif %}{% if opt.choices %}  - Choices: {{ opt.choices | join(', ') }}
+{% endif %}{% if opt.default is not none and opt.default != '' and (opt.type != 'boolean' or opt.default != false) %}  - Default: {{ opt.default }}
+{% endif %}{% if opt.min_length %}  - Min length: {{ opt.min_length }}
+{% endif %}{% if opt.max_length %}  - Max length: {{ opt.max_length }}
+{% endif %}{% if opt.pattern %}  - Pattern: `{{ opt.pattern }}`
+{% endif %}{% if opt.examples %}  - Examples: {{ opt.examples | join(', ') }}
+{% endif %}{% endfor %}
+{% endif %}
+
+{% if command.examples %}
+**Examples:**
+{% for example in command.examples %}
+```bash
+{{ example }}
+```
+{% endfor %}
+{% endif %}
+
+---
+
+{% endfor %}
