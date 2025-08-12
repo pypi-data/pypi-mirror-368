@@ -1,0 +1,1 @@
+This is a sample package for python emails
