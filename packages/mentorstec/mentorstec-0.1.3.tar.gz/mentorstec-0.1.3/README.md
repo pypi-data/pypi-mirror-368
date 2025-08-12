@@ -1,0 +1,240 @@
+# Mentorstec
+
+![Pipeline](https://github.com/Mentorstec/mentorstec/actions/workflows/pipeline.yml/badge.svg)
+![PyPI Version](https://img.shields.io/pypi/v/mentorstec?color=blue&logo=pypi&logoColor=white)
+![Python Versions](https://img.shields.io/pypi/pyversions/mentorstec?logo=python&logoColor=white)
+![License](https://img.shields.io/github/license/Mentorstec/mentorstec?color=green)
+![Downloads](https://img.shields.io/pypi/dm/mentorstec?color=orange&logo=pypi)
+
+Sistema centralizado de logging de eventos e exceções com suporte para Azure Service Bus.
+
+## 🚀 Instalação
+
+### PyPI (Público)
+```bash
+pip install mentorstec
+```
+
+### Desenvolvimento
+```bash
+git clone https://github.com/mentorstec/mentorstec.git
+cd mentorstec
+pip install -e ".[dev]"
+```
+
+## 📋 Configuração
+
+Defina as variáveis de ambiente:
+
+```bash
+export AZURE_SERVICE_BUS_CONNECTION_STRING="Endpoint=sb://..."
+```
+
+## 🎯 Uso Rápido
+
+### Client Direto (Recomendado)
+
+```python
+from mentorstec import EventHubClient
+
+# Criar client
+client = EventHubClient.create_azure_client("meu-projeto", "events", layer="web")
+
+# Enviar evento
+client.send_event(
+    event_type="USER_LOGIN",
+    message="Usuário fez login",
+    object="auth_service",
+    tags=["auth", "success"],
+    user_id=123
+)
+
+# Capturar erros automaticamente
+@client.capture_errors("payment_process")
+def process_payment(amount):
+    if amount <= 0:
+        raise ValueError("Invalid amount")
+    return {"status": "success"}
+```
+
+### Funções Globais (Simples)
+
+```python
+from mentorstec import setup_global_hub, send_event, capture_errors
+
+# Configurar uma vez  
+setup_global_hub("meu-projeto", layer="api")
+
+# Usar em qualquer lugar
+send_event(event_type="INFO", message="Sistema iniciado")
+
+@capture_errors("critical_function")
+def my_function():
+    # Erros são capturados automaticamente
+    raise Exception("Something went wrong")
+```
+
+## 📊 Estrutura do Payload
+
+Todos os eventos seguem esta estrutura:
+
+```json
+{
+    "project": "meu-projeto",
+    "layer": "web",
+    "message": "Usuário fez login",
+    "obs": "",
+    "timestamp": "2025-01-07T10:30:45.123456Z",
+    "event_type": "USER_LOGIN", 
+    "object": "auth_service",
+    "tags": ["auth", "success"]
+}
+```
+
+## 🏗️ Arquitetura
+
+O sistema usa o **Repository Pattern** para máxima flexibilidade:
+
+```
+├── EventRepository (Interface)
+├── AzureServiceBusRepository (Implementação)  
+├── EventHubClient (Factory + API)
+└── Funções Globais (Compatibilidade)
+```
+
+### Adicionando Novos Provedores
+
+```python
+from mentorstec.repository.event_repository import EventRepository
+
+class CustomRepository(EventRepository):
+    def event_handler(self, **kwargs):
+        payload = self.build_payload(**kwargs)
+        # Sua implementação aqui
+        self.send_to_custom_service(payload)
+```
+
+## 🧪 Testes
+
+```bash
+# Executar testes
+pytest tests/ -v --cov=mentorstec
+
+# Lint
+black mentorstec/
+flake8 mentorstec/
+mypy mentorstec/
+```
+
+## 🚀 Deploy
+
+### Desenvolvimento
+```bash
+# Instalar dependências de desenvolvimento
+make dev-install
+
+# Executar testes
+make test
+
+# Linting e formatação
+make lint
+make format
+
+# Build local
+make build
+```
+
+### Release para PyPI
+
+**Configuração (uma vez):**
+```bash
+# Configure seu token do PyPI
+export PYPI_TOKEN=pypi-AgE...seu-token-aqui
+
+# Para TestPyPI (opcional)
+export PYPI_TEST_TOKEN=pypi-AgE...seu-token-testpypi-aqui
+```
+
+**Release automático:**
+```bash
+# Release completo (testes + build + upload)
+make release
+
+# Para TestPyPI primeiro (recomendado)
+make release-test
+```
+
+**Upload manual:**
+```bash
+# Apenas upload (se o build já foi feito)
+make upload        # PyPI
+make upload-test   # TestPyPI
+```
+
+## 📝 Exemplos Avançados
+
+### Contexto Customizado
+```python
+client.send_event(
+    event_type="BUSINESS_ERROR",
+    message="Pedido inválido",
+    obs="Cliente tentou criar pedido sem itens",
+    object="order_service",
+    tags=["validation", "business"],
+    order_id="12345",
+    customer_id="67890"
+)
+```
+
+### Handler de Erros Global
+```python
+import sys
+from mentorstec import EventHubClient
+
+client = EventHubClient.create_azure_client("meu-app", "global-events", "global")
+
+def global_exception_handler(exc_type, exc_value, exc_traceback):
+    import traceback
+    client.send_event(
+        event_type="CRITICAL_ERROR",
+        message=str(exc_value),
+        obs="".join(traceback.format_exception(exc_type, exc_value, exc_traceback)),
+        object="uncaught_exception",
+        tags=["critical", exc_type.__name__]
+    )
+    sys.__excepthook__(exc_type, exc_value, exc_traceback)
+
+sys.excepthook = global_exception_handler
+```
+
+## 🔧 Configurações Avançadas
+
+### Client Customizado
+```python
+client = EventHubClient.create_azure_client(
+    project="meu-projeto",
+    queue_name="eventos-customizados",
+    layer="service", 
+    connection_string="sua-connection-string"
+)
+```
+
+### Environment Variables
+- `AZURE_SERVICE_BUS_CONNECTION_STRING` - String de conexão (obrigatória)
+
+## 📄 Licença
+
+MIT License - veja [LICENSE](LICENSE) para detalhes.
+
+## 🤝 Contribuindo
+
+1. Fork o projeto
+2. Crie sua feature branch (`git checkout -b feature/nova-feature`)
+3. Commit suas mudanças (`git commit -m 'Add nova feature'`)
+4. Push para a branch (`git push origin feature/nova-feature`)
+5. Abra um Pull Request
+
+## 📞 Suporte
+
+- **Email**: diego@mentorstec.com.br
+- **Issues**: [GitHub Issues](https://github.com/mentorstec/mentorstec/issues)
