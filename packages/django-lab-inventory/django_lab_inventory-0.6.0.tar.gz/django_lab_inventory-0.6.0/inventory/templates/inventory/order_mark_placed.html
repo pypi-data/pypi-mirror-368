@@ -1,0 +1,63 @@
+{% extends "base_view.html" %}
+{% load widget_tweaks %}
+
+{% block title %} meliza-lab : mark order as placed  {% endblock %}
+
+{% block content %}
+
+<div class="panel panel-default">
+  <div class="panel-heading">
+    <h3 class="panel-title">Mark order as placed</h3>
+  </div>
+  <div class="panel-body">
+    <form action="{% url 'inventory:mark_order_placed' order.id %}" class="form-horizontal" method="post" role="form">
+      {% csrf_token %}
+      <p>Click the Confirm button to mark the in-progress order <strong>{{order.name}}</strong> as placed. You can update account and user information using the fields below.</p>
+
+      {% for field in form %}
+      <div class="form-group {% if field.errors %}has-error{% endif %}">
+        <label for="{{field.auto_id}}" class="col-sm-2 control-label">{{ field.label }}</label>
+        <div class="col-sm-5">
+          {% if field.field.widget.input_type == 'checkbox' %}
+            {# Handle multiple checkboxes #}
+            {% if field.field.choices %}
+              <div>
+		{% for choice in field %}
+		<div class="checkbox">
+		  <label>
+		    {{ choice.tag }} {{ choice.choice_label }}
+		  </label>
+		</div>
+		{% endfor %}
+              </div>
+            {% else %}
+              {# Single checkbox #}
+              <div class="checkbox">
+                {% render_field field %}
+              </div>
+            {% endif %}
+          {% else %}
+            {# Regular form control #}
+            {% render_field field class+="form-control" %}
+          {% endif %}
+          {% if field.help_text %}
+            <p class="help-block">{{ field.help_text }}</p>
+          {% endif %}
+          {% if field.errors %}
+            <span class="help-block">{{ field.errors }}</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+      
+      <div class="form-group">
+        <div class="col-sm-10">
+          <button type="submit" name="confirm" class="btn btn-default">Confirm</button>
+        </div>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+{% endblock %}
