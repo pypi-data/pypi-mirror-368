@@ -1,0 +1,103 @@
+#!/usr/bin/env python3
+# vim: set fileencoding=utf-8 :
+#
+# Copyright (C) 2019 Satria A. Kautsar
+# Wageningen University & Research
+# Bioinformatics Group
+"""
+Download models from BiG-SLiCE's central server
+This file should not be called directly using python.
+Instead, it should be first installed via the setuptools
+"""
+
+# python imports
+import urllib.request
+import tarfile
+from os import path, makedirs
+from hashlib import md5
+from sys import argv
+import logging
+
+# Initiate and configure the logging functions for proper Python style logging. For now we will only print the logging
+# to the screen and not to a log file. In case the logging also needs to be written to a logfile it will be required to
+# set file_handler next to the already present console_handler. At current the log level is set to DEBUG, this holds
+# that all logs of the level DEBUG or higher are being send to the screen. When needed you can make a difference in the
+# level of what is send to a file and what is send to the standard output console.
+
+# Create a logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+# Create a console handler and set its level to debug
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.DEBUG)
+
+# Create a formatter
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+# Add the formatter to the console handler
+console_handler.setFormatter(formatter)
+
+# Add the console handler to the logger
+logger.addHandler(console_handler)
+
+
+def main():
+
+    # static variables
+    SOURCE_PATH = "https://github.com/medema-group/bigslice/releases/download/v2.0.0rc/bigslice-models.2022-11-30.tar.gz"
+    MD5_CHECKSUM = "aaabde911ec107d08e5c24f68aaf31d1"
+
+    dir_path = path.abspath(path.dirname(__file__))
+    models_folder = path.join(dir_path, "bigslice-models")
+
+    if len(argv) > 1:
+        SOURCE_PATH = argv[1]
+        if len(argv) > 2:
+            MD5_CHECKSUM = argv[2]
+        else:
+            MD5_CHECKSUM = None
+
+    if not path.exists(models_folder):
+        zipped_file = "bigslice_models.tar.gz"
+        if not path.exists(zipped_file):
+            logger.info("Downloading bigslice_models.tar.gz...")
+            try:
+                urllib.request.urlretrieve(SOURCE_PATH, zipped_file)
+            except Exception as e:
+                # Handle the exception
+                logger.error("An error occurred while downloading bigslice_models.tar.gz: {}".format(e))
+                return(1)
+
+
+        if MD5_CHECKSUM:
+            logger.info("Checking MD5 sums...")
+            md5sum_downloaded = md5sum(zipped_file)
+            if MD5_CHECKSUM != md5sum_downloaded:
+                logger.error("'{}' vs '{}': doesn't match!".format(
+                    MD5_CHECKSUM, md5sum_downloaded))
+                return(1)
+
+        logger.info("Extracting bigslice_models.tar.gz...")
+        makedirs(models_folder)
+        with tarfile.open(zipped_file, "r:gz") as fp:
+            fp.extractall(path=models_folder)
+
+        logger.info("done! (please remove the downloaded tar.gz file manually)")
+        return(0)
+
+    else:
+        logger.error("models folder exists!")
+        return(1)
+
+
+def md5sum(filename):
+    hash = md5()
+    with open(filename, "rb") as f:
+        for chunk in iter(lambda: f.read(128 * hash.block_size), b""):
+            hash.update(chunk)
+    return hash.hexdigest()
+
+
+if __name__ == "__main__":
+    main()
