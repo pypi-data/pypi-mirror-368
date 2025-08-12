@@ -1,0 +1,181 @@
+{
+  "experiment": {
+    "experimentName": "eng_learner",
+    "language": "english",
+    "langAbbr": "eng",
+    "corpusPath": "corpus/corpus_enron_mail.pt",
+    "seed": 42,
+    "logPath": "./logs/eng.log"
+  },
+  "encoder": {
+    "levels": {
+      "lexical": "gpt",
+      "upos": {
+        "spaCy": 1.0
+      },
+      "xpos": {
+        "spaCy": 1.0
+      }
+    },
+    "cleanerArgs": {
+      "noUrls": true,
+      "noEmails": true,
+      "noPhoneNumbers": true,
+      "replaceWithUrl": "<URL>",
+      "replaceWithEmail": "<EMAIL>"
+    },
+    "workerNum": 90,
+    "wholeWordFlag": "spaCy",
+    "backRatio": 0.6,
+    "searchRatio": 0.3,
+    "corpusShuffle": false
+  },
+  "lm": {
+    "modelName": "GPT_Base",
+    "datasetPath": "cache/eng_learner_enron/gpt-enron-split.pt",
+    "wandbName": "cxglearner-eng-enron-lm",
+    "configPath": "models/GPT_Base",
+    "outputModelPath": "checkpoints/gpt-2-base-enron/pytorch_model.bin",
+    "deepInit": true,
+    "fp16": true,
+    "wholeWordMasking": true,
+    "allowSkip": true,
+    "offbyone": false,
+    "loaderNum": 2,
+    "epochsNum": 1,
+    "batchSize": 64,
+    "learningRate": 2e-5,
+    "saveSteps": 1000,
+    "platform": {
+      "server": "local",
+      "worldSize": 8,
+      "gpuRanks": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "backend": "nccl",
+      "masterIp": "tcp://127.0.0.1:12346"
+    },
+    "selectionProbs": {
+      "lexical": 0.5,
+      "affix": 0.0,
+      "upos": 0.25,
+      "xpos": 0.25
+    }
+  },
+  "extractor": {
+    "mpMode": "trade-off",
+    "workerNum": 80,
+    "allowCuda": true,
+    "numberPerGpu": 10,
+    "gpuIndices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "gpuCpuRatio": 20.0,
+    "minLength": 3,
+    "maxLength": 7,
+    "beamSize": 10,
+    "candidatePath": "cache/eng_learner_enron/candidate-enron.ffr",
+    "scoreAccum": "multiply",
+    "candidateMode": "nucleus",
+    "neucleusK": 20,
+    "neucleusP": 0.6,
+    "rptDebug": {
+      "visualize": true,
+      "fitNum": 20
+    },
+    "pruner": {
+      "freq": {
+        "hardFreq": 200,
+        "softFreq": 0.00001,
+        "workerNum": 1
+      },
+      "vertical": {
+        "coarseGrained": true,
+        "operator": "union",
+        "fineGrained": {
+          "workerNum": 1,
+          "allowCuda": true,
+          "gpuIndices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "numberPerGpu": 1,
+          "batchSize": 1280,
+          "threshold": 0.3
+        },
+        "workerNum": 1
+      },
+      "horizontal": {
+        "mapper": [
+          "lexical",
+          "upos",
+          "xpos"
+        ],
+        "workerNum": 10
+      }
+    }
+  },
+  "learner": {
+    "object": {
+      "mdl": {
+        "alpha1": 0.6,
+        "alpha2": 0.4,
+        "batchSize": 500,
+        "datasetPath": "cache/eng_learner_enron/gpt-enron-split-learner.ffr",
+        "hybrid": true,
+        "workerNum": 4
+      },
+      "synsem": {
+        "workerNum": 1,
+        "allowCuda": true,
+        "chunkSize": 4,
+        "gpuIndices": [
+          0,
+          1,
+          2,
+          3,
+          5,
+          6,
+          7
+        ],
+        "batchSize": 4096,
+        "numberPerGpu": 4,
+        "distWorker": 40,
+        "needCluster": false,
+        "batchLoss": true
+      }
+    },
+    "metricWeight": {
+      "cont": 1000.0,
+      "cost": 0.01,
+      "coverage": -20000.0,
+      "overlap": 10000.0
+    },
+    "heuristicSearch": "simu_annual",
+    "candidateCxsPath": "cache/eng_learner_enron",
+    "doPreprocess": true,
+    "initStateMethod": "random",
+    "wandbName": "cxglearner-eng-enron-learner",
+    "recorderPath": "cache/eng_learner_enron/recorder_learner.ffr"
+  }
+}
