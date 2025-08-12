@@ -1,0 +1,148 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "itinerizer"
+version = "0.5.2"
+description = "A comprehensive travel itinerary management system with JSON storage"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Itinerizer Contributors", email = "contact@itinerizer.io"}
+]
+maintainers = [
+    {name = "Itinerizer Contributors", email = "contact@itinerizer.io"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Office/Business",
+    "Topic :: Other/Nonlisted Topic",
+]
+keywords = [
+    "travel",
+    "itinerary",
+    "trip",
+    "planning",
+    "booking",
+    "tourism",
+    "vacation",
+    "business-travel",
+    "json-storage",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "pydantic>=2.0.0",
+    "python-dateutil>=2.8.2",
+]
+
+[project.optional-dependencies]
+server = [
+    "fastapi>=0.100.0",
+    "uvicorn[standard]>=0.23.0",
+    "python-multipart>=0.0.6",
+]
+web = [
+    "flask>=3.0.0",
+    "flask-cors>=4.0.0",
+    "flask-session>=0.5.0",
+    "requests>=2.31.0",
+]
+nlp = [
+    "openai>=1.0.0",
+    "tiktoken>=0.5.0",
+]
+performance = [
+    "orjson>=3.9.0",
+]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.4.0",
+    "pre-commit>=3.3.0",
+]
+all = [
+    "itinerizer[server,web,nlp,performance,dev]",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/itinerizer"
+Documentation = "https://itinerizer.readthedocs.io"
+Repository = "https://github.com/yourusername/itinerizer.git"
+"Bug Tracker" = "https://github.com/yourusername/itinerizer/issues"
+Changelog = "https://github.com/yourusername/itinerizer/blob/main/CHANGELOG.md"
+
+[project.scripts]
+itinerizer = "itinerizer.cli:main"
+itinerizer-server = "itinerizer.server.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["itinerizer*"]
+exclude = ["tests*"]
+
+[tool.setuptools.package-data]
+itinerizer = ["py.typed"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--cov=itinerizer",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+]
+
+[tool.coverage.run]
+source = ["src/itinerizer"]
+omit = ["*/tests/*", "*/test_*.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "pass",
+    "except ImportError:",
+]
+
+[tool.black]
+line-length = 100
+target-version = ["py38", "py39", "py310", "py311", "py312"]
+include = '\.pyi?$'
+
+[tool.flake8]
+max-line-length = 100
+extend-ignore = ["E203", "W503"]
+exclude = [".git", "__pycache__", "build", "dist", ".eggs"]
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+exclude = ["tests/", "build/", "dist/"]
