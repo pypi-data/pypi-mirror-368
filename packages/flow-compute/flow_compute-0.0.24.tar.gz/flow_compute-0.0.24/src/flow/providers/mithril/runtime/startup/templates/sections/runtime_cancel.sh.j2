@@ -1,0 +1,16 @@
+#!/bin/bash
+set -euo pipefail
+source /var/lib/flow/task-runtime.conf
+echo "[$(date)] Flow runtime limit reached, initiating graceful shutdown"
+docker stop -t 30 main 2>/dev/null || true
+sleep 10
+INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id || hostname)
+TASK_ID=$(curl -s -H "Authorization: Bearer $MITHRIL_API_KEY" \
+    "$MITHRIL_API_URL/v2/spot/bids?project=$MITHRIL_PROJECT" | \
+    python3 -c "import sys,json;d=json.load(sys.stdin);b=d if isinstance(d,list) else d.get('data',[]);\
+print(next((x.get('fid') for x in b for i in x.get('instances',[]) if i.get('instance_id')=='$INSTANCE_ID'), 'unknown'))")
+if [ "$TASK_ID" != "unknown" ]; then
+  curl -X DELETE -H "Authorization: Bearer $MITHRIL_API_KEY" -H "Content-Type: application/json" "$MITHRIL_API_URL/v2/spot/bids/$TASK_ID" --max-time 30 || true
+fi
+
+

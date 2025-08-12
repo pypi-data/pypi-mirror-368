@@ -1,0 +1,59 @@
+name: Publish to PyPI
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      package_name:
+        description: 'Package name to publish'
+        required: true
+        type: choice
+        options:
+          - flow-sdk
+          - mithril-ai
+          - flow-acc
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build twine
+    
+    - name: Update package name if needed
+      if: github.event_name == 'workflow_dispatch' && github.event.inputs.package_name != 'flow-sdk'
+      run: |
+        # Backup original
+        cp pyproject.toml pyproject.toml.bak
+        
+        # Update package name
+        sed -i "s/^name = \"flow-sdk\"/name = \"${{ github.event.inputs.package_name }}\"/" pyproject.toml
+        
+        # Show the change
+        echo "Updated package name to: ${{ github.event.inputs.package_name }}"
+        grep "^name = " pyproject.toml
+    
+    - name: Build package
+      run: python -m build
+    
+    - name: Check package
+      run: twine check dist/*
+    
+    - name: Publish to PyPI
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+      run: |
+        twine upload dist/*
+        echo "Package published to PyPI"
+        echo "Install with: pip install ${{ github.event.inputs.package_name || 'flow-sdk' }}"
