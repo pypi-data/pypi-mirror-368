@@ -1,0 +1,205 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import itertools
+import pandas as pd
+from ENT3C.core import utils
+
+
+def get_similarity(config_file):
+    (
+        config_df,
+        SUB_M_SIZE_FIX,
+        PHI_MAX,
+        CHRSPLIT,
+        phi,
+        NormM,
+        CHROMOSOMES,
+        RESOLUTIONS,
+        BR,
+        FNs,
+        OUT_DIR,
+        OUT_PREFIX,
+        entropy_out_FN,
+        similarity_out_FN,
+        LOG_FN,
+    ) = utils.check_config(config_file)
+
+    ENT3C_OUT = pd.read_csv(f"{entropy_out_FN}", sep="\t", dtype={"ChrNr": str})
+
+    SAMPLES = set(ENT3C_OUT["Name"])
+
+    Similarity = pd.DataFrame(
+        {
+            "Resolution": pd.Series(dtype="int"),
+            "ChrNr": pd.Series(dtype="str"),
+            "Sample1": pd.Series(dtype="str"),
+            "Sample2": pd.Series(dtype="str"),
+            "Q": pd.Series(dtype="float"),
+        }
+    )
+    all_samples = ENT3C_OUT["Name"].unique()
+    all_samples = pd.Series(all_samples)
+    cell_types = all_samples.str.extract(r"(.*?)_BR")[0]
+
+    # print(all_samples)
+    # print(cell_types)
+    if BR:
+        meta = pd.DataFrame({"Sample": all_samples, "cell_type": cell_types})
+    else:
+        meta = pd.DataFrame({"Sample": all_samples, "cell_type": all_samples})
+    color_schemes = utils.get_color_schemes(meta)
+
+    cols = int(np.ceil(np.sqrt(len(CHROMOSOMES))))
+    rows = int(np.ceil(len(CHROMOSOMES) / cols))
+    if len(SAMPLES) > 1:
+        comparisons = list(itertools.combinations(SAMPLES, 2))
+        for Resolution in RESOLUTIONS:
+            fig, axs = plt.subplots(
+                nrows=rows,
+                ncols=cols,
+                figsize=(cols * 8, rows * 4),
+            )  # Width, height in inches
+            fig.suptitle(f"{Resolution / 1e3}kb")
+
+            if isinstance(axs, np.ndarray):
+                axs = axs.flatten()
+            else:
+                axs = np.array([axs])
+
+            for i, ChrNr in enumerate(CHROMOSOMES):
+                ax = axs[i]
+                ax.set_title(f"Chr{ChrNr}")
+
+                plotted = set()
+                # print(comparisons)
+                for comp in comparisons:
+                    # print(comp)
+                    S1 = ENT3C_OUT[
+                        (ENT3C_OUT["Name"] == comp[0])
+                        & (ENT3C_OUT["ChrNr"] == ChrNr)
+                        & (ENT3C_OUT["Resolution"] == Resolution)
+                    ]["S"]
+                    S1 = np.array(S1, dtype=np.float64)
+                    # Z1 = S1.copy()
+                    # Z1 = (Z1 - Z1.mean()) / Z1.std()
+                    # print(np.mean(S1))
+                    # print(np.mean(Z1))
+
+                    S2 = ENT3C_OUT[
+                        (ENT3C_OUT["Name"] == comp[1])
+                        & (ENT3C_OUT["ChrNr"] == ChrNr)
+                        & (ENT3C_OUT["Resolution"] == Resolution)
+                    ]["S"]
+                    S2 = np.array(S2, dtype=np.float64)
+                    # Z2 = S2.copy()
+                    # Z2 = (Z2 - Z2.mean()) / Z2.std()
+
+                    non_nan_idx = ~np.isnan(S1) & ~np.isnan(S2)
+                    Q = np.corrcoef(S1[non_nan_idx], S2[non_nan_idx])[0, 1]
+
+                    new_row = pd.DataFrame(
+                        {
+                            "Resolution": [Resolution],
+                            "ChrNr": [str(ChrNr)],
+                            "Sample1": [comp[0]],
+                            "Sample2": [comp[1]],
+                            "Q": [Q],
+                        }
+                    )
+
+                    Similarity = pd.concat([Similarity, new_row], ignore_index=True)
+                    if comp[0] not in plotted:
+                        clr = utils.get_color_by_replicate(comp[0], color_schemes)
+                        ax.plot(S1, label=f"{comp[0]}", color=clr, linewidth=0.7)
+                        plotted.add(comp[0])
+                        i += 1
+                    if comp[1] not in plotted:
+                        clr = utils.get_color_by_replicate(comp[1], color_schemes)
+                        ax.plot(S2, label=f"{comp[1]}", color=clr, linewidth=0.7)
+                        plotted.add(comp[1])
+                        i += 1
+
+                if BR:
+                    # print(Similarity)
+                    Q_BR = Similarity[
+                        (Similarity["ChrNr"] == ChrNr)
+                        & (Similarity["Resolution"] == Resolution)
+                        & (
+                            Similarity["Sample1"].str.split("_BR").str[0]
+                            == Similarity["Sample2"].str.split("_BR").str[0]
+                        )
+                    ]["Q"].mean()
+                    # print(Q_BR)
+
+                    Q_NR = Similarity[
+                        (Similarity["ChrNr"] == ChrNr)
+                        & (Similarity["Resolution"] == Resolution)
+                        & (
+                            Similarity["Sample1"].str.split("_BR").str[0]
+                            != Similarity["Sample2"].str.split("_BR").str[0]
+                        )
+                    ]["Q"].mean()
+                    # print(Q_NR)
+
+                    title_str = (
+                        rf"Chr{ChrNr}"
+                        + "\n"
+                        + rf"$\overline{{Q}}_{{BR}} = {Q_BR:.2f}$ "
+                        + rf"$\overline{{Q}}_{{NR}} = {Q_NR:.2f}$"
+                    )
+                    ax.set_title(title_str, fontsize=25)
+                else:
+                    Q_NR = Similarity[
+                        (Similarity["ChrNr"] == ChrNr)
+                        & (Similarity["Resolution"] == Resolution)
+                        & (
+                            Similarity["Sample1"].str.split("_").str[0]
+                            != Similarity["Sample2"].str.split("_").str[0]
+                        )
+                    ]["Q"].mean()
+                    title_str = rf"Chr{ChrNr}" + rf"$\overline{{Q}} = {Q_NR:.2f}$"
+                    ax.set_title(title_str, fontsize=25)
+
+                ax.tick_params(labelsize=15)
+                ax.title.set_fontsize(15)
+                ax.xaxis.label.set_fontsize(15)
+                ax.yaxis.label.set_fontsize(15)
+                ax.autoscale(enable=True, axis="both", tight=True)
+
+            plotted = [p.replace("_", " ") for p in plotted]
+            handles, labels = axs[0].get_legend_handles_labels()
+            labels, handles = zip(
+                *sorted(zip(labels, handles), key=lambda t: utils.natural_key(t[0]))
+            )
+
+            fig.legend(
+                handles,
+                labels,
+                loc="upper right",
+                # bbox_to_anchor=(1.05, 1),
+                bbox_transform=plt.gcf().transFigure,
+                handlelength=1,
+                handleheight=1,
+                fontsize=16,
+                frameon=False,
+            )
+
+            for i in range(len(CHROMOSOMES), len(axs)):
+                axs[i].axis("off")
+
+            fig.subplots_adjust(right=0.9, hspace=0.35)
+            fig.savefig(
+                f"{OUT_DIR}/{OUT_PREFIX}_{int(Resolution / 1e3)}kb_ENT3C_signals.pdf",
+                format="pdf",
+                bbox_inches="tight",
+            )
+    print("Output similarity table:")
+    print(Similarity)
+
+    Similarity.to_csv(
+        similarity_out_FN,
+        index=False,
+        sep="\t",
+    )
+
+    return Similarity
