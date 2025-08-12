@@ -1,0 +1,28 @@
+name: CI
+on:
+  push:
+    branches:
+    - release/*
+    - develop
+    - master
+    - main
+  pull_request: {}
+
+permissions:
+  id-token: write # Required for federated aws oidc
+  actions: read
+  contents: write # to be able to publish a GitHub release
+  issues: write # to be able to comment on released issues
+  pull-requests: write # to be able to comment on released pull requests
+
+
+jobs:
+  ci:
+    uses: uptick/actions/.github/workflows/ci.yaml@main
+    secrets: inherit
+    with:
+      aws: true
+      python: true
+      mise: true
+      mise-install: true
+      command: mise run ci
