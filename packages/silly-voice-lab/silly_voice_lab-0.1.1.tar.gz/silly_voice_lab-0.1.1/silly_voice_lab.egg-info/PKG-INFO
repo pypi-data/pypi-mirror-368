@@ -1,0 +1,130 @@
+Metadata-Version: 2.4
+Name: silly-voice-lab
+Version: 0.1.1
+Summary: Dialogues voice generator using ElevenLabs (AI)
+Author-email: Vincent Fabre <peigne.plume@gmail.com>
+License-Expression: MIT
+Project-URL: Homepage, https://github.com/byoso/ElevenLabs-tools
+Project-URL: Repository, https://github.com/byoso/ElevenLabs-tools
+Keywords: silly-voice-lab,voice,elevenlabs
+Classifier: Programming Language :: Python :: 3
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Natural Language :: English
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: pydub<1.0.0,>=0.25.1
+Requires-Dist: pyttsx3==2.99
+Requires-Dist: PyYAML<7.0.0,>=6.0.2
+Requires-Dist: requests<3.0.0,>=2.32.4
+
+# silly-voice-lab
+
+A simple tool to create voiced dialogues with **ElevenLabs** for your projects.
+
+## How it works
+
+- Choose a working folder
+then: `pip install silly_voice_lab`
+
+- run `silly-voice-lab` to know the commands
+- run `silly-voice-lab init` to get a starter pack.
+- Now that you have a `silly_voice_lab.cfg` file in your working folder, configure it to fit your needs:
+
+**silly_voice_lab.cfg**
+```sh
+[secrets]
+# enter your own ElevenLab api key here if you have one
+elevenlabs_api_key=your_own_key
+
+[folders]
+input_folder=scenario
+output_folder=voices
+
+[app]
+debug=1  # 1 is verbose, 0 is less verbose
+# converter can be [text | prod | dev]
+# text writes .txt files, for debugging or to create subtitles
+# dev writes .mp3 files, sounds really bad but usefull for dev
+# prod writes .mp3 files, sounds good, requires a valid elevenlabs_api_key, costs you some EL credits.
+converter=dev
+
+[dev]
+# 'dev' voices, you can try different languages (en, fr...) and different "types" (f1, f2, m3...) find those that exists
+# the command info will list the available langues
+female_voice_id=en+f3
+male_voice_id=en+m3
+
+```
+
+- run the voice processing with `silly-voice-lab run silly_voice_lab.cfg`
+
+## About the scenario files
+
+### Character groups
+
+Directly inside a scenario folder (or whatever you named it), you must have at least one yaml files looking like this:
+
+**group_example.yaml**
+```yaml
+- name: heroes      # name of the group
+  folder: heroes    # folder in wich you must place the character's folders
+  characters:
+  - name: John      # name of a character's folder
+    voice_id: EkK5I93UQWFDigLMpZcX # the ElevenLab ID of the voice for the 'prod' mode (optionnal)
+    gender: m       # voice gender for the 'dev' mode (optionnal)
+  - name: Sarah
+    voice_id: Z3R5wn05IrDiVCyEkUrK
+    gender: f
+```
+Here is the definition of the group "heroes" provided by the command 'init' (you can have multiple groups in the same file). There is also the definition of John and Sarah.
+
+### Files tree
+
+For each character you must have a folder with the same name as the character (e.g: John in the folder 'John'). In a character's folder, you will add one or more dialogue yaml file (name them as you wish).
+
+Example (get it with the command 'init'):
+```
+scenario/
+    ├── heroes/
+    │   ├── John/
+    │   │   └── actions.yaml
+    │   └── Sarah/
+    │       └── actions.yaml
+    ├── heroes.yaml
+    └── npcs.yaml
+```
+
+### Dialogues files
+
+No matter how a dialogue file is named, it must look like that.
+
+**some_dialogues.yaml**
+```yaml
+- category: "actions" # when precessed, will create a subfolder with that name
+  dialogues:
+  - title: "it_works" # will be used for the name of the file, here 'it_works.mp3'
+    text: "Yes ! it works"  # the actual dialogue line
+  - title: "yes"
+    text: "Yes !"
+- category: "fight"
+  dialogues:
+  - title: "ouch"
+    text: "Ouch !"
+```
+
+You can add as much categories and dialogues as long as you respect this structure.
+
+
+## about the converters
+- text: does not create real audio files, just text placeholders, usefull to test
+- dev: use a local rough speech-to-text, usefull to prototype a project with real voices (but robot-like as hell !)
+- prod: uses elevenlabs api to create the voices, you need a valid ElevenLab api key to do that.
+
+**Important**: aiming to save your precious ElevenLabs credits, the processing of the voices will automatically skeep the already existing files, so, if you want to replace an already existing file, delete it manually before re-processing. If you add new dialogue lines, only the new ones will be processed.
+
+
+# Suggested workflow with ElevenLabs (tip for broke devs 😉 )
+
+Create 2 different .cfg files (one converter=dev and one converter=prod), each one pointing to a different outpout folder (let's say "voices-prod" and "voices-dev").
+
+Start your project with the dev voices, and as soon as your EL credits are high enough to create new 'prod' voices, process the prod cfg file (remember it will only process the missing mp3 files), and then replace the dev voices in your project by the prod ones.
