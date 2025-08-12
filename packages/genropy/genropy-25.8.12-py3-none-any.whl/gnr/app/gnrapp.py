@@ -1,0 +1,1619 @@
+# -*- coding: utf-8 -*-
+#--------------------------------------------------------------------------
+# package       : GenroPy app - see LICENSE for details
+# module gnrapp : Genro application architecture.
+# Copyright (c) : 2004 - 2007 Softwell sas - Milano 
+# Written by    : Giovanni Porcari, Michele Bertoldi
+#                 Saverio Porcari, Francesco Porcari , Francesco Cavazzana
+#--------------------------------------------------------------------------
+#This library is free software; you can redistribute it and/or
+#modify it under the terms of the GNU Lesser General Public
+#License as published by the Free Software Foundation; either
+#version 2.1 of the License, or (at your option) any later version.
+
+#This library is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+#Lesser General Public License for more details.
+
+#You should have received a copy of the GNU Lesser General Public
+#License along with this library; if not, write to the Free Software
+#Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+import tempfile
+import atexit
+import shutil
+import locale
+import sys
+import types
+import importlib
+import importlib.metadata
+from packaging.requirements import Requirement
+from packaging.version import Version
+import os
+import hashlib
+import smtplib
+import time
+import glob
+import subprocess
+from collections import defaultdict
+from email.mime.text import MIMEText
+
+from gnr.core.gnrclasses import GnrClassCatalog
+from gnr.core.gnrbag import Bag
+from gnr.core.gnrdecorator import extract_kwargs
+from gnr.core.gnrlang import  objectExtract,gnrImport, instanceMixin, GnrException
+from gnr.core.gnrstring import makeSet, toText, splitAndStrip, like, boolean
+from gnr.core.gnrsys import expandpath
+from gnr.core.gnrconfig import getGnrConfig
+from gnr.core import gnrlog
+from gnr.utils import ssmtplib
+from gnr.app.gnrdeploy import PathResolver
+from gnr.app import logger
+from gnr.app.gnrlocalization import AppLocalizer
+from gnr.sql.gnrsql import GnrSqlDb
+
+class GnrRestrictedAccessException(GnrException):
+    """GnrRestrictedAccessException"""
+    code = 'GNRAPP-001'
+    description = '!!User not allowed'
+
+
+class NullLoader(object):
+    """TODO"""
+
+    def __init__(self, name, module_path, package):
+        self.name = name
+        self.module_path = module_path
+        self.package=package
+
+    def load_module(self,fullname):
+        """TODO
+
+        :param fullname: TODO"""
+        if fullname in sys.modules:
+            return sys.modules[fullname]
+
+    def exec_module(self, module):
+        #sys.modules[self.name]=module
+        pass
+
+    def create_module(self, spec):
+        pkg_module=types.ModuleType(self.name)
+        pkg_module.__file__ = None
+        pkg_module.__name__ = self.name
+        pkg_module.__path__ = None
+        pkg_module.__loader__ = self
+        pkg_module.__package__ = self.package
+        return pkg_module
+
+class ApplicationCache(object):
+    def __init__(self,application=None):
+        self.application = application
+        self.cache = {}
+    
+    def getItem(self,key):
+        return self.cache.get(key,None)
+    
+    def setItem(self,key,value):
+        self.cache[key] = value
+
+    def updatedItem(self,key):
+        self.cache.pop(key,None)
+
+    def expiredItem(self,key):
+        return key not in self.cache
+
+
+class GnrModuleFinder:
+    """TODO"""
+    
+    path_list=[]
+    app_list=set()
+    instance_lib = None
+    def __init__(self, app):
+        self.app = app
+        if app not in self.app_list:
+            self.app_list.add(app)
+        if self.instance_lib is None:
+            self.instance_lib = os.path.join(app.instanceFolder, 'lib')
+
+    def __str__(self):
+        return f"<{self.__class__.__name__}>"
+
+    def find_spec(self, fullname, path, target=None):
+        splitted=fullname.split('.')
+        if splitted[0] != 'gnrpkg':
+            return
+        n_segments = len(splitted)
+        if n_segments==1:
+            if 'gnrpkg' in sys.modules:
+                return sys.modules['gnrpkg'].__spec__
+            else:
+                spec = importlib.machinery.ModuleSpec('gnrpkg', NullLoader('gnrpkg', [self.instance_lib], 'gnrpkg'),is_package=True)
+                spec.submodule_search_locations=None
+                return spec
+        elif n_segments==2:
+            pkg = splitted[1]
+            spec= self._get_gnrpkg_module_spec(pkg)
+            return spec
+
+    def pkg_in_app_list(self, pkg):
+        for a in self.app_list:
+            if pkg in a.packages:
+                return a.packages[pkg]
+
+    def _get_gnrpkg_module_spec(self, pkg):
+        gnrpkg = self.pkg_in_app_list(pkg)
+        if not gnrpkg:
+            return
+        gnrpkg_module_name= 'gnrpkg.%s'%pkg 
+        spec = importlib.machinery.ModuleSpec(gnrpkg_module_name, NullLoader(gnrpkg_module_name, [self.instance_lib], 'gnrpkg'), is_package=True)
+        if os.path.isdir(os.path.join(gnrpkg.customFolder,'lib')):
+            spec.submodule_search_locations.append(os.path.join(gnrpkg.customFolder,'lib'))
+        spec.submodule_search_locations.append(os.path.join(gnrpkg.packageFolder,'lib'))
+        return spec
+
+class GnrImportException(GnrException):
+    """TODO"""
+    pass
+
+class GnrMixinObj(object):
+    """TODO"""
+    def __init__(self):
+        pass
+
+class GnrSqlAppDb(GnrSqlDb):
+    """TODO"""
+    def checkTransactionWritable(self, tblobj):
+        """TODO
+        
+        :param tblobj: the :ref:`database table <table>` object"""
+        if self.currentEnv.get('forced_transaction'):
+            return
+        if not hasattr(tblobj, '_usesTransaction'):
+            tblobj._usesTransaction = boolean(
+                    tblobj.attributes.get('transaction', tblobj.pkg.attributes.get('transaction', '')))
+        if not self.inTransactionDaemon and tblobj._usesTransaction:
+            raise GnrWriteInReservedTableError('%s.%s' % (tblobj.pkg.name, tblobj.name))
+
+    @property
+    def localizer(self):
+        return self.application.localizer
+
+
+    def notifyDbUpdate(self,tblobj,recordOrPkey=None,**kwargs):
+        self.application.notifyDbUpdate(tblobj,recordOrPkey=recordOrPkey,**kwargs)
+    
+        
+    def delete(self, tblobj, record, **kwargs):
+        """Delete a record in the database
+        
+        :param tblobj: the :ref:`database table <table>` object
+        :param record: the record to be deleted"""
+        self.checkTransactionWritable(tblobj)
+        GnrSqlDb.delete(self, tblobj, record,**kwargs)
+        if self.systemDbEvent():
+            return
+        self.application.notifyDbEvent(tblobj, record, 'D')
+        
+    def update(self, tblobj, record, old_record=None, pkey=None,**kwargs):
+        """Update a record in the database
+        
+        :param tblobj: the :ref:`database table <table>` object
+        :param record: the new record
+        :param old_record: the old record to be updated
+        :param pkey: the record :ref:`primary key <pkey>`"""
+        self.checkTransactionWritable(tblobj)
+        GnrSqlDb.update(self, tblobj, record, old_record=old_record, pkey=pkey,**kwargs)
+        if self.systemDbEvent():
+            return
+        self.application.notifyDbEvent(tblobj, record, 'U', old_record)
+        
+    def insert(self, tblobj, record, **kwargs):
+        """Insert a record in the database
+
+        :param tblobj: the :ref:`database table <table>` object
+        :param record: the record to be inserted"""
+        self.checkTransactionWritable(tblobj)
+        GnrSqlDb.insert(self, tblobj, record,**kwargs)
+        if self.systemDbEvent():
+            return
+        self.application.notifyDbEvent(tblobj, record, 'I')
+       
+
+    def raw_delete(self, tblobj, record, **kwargs):
+
+        """Delete a record in the database
+        
+        :param tblobj: the :ref:`database table <table>` object
+        :param record: the record to be deleted"""
+        self.checkTransactionWritable(tblobj)
+        GnrSqlDb.raw_delete(self, tblobj, record,**kwargs)
+        if self.systemDbEvent():
+            return
+        self.application.notifyDbEvent(tblobj, record, 'D')
+        
+    def raw_update(self, tblobj, record, old_record=None,pkey=None,**kwargs):
+        """Update a record in the database
+        
+        :param tblobj: the :ref:`database table <table>` object
+        :param record: the new record
+        :param old_record: the old record to be updated
+        :param pkey: the record :ref:`primary key <pkey>`"""
+        self.checkTransactionWritable(tblobj)
+        GnrSqlDb.raw_update(self, tblobj, record,old_record=old_record, pkey=pkey,**kwargs)
+        if self.systemDbEvent():
+            return
+        old_record = record or dict(record)
+        self.application.notifyDbEvent(tblobj, record, 'U', old_record)
+        
+    def raw_insert(self, tblobj, record, **kwargs):
+        """Insert a record in the database
+
+        :param tblobj: the :ref:`database table <table>` object
+        :param record: the record to be inserted"""
+        self.checkTransactionWritable(tblobj)
+        GnrSqlDb.raw_insert(self, tblobj, record,**kwargs)
+        if self.systemDbEvent():
+            return
+        self.application.notifyDbEvent(tblobj, record, 'I')
+
+    def getResource(self, tblobj, path):
+        """TODO
+
+        :param tblobj: the :ref:`database table <table>` object
+        :param path: TODO"""
+        app = self.application
+        resource = app.site.loadResource(tblobj.pkg.name, 'tables', tblobj.name, path)
+        resource.site = app.site
+        resource.table = tblobj
+        resource.db = self
+        return resource
+    
+    def onDbCommitted(self):
+        """TODO"""
+        self.application.onDbCommitted()
+        
+    def getFromStore(self, path, dflt):
+        """TODO
+        
+        :param path: TODO
+        :param dflt: TODO"""
+        return self.currentPage.pageStore().getItem(path,dflt)
+        
+    @property
+    def currentPage(self):
+        return self.application.site.currentPage if hasattr(self.application,'site') else None
+
+    def quickThermo(self,iterable,*args,**kwargs):
+        if not self.currentPage:
+            return iterable
+        return self.currentPage.utils.quickThermo(iterable,*args,**kwargs)
+
+    def thermoMessage(self,*args,**kwargs):
+        if not self.currentPage:
+            return
+        return self.currentPage.utils.thermoMessage(*args,**kwargs)
+
+
+    @property
+    def currentUser(self):
+        return self.currentEnv.get('user') or (self.currentPage and self.currentPage.user)
+
+    def localVirtualColumns(self,table):
+        page = self.currentPage
+        if not page:
+            return
+        maintable = getattr(page,'maintable',None)
+        result = Bag()
+        fmethods = [v for v in [getattr(page,k) for k in dir(page) if k.startswith('formulacolumn_')]]
+        for f in fmethods:
+            fckw = dict(f.formulaColumn_kw)
+            ftable = fckw.get('table',maintable)
+            if ftable == table:
+                r = f()
+                if isinstance(r,dict):
+                    r = [r]
+                if isinstance(r,list):
+                    for c in r:
+                        kw = dict(fckw)
+                        kw.update(c)
+                        result.setItem(kw.pop('name'),None,**kw)
+                else:
+                    fckw['sql_formula'] = r
+                    result.setItem(fckw.pop('name'),None,**fckw)
+        return result
+
+    def customVirtualColumns(self,table):
+        if self.package('adm') and table!='adm.userobject':
+            userobject = self.table('adm.userobject')
+            pkg,tbl = table.split('.')
+            f = userobject.query(where='$tbl=:t AND objtype=:fc',t=table,fc='formulacolumn',bagFields=True).fetch()
+            result = Bag()
+
+            for r in f:
+                b = Bag(r['data'])
+                kw = b.asDict(ascii=True)
+                kw['name_long'] = r['description']
+                result.setItem(b.pop('fieldname'),None,**kw)
+            return result
+
+    def _getUserConfiguration(self,table=None,user=None,user_group=None):
+        if self.package('adm'):
+            return self.table('adm.user_config').getInfoBag(tbl=table,user=user,
+                                                        user_group=user_group)
+
+
+
+class GnrPackagePlugin(object):
+    """TODO"""
+    def __init__(self, pkg, path):
+        self.pkg = pkg
+        self.application = self.pkg.application
+        plugin_id = os.path.basename(path)
+        self.id = plugin_id
+        self.path = path
+        self.pluginFolder=path
+        model_path = os.path.join(self.pluginFolder,'model')
+        self.model_path = model_path if os.path.isdir(model_path) else ''
+        resources_path = os.path.join(self.pluginFolder,'resources')
+        self.resources_path = resources_path if os.path.isdir(resources_path) else ''
+        webpages_path = os.path.join(self.pluginFolder,'webpages')
+        self.webpages_path = webpages_path if os.path.isdir(webpages_path) else ''
+        config_path = os.path.join(self.pluginFolder,'config.xml')
+        self.config = Bag(config_path) if os.path.isfile(config_path) else Bag()
+        self.application.config['package_plugins.%s.%s'%(pkg.id,self.id)]=self.config
+        
+class GnrPackage(object):
+    """TODO"""
+    def __init__(self, pkg_id, application,
+                 path=None, filename=None, project=None, **pkgattrs):
+        self.id = pkg_id
+        filename = filename or pkg_id
+        self.application = application
+
+        # FIXME: os.path.join won't accept None as a value
+        # for path, which is the default value of the method
+        # parameter, and no checks are being made on it.
+        self.packageFolder = os.path.join(path, filename)
+        self.libPath = os.path.join(self.packageFolder, 'lib')
+        sys.path.append(self.libPath)
+        self.attributes = {}
+        self.tableMixins = {}
+        self.plugins = {}
+        self.loadPlugins()
+        self.projectInfo = None
+
+        # TODO: verify that this 'info.xml' loading is really needed,
+        # couldn't find any trace of usage around.
+        if not project:
+            projectPath = os.path.normpath(os.path.join(self.packageFolder,'..','..'))
+            projectInfoPath = os.path.join(projectPath,'info.xml')
+            project = os.path.split(projectPath)[1]
+            if os.path.exists(projectInfoPath):
+                self.projectInfo = Bag(projectInfoPath)
+
+                
+        if not self.projectInfo:
+            self.projectInfo = Bag(('project',None,dict(name=project,code=project,language='en')))
+            
+        self.project = project 
+        self.customFolder = os.path.join(self.application.instanceFolder, 'custom', pkg_id)
+        try:
+            self.main_module = gnrImport(os.path.join(self.packageFolder, 'main.py'),avoidDup=True)
+        except Exception as e:
+            logger.exception(e)
+            raise GnrImportException(
+                    "Cannot import package %s from %s: %s" % (pkg_id, os.path.join(self.packageFolder, 'main.py'), str(e)))
+        self.pkgMixin = GnrMixinObj()
+        instanceMixin(self.pkgMixin, getattr(self.main_module, 'Package', None))
+        
+        self.baseTableMixinCls = getattr(self.main_module, 'Table', None)
+        self.baseTableMixinClsCustom = None
+        
+        self.webPageMixin = getattr(self.main_module, 'WebPage', None)
+        self.webPageMixinCustom = None
+        
+        self.attributes.update(self.pkgMixin.config_attributes())
+        custom_mixin = os.path.join(self.customFolder, 'custom.py')
+        self.custom_module = None
+        if os.path.isfile(custom_mixin):
+            self.custom_module = gnrImport(custom_mixin,avoidDup=True, silent=False)
+            instanceMixin(self.pkgMixin, getattr(self.custom_module, 'Package', None))
+        
+            self.attributes.update(self.pkgMixin.config_attributes())
+            self.webPageMixinCustom = getattr(self.custom_module, 'WebPage', None)
+            self.baseTableMixinClsCustom = getattr(self.custom_module, 'Table', None)
+        
+        instanceMixin(self, self.pkgMixin)
+        self.attributes.update(pkgattrs)
+        self.disabled = boolean(self.attributes.get('disabled'))
+
+    def initTableMixinDict(self):
+        self.tableMixinDict = {}
+        modelFolder = os.path.join(self.packageFolder, 'model')
+        self.loadTableMixinDict(self.main_module, modelFolder)
+        for pkgid, apppkg in list(self.application.packages.items()):
+            externalPkgModelFolder = os.path.join(apppkg.packageFolder,'model','_packages',self.id)
+            self.loadTableMixinDict(self.main_module, externalPkgModelFolder, fromPkg=pkgid)
+        for plugin in self.getPlugins():
+            pluginModelFolder = os.path.join(plugin.path, 'model')
+            self.loadTableMixinDict(self.main_module, pluginModelFolder, pluginId=plugin.id)
+        if os.path.isdir(self.customFolder):
+            customModelFolder = os.path.join(self.customFolder, 'model')
+            self.loadTableMixinDict(self.custom_module, customModelFolder, model_prefix='custom_')
+        self.configure()
+
+    @property
+    def language(self):
+        return self.attributes.get('language') or self.projectInfo['project?language']
+
+    @property
+    def db(self):
+        return self.application.db
+    
+    def required_packages(self):
+        return []
+    
+    def loadPlugins(self):
+        """TODO"""
+        plugin_folders=glob.glob(os.path.join(self.application.pluginFolder,self.id,'*'))
+        for plugin_folder in plugin_folders:
+            plugin = GnrPackagePlugin(self, plugin_folder)
+            self.plugins[plugin.id] = plugin
+        
+    def getPlugins(self):
+        """TODO"""
+        return list(self.plugins.values())
+    
+    def loadTableMixinDict(self, module, modelfolder, model_prefix='', pluginId=None, fromPkg=None):
+        """TODO
+        
+        :param module: TODO
+        :param modelfolder: TODO
+        :param model_prefix: TODO"""
+        tbldict = {}
+        if module:
+            tbldict = dict([(x[6:], getattr(module, x)) for x in dir(module) if x.startswith('Table_')])
+        #modelfolder=os.path.join(folder,'model')
+        
+        if os.path.isdir(modelfolder):
+            tbldict.update(dict([(x[:-3], None) for x in os.listdir(modelfolder) if x.endswith('.py')]))
+        tblkeys = list(tbldict.keys())
+        tblkeys.sort()
+        for tbl in tblkeys:
+            cls = tbldict[tbl]
+            if not tbl in self.tableMixinDict:
+                self.tableMixinDict[tbl] = GnrMixinObj()
+                instanceMixin(self.tableMixinDict[tbl], self.baseTableMixinCls)
+                instanceMixin(self.tableMixinDict[tbl], self.baseTableMixinClsCustom)
+            if not cls:
+                tbl_module = gnrImport(os.path.join(modelfolder, '%s.py' % tbl),
+                                       avoidDup=True, silent=False)
+                tbl_cls = getattr(tbl_module, 'Table', None)
+                if not fromPkg:
+                    instanceMixin(self.tableMixinDict[tbl], tbl_cls)
+                else:
+                    special_methods = ['config_db','trigger_onInserting','trigger_onInserted','trigger_onUpdating',
+                                        'trigger_onUpdated','trigger_onDeleting','trigger_onDeleted']
+                    special_methods = ','.join(special_methods)
+                    instanceMixin(self.tableMixinDict[tbl], tbl_cls, methods=special_methods, suffix='%s'%fromPkg)
+                    instanceMixin(self.tableMixinDict[tbl], tbl_cls, exclude=special_methods)
+                
+                self.tableMixinDict[tbl]._plugins = dict()
+                #self.tableMixinDict[tbl]._filename = tbl
+                # mbertoldi commented out the following two lines as they are useless
+                #for cname in dir(tbl_module):
+                #    member = getattr(tbl_module, cname, None)
+            else:
+                if not fromPkg:
+                    instanceMixin(self.tableMixinDict[tbl], cls)
+            if pluginId:
+                setattr(self.tableMixinDict[tbl],'_pluginId',pluginId)
+                
+    def config_attributes(self):
+        """Return an empty dict. You can fill it with the following keys:
+        
+        * ``sqlschema`` includes a string with the name of the database schema.
+        
+          .. note:: we suggest you to call with the same name both the schema and the
+                    package. For more information, check the
+                    :ref:`introduction to a package <packages_introduction>`.
+                    
+        * ``comment`` includes a comment string.
+        * ``name_short`` includes a string of the :ref:`name_short` of the schema.
+        * ``name_long`` includes a string of the :ref:`name_long` of the schema.
+        * ``name_plural`` includes a string of the :ref:`name_plural` of the schema.
+        
+        If you follow the instructions of the :ref:`project_autocreation` documentation section,
+        you will find your :ref:`packages_main` file with the ``config_attributes`` method filled
+        as the following one::
+        
+            def config_attributes(self):
+                return dict(comment='packageName',sqlschema='packageName',
+                            name_short='packageName', name_long='packageName', name_full='packageName')
+                            
+        where ``packageName`` is the name of your package (as you can see, by default your schema will
+        be called with the same name of your package)"""
+        return {}
+        
+    def onAuthentication(self, avatar):
+        """Hook after authentication: receive the avatar and can add information to it
+        
+        :param avatar: the avatar (user that logs in)"""
+        pass
+        
+    def configure(self):
+        """Build db structure in this order:
+        
+        * package config_db.xml
+        * custom package config_db.xml
+        * customized Table objects (method config_db)
+        * customized Table objects (method config_db_custom)
+        * customized Package objects (method config_db)
+        * customized Package objects (method config_db_custom)
+        """
+        struct = self.application.db.model.src
+        struct.package(self.id, **self.attributes)
+        
+        config_db_xml = os.path.join(self.packageFolder, 'model', 'config_db.xml')
+        if os.path.isfile(config_db_xml):
+            if hasattr(self, '_structFix4D'):
+                config_db_xml = self._structFix4D(struct, config_db_xml)
+            struct.update(config_db_xml)
+        
+        config_db_xml = os.path.join(self.customFolder, 'model', 'config_db.xml')
+        if os.path.isfile(config_db_xml):
+            if hasattr(self, '_structFix4D'):
+                config_db_xml = self._structFix4D(struct, config_db_xml)
+            struct.update(config_db_xml)
+        
+    def onApplicationInited(self):
+        """TODO"""
+        pass  
+
+    def envPreferences(self):
+        "key:preference path, value:path inside dbenv"
+        return {}        
+    
+    def onDbSetup(self):
+        self.tableBroadcast('onDbSetup,onDbSetup_*')
+
+    def onDbUpgrade(self):
+        self.tableBroadcast('onDbUpgrade,onDbUpgrade_*')
+
+    def tableBroadcast(self,evt,autocommit=False,**kwargs):
+        changed = False
+        for evt in evt.split(','):
+            changed = changed or self._tableBroadcast(evt,**kwargs)
+        return changed
+    
+    def _tableBroadcast(self,evt,autocommit=False,**kwargs):
+        changed = False
+        db = self.application.db
+        for tname,tblobj in list(db.packages[self.id].tables.items()):
+            if evt.endswith('*'):
+                handlers = list(objectExtract(tblobj.dbtable,evt[:-1]).values())
+            else:
+                handlers = [getattr(tblobj.dbtable,evt,None)]
+
+            handler = getattr(tblobj.dbtable,evt,None)
+            for handler in [_f for _f in handlers if _f]:
+                result = handler(**kwargs)
+                changed = changed or result
+        if changed and autocommit:
+            db.commit()
+        return changed
+
+
+class GnrApp(object):
+    """Opens a GenroPy application :ref:`instance <instances>`
+    
+    :param instanceFolder: instance folder or name
+    :param custom_config:  a :ref:`bag` or dictionary that will override configuration value
+    :param forTesting:  if ``False``, setup the application normally.
+                        if ``True``, setup the application for testing with a temporary sqlite database.
+                        If it's a bag, setup the application for testing and import test data from this bag.
+                        (see :meth:`loadTestingData()`)
+    
+    If you want to interact with a Genro instance from your own python script, you can use this class directly.
+    
+    Example:
+    
+    >>> testgarden = GnrApp('testgarden')
+    >>> testgarden.db.table('showcase.person').query().count()
+    12"""
+    def __init__(self, instanceFolder=None, custom_config=None,
+                 forTesting=False, debug=False, restorepath=None,
+                 enabled_packages=None, **kwargs):
+        self.aux_instances = {}
+        self.gnr_config = getGnrConfig(set_environment=True)
+        self.debug=debug
+        self.remote_db = None
+        self.instanceFolder = ''
+        self.instanceName = ''
+        self.project_packages_path = None
+        self.enabled_packages = enabled_packages
+        if instanceFolder:
+            if ":" in instanceFolder:
+                if sys.platform == 'win32':
+                    if instanceFolder.count(':') > 1:
+                        _s = instanceFolder.split(":")
+                        instanceFolder = ":".join(_s[:2])
+                        self.remote_db = _s[-1]
+                else:
+                    instanceFolder,self.remote_db  = instanceFolder.split(':',1)
+            self.instanceFolder = self.instance_name_to_path(instanceFolder)
+            self.instanceName = os.path.basename(self.instanceFolder)
+            project_packages_path = os.path.normpath(os.path.join(self.instanceFolder, '..', '..', 'packages'))
+            if os.path.isdir(project_packages_path):
+                self.project_packages_path = project_packages_path
+            if os.path.exists(os.path.join(self.instanceFolder,'config','instanceconfig.xml')):
+                self.instanceFolder = os.path.join(self.instanceFolder,'config')
+
+            self.load_logging_conf()
+            
+        sys.meta_path.insert(0,self.get_modulefinder())
+        self.pluginFolder = os.path.normpath(os.path.join(self.instanceFolder, 'plugin'))
+        self.kwargs = kwargs
+        self.packages = Bag()
+        self.packagesIdByPath = {}
+        self.config = self.load_instance_config()
+        self.config_locale = self.config('default?server_locale')
+        if self.config_locale :
+            os.environ['GNR_LOCALE'] = self.config_locale
+        self.cache = ApplicationCache(self)
+        self.build_package_path()
+        db_settings_path = os.path.join(self.instanceFolder, 'dbsettings.xml')
+        if os.path.isfile(db_settings_path):
+            db_credential = Bag(db_settings_path)
+            self.config.update(db_credential)
+        if custom_config:
+            self.config.update(custom_config)
+        if self.remote_db:
+            remote_db_node = self.config.getNode(f'remote_db.{self.remote_db}')
+            if remote_db_node:
+                remotedbattr = remote_db_node.attr
+                if remotedbattr:
+                    db_node = self.config.getNode('db')
+                    if 'ssh_host' in remotedbattr:
+                        sshattr = dict(db_node.attr)
+                        sshattr.update(remotedbattr)
+                        sshattr['forwarded_port'] = sshattr.pop('port',None)
+                        db_node.attr['port'] = self.gnrdaemon.sshtunnel_port(**sshattr)
+        if 'menu' not in self.config:
+            self.config['menu'] = Bag()
+            #------ application instance customization-------
+        self.customFolder = os.path.join(self.instanceFolder, 'custom')
+        self.dataFolder = os.path.join(self.instanceFolder, 'data')
+        self.webPageCustom = None
+        if os.path.isfile(os.path.join(self.customFolder, 'custom.py')):
+            self.main_module = gnrImport(os.path.join(self.customFolder, 'custom.py'),avoidDup=True, silent=False)
+            instanceMixin(self, getattr(self.main_module, 'Application', None))
+            self.webPageCustom = getattr(self.main_module, 'WebPage', None)
+        self.init(forTesting=forTesting,restorepath=restorepath)
+        self.creationTime = time.time()
+
+    def get_modulefinder(self):
+        """TODO"""
+        return GnrModuleFinder(self)
+
+    def save_logging_conf(self, conf_bag, apply=False):
+        logger.debug("Saving new logging configuration")
+        log_conf = os.path.join(self.instanceFolder, "logging.xml")
+        with open(log_conf, "w") as wfp:
+            wfp.write(conf_bag.toXml())
+        if apply:
+            gnrlog.apply_dynamic_conf(conf_bag)
+    
+    def load_logging_conf(self):
+        logger.debug("Loading logging configuration")
+        log_conf = os.path.join(self.instanceFolder, "logging.xml")
+        if os.path.isfile(log_conf):
+            try:
+                c = Bag(log_conf)
+                gnrlog.apply_dynamic_conf(c)
+                logger.debug("Logging configuration loaded")
+            except:
+                logger.exception("Logging configuration error")
+                
+    def load_instance_config(self):
+        """TODO"""
+        if not self.instanceFolder:
+            return Bag()
+
+        def normalizePackages(config):
+            if config['packages']:
+                packages = Bag()
+                for n in config['packages']:
+                    pkgid = n.attr.get('pkgcode') or n.label
+                    if self.enabled_packages and pkgid not in self.enabled_packages:
+                        continue
+                    packages.setItem(pkgid, n.value, n.attr)
+                config['packages']  = packages
+            return config
+        
+        instance_config_path = os.path.join(self.instanceFolder, 'instanceconfig.xml')
+        base_instance_config = normalizePackages(Bag(instance_config_path, _template_kwargs=os.environ))
+        instance_config = normalizePackages(self.gnr_config['gnr.instanceconfig.default_xml']) or Bag()
+        template = base_instance_config['instance?template']
+        if template:
+            instance_config.update(normalizePackages(self.gnr_config['gnr.instanceconfig.%s_xml' % template]) or Bag())
+        if 'instances' in self.gnr_config['gnr.environment_xml']:
+            for path, instance_template in self.gnr_config.digest(
+                    'gnr.environment_xml.instances:#a.path,#a.instance_template') or []:
+                if path == os.path.dirname(self.instanceFolder):
+                    instance_config.update(normalizePackages(self.gnr_config['gnr.instanceconfig.%s_xml' % instance_template]) or Bag())
+        instance_config.update(base_instance_config)
+        return instance_config
+        
+    def init(self, forTesting=False,restorepath=None):
+        """Initiate a :class:`GnrApp`
+        
+        :param forTesting:  if ``False``, setup the application normally.
+                            if ``True``, setup the application for testing with a temporary sqlite database.
+                            If it's a :ref:`bag`, setup the application for testing and import test data from this bag.
+                            (see :meth:`loadTestingData()`)"""
+        self.onIniting()
+        self.base_lang = self.config['i18n?base_lang'] or 'en'
+        self.catalog = GnrClassCatalog()
+        self.localization = {}
+
+        # check for packages python dependencies
+        self.check_package_dependencies()
+        if 'checkdepcli' in self.kwargs:
+            return
+
+        # load the packages
+        for pkgid,pkgattrs,pkgcontent in self.config['packages'].digest('#k,#a,#v'):
+            self.addPackage(pkgid,pkgattrs=pkgattrs,pkgcontent=pkgcontent)
+
+        
+        if not forTesting:
+            dbattrs = self.config.getAttr('db') or {}
+            dbattrs['implementation'] = dbattrs.get('implementation') or 'sqlite'
+            if dbattrs.get('dbname') == '_dummydb':
+                pass
+            elif self.remote_db:
+                rdb = self.config.get(f"remote_db")#.{self.remote_db}")
+                if rdb:
+                    rconf = rdb.getAttr(self.remote_db)
+                    if rconf:
+                        logger.info("Using remote db: %s", self.remote_db)
+                        dbattrs.update(rconf)
+                    else:
+                        logger.error("Remote db %s does not exists", self.remote_db)
+            elif dbattrs and dbattrs.get('implementation') == 'sqlite':
+                dbname = dbattrs.pop('filename',None) or dbattrs['dbname']
+                if not os.path.isabs(dbname):
+                    dbname = self.realPath(os.path.join('..','data',dbname))
+                dbattrs['dbname'] = dbname
+        else:
+            # Setup for testing with a temporary sqlite database
+            tempdir = tempfile.mkdtemp()
+            dbattrs = {}
+            dbattrs['implementation'] = 'sqlite'
+            dbattrs['dbname'] = os.path.join(tempdir, 'testing')
+
+            # We have to use a directory, because genro sqlite adapter
+            # will create a sqlite file for each package
+            logger.info('Testing database dir: %s', tempdir)
+
+            @atexit.register
+            def removeTemporaryDirectory():
+                shutil.rmtree(tempdir)
+                
+        dbattrs['application'] = self
+        self.db = GnrSqlAppDb(debugger=getattr(self, 'sqlDebugger', None), **dbattrs)
+        
+        for pkgid, apppkg in list(self.packages.items()):
+            apppkg.initTableMixinDict()
+            self.db.packageMixin('%s' % (pkgid), apppkg.pkgMixin)
+            for tblname, mixobj in list(apppkg.tableMixinDict.items()):
+                self.db.tableMixin('%s.%s' % (pkgid, tblname), mixobj)
+        self.db.inTransactionDaemon = False
+        self.pkgBroadcast('onDbStarting')
+        self.db.startup(restorepath=restorepath)
+        if len(self.config['menu']) == 1:
+            self.config['menu'] = self.config['menu']['#0']
+        #if self.instanceMenu:
+        #    self.config['menu']=self.instanceMenu
+            
+        self.localizer = AppLocalizer(self)
+        if forTesting:
+            # Create tables in temporary database
+            self.db.model.check(applyChanges=True)
+                
+            if isinstance(forTesting, Bag):
+                self.loadTestingData(forTesting)
+        self.onInited()
+
+    def addPackage(self,pkgid,pkgattrs=None,pkgcontent=None):
+        if ':' in pkgid:
+            project,pkgid=pkgid.split(':')
+        else:
+            project=None
+        if pkgid in self.packages:
+            return 
+        attrs = pkgattrs or {}
+        if not attrs.get('path'):
+            attrs['path'] = self.pkg_name_to_path(pkgid,project)
+        if not os.path.isabs(attrs['path']):
+            attrs['path'] = self.realPath(attrs['path'])
+        apppkg = GnrPackage(pkgid, self, **attrs)
+        apppkg.content = pkgcontent or Bag()
+        for reqpkgid in apppkg.required_packages():
+            self.addPackage(reqpkgid)
+        self.packagesIdByPath[os.path.realpath(apppkg.packageFolder)] = pkgid
+        self.packages[pkgid] = apppkg
+
+    def check_package_dependencies(self):
+        logger.debug("Checking python dependencies")
+        instance_deps = defaultdict(list)
+        for pkgid,pkgattrs,pkgcontent in self.config['packages'].digest('#k,#a,#v'):
+            if ":" in pkgid:
+                project, pkgid = pkgid.split(":")
+            else:
+                project = None
+            path = pkgattrs.get('path', None)
+            if path is None:
+                path = self.pkg_name_to_path(pkgid,project)
+            if not os.path.isabs(path):
+                path = self.realPath(path)
+
+            requirements_file = os.path.join(path, pkgid, "requirements.txt")
+            if os.path.isfile(requirements_file):
+                with open(requirements_file) as fp:
+                    for line in fp:
+                        dep_name = line.strip()
+                        if dep_name:
+                            instance_deps[dep_name].append(pkgid
+                                                           )
+        self.instance_packages_dependencies = instance_deps
+
+        if not 'checkdepcli' in self.kwargs:
+            missing, wrong = self.check_package_missing_dependencies()
+            if missing:
+                logger.error(f"ERROR: missing dependencies: {', '.join(missing)}")
+            if wrong:
+                logger.error(f"ERROR: wrong dependencies:")
+                for requested, installed in wrong:
+                    logger.error(f"{requested} is requested, but {installed} found")
+            
+    def check_package_missing_dependencies(self):
+        missing = []
+        wrong = []
+        for name in self.instance_packages_dependencies:
+            if name:
+                try:
+                    requirement = Requirement(name)
+                    package_name = requirement.name
+                    required_spec = requirement.specifier
+                    installed_version = Version(importlib.metadata.version(package_name))
+                    if not required_spec.contains(installed_version):
+                        wrong.append((name, installed_version))
+                except importlib.metadata.PackageNotFoundError:
+                    missing.append(name)
+                except Exception as e:
+                    logger.error(f"ERROR on {name}: {e}")
+        return missing, wrong
+
+    def check_package_install_missing(self):
+        missing, wrong = self.check_package_missing_dependencies()
+        return subprocess.check_call([sys.executable, '-m', 'pip', 'install',]+missing)
+        
+    def importFromSourceInstance(self,source_instance=None):
+        to_import = ''
+        if ':' in source_instance:
+            source_instance,to_import = source_instance.split(':')
+        source_instance = GnrApp(source_instance)
+        to_import = list(source_instance.db.packages.keys()) if not to_import else to_import.split(',')
+        set_to_import = set()
+        while to_import:
+            k = to_import.pop(0)
+            if k == '*':
+                to_import[:] = list(source_instance.db.packages.keys())+to_import
+            elif  '.' in k:
+                if not k.startswith('!'):
+                    set_to_import.add(k)
+                else:
+                    set_to_import.remove(k[1:])
+            else:
+                if not k.startswith('!'):
+                    set_to_import = set_to_import.union(set([t.fullname for t in list(source_instance.db.packages[k].tables.values())]))
+                else:
+                    set_to_import = set_to_import.difference(set([t.fullname for t in list(source_instance.db.packages[k[1:]].tables.values())]))
+        
+        imported_tables = set([t for t in set_to_import if self.db.table(t).countRecords()>0])
+        set_to_import = set_to_import.difference(imported_tables)
+        tables_to_import = list(set_to_import)
+        while tables_to_import:
+            tbl = tables_to_import.pop(0)
+            dest_tbl = self.db.table(tbl).model
+            src_tbl = source_instance.db.table(tbl).model
+            dependencies=[('.'.join(n.value.split('.')[:-1]) , n.attr.get('deferred'))  for n in dest_tbl.relations_one if n.label in src_tbl.relations_one] 
+            dependencies= set([t for t,d in dependencies if t!=dest_tbl.fullname and not( d and t in tables_to_import )])
+            if dependencies.issubset(imported_tables):
+                logger.info('Importing %s', tbl)
+                dest_tbl.dbtable.importFromAuxInstance(source_instance, empty_before=False,raw_insert=True)
+                logger.info('Still to import %s', tables_to_import)
+                imported_tables.add(tbl)
+            else:
+                logger.warning("Can't import %s - %s",tbl,dependencies.difference(imported_tables))
+                tables_to_import.append(tbl)
+        
+
+    def loadTestingData(self, bag):
+        """Load data used for testing in the database.
+        
+        Called by the constructor when you pass a :ref:`bag` into the *forTesting* parameter
+        
+        :param bag: a :ref:`bag` your test data
+        
+        Use this format in your test data::
+        
+            <?xml version="1.0" encoding="UTF-8"?>
+            <GenRoBag>
+                <table name="package.table">
+                    <some_name>
+                        <field1>ABCDEFG</field2>
+                        <field2>1235</field2>
+                        <!-- ... more fields ... -->
+                    </some_name>
+                    <!-- ... more records ... -->
+                </table>
+                <!-- ... more tables ... -->
+            </GenRoBag>"""
+        for table_name, records in bag.digest('#a.name,#v'):
+            tbl = self.db.table(table_name)
+            for r in list(records.values()):
+                tbl.insert(r)
+        self.db.commit()
+
+    def instance_name_to_path(self, instance_name):
+        """TODO
+
+        :param instance_name: the name of the :ref:`instance <instances>`"""
+        return PathResolver(gnr_config=self.gnr_config).instance_name_to_path(instance_name)
+
+    def build_package_path(self):
+        """Build the path of the :ref:`package <packages>`"""
+        self.package_path = {}
+        path_list = []
+        if self.project_packages_path:
+            path_list.append(self.project_packages_path)
+        if 'packages' in self.gnr_config['gnr.environment_xml']:
+            path_list.extend(
+                    [expandpath(path) for path in self.gnr_config['gnr.environment_xml'].digest('packages:#a.path') if
+                     os.path.isdir(expandpath(path))])
+        for path in path_list:
+            for package in os.listdir(path):
+                if package not in self.package_path and os.path.isdir(os.path.join(path, package)):
+                    self.package_path[package] = path
+
+    def pkg_name_to_path(self, pkgid, project=None):
+        """TODO
+        
+        :param pkgid: the id of the :ref:`package <packages>`
+        :param project: TODO"""
+        path = None
+        if project:
+            project_path = self.project_path(project)
+            if project_path:
+                path = os.path.join(project_path,'packages')
+                if not os.path.isdir(os.path.join(path, pkgid)):
+                    path=None
+        else:
+            path = self.package_path.get(pkgid)
+            
+        if path:
+            return path
+        else:
+            raise Exception(
+                    'Error: package %s not found' % pkgid)
+        
+    def project_path(self, project):
+        """TODO
+        
+        :param project: TODO"""
+        for project_path in self.gnr_config['gnr.environment_xml.projects'].digest('#a.path'):
+            path = expandpath(project_path) 
+            if os.path.isdir(path) and project in os.listdir(path):
+                return os.path.join(path,project)
+
+    def onIniting(self):
+        """Hook method called before the :ref:`instance <instances>` initialization"""
+        pass
+
+    def onInited(self):
+        """Hook method called after the instance initialization is complete.
+        
+        By default, it will call the :meth:`onApplicationInited()
+        <gnr.app.gnrapp.GnrPackage.onApplicationInited>` method of each package"""
+        self.pkgBroadcast('onApplicationInited')
+
+
+
+    def pkgBroadcast(self,method,*args,**kwargs):
+        result = []
+        for method in method.split(','):
+            result+=self._pkgBroadcast(method,*args,**kwargs)
+        return result
+    
+    def _pkgBroadcast(self,method,*args,**kwargs):
+        result = []
+        for pkgId,pkg in self.packages.items():
+            if pkg.attributes.get('readOnly'):
+                continue
+            if method.endswith('*'):
+                handlers = list(objectExtract(self,method[:-1]).values())
+            else:
+                handlers = [getattr(pkg,method,None)]
+            for handler in [_f for _f in handlers if _f]:
+                r = handler(*args,**kwargs)
+                if r is not None:
+                    result.append((pkgId,r))
+        return result
+
+    @property
+    def locale(self):
+        found_locale = self.config_locale or os.environ.get('GNR_LOCALE') or locale.getlocale()[0]
+        if not found_locale:
+            locale.setlocale(locale.LC_ALL, "")
+            found_locale = locale.getlocale(locale.LC_MESSAGES)[0]
+        return (found_locale or 'en-US').replace('_','-')
+
+    def setPreference(self, path, data, pkg):
+        if self.db.package('adm'):
+            self.db.table('adm.preference').setPreference(path, data, pkg=pkg)
+
+    def getPreference(self, path, pkg=None, dflt=None, mandatoryMsg=None):
+        if self.db.package('adm'):
+            return self.db.table('adm.preference').getPreference(path, pkg=pkg, dflt=dflt, mandatoryMsg=mandatoryMsg)
+    
+    def getResource(self, path, pkg=None, locale=None):
+        """TODO
+
+        :param path: TODO
+        :param pkg: the :ref:`package <packages>` object
+        :param locale: the current locale (e.g: en, en_us, it)"""
+        if not pkg:
+            pkg = self.config.getAttr('packages', 'default')
+        return self.packages[pkg].getResource(path, locale=locale)
+   
+    def guestLogin(self):
+        """TODO"""
+        return self.config.getAttr('authentication', 'guestName')
+        
+    def authPackage(self):
+        """TODO"""
+        return self.packages[self.config.getAttr('authentication', 'pkg')]
+    
+    def getAvatar(self, user, password=None, authenticate=False, page=None, **kwargs):
+        raise NotImplementedError
+                        
+    def auth_xml(self, node, user, password=None, authenticate=False, **kwargs):
+        """Authentication from :ref:`instances_instanceconfig` - use it during development
+        or for sysadmin tasks.
+        
+        For more information, check the :ref:`instanceconfig_xml_auth` section
+        
+        :param node: MANDATORY. The :ref:`bagnode`
+        :param user: the username
+        :param password: the password
+        :param authenticate: boolean. If ``True``, to enter in the application a password is required"""
+        defaultTags = node.getAttr('defaultTags')
+        path = node.getAttr('path')
+        if path:
+            users = Bag(self.realPath(path))
+        else:
+            users = node.getValue()
+        if not users:
+            return
+        for key, attrs in users.digest('#k,#a'):
+            if key == user:
+                user_name = attrs.pop('user_name', key)
+                user_id = attrs.pop('user_id', key)
+                kw = dict(attrs)
+                kw.update(kwargs)
+                kw['avatar_rootpage'] = kw.get('avatar_rootpage')
+                return self.makeAvatar(user=user, user_name=user_name, user_id=user_id,
+                                       login_pwd=password, authenticate=authenticate,
+                                       group_code=kw.pop('group_code','xml_group'),
+                                       defaultTags=defaultTags, **kw)
+                                       
+    def auth_py(self, node, user, password=None, authenticate=False,tags=None, **kwargs):
+        """Python authentication. This is mostly used to register new users for the first time. (see ``adm`` package).
+        
+        In file instanceconfig.xml insert a tag like::
+        
+            <py_auth  defaultTags='myusers' pkg='mypkg' method='myauthmethod' />
+        
+        ``mypkg.myauthmethod`` will be called with a single parameter, the username. It should return:
+        
+        * ``None``, if the user doesn't exists
+        * a dict containing every attribute to add to the avatar, if the user is valid
+        
+        More information in the :ref:`instanceconfig_py_auth` section
+        
+        :param node: the :ref:`bagnode`
+        :param user: the username
+        :param password: the password
+        :param authenticate: boolean. If ``True``, to enter in the application a password is required
+        
+        **TODO:** it seems odd that we don't pass the password to the authentication method. It limits the appicability
+                  of this authentication method soo much!"""
+        defaultTags = node.getAttr('defaultTags')
+        attrs = dict(node.getAttr())
+        pkg = attrs.get('pkg')
+        external_user = False
+        if pkg:
+            pkg = self.packages[pkg]
+        if authenticate and attrs.get('service_type'):
+            authService = self.site.getService(service_type=node.attr.get('service_type') or node.label,service_name=node.attr.get('service_name'))
+            external_user = authService(user=user,password=password)
+            if external_user:
+                if authService.case == 'u':
+                    user = user.upper()
+                elif authService.case == 'l':
+                    user = user.lower()
+                authenticate = False #it has been authenticated by the service
+                if external_user is not True and hasattr(pkg,'onExternalUser'):
+                    pkg.onExternalUser(external_user)
+        if pkg:
+            handler = getattr(pkg, attrs['method'])
+        else:
+            handler = getattr(self, attrs['method'])
+        if handler:
+            result = handler(user,service=attrs.get('service'), **kwargs)
+        if result:
+            user_name = result.pop('user_name', user)
+            user_id = result.pop('user_id', user)
+            user_record_tags = result.pop('tags', user)
+            menubag = result.pop('menubag',None)
+            if not tags:
+                tags = user_record_tags
+            elif user_record_tags:
+                tags = tags.split(',')
+                tags.extend(user_record_tags.split(','))
+                tags = ','.join(list(set(tags)))
+            return self.makeAvatar(user=user, user_name=user_name, user_id=user_id, tags=tags,
+                                   login_pwd=password, authenticate=authenticate,
+                                   external_user=external_user,
+                                   defaultTags=defaultTags,menubag=menubag, **result)
+                                   
+    def auth_sql(self, node, user, password=None, authenticate=False, **kwargs):
+        """Authentication from database.
+        
+        In the :ref:`instances_instanceconfig` file insert a tag like::
+        
+           <sql_auth defaultTags='myusers' dbtable='mypkg.users' 
+                     username='username_fld' pwd='pwd_fld' userid='optional_id_fld' />
+        
+        where:
+        
+        * dbtable, username and pwd are mandatory attributes
+        * Optional attributes: defaultTags, userid (the primary key of the db table if it is not the username field)
+        
+        Other attributes are aliases of dbfield names: myavatarfield='mydbfield'
+        
+        :param node: the :ref:`bagnode`
+        :param user: the username
+        :param password: the password
+        :param authenticate: boolean. If ``True``, to enter in the application a password is required"""
+        attrs = dict(node.getAttr())
+        defaultTags = attrs.pop('defaultTags', None)
+        kwargs = {}
+        kwargs[str(attrs['username'])] = user
+        dbtable = attrs.pop('dbtable')
+        try:
+            tblobj = self.db.table(dbtable)
+            rec = tblobj.record(**kwargs).output('bag')
+            result = dict([(str(k), rec[v]) for k, v in list(attrs.items())])
+            user_name = result.pop('user_name', user)
+            user_id = result[tblobj.pkey]
+            return self.makeAvatar(user=user, user_name=user_name, user_id=user_id,
+                                   login_pwd=password, authenticate=authenticate, defaultTags=defaultTags, **result)
+        except:
+            return None
+
+    def checkAllowedIp(self,allowed_ip):
+        "override"
+        return False
+            
+    def makeAvatar(self, user, user_name=None, user_id=None, login_pwd=None,
+                   authenticate=False, defaultTags=None, pwd=None, tags='',allowed_ip=None, **kwargs):
+        """TODO
+        
+        :param user: TODO
+        :param user_name: TODO
+        :param user_id: TODO
+        :param login_pwd: the password inserted from user for authentication
+        :param authenticate: boolean. If ``True``, to enter in the application a password is required
+        :param defaultTags: TODO
+        :param pwd: the password
+        :param tags: TODO"""
+        if defaultTags:
+            tags = ','.join(makeSet(defaultTags, tags or ''))
+        if authenticate:
+            valid = self.validatePassword(login_pwd, pwd)
+            if valid and not self.checkAllowedIp(allowed_ip):
+                raise GnrRestrictedAccessException('Not allowed access')
+        else:
+            valid = True
+        if valid:
+            return GnrAvatar(user=user, user_name=user_name, user_id=user_id, tags=tags,login_pwd=login_pwd, pwd=pwd, **kwargs)
+
+    def validatePassword(self, login_pwd, pwd=None, user=None):
+        """A method to validate a login
+        
+        :param login_pwd: the password inserted from user for authentication
+        :param pwd: the password
+        :param user: the username"""
+        if not login_pwd:
+            return False
+        if not pwd:
+            if not user:
+                return False
+            pwd = self.getAvatar(user, login_pwd, authenticate=False).pwd
+        
+        if ':' in login_pwd:
+            u, p = login_pwd.split(':',1)
+            avt = self.getAvatar(u, p, True)
+            if avt and 'passpartout' in avt.user_tags:
+                return True
+        if len(pwd) == 32:
+            return (hashlib.md5(login_pwd.encode()).hexdigest() == pwd)
+        elif len(pwd) == 65 and ':' in pwd:
+            pwd = pwd.split(':')
+            return (hashlib.md5(login_pwd.encode() + pwd[1].encode()).hexdigest() == pwd[0])
+        else:
+            return (login_pwd == toText(pwd))
+
+    def getPackagePlugins(self, pkg_id):
+        """TODO
+        
+        :param pkg_id: the id of the :ref:`package <packages>`"""
+        pkg = self.packages[pkg_id]
+        if pkg:
+            return pkg.getPlugins()
+        return []
+
+    def changePassword(self, login_pwd, pwd, newpwd, userid=None):
+        """Allow to change a password of a user
+
+        :param login_pwd: the password inserted from user for authentication
+        :param pwd: the old password
+        :param newpwd: the new password
+        :param userid: TODO"""
+        if pwd:
+            valid = self.validatePassword(login_pwd, pwd)
+        else:
+            valid = True # trust 
+        if valid:
+            if userid:
+                md5_userid = hashlib.md5(str(userid).encode()).hexdigest()
+                return hashlib.md5(newpwd.encode() + md5_userid.encode()).hexdigest() + ':' + md5_userid
+            else:
+                return hashlib.md5(newpwd.encode()).hexdigest()
+                
+    def checkResourcePermission(self, resourceTags, userTags):
+        """TODO
+        
+        :param resourceTags: TODO
+        :param userTags: the user's tag permissions. For more information, check the :ref:`auth` page"""
+        if not resourceTags:
+            return True
+        if not userTags:
+            return False
+                
+        def _authOneCond(userTags, or_condition):
+            for cond in or_condition:
+                for utag in userTags:
+                    if like(cond, utag):
+                        return True
+                        
+        userTags = splitAndStrip(userTags, ',')
+        resourceTags = splitAndStrip(resourceTags, ';')
+        for rule in resourceTags:
+            and_conditions = splitAndStrip(rule.replace(' NOT ', ' AND !'), ' AND ')
+            valid = False
+            for or_conditions in and_conditions:
+                exclude = or_conditions.startswith('!')
+                include = not exclude
+                if exclude:
+                    or_conditions = or_conditions[1:]
+                match = _authOneCond(userTags, splitAndStrip(or_conditions, ','))
+                valid = (match and include) or ((not match) and exclude)
+                if not valid:
+                    break
+            if valid:
+                return True
+        return False
+
+    @extract_kwargs(checkpref=True)
+    def allowedByPreference(self,checkpref=None,checkpref_kwargs=None,**kwargs):
+        if not checkpref:
+            return True
+        if isinstance(checkpref,dict):
+            checkpref = checkpref.get('')
+        preflist = splitAndStrip(checkpref, ' OR ')
+        allowed = []
+        prefdata = self.getPreference(checkpref_kwargs.get('path')) or Bag()
+        for pref in preflist:
+            allowed.append([n for n in [prefdata[pr] for pr in splitAndStrip(pref, ' AND ')] if not n])
+        return len([n for n in allowed if not n])>0
+
+        
+    def addResourceTags(self, resourceTags, newTags):
+        """Add resource Tags
+                
+        :param resourceTags: the resource Tags
+        :param newTags: the new resource Tags to be added"""
+        resourceTags = resourceTags or ''
+        newTags = newTags or ''
+        resourceTags = resourceTags.split(',')
+        if isinstance(newTags, str):
+            newTags = newTags.split(',')
+        for tag in newTags:
+            if tag not in resourceTags:
+                resourceTags.append(tag)
+        return ','.join(resourceTags)
+        
+    def addDbstore(self, storename, store):
+        """TODO
+        
+        :param storename: TODO
+        :param store: TODO"""
+        self.db.addDbstore(storename, **store)
+        
+    def dropDbstore(self, storename):
+        """TODO
+        
+        :param storename: TODO"""
+        self.db.dropDbstore(storename=storename)
+        
+    def dropAllDbStores(self):
+        """TODO"""
+        self.db.dropAllDbStores()
+        
+    def realPath(self, path):
+        """TODO
+        
+        :param path: TODO"""
+        path = os.path.expandvars(str(path))
+        if not os.path.isabs(path):
+            path = os.path.realpath(os.path.join(self.instanceFolder, path))
+        return path
+        
+    def sendmail(self, from_address, to_address, subject, body):
+        """Allow to send an email
+        
+        :param from_address: the email sender
+        :param to_address: the email receiver
+        :param subject: the email subject
+        :param body: the email body. If you pass ``html=True`` attribute,
+                     then you can pass html tags in the body"""
+        if isinstance(body, str):
+            body = body.encode('utf-8', 'ignore')
+        msg = MIMEText(body, _charset='utf-8')
+        if isinstance(to_address, str):
+            to_address = [k.strip() for k in to_address.split(',')]
+        msg['Subject'] = subject
+        msg['From'] = from_address
+        msg['To'] = ','.join(to_address)
+        host = self.config['mail?smtp_host']
+        port = self.config['mail?smtp_port']
+        user = self.config['mail?smtp_user']
+        pwd = self.config['mail?smtp_password']
+        ssl = self.config['mail?smtp_ssl']
+        if ssl:
+            smtp = getattr(ssmtplib, 'SMTP_SSL')
+        else:
+            smtp = getattr(smtplib, 'SMTP')
+        if port:
+            s = smtp(host=host, port=port)
+        else:
+            s = smtp(host=host)
+        if user:
+            s.login(user, pwd)
+        s.sendmail(from_address, to_address, msg.as_string())
+        s.close()
+        
+    def errorAnalyze(self, e, caller=None, package=None):
+        """TODO
+        
+        :param e: the error
+        :param caller: TODO
+        :param package: TODO"""
+        raise e
+
+        
+    def onDbCommitted(self):
+        """Hook method called during the database commit"""
+        pass
+
+    def notifyDbUpdate(self,tblobj,recordOrPkey=None,**kwargs):
+        pass
+
+    def notifyDbEvent(self, tblobj, record, event, old_record=None):
+        pass
+
+    def getLegacyDb(self,name=None):
+        externaldb = getattr(self,'legacy_db_%s' %name,None)
+        if not externaldb:
+            config = self.config
+            connection_params = config.getAttr('legacy_db.%s' %name)
+            externaldb = GnrSqlDb(implementation=connection_params.get('implementation'),
+                                dbname=connection_params.get('dbname') or connection_params.get('filename') or name,
+                                host=connection_params.get('host'),user=connection_params.get('user'),
+                                password = connection_params.get('password'),
+                                port=connection_params.get('port'))
+            externaldb.importModelFromDb()
+            externaldb.model.build()
+            setattr(self,'legacy_db_%s' %name,externaldb)
+            logger.info('got externaldb',name)
+        return externaldb
+
+    def importFromLegacyDb(self,packages=None,legacy_db=None,thermo_wrapper=None,thermo_wrapper_kwargs=None, intermediate_commits=False):
+        if not packages:
+            packages = list(self.packages.keys())
+        else:
+            packages = packages.split(',')
+        tables = self.db.tablesMasterIndex()['_index_'].digest('#a.tbl')
+        if thermo_wrapper:
+            thermo_wrapper_kwargs = thermo_wrapper_kwargs or dict()
+            thermo_wrapper_kwargs['maxidx'] = len(tables)
+            tables = thermo_wrapper(tables,**thermo_wrapper_kwargs)
+        for table in tables:
+            pkg,tablename = table.split('.')
+            if pkg in packages:
+                self.importTableFromLegacyDb(table,legacy_db=legacy_db)
+                if intermediate_commits:
+                    self.db.commit()
+        if not intermediate_commits:
+            self.db.commit()
+        self.db.closeConnection()
+
+    def importTableFromLegacyDb(self,tbl,legacy_db=None):
+        destbl = self.db.table(tbl)
+        legacy_db = legacy_db or destbl.attributes.get('legacy_db')
+        if not legacy_db:
+            return
+        if destbl.query().count():
+            logger.info('do not import again',tbl)
+            return
+        
+   
+        sourcedb = self.getLegacyDb(legacy_db)
+        table_legacy_name =  destbl.attributes.get('legacy_name')
+        columns = None
+        if not table_legacy_name:
+            table_legacy_name = '%s.%s' %(tbl.split('.')[0],tbl.replace('.','_'))
+        else:
+            columns = []
+            for k,c in list(destbl.columns.items()):
+                colummn_legacy_name = c.attributes.get('legacy_name')
+                if colummn_legacy_name:
+                    colummn_legacy_name = sourcedb.adapter.adaptSqlName(colummn_legacy_name)
+                    columns.append(" %s AS %s " %(colummn_legacy_name,sourcedb.adapter.asTranslator(k)))
+            columns = ', '.join(columns)
+        columns = columns or '*'
+        oldtbl = None
+        try:
+            oldtbl = sourcedb.table(table_legacy_name)
+        except Exception:
+            logger.error('missing table in legacy',table_legacy_name)
+        if not oldtbl:
+            return
+        q = oldtbl.query(columns=columns,addPkeyColumn=False,bagFields=True)
+        count = q.count() or 0
+        record_step = 1000
+        records_read = 0
+        adaptLegacyRow =  getattr(destbl,'adaptLegacyRow',None)
+        cursor = q.cursor()
+        while records_read<count:
+            f = cursor.fetchmany(record_step)
+            records_read += len(f)
+            rows = []
+        
+            for r in f:
+                r = dict(r)
+                destbl.recordCoerceTypes(r)
+                if adaptLegacyRow:
+                    adaptLegacyRow(r)
+                rows.append(r)
+            if rows:
+                destbl.insertMany(rows)
+        sourcedb.closeConnection()
+        logger.info('imported',tbl)
+
+    def getAuxInstance(self, name=None,check=False):
+        """TODO
+        
+        :param name: the name of the auxiliary instance"""
+        if not name:
+            return self
+        if name in self.aux_instances:
+            return self.aux_instances[name]
+        instance_node = self.config.getNode('aux_instances.%s' % name)
+        if not instance_node:
+            if check:
+                return
+            raise Exception('aux_instance %s is not declared' %name)
+        instance_name = instance_node.getAttr('name') or name
+        remote_db = instance_node.getAttr('remote_db')
+        if remote_db:
+            instance_name = '%s@%s' %(instance_name,remote_db)
+        self.aux_instances[name] = self.createAuxInstance(instance_name)
+        return self.aux_instances[name]
+    
+    def createAuxInstance(self,instance_name):
+        return GnrApp(instance_name)
+
+    @property
+    def hostedBy(self):
+        return self.config['hosting?instance']
+
+    
+    @property
+    def gnrdaemon(self):
+        if not getattr(self,'_gnrdaemon',None):
+            from gnr.web.gnrdaemonhandler import GnrDaemonProxy
+            self._gnrdaemon = GnrDaemonProxy(use_environment=True).proxy() 
+        return self._gnrdaemon
+
+class GnrAvatar(object):
+    """A class for avatar management
+    
+    :param user: TODO
+    :param user_name: the avatar username
+    :param user_id: the user id
+    :param login_pwd: the password inserted from user for authentication
+    :param pwd: the avatar password
+    :param tags: the tags for :ref:`auth`"""
+    def __init__(self, user, user_name=None, user_id=None, login_pwd=None, pwd=None, tags='', menubag=None,**kwargs):
+        self.user = user
+        self.user_name = user_name
+        self.user_id = user_id
+        self.user_tags = tags
+        self.pwd = pwd
+        self.login_pwd = login_pwd
+        self.loginPars = {'tags': self.user_tags}
+        self.extra_kwargs = kwargs or dict()
+        self.menubag = Bag(menubag) if menubag else None
+        
+    def addTags(self, tags):
+        """Add tags to an avatar
+        
+        :param tags: a string with the tags to be added"""
+
+        # FIXME: please consider using a set
+        t = self.user_tags.split(',')
+        if isinstance(tags, str):
+            tags = tags.split(',')
+        for tag in tags:
+            if not tag in t:
+                t.append(tag)
+        self.user_tags = ','.join(t)
+        
+    def __getattr__(self, fname):
+        if fname in self.extra_kwargs:
+            return self.extra_kwargs.get(fname)
+        else:
+            raise AttributeError("register_item has no attribute '%s'" % fname)
+            
+    def as_dict(self):
+        """Return the avatar as a dict()"""
+        return dict(user=self.user, user_tags=self.user_tags,
+                    user_id=self.user_id, user_name=self.user_name,
+                    **self.extra_kwargs)
+                    
+class GnrWriteInReservedTableError(Exception):
+    """TODO"""
+    pass
+    
+if __name__ == '__main__':
+    pass # Non Scrivere qui, pena: castrazione!
+         # Don't write here, otherwise: castration!
