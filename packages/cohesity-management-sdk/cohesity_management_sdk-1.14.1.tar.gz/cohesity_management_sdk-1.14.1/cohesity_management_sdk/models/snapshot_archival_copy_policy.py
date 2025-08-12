@@ -1,0 +1,159 @@
+# -*- coding: utf-8 -*-
+# Copyright 2024 Cohesity Inc.
+
+import cohesity_management_sdk.models.data_lock_config
+import cohesity_management_sdk.models.archival_external_target
+import cohesity_management_sdk.models.cancellation_timeout_params
+
+class SnapshotArchivalCopyPolicy(object):
+
+    """Implementation of the 'SnapshotArchivalCopyPolicy' model.
+
+    Specifies settings for copying Snapshots External Targets (such as AWS or
+    Tape). This also specifies the retention policy that should be applied to
+    Snapshots after they have been copied to the specified target.
+
+    Attributes:
+        id (string): Specified the Id for a snapshot copy policy. Thsi is
+            generated when the policy is created.
+        backup_run_type (BackupRunTypeEnum): The backup run type to which this
+            copy policy applies to. If set, this will ensure that the first
+            run in scheduled period of given type will be copied. If this
+            isn't set, copy tasks will be generated as per other filters in
+            the protection policy. Currently, it can only be set to Full.
+        copy_partial (bool): Specifies if Snapshots are copied from the first
+            completely successful Job Run or the first partially successful
+            Job Run occurring at the start of the replication schedule. If
+            true, Snapshots are copied from the first Job Run occurring at the
+            start of the replication schedule, even if first Job Run was not
+            completely successful i.e. Snapshots were not captured for all
+            Objects in the Job. If false, Snapshots are copied from the first
+            Job Run occurring at the start of the replication schedule that
+            was completely successful i.e. Snapshots for all the Objects in
+            the Job were successfully captured.
+        datalock_config (DatalockConfig): Specifies WORM retention type for the
+            copy target snapshots. When a WORM retention type is specified,
+            the snapshots of the Protection Groups using
+            this policy will be kept for the last N days as specified in the duration
+            of the datalock. During that time, the snapshots cannot be deleted.
+        days_to_keep (long|int): Specifies the number of days to retain copied
+            Snapshots on the target.
+        days_to_keep_log (log|int): Specifies the number of days to retain log
+            run if Log Schedule exists on the external target.
+        multiplier (int): Specifies a factor to multiply the periodicity by,
+            to determine the copy schedule. For example if set to 2 and the
+            periodicity is hourly, then Snapshots from the first eligible Job
+            Run for every 2 hour period is copied.
+        periodicity (PeriodicitySnapshotArchivalCopyPolicyEnum): Specifies the
+            frequency that Snapshots should be copied to the specified target.
+            Used in combination with multipiler. 'kEvery' means that the
+            Snapshot copy occurs after the number of Job Runs equals the
+            number specified in the multiplier. 'kHour' means that the
+            Snapshot copy occurs hourly at the frequency set in the
+            multiplier, for example if multiplier is 2, the copy occurs every
+            2 hours. 'kDay' means that the Snapshot copy occurs daily at the
+            frequency set in the multiplier. 'kWeek' means that the Snapshot
+            copy occurs weekly at the frequency set in the multiplier.
+            'kMonth' means that the Snapshot copy occurs monthly at the
+            frequency set in the multiplier. 'kYear' means that the Snapshot
+            copy occurs yearly at the frequency set in the multiplier.
+        run_timeouts(list of CancellationTimeoutParams):  Run timeouts after
+            which a run will get cancelled.
+        source_cluster_id (long|int): Specifies a the source cluster id from
+            which the data must be archived.
+        target (ArchivalExternalTarget): Specifies the archival target to copy
+            the Snapshots to.
+
+    """
+
+    # Create a mapping from Model property names to API property names
+    _names = {
+        "id":'Id',
+        "backup_run_type":'backupRunType',
+        "copy_partial":'copyPartial',
+        "datalock_config":'datalockConfig',
+        "days_to_keep":'daysToKeep',
+        "days_to_keep_log": 'daysToKeepLog',
+        "multiplier":'multiplier',
+        "run_timeouts": 'runTimeouts',
+        "source_cluster_id":'sourceClusterId',
+        "periodicity":'periodicity',
+        "target":'target'
+    }
+
+    def __init__(self,
+                 id=None,
+                 backup_run_type=None,
+                 copy_partial=None,
+                 datalock_config=None,
+                 days_to_keep=None,
+                 days_to_keep_log=None,
+                 multiplier=None,
+                 run_timeouts=None,
+                 source_cluster_id=None,
+                 periodicity=None,
+                 target=None):
+        """Constructor for the SnapshotArchivalCopyPolicy class"""
+
+        # Initialize members of the class
+        self.id = id
+        self.backup_run_type = backup_run_type
+        self.copy_partial = copy_partial
+        self.datalock_config = datalock_config
+        self.days_to_keep = days_to_keep
+        self.days_to_keep_log = days_to_keep_log
+        self.multiplier = multiplier
+        self.run_timeouts = run_timeouts
+        self.source_cluster_id = source_cluster_id
+        self.periodicity = periodicity
+        self.target = target
+
+
+    @classmethod
+    def from_dictionary(cls,
+                        dictionary):
+        """Creates an instance of this model from a dictionary
+
+        Args:
+            dictionary (dictionary): A dictionary representation of the object as
+            obtained from the deserialization of the server's response. The keys
+            MUST match property names in the API description.
+
+        Returns:
+            object: An instance of this structure class.
+
+        """
+        if dictionary is None:
+            return None
+
+        # Extract variables from the dictionary
+        id = dictionary.get('Id')
+        backup_run_type = dictionary.get('backupRunType')
+        copy_partial = dictionary.get('copyPartial')
+        datalock_config = cohesity_management_sdk.models.data_lock_config.DataLockConfig.from_dictionary(dictionary.get('datalockConfig')) if dictionary.get('datalockConfig') else None
+        days_to_keep = dictionary.get('daysToKeep')
+        days_to_keep_log = dictionary.get('daysToKeepLog')
+        multiplier = dictionary.get('multiplier')
+        run_timeouts = None
+        if dictionary.get("runTimeouts") is not None:
+            run_timeouts = list()
+            for structure in dictionary.get('runTimeouts'):
+                run_timeouts.append(cohesity_management_sdk.models.cancellation_timeout_params.CancellationTimeoutParams.from_dictionary(structure))
+        source_cluster_id = dictionary.get('sourceClusterId')
+        periodicity = dictionary.get('periodicity')
+        target = cohesity_management_sdk.models.archival_external_target.ArchivalExternalTarget.from_dictionary(dictionary.get('target')) if dictionary.get('target') else None
+
+        # Return an object of this model
+        return cls(id,
+                   backup_run_type,
+                   copy_partial,
+                   datalock_config,
+                   days_to_keep,
+                   days_to_keep_log,
+                   multiplier,
+                   run_timeouts,
+                   source_cluster_id,
+                   periodicity,
+                   target)
+
+
