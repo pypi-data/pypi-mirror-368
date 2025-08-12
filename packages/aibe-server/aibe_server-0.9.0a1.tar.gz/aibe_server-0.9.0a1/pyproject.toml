@@ -1,0 +1,72 @@
+[build-system]
+requires = ["setuptools>=45", "wheel", "setuptools-scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aibe-server"
+version = "0.9.0a1"
+description = "AI Browser Extension Interface Server - enables AI systems to observe and control web browsers"
+readme = "README.md"
+license = "MIT"
+authors = [
+    {name = "Paul Hanchett", email = "paul@paulhanchett.com"}
+]
+keywords = ["ai", "browser", "automation", "generic-user-framework", "web-interface"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Internet :: WWW/HTTP :: Browsers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "fastapi>=0.104.1",
+    "uvicorn[standard]>=0.24.0",
+    "python-multipart>=0.0.6",
+    "aiofiles>=23.2.1",
+    "psutil>=5.9.6",
+    "requests>=2.25.1",
+]
+
+[project.urls]
+Homepage = "https://paulhanchett.com/aibe"
+Documentation = "https://paulhanchett.com/aibe/docs"
+
+[project.scripts]
+aibe-server = "aibe_server.server_manager:main"
+
+[tool.setuptools]
+packages = ["aibe_server", "aibe_server.middleware", "aibe_server.models", "aibe_server.utils", "aibe_server.static"]
+include-package-data = true
+
+[tool.setuptools.package-dir]
+"" = "."
+
+[tool.setuptools.package-data]
+"aibe_server" = [
+    "static/*",
+]
+
+[tool.setuptools.data-files]
+"extension" = [
+    "extension/manifest.json",
+    "extension/background.js", 
+    "extension/content.js",
+    "extension/popup.html",
+    "extension/popup.js"
+]
+"tests" = [
+    "tests/console-runner.js",
+    "tests/web-runner.html",
+    "tests/framework/*.js",
+    "tests/pages/*.html",
+    "tests/pages/*.svg"
+]
