@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>历史状态</title>
+    {% include "common.html" %}
+</head>
+
+<body>
+<div id="history">
+    <h3 style="text-align: center">历史状态</h3>
+    <el-divider></el-divider>
+    {% verbatim history %}
+        <div class="search-playback">
+            <div>
+                <el-input v-model="ic" disabled>
+                    <template #prepend>摄像头编码</template>
+                </el-input>
+            </div>
+            <div>
+                <el-date-picker v-model="timerange" type="datetimerange" start-placeholder="开始时间" end-placeholder="结束时间"/>
+            </div>
+            <div>
+                <el-button type="primary" @click="search_playback">查看回放</el-button>
+            </div>
+        </div>
+
+
+
+        <div class="main-container">
+            <div style="width: 40%;">
+                <div id="chart-container" style="width: 100%; height: 500px;"></div>
+            </div>
+            <div class="status-timeline">
+                <el-timeline style="max-width: 300px">
+                    <el-timeline-item v-for="(each, index) in timeline" :timestamp="each.statusStartTime" size="large" :type="each.type" placement="top">
+                        <el-card>
+                            <div>{{ each.devErrorMsg }}</div>
+                            <div>{{ each.statusDurationTime }}</div>
+                            <div>{{ each.devErrorCode }}</div>
+                        </el-card>
+                    </el-timeline-item>
+                </el-timeline>
+            </div>
+        </div>
+    {% endverbatim history %}
+
+</div>
+</body>
+</html>
+<script>
+    const {createApp, ref, reactive, watch, onMounted} = Vue
+    const App = {
+        setup() {
+            const timeline = JSON.parse('{{ timeline | safe }}');
+            const timerange = ref('')
+            const ic = ref('{{ ic }}')
+            onMounted(() => {
+                const chartDom = document.getElementById('chart-container');
+                const myChart = echarts.init(chartDom);
+                option = {
+                    title: {
+                        text: '累计在线状态统计',
+                        subtext: '{{ piesubtext | safe }}',
+                        left: 'center'
+                    },
+                    tooltip: {
+                        trigger: 'item',
+                        formatter: '{b}：{c}小时 （{d}%）'
+                    },
+                    legend: {left: 'center'},
+                    series: [
+                        {
+                            name: '状态统计',
+                            type: 'pie',
+                            radius: '50%',
+                            data: JSON.parse('{{ piedata | safe }}')
+                        }
+                    ]
+                };
+                myChart.setOption(option);
+            })
+
+            const search_playback = () => {
+                const time1 = new Date(timerange.value[0])
+                const time2 = new Date(timerange.value[1])
+                time1.setHours(time1.getHours() + 8);
+                time2.setHours(time2.getHours() + 8);
+                const isoString1 = time1.toISOString().replace('Z', '+08:00')
+                const isoString2 = time2.toISOString().replace('Z', '+08:00')
+                window.open(`/hikvision/playback/?index_code=${ic.value}&start_time=${isoString1}&end_time=${isoString2}`, '_blank');
+            }
+            return {
+                timeline, timerange, ic, search_playback
+            }
+        }
+    }
+
+    const app = createApp(App)
+    app.use(ElementPlus, {
+        locale: ElementPlusLocaleZhCn,
+    })
+    app.mount('#history')
+</script>
+<style>
+    #history {
+        width: 95%;
+        height: 95vh;
+        margin: auto;
+    }
+
+    .search-playback {
+        display: flex;
+        justify-content: space-evenly;
+        margin: 50px auto;
+    }
+
+    .main-container {
+        display: flex;
+        justify-content: space-between
+    }
+
+    .status-timeline {
+        width: 60%;
+        overflow-y: auto;
+        height: calc(100vh - 230px)
+    }
+
+    .el-timeline {
+        margin: auto;
+    }
+
+    .el-card__body {
+        padding: 10px;
+    }
+</style>
