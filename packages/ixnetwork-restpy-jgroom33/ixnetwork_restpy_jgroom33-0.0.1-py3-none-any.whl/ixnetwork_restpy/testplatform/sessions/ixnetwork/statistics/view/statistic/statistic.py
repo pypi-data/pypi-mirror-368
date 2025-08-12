@@ -1,0 +1,220 @@
+
+import sys
+from ixnetwork_restpy.base import Base
+from ixnetwork_restpy.files import Files
+
+if sys.version_info >= (3, 5):
+    from typing import List, Any, Union
+
+
+class Statistic(Base):
+    """
+    The Statistic class encapsulates a list of statistic resources that are managed by the system.
+    A list of resources can be retrieved from the server using the Statistic.find() method.
+    """
+
+    __slots__ = ()
+    _SDM_NAME = "statistic"
+    _SDM_ATT_MAP = {
+        "AggregationType": "aggregationType",
+        "Caption": "caption",
+        "DefaultCaption": "defaultCaption",
+        "Enabled": "enabled",
+        "ScaleFactor": "scaleFactor",
+        "SourceTypes": "sourceTypes",
+    }
+    _SDM_ENUM_MAP = {
+        "aggregationType": [
+            "average",
+            "averageRate",
+            "ax",
+            "axRate",
+            "intervalAverage",
+            "min",
+            "minRate",
+            "none",
+            "rate",
+            "runStateAgg",
+            "runStateAggIgnoreRamp",
+            "sum",
+            "vectorMax",
+            "vectorMin",
+            "weightedAverage",
+        ],
+    }
+
+    def __init__(self, parent, list_op=False):
+        super(Statistic, self).__init__(parent, list_op)
+
+    @property
+    def AggregationType(self):
+        # type: () -> str
+        """
+        Returns
+        -------
+        - str(average | averageRate | ax | axRate | intervalAverage | min | minRate | none | rate | runStateAgg | runStateAggIgnoreRamp | sum | vectorMax | vectorMin | weightedAverage):
+        """
+        return self._get_attribute(self._SDM_ATT_MAP["AggregationType"])
+
+    @AggregationType.setter
+    def AggregationType(self, value):
+        # type: (str) -> None
+        self._set_attribute(self._SDM_ATT_MAP["AggregationType"], value)
+
+    @property
+    def Caption(self):
+        # type: () -> str
+        """
+        Returns
+        -------
+        - str: Name of the statistic.
+        """
+        return self._get_attribute(self._SDM_ATT_MAP["Caption"])
+
+    @Caption.setter
+    def Caption(self, value):
+        # type: (str) -> None
+        self._set_attribute(self._SDM_ATT_MAP["Caption"], value)
+
+    @property
+    def DefaultCaption(self):
+        # type: () -> str
+        """
+        Returns
+        -------
+        - str: Default name of the statistic.
+        """
+        return self._get_attribute(self._SDM_ATT_MAP["DefaultCaption"])
+
+    @property
+    def Enabled(self):
+        # type: () -> bool
+        """
+        Returns
+        -------
+        - bool: If true, enables the view that is created.
+        """
+        return self._get_attribute(self._SDM_ATT_MAP["Enabled"])
+
+    @Enabled.setter
+    def Enabled(self, value):
+        # type: (bool) -> None
+        self._set_attribute(self._SDM_ATT_MAP["Enabled"], value)
+
+    @property
+    def ScaleFactor(self):
+        # type: () -> int
+        """
+        Returns
+        -------
+        - number:
+        """
+        return self._get_attribute(self._SDM_ATT_MAP["ScaleFactor"])
+
+    @ScaleFactor.setter
+    def ScaleFactor(self, value):
+        # type: (int) -> None
+        self._set_attribute(self._SDM_ATT_MAP["ScaleFactor"], value)
+
+    @property
+    def SourceTypes(self):
+        # type: () -> List[str]
+        """
+        Returns
+        -------
+        - list(str):
+        """
+        return self._get_attribute(self._SDM_ATT_MAP["SourceTypes"])
+
+    def update(
+        self, AggregationType=None, Caption=None, Enabled=None, ScaleFactor=None
+    ):
+        # type: (str, str, bool, int) -> Statistic
+        """Updates statistic resource on the server.
+
+        Args
+        ----
+        - AggregationType (str(average | averageRate | ax | axRate | intervalAverage | min | minRate | none | rate | runStateAgg | runStateAggIgnoreRamp | sum | vectorMax | vectorMin | weightedAverage)):
+        - Caption (str): Name of the statistic.
+        - Enabled (bool): If true, enables the view that is created.
+        - ScaleFactor (number):
+
+        Raises
+        ------
+        - ServerError: The server has encountered an uncategorized error condition
+        """
+        return self._update(self._map_locals(self._SDM_ATT_MAP, locals()))
+
+    def add(self, AggregationType=None, Caption=None, Enabled=None, ScaleFactor=None):
+        # type: (str, str, bool, int) -> Statistic
+        """Adds a new statistic resource on the json, only valid with batch add utility
+
+        Args
+        ----
+        - AggregationType (str(average | averageRate | ax | axRate | intervalAverage | min | minRate | none | rate | runStateAgg | runStateAggIgnoreRamp | sum | vectorMax | vectorMin | weightedAverage)):
+        - Caption (str): Name of the statistic.
+        - Enabled (bool): If true, enables the view that is created.
+        - ScaleFactor (number):
+
+        Returns
+        -------
+        - self: This instance with all currently retrieved statistic resources using find and the newly added statistic resources available through an iterator or index
+
+        Raises
+        ------
+        - Exception: if this function is not being used with config assistance
+        """
+        return self._add_xpath(self._map_locals(self._SDM_ATT_MAP, locals()))
+
+    def find(
+        self,
+        AggregationType=None,
+        Caption=None,
+        DefaultCaption=None,
+        Enabled=None,
+        ScaleFactor=None,
+        SourceTypes=None,
+    ):
+        # type: (str, str, str, bool, int, List[str]) -> Statistic
+        """Finds and retrieves statistic resources from the server.
+
+        All named parameters are evaluated on the server using regex. The named parameters can be used to selectively retrieve statistic resources from the server.
+        To retrieve an exact match ensure the parameter value starts with ^ and ends with $
+        By default the find method takes no parameters and will retrieve all statistic resources from the server.
+
+        Args
+        ----
+        - AggregationType (str(average | averageRate | ax | axRate | intervalAverage | min | minRate | none | rate | runStateAgg | runStateAggIgnoreRamp | sum | vectorMax | vectorMin | weightedAverage)):
+        - Caption (str): Name of the statistic.
+        - DefaultCaption (str): Default name of the statistic.
+        - Enabled (bool): If true, enables the view that is created.
+        - ScaleFactor (number):
+        - SourceTypes (list(str)):
+
+        Returns
+        -------
+        - self: This instance with matching statistic resources retrieved from the server available through an iterator or index
+
+        Raises
+        ------
+        - ServerError: The server has encountered an uncategorized error condition
+        """
+        return self._select(self._map_locals(self._SDM_ATT_MAP, locals()))
+
+    def read(self, href):
+        """Retrieves a single instance of statistic data from the server.
+
+        Args
+        ----
+        - href (str): An href to the instance to be retrieved
+
+        Returns
+        -------
+        - self: This instance with the statistic resources from the server available through an iterator or index
+
+        Raises
+        ------
+        - NotFoundError: The requested resource does not exist on the server
+        - ServerError: The server has encountered an uncategorized error condition
+        """
+        return self._read(href)
