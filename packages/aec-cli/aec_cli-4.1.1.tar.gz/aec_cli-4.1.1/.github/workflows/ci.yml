@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      id: setup-python
+      uses: actions/setup-python@v4
+    - name: Cache virtualenv
+      id: cache-venv
+      uses: actions/cache@v3
+      with:
+        path: .venv
+        key: ${{ runner.os }}-py${{ steps.setup-python.outputs.python-version }}-venv-${{ hashFiles('pyproject.toml') }}
+    - name: Cache pre-commit
+      id: cache-pre-commit
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pre-commit
+        key: ${{ runner.os }}-py${{ steps.setup-python.outputs.python-version }}-pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+    - name: make install
+      if: steps.cache-venv.outputs.cache-hit != 'true'
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        make install
+    - name: make hooks
+      run: make hooks

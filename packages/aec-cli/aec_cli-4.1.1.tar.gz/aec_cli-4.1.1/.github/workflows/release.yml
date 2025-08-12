@@ -1,0 +1,37 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for checks to succeed
+        uses: poseidon/wait-for-status-checks@v0.6.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          interval: 5
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        id: setup-python
+        uses: actions/setup-python@v4
+      - name: Cache virtualenv
+        id: cache-venv
+        uses: actions/cache@v3
+        with:
+          path: .venv
+          # same as used in the ci workflow for reuse across workflows
+          key: ${{ runner.os }}-py${{ steps.setup-python.outputs.python-version }}-venv-${{ hashFiles('pyproject.toml') }}
+      - name: make install
+        if: steps.cache-venv.outputs.cache-hit != 'true'
+        run: make install
+      - name: Make and test distribution
+        run: make dist test-dist
+      - name: Publish to pypi
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: make publish
