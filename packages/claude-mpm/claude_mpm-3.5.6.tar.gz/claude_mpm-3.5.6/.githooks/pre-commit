@@ -1,0 +1,50 @@
+#!/bin/bash
+# Pre-commit hook to sync VERSION file to package.json
+#
+# Purpose:
+# This hook ensures the package.json version stays in sync with the VERSION file.
+# The VERSION file is the single source of truth for version information.
+#
+# When This Runs:
+# - Before every git commit
+# - After staging files but before commit is created
+# - Can modify staged files (adds package.json if changed)
+
+# Get the project root directory
+# This ensures the hook works regardless of where git command is run from
+PROJECT_ROOT=$(git rev-parse --show-toplevel)
+
+# Read version from VERSION file
+VERSION_FILE="$PROJECT_ROOT/VERSION"
+PACKAGE_JSON="$PROJECT_ROOT/package.json"
+
+if [ -f "$VERSION_FILE" ]; then
+    # Read the version from VERSION file
+    VERSION=$(cat "$VERSION_FILE" | tr -d '\n')
+    
+    # Check if package.json exists
+    if [ -f "$PACKAGE_JSON" ]; then
+        # Get current version from package.json
+        CURRENT_PACKAGE_VERSION=$(grep -o '"version"[[:space:]]*:[[:space:]]*"[^"]*"' "$PACKAGE_JSON" | grep -o '"[^"]*"$' | tr -d '"')
+        
+        # Update package.json if versions differ
+        if [ "$VERSION" != "$CURRENT_PACKAGE_VERSION" ]; then
+            # Update version in package.json
+            if command -v jq &> /dev/null; then
+                # Use jq if available for proper JSON handling
+                jq --arg version "$VERSION" '.version = $version' "$PACKAGE_JSON" > "$PACKAGE_JSON.tmp" && mv "$PACKAGE_JSON.tmp" "$PACKAGE_JSON"
+            else
+                # Fallback to sed for simple replacement
+                sed -i.bak "s/\"version\"[[:space:]]*:[[:space:]]*\"[^\"]*\"/\"version\": \"$VERSION\"/" "$PACKAGE_JSON" && rm "$PACKAGE_JSON.bak"
+            fi
+            
+            # Stage the change
+            git add "$PACKAGE_JSON"
+            echo "Updated package.json version to $VERSION"
+        fi
+    fi
+fi
+
+# Continue with commit - always succeed
+# Hook failures would block commits, which we want to avoid
+exit 0
