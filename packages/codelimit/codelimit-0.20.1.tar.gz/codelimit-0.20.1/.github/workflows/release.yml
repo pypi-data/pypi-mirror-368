@@ -1,0 +1,171 @@
+name: release
+
+on: [workflow_dispatch]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    concurrency: release
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+    steps:
+    - name: Checkout sources
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+
+    - name: Install dependencies
+      run: uv sync --locked --dev
+
+    - name: Python Semantic Release
+      id: release
+      uses: relekang/python-semantic-release@v9.21.0
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        strict: true
+
+  update_repo:
+    runs-on: ubuntu-latest
+    needs: release
+    concurrency: release
+    permissions:
+      contents: write
+    steps:
+    - name: Checkout sources
+      uses: actions/checkout@v4
+      with:
+        ref: main
+        fetch-depth: 0
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+
+    - name: Update lock file
+      run: uv lock
+
+    - name: Push changes
+      uses: stefanzweifel/git-auto-commit-action@v6
+
+  release_pypi:
+    runs-on: ubuntu-latest
+    needs: update_repo
+    environment:
+      name: pypi
+      url: https://pypi.org/p/codelimit
+    permissions:
+      id-token: write
+      contents: write
+    steps:
+    - name: Checkout sources
+      uses: actions/checkout@v4
+      with:
+        ref: main
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+
+    - name: Install dependencies
+      run: uv sync --locked --dev
+
+    - name: Commit changes
+      uses: stefanzweifel/git-auto-commit-action@v6
+      with:
+        commit_message: Build by GitHub Actions
+        file_pattern: uv.lock
+
+    - name: Build distribution
+      run: uv build
+
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+
+  release_dockerhub:
+    runs-on: ubuntu-latest
+    needs: update_repo
+
+    steps:
+    - name: Checkout sources
+      uses: actions/checkout@v4
+      with:
+        ref: main
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to DockerHub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v6
+      with:
+        platforms: linux/amd64,linux/arm64
+        context: .
+        file: Dockerfile
+        push: true
+        tags: getcodelimit/codelimit:latest
+
+  release_binaries:
+    name: Release binaries
+    needs: 
+      - release
+      - update_repo
+      - release_pypi
+    defaults:
+      run:
+        shell: bash
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            TARGET: macos
+            CMD_BUILD: |
+              uv run pyinstaller \
+                -n codelimit -F codelimit/__main__.py
+              mv dist/codelimit dist/codelimit-macos
+            OUT_FILE_NAME: dist/codelimit-macos
+          - os: windows-latest
+            TARGET: windows
+            CMD_BUILD: |
+              uv run pyinstaller \
+                -n codelimit --onefile -c codelimit/__main__.py
+            OUT_FILE_NAME: dist/codelimit.exe
+          - os: ubuntu-22.04
+            TARGET: linux
+            CMD_BUILD: |
+              uv run pyinstaller \
+                -n codelimit -F codelimit/__main__.py
+              mv dist/codelimit dist/codelimit-linux
+            OUT_FILE_NAME: dist/codelimit-linux
+    steps:
+    - name: Checkout sources
+      uses: actions/checkout@v4
+      with:
+        ref: main
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+
+    - name: Install dependencies
+      run: uv sync --locked --dev
+
+    - name: Build codelimit with pyinstaller for ${{matrix.TARGET}}
+      run: ${{matrix.CMD_BUILD}}
+
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ format('v{0}', needs.release.outputs.version) }}
+        files: |
+          ${{ matrix.OUT_FILE_NAME }}
