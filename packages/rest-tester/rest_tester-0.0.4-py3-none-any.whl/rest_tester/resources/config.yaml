@@ -1,0 +1,32 @@
+defaults: #default values for creating instances
+  server: #defautt values for server instances
+    host: localhost:55555       #host (domain or ip) and port
+    autostart: false #autostart value, if true the server will start automatically (endpoint/route is registered automatically)
+    initial_delay_sec: 0.0 #initial_delay_sec in seconds before the server starts (useful for testing)
+    response_delay_sec: 0.0 #response_delay_sec in seconds before the server responds to a request
+    route: /api/v1/<name>           #route or endpoint on which the server will respond with the the given response
+    methodes:                        #list of methods (e.g. GET, POST) which the server will respond to
+      - GET
+      - POST
+    response: |- #response json, which the server will return when the route is called (after the response_delay_sec)
+      { "response": "OK", "request": {{request | tojson}}, "status": "success", "math": "{{ 5 * math.sin( math.pi/20.0 * counter)}}"}
+  client: #default values for client instances
+    host: localhost:55555  #host (domain or ip) and port
+    autostart: false #autostart value, if true the client will start automatically (one request is / periodic requests are sent automatically)
+    initial_delay_sec: 0.0   #initial_delay_sec in seconds before the server starts (useful for testing)
+    loop: false #loop value, if true the client will send requests in a loop (period_sec is used to determine the interval between requests)
+    period_sec: 1.0 #period in seconds for periodic requests (if loop is true)
+    route: /api/v1/NAME?p=1&q={{counter}} #route or endpoint on which the client will send requests
+    methode: "POST"  #methode (e.g. GET, POST) which the client will use to send requests
+    request: |- #request json, which the client will send to the given route
+      {
+        "counter": "{{counter}}",
+        "time": "{{time.time()}}",
+        "math": "{{ 3.5* math.fmod(counter, 17)}}"
+      }
+
+#list of servers instances
+servers:
+  - name: Server1
+clients:
+  - name: Client1
