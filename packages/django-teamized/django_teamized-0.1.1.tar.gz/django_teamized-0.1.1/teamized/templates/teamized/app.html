@@ -1,0 +1,40 @@
+{% extends 'teamized/base.html' %}
+{% load static i18n %}
+
+{% comment %} This is the main app page. All the action happens on this page.{% endcomment %}
+
+{% block title %}{% translate "App" %}{% endblock title %}
+
+{% block extrahead %}
+    <!-- Custom stylesheets -->
+    <link rel="stylesheet" href="{% static 'teamized/css/app.css' %}">
+    <link rel="stylesheet" href="{% static 'teamized/css/darkmode.css' %}">
+{% endblock extrahead %}
+
+{% block body %}
+
+    <div id="react-root" class="h-100 d-flex flex-column">
+        <!-- Filled by React / fallback content: -->
+        <div class="w-100 h-100 d-flex flex-column align-items-center justify-content-center">
+            <div class="spinner-border mb-3" role="status">
+                <span class="visually-hidden">Laden...</span>
+            </div>
+            <p>App wird geladen...</p>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        window.teamized_globals = {
+            api_base_url: '{% url 'teamized:home' %}api/',
+            home_url: '{% url 'teamized:home' %}',
+            debug_url: '{% url 'teamized:app-debug' %}',
+            account_url: '{% url 'account:home' %}?next={% url 'teamized:app' %}',
+            logout_url: '{% url 'account:logout' %}?next={% url 'teamized:home' %}',
+        };
+    </script>
+
+    <!-- Main app script -->
+    <script src="{% static 'teamized/app/mainapp.js' %}"></script>
+
+{% endblock body %}
