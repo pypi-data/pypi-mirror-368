@@ -1,0 +1,55 @@
+[project]
+name = "slurm-factory"
+version = "0.1.0"
+description = "Slurm builder project by Vantage Compute"
+authors = [
+    {name = "James Beedy", email = "james@vantagecompute.ai"}
+]
+license = {text = "MIT"}
+requires-python = ">=3.11"
+dependencies = [
+    "craft-providers>=2.4.0",
+    "typer>=0.16.0",
+    "rich>=14.1.0",
+    "pyyaml>=6.0.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.12.8",
+    "mypy>=1.17.1",
+    "black>=25.1.0",
+    "types-pyyaml>=6.0.12.20250809",
+    "pytest>=8.0.0",
+    "pytest-cov>=6.0.0",
+]
+
+[tool.black]
+line-length = 110
+src = ["slurm_factory"]
+
+[tool.ruff]
+line-length = 110
+extend-exclude = ["__pycache__", "*.egg_info", "__init__.py", "data"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "C", "N", "D", "I001"]
+ignore = ["D203", "D212", "C901"]
+
+[tool.mypy]
+follow_imports = "silent"
+ignore_missing_imports = true
+
+[project.scripts]
+slurm-factory = "slurm_factory.main:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["slurm_factory"]
+
+[tool.hatch.build.targets.wheel.shared-data]
+"data/patches" = "share/slurm-factory/patches"
+"data/lxd-profile.yaml" = "share/slurm-factory/lxd-profile.yaml"
