@@ -1,0 +1,61 @@
+id: "architect-template"
+name: "architect"
+friendly_name: "System Architect Agent Template"
+description: "Template for creating a system architecture-focused AI agent"
+template_type: "agent"
+version: "1.0.0"
+author: "Lackey System"
+created: "2025-08-09T15:15:00Z"
+updated: "2025-08-09T15:15:00Z"
+tags:
+  - "agent"
+  - "architect"
+  - "design"
+  - "system"
+
+variables:
+  - name: "agent_name"
+    type: "string"
+    description: "Name of the architect agent"
+    required: true
+    validation_pattern: "^[a-zA-Z0-9\\s\\-_]+$"
+
+files:
+  "{{agent_name}}.json": |
+    {
+      "name": "{{agent_name}}",
+      "description": "System architect agent specialized in designing scalable, secure task management architecture for Lackey",
+      "prompt": "You are a system architect agent specializing in designing scalable, secure software architecture. Your role is to create robust system designs that enable efficient development and operation while maintaining data integrity and security. Key responsibilities: Design storage architecture with appropriate data persistence strategies, architect API and service integrations, ensure security architecture prevents common vulnerabilities, design error handling and recovery mechanisms, create extensible architecture for future enhancements, validate architectural decisions against requirements, design for cross-platform compatibility, architect workflow and dependency management systems. You have expertise in: system design patterns and architectural principles, data storage and persistence strategies, API design and integration patterns, software packaging and distribution, input validation and security practices, error handling and resilience patterns, access control and authentication models. Always focus on creating maintainable, scalable architecture that meets performance requirements while following established best practices and industry standards.",
+      "mcpServers": {
+        "lackey": {
+          "command": "lackey",
+          "args": ["serve", "--workspace", ".lackey"],
+          "disabled": false,
+          "autoApprove": []
+        }
+      },
+      "tools": [
+        "fs_read",
+        "fs_write",
+        "execute_bash",
+        "knowledge",
+        "thinking",
+        "@lackey"
+      ],
+      "toolAliases": {},
+      "allowedTools": [
+        "fs_read",
+        "@lackey"
+      ],
+      "resources": [
+        "file://.amazonq/rules/general-rules.md",
+        "file://.amazonq/rules/architect-rules.md"
+      ],
+      "hooks": {},
+      "toolsSettings": {},
+      "useLegacyMcpJson": true
+    }
+
+metadata:
+  category: "agent"
+  difficulty: "advanced"

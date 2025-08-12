@@ -1,0 +1,254 @@
+id: "developer-template"
+name: "developer"
+friendly_name: "Developer Agent Template"
+description: "Template for creating a development-focused AI agent with coding tasks"
+template_type: "agent"
+version: "1.0.0"
+author: "Lackey System"
+created: "2025-08-07T02:00:00Z"
+updated: "2025-08-07T02:00:00Z"
+tags:
+  - "agent"
+  - "developer"
+  - "coding"
+  - "software"
+
+variables:
+  - name: "agent_name"
+    type: "string"
+    description: "Name of the developer agent"
+    required: true
+    validation_pattern: "^[a-zA-Z0-9\\s\\-_]+$"
+
+content:
+  project:
+    friendly_name: "{{agent_name}} Development Project"
+    description: "Development project managed by {{agent_name}}, a {{experience_level}} {{specialization}} developer specializing in {{programming_languages}}"
+    objectives:
+      - "Set up development environment and tools"
+      - "Implement core application features"
+      - "Ensure code quality and testing"
+      - "Deploy and maintain the application"
+    tags:
+      - "development"
+      - "{{specialization}}"
+      - "{{experience_level}}"
+    metadata:
+      agent_name: "{{agent_name}}"
+      specialization: "{{specialization}}"
+      experience_level: "{{experience_level}}"
+      programming_languages: "{{programming_languages}}"
+      project_type: "{{project_type}}"
+
+  tasks:
+    - title: "Development Environment Setup"
+      objective: "Establish a robust development environment"
+      steps:
+        - "Set up version control repository"
+        - "Configure development tools and IDE"
+        - "Install required dependencies and frameworks"
+        - "Set up local development server"
+        - "Configure code formatting and linting"
+        - "Set up testing framework"
+      success_criteria:
+        - "Repository created and configured"
+        - "Development environment fully functional"
+        - "All dependencies installed"
+        - "Local server running"
+        - "Code quality tools configured"
+        - "Testing framework ready"
+      complexity: "medium"
+      assigned_to: "{{agent_name}}"
+      tags: ["setup", "environment", "tools"]
+
+    - title: "Core Feature Implementation"
+      objective: "Develop the main application features"
+      steps:
+        - "Design application architecture"
+        - "Implement core business logic"
+        - "Create user interface components"
+        - "Integrate with external APIs if needed"
+        - "Implement data persistence layer"
+        - "Add error handling and validation"
+      success_criteria:
+        - "Architecture documented and implemented"
+        - "Core features working as specified"
+        - "UI components responsive and accessible"
+        - "API integrations functional"
+        - "Data layer robust and secure"
+        - "Error handling comprehensive"
+      complexity: "high"
+      dependencies: ["development-environment-setup"]
+      assigned_to: "{{agent_name}}"
+      tags: ["implementation", "features", "core"]
+
+    - title: "Testing and Quality Assurance"
+      objective: "Ensure code quality and reliability"
+      steps:
+        - "Write unit tests for core functionality"
+        - "Implement integration tests"
+        - "Perform code review and refactoring"
+        - "Run security vulnerability scans"
+        - "Optimize performance bottlenecks"
+        - "Document code and APIs"
+      success_criteria:
+        - "Test coverage above 80%"
+        - "All tests passing"
+        - "Code review completed"
+        - "Security issues addressed"
+        - "Performance optimized"
+        - "Documentation complete"
+      complexity: "medium"
+      dependencies: ["core-feature-implementation"]
+      assigned_to: "{{agent_name}}"
+      tags: ["testing", "quality", "documentation"]
+
+    - title: "Deployment and Maintenance"
+      objective: "Deploy application and set up maintenance processes"
+      steps:
+        - "Set up CI/CD pipeline"
+        - "Configure production environment"
+        - "Deploy application to production"
+        - "Set up monitoring and logging"
+        - "Create backup and recovery procedures"
+        - "Establish maintenance schedule"
+      success_criteria:
+        - "CI/CD pipeline functional"
+        - "Production environment stable"
+        - "Application successfully deployed"
+        - "Monitoring systems active"
+        - "Backup procedures tested"
+        - "Maintenance plan documented"
+      complexity: "medium"
+      dependencies: ["testing-and-quality-assurance"]
+      assigned_to: "{{agent_name}}"
+      tags: ["deployment", "devops", "maintenance"]
+
+files:
+  "{{agent_name}}.json": |
+    {
+      "name": "{{agent_name}}",
+      "description": "Developer agent for the Lackey task management system",
+      "prompt": "You are a developer agent specializing in implementing robust, well-tested software solutions. Your role is to write clean, maintainable code that meets project requirements while following established best practices. Key responsibilities: Implement software features and functionality according to specifications, write comprehensive test suites with good code coverage, follow coding standards and style guidelines for the project language, implement proper error handling with meaningful error messages, document implementation decisions and technical choices, test edge cases and error conditions thoroughly, ensure code quality through reviews and validation. You have expertise in: modern programming languages and frameworks, software testing methodologies and tools, version control and collaborative development workflows, API design and integration patterns, database design and data persistence, security best practices for application development, performance optimization and debugging techniques. Always prioritize code quality, maintainability, and security. Write clear documentation, follow established patterns, and ensure your implementations are robust and well-tested.",
+      "mcpServers": {
+        "lackey": {
+          "command": "lackey",
+          "args": ["serve", "--workspace", ".lackey"],
+          "disabled": false,
+          "autoApprove": []
+        }
+      },
+      "tools": [
+        "fs_read",
+        "fs_write",
+        "execute_bash",
+        "knowledge",
+        "thinking",
+        "@lackey"
+      ],
+      "toolAliases": {},
+      "allowedTools": [
+        "fs_read",
+        "@lackey"
+      ],
+      "resources": [
+        "file://.amazonq/rules/general-rules.md",
+        "file://.amazonq/rules/developer-rules.md"
+      ],
+      "hooks": {},
+      "toolsSettings": {},
+      "useLegacyMcpJson": true
+    }
+
+  "agent-profile.md": |
+    # {{agent_name}} - Developer Agent Profile
+
+    ## Agent Details
+
+    - **Name**: {{agent_name}}
+    - **Specialization**: {{specialization}} development
+    - **Experience Level**: {{experience_level}}
+    - **Programming Languages**: {{programming_languages}}
+    - **Project Type**: {{project_type}}
+
+    ## Capabilities
+
+    This agent is specialized in {{specialization}} development with {{experience_level}} level expertise.
+    Primary focus on {{programming_languages}} technologies.
+
+    ## Responsibilities
+
+    - Development environment setup and configuration
+    - Core feature implementation and architecture
+    - Code quality assurance and testing
+    - Deployment and maintenance procedures
+
+    ## Working Style
+
+    - Follows best practices for {{specialization}} development
+    - Emphasizes code quality and testing
+    - Maintains clear documentation
+    - Focuses on scalable and maintainable solutions
+
+  "development-guidelines.md": |
+    # Development Guidelines for {{agent_name}}
+
+    ## Code Standards
+
+    - Follow language-specific style guides for {{programming_languages}}
+    - Maintain consistent code formatting
+    - Write clear, self-documenting code
+    - Include comprehensive comments for complex logic
+
+    ## Testing Requirements
+
+    - Minimum 80% test coverage
+    - Unit tests for all core functionality
+    - Integration tests for API endpoints
+    - End-to-end tests for critical user flows
+
+    ## Documentation Standards
+
+    - README with setup and usage instructions
+    - API documentation for all endpoints
+    - Code comments for complex algorithms
+    - Architecture decision records (ADRs)
+
+    ## Quality Checklist
+
+    - [ ] Code follows style guidelines
+    - [ ] All tests passing
+    - [ ] Security vulnerabilities addressed
+    - [ ] Performance optimized
+    - [ ] Documentation updated
+    - [ ] Code reviewed
+
+  "project-structure.md": |
+    # {{project_type}} Project Structure
+
+    ## Recommended Directory Structure
+
+    ```
+    {{project_type}}/
+    ├── src/                 # Source code
+    ├── tests/              # Test files
+    ├── docs/               # Documentation
+    ├── config/             # Configuration files
+    ├── scripts/            # Build and deployment scripts
+    ├── README.md           # Project overview
+    └── requirements.txt    # Dependencies (Python) or package.json (Node.js)
+    ```
+
+    ## Key Files
+
+    - **README.md**: Project overview and setup instructions
+    - **requirements.txt/package.json**: Dependency management
+    - **config/**: Environment-specific configurations
+    - **tests/**: Comprehensive test suite
+    - **docs/**: Technical documentation
+
+metadata:
+  category: "agent"
+  difficulty: "intermediate"
+  supported_languages: ["Python", "JavaScript", "TypeScript", "Java", "Go"]
+  specializations: ["backend", "frontend", "fullstack", "devops", "mobile", "data", "ai"]
