@@ -1,0 +1,255 @@
+[project]
+name = "flui-tui"
+version = "1.3.0"
+description = "TUI for real-time sub-typing of Avian Flu Viruses"
+readme = "README.md"
+authors = [{ name = "Brett Calcott", email = "brett@dragonfly.co.nz" }]
+requires-python = ">=3.11"
+dependencies = [
+  "loguru>=0.7.2",
+  "numpy>=2.1.2",
+  "platformdirs>=4.3.6",
+  "pydantic>=2.9.2",
+  "scipy>=1.14.1",
+  "textual>=0.84.0",
+  "typer>=0.12.5",
+  "watchfiles>=0.24.0",
+]
+license = { text = "Apache-2.0" }
+classifiers = [
+  "License :: OSI Approved :: Apache Software License",
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
+  "Environment :: Console",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+
+[project.urls]
+Homepage = "https://github.com/dragonfly-science/flui"
+Repository = "https://github.com/dragonfly-science/flui"
+Issues = "https://github.com/dragonfly-science/flui"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+# Required for hatchling to build a wheel, as we have a different project name.
+packages = ["src/flui"]
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+  "*.mp4",
+  "*.png", 
+  "fastq/",
+  ".claude/",
+  "sample/",
+  "tests/",
+  "uv.lock",
+  "justfile",
+  "taplo.toml",
+  ".markdownlint.json",
+  "flui.toml",
+  "scripts/",
+  "MANIFEST.in",
+]
+
+[project.scripts]
+flui = "flui:cli.flui_app"
+subtype-one = "flui:cli.subtype_app"
+
+[tool.uv]
+dev-dependencies = [
+  "pytest>=8.3.3",
+  "pytest-benchmark>=4.0.0",
+  "pytest-sugar>=1.0.0",
+  "pytest-datadir>=1.5.0",
+  "syrupy>=4.7.2",
+  "hypothesis>=6.115.5",
+]
+
+# Linting tools here ------------------------------
+# We use pyright and ruff to check our code
+[tool.pyright]
+pythonVersion = "3.11"
+venvPath = "."
+venv = ".venv"
+include = ["src/**", "tests/**", "scripts/**"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+indent-width = 4
+exclude = [".git", "__pycache__"]
+
+[tool.ruff.lint]
+# https://docs.astral.sh/ruff/preview/
+preview = true
+
+# https://docs.astral.sh/ruff/settings/#lint_extend-safe-fixes
+extend-safe-fixes = [
+  # unnecessary-comprehension-in-call
+  "C419",
+  # literal-membership
+  "PLR6201",
+  # assign exception msg to variable #
+  # -------------------------------- #
+  "EM101",
+  "EM102",
+  # trailing-whitespace
+  "W291",
+  # blank line contains whitespace
+  "W293",
+  # unsorted-dunder-all
+  "RUF022",
+  # pydocstyle #
+  # ---------- #
+  # fits-on-one-line
+  "D200",
+  # escape-sequence-in-docstring
+  "D301",
+  # ends-in-period
+  "D400",
+  # missing-return-type-special-method 
+  "ANN204",
+  # unnecessary-dict-comprehension-for-iterable
+  "C420",
+]
+
+# https://docs.astral.sh/ruff/preview/#using-rules-that-are-in-preview
+extend-select = [
+  # refurb
+  "FURB",
+  # pylint (preview) autofix #
+  # ------------------------ #
+  # unnecessary-dunder-call
+  "PLC2801",
+  # unnecessary-dict-index-lookup
+  "PLR1733",
+  # unnecessary-list-index-lookup
+  "PLR1736",
+  # literal-membership
+  "PLR6201",
+  # unspecified-encoding
+  "PLW1514",
+]
+select = [
+  # flake8-bugbear
+  "B",
+  # flake8-comprehensions
+  "C4",
+  # pycodestyle-error
+  "E",
+  # flake8-errmsg
+  "EM",
+  # pyflakes
+  "F",
+  # flake8-future-annotations
+  "FA",
+  # flynt
+  "FLY",
+  # flake8-pie
+  "PIE",
+  # flake8-pytest-style
+  "PT",
+  # flake8-use-pathlib
+  "PTH",
+  # Ruff-specific rules
+  "RUF",
+  # flake8-simplify
+  "SIM",
+  # print statements
+  "T20",
+  # flake8-type-checking
+  "TCH",
+  # flake8-tidy-imports
+  "TID",
+  # pyupgrade
+  "UP",
+  # pycodestyle-warning
+  "W",
+  # pylint (stable) autofix #
+  # ----------------------- #
+  # iteration-over-set
+  "PLC0208",
+  # manual-from-import
+  "PLR0402",
+  # useless-return
+  "PLR1711",
+  # repeated-equality-comparison
+  "PLR1714",
+  # collapsible-else-if
+  "PLR5501",
+  # useless-else-on-loop
+  "PLW0120",
+  # subprocess-run-without-check
+  "PLW1510",
+  # nested-min-max
+  "PLW3301",
+  # pydocstyle #
+  # ---------- #
+  "D",
+  # multi-line-summary-second-line
+  "D212",
+  # numpy-specific-rules
+  "NPY",
+  # unsorted-imports
+  "I001",
+  # complex-structure
+  "C901",
+]
+ignore = [
+  # unnecessary dict call. dict(a=1) is sometimes clearer!
+  "C408",
+  # pydocstyle/ https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules #
+  # ------------------------------------------------------------------------- #
+  # undocumented-public-module
+  "D100",
+  # undocumented-public-class
+  "D101",
+  # undocumented-public-method  
+  "D102",
+  # undocumented-public-function  
+  "D103",
+  # undocumented-public-package   
+  "D104",
+  # undocumented-magic-method 
+  "D105",
+  # undocumented-public-init  
+  "D106",
+  "D107",
+  # indent-with-spaces
+  "D206",
+  # multi-line-summary-first-line ((D212) is the opposite of this)
+  "D213",
+  # Any as annotation
+  "ANN401",
+]
+# https://docs.astral.sh/ruff/settings/#lintpydocstyle
+pydocstyle = { convention = "google" }
+mccabe = { max-complexity = 10 }
+
+[tool.ruff.lint.isort]
+split-on-trailing-comma = false
+
+[tool.ruff.lint.per-file-ignores]
+# Allow complex if/elif branching during tests
+"tests/**/*.py" = ["C901"]
+
+# Typer only supports Optional not |
+"src/flui/cli.py" = ["UP007"]
+
+# Allow print statements in scripts (they're user-facing)
+"scripts/**/*.py" = ["T201"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "lf"
+# https://docs.astral.sh/ruff/formatter/#docstring-formatting
+docstring-code-format = true
+docstring-code-line-length = 88
