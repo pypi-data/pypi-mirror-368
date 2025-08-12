@@ -1,0 +1,72 @@
+name: Release Python Package and Docker Image
+
+on:
+  workflow_call:
+    inputs:
+      publish:
+        description: 'Whether to publish the Python package and Docker image'
+        required: false
+        default: false
+        type: boolean
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish package and Docker image?
+        required: false
+        type: choice
+        default: 'false'
+        options:
+          - 'true'
+          - 'false'
+
+# This workflow is intended to be run manually for releases.
+# It does not depend on CI passing, but it is recommended to only run after CI passes.
+
+permissions: {}  # deny all by default
+
+jobs:
+  params:
+    runs-on: ubuntu-latest
+    outputs:
+      github-repository-lowercase: ${{ steps.lower.outputs.github_repository_lowercase }}
+    steps:
+      - name: Dump GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: echo "$GITHUB_CONTEXT"
+      - id: lower
+        run: echo "github_repository_lowercase=${GITHUB_REPOSITORY,,}" >> $GITHUB_OUTPUT
+  build-docker-image:
+    needs: [params, build-python-package]
+    uses: ./.github/workflows/2.2_build-docker-image.yml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      image-name: ghcr.io/${{ needs.params.outputs.github-repository-lowercase }}:${{ needs.build-python-package.outputs.version }}
+      extra-tag: ghcr.io/${{ needs.params.outputs.github-repository-lowercase }}:latest
+      context: .
+      dockerfile: Dockerfile
+      push: ${{ inputs.publish == 'true' || inputs.publish == true }}
+    secrets: inherit
+  build-python-package:
+    needs: params
+    uses: ./.github/workflows/2.1_build-python-package.yml
+    permissions:
+      id-token: write
+      contents: read
+    with:
+      publish: ${{ inputs.publish == 'true' || inputs.publish == true }}
+      upload-github-release: false
+    secrets: inherit
+  create-github-release:
+    needs: [params, build-python-package, build-docker-image]
+    if: ${{ (inputs.publish == 'true' || inputs.publish == true) && needs.build-python-package.result == 'success' && needs.build-docker-image.result == 'success' }}
+    uses: ./.github/workflows/2.3_create-github-release.yml
+    permissions:
+      contents: write
+    with:
+      version: ${{ needs.build-python-package.outputs.version }}
+      docker-image: ghcr.io/${{ needs.params.outputs.github-repository-lowercase }}:${{ needs.build-docker-image.outputs.version }}
+      python-package: ${{ needs.build-python-package.outputs.version }}
+    secrets: inherit

@@ -1,0 +1,50 @@
+package_name: mcp-selenium-grid # pyproject.toml
+project_name: MCP Selenium Grid
+deployment_mode: docker # one of: docker, kubernetes (DeploymentMode enum values)
+api_v1_str: /api/v1
+api_token: CHANGE_ME
+allowed_origins:
+  - http://localhost:8000
+
+selenium_grid:
+  hub_image: selenium/hub:latest
+  max_browser_instances: 10
+  se_node_max_sessions: 1
+  user: user
+  password: CHANGE_ME
+  vnc_password: CHANGE_ME
+  vnc_view_only: false
+  vnc_port: 7900
+  browser_configs:
+    chrome:
+      image: selenium/node-chrome:latest
+      port: 4444
+      resources:
+        memory: "1G"
+        cpu: "0.5"
+    undetected-chrome:
+      image: ghcr.io/catchnip/node-undetected-chrome:latest # not public yet (testing)
+      port: 4444
+      resources:
+        memory: "1G"
+        cpu: "0.5"
+    firefox:
+      image: selenium/node-firefox:latest
+      port: 4444
+      resources:
+        memory: "1G"
+        cpu: "0.5"
+    edge:
+      image: selenium/node-edge:latest
+      port: 4444
+      resources:
+        memory: "1G"
+        cpu: "0.5"
+kubernetes:
+  kubeconfig: ~/.kube/config-local-k3s
+  context: k3s-selenium-grid
+  namespace: selenium-grid-dev
+  selenium_grid_service_name: selenium-grid
+  retry_delay_seconds: 2
+  max_retries: 5
+  port_forward_local_port: 5555 # Only used for KinD (Kubernetes in Docker)
