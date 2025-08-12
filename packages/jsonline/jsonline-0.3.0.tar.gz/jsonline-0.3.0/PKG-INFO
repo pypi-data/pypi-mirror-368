@@ -1,0 +1,61 @@
+Metadata-Version: 2.3
+Name: jsonline
+Version: 0.3.0
+Summary: Jsonline is intend to use to explore and work with json lines files and avoid keep the entire data in memory or constantly read the whole file
+Author: fsadannn
+Author-email: fsadannn <fsadannn@gmail.com>
+License: MIT License
+         
+         Copyright (c) 2020 Frank S. Naranjo and contributors.
+         
+         Permission is hereby granted, free of charge, to any person obtaining a copy
+         of this software and associated documentation files (the "Software"), to deal
+         in the Software without restriction, including without limitation the rights
+         to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+         copies of the Software, and to permit persons to whom the Software is
+         furnished to do so, subject to the following conditions:
+         
+         The above copyright notice and this permission notice shall be included in all
+         copies or substantial portions of the Software.
+         
+         THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+         IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+         FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+         AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+         LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+         OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+         SOFTWARE.
+Requires-Dist: orjson>=3.11.1
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+
+# Jsonline
+
+<img alt="PyPI - License" src="https://img.shields.io/github/license/fsadannn/jsonline">
+
+Jsonline is intend to use to explore and work with json lines files and avoid keep the entire data in memory or constantly read the whole file.This library handle json lines files as it was a read only list, but with `append` too. This library build and index with the position of the being and end of each json in the file. When an element is accessed we use the mentioned index to read only the line with the requested json. This index is efficient handled and store in gzip format with extension `.json.idx`.
+
+## Example
+
+```Python
+from jsonline impor jsonLine
+
+# the extension .json is't necessary
+data = jsonLine('my_file')
+
+data.append({'test': 1})
+
+# extend is an efficient way to append several elements
+data.extend([{'test': 1}, {'another_test': 2}])
+
+print(data[1]) # random access
+
+for i in data:
+    print(i)
+
+data.close() # close whe finish using data
+
+# also support context manager
+with jsonLine('my_file') as data:
+    print(data[0])
+```
