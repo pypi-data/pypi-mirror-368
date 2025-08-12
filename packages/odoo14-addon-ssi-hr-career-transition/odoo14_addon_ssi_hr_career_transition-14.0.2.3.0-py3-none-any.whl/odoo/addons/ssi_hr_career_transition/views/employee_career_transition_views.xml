@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Copyright 2023 OpenSynergy Indonesia
+     Copyright 2023 PT. Simetri Sinergi Indonesia
+     License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl). -->
+<odoo>
+    <record id="employee_career_transition_view_tree" model="ir.ui.view">
+        <field name="name">employee_career_transition - Tree</field>
+        <field name="model">employee_career_transition</field>
+        <field name="mode">primary</field>
+        <field
+            name="inherit_id"
+            ref="ssi_transaction_mixin.mixin_transaction_view_tree"
+        />
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//field[@name='user_id']" position="after">
+                    <field name="employee_id" widget="many2one_avatar_employee" />
+                    <field name="department_id" optional="hide" />
+                    <field
+                        name="manager_id"
+                        optional="hide"
+                        widget="many2one_avatar_employee"
+                    />
+                    <field name="job_id" optional="hide" />
+                    <field name="effective_date" />
+                    <field name="type_id" />
+                    <field name="archieve" />
+                    <field name="reason_id" />
+                </xpath>
+            </data>
+        </field>
+    </record>
+
+    <record id="employee_career_transition_view_search" model="ir.ui.view">
+        <field name="name">employee_career_transition - Search</field>
+        <field name="model">employee_career_transition</field>
+        <field
+            name="inherit_id"
+            ref="ssi_transaction_mixin.mixin_transaction_view_search"
+        />
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//field[@name='user_id']" position="after">
+                    <field name="employee_id" />
+                    <field name="type_id" />
+                    <field name="reason_id" />
+                    <field name="effective_date" />
+                </xpath>
+                <xpath expr="//group[@name='group_by']" position="inside">
+                    <filter
+                        name="grp_type"
+                        string="Type"
+                        context="{'group_by':'type_id'}"
+                    />
+                    <filter
+                        name="grp_effective_date"
+                        string="Effective Date"
+                        context="{'group_by':'effective_date'}"
+                    />
+                    <filter
+                        name="grp_employee"
+                        string="Employee"
+                        context="{'group_by':'employee_id'}"
+                    />
+                    <filter
+                        name="grp_reason"
+                        string="Reason"
+                        context="{'group_by':'reason_id'}"
+                    />
+                </xpath>
+            </data>
+        </field>
+    </record>
+
+    <record id="employee_career_transition_view_form" model="ir.ui.view">
+        <field name="name">employee_career_transition - Form</field>
+        <field name="model">employee_career_transition</field>
+        <field name="mode">primary</field>
+        <field
+            name="inherit_id"
+            ref="ssi_transaction_mixin.mixin_transaction_view_form"
+        />
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//field[@name='user_id']" position="attributes">
+                    <attribute
+                        name="options"
+                    >{"no_open": True, "no_create": True}</attribute>
+                </xpath>
+                <xpath expr="//field[@name='user_id']" position="after">
+                    <field
+                        name="employee_id"
+                        widget="many2one_avatar_employee"
+                        options='{"no_open": True, "no_create": True}'
+                    />
+                    <field name="department_id" readonly="1" force_save="1" />
+                    <field
+                        name="manager_id"
+                        widget="many2one_avatar_employee"
+                        readonly="1"
+                        force_save="1"
+                    />
+                    <field name="job_id" readonly="1" force_save="1" />
+                </xpath>
+                <xpath expr="//group[@name='header_right']" position="inside">
+                    <field
+                        name="type_id"
+                        options='{"no_open": True, "no_create": True}'
+                    />
+                    <field
+                        name="reason_id"
+                        domain="[('id', 'in', allowed_reason_ids)]"
+                        attrs="{'required':[('require_reason','=',True)]}"
+                        options='{"no_open": True, "no_create": True}'
+                    />
+                    <field
+                        name="allowed_reason_ids"
+                        invisible="1"
+                        widget="many2many_tags"
+                    />
+                    <field name="limit" invisible="0" />
+                    <field name="contract" invisible="1" />
+                    <field name="join" invisible="1" />
+                    <field name="permanent" invisible="1" />
+                    <field name="terminate" invisible="1" />
+                    <field
+                        name="date_contract_start"
+                        attrs="{'required':[('contract','=',True)],'invisible':[('contract','&lt;&gt;',True)]}"
+                    />
+                    <field
+                        name="date_contract_end"
+                        attrs="{'required':[('contract','=',True)],'invisible':[('contract','&lt;&gt;',True)]}"
+                    />
+                    <field name="effective_date" />
+                    <field name="archieve" />
+                    <field
+                        name="allowed_employment_status_ids"
+                        widget="many2many_tags"
+                        invisible="1"
+                    />
+                </xpath>
+                <xpath expr="//page[1]" position="before">
+                    <page
+                        name="detail_previous"
+                        string="Career Transition Detail"
+                        attrs="{'invisible':[('archieve','=',True)]}"
+                    >
+                        <group name="detail_previous_1" colspan="4" col="2">
+                            <group
+                                name="detail_previous_1_1"
+                                colspan="1"
+                                col="2"
+                                string="Previous"
+                            >
+                                <field
+                                    name="previous_company_id"
+                                    string="Company"
+                                    force_save="1"
+                                />
+                                <field
+                                    name="previous_department_id"
+                                    string="Department"
+                                    force_save="1"
+                                />
+                                <field
+                                    name="previous_parent_id"
+                                    string="Manager"
+                                    force_save="1"
+                                />
+                                <field
+                                    name="previous_job_id"
+                                    string="Job"
+                                    force_save="1"
+                                />
+                                <field
+                                    name="previous_employment_status_id"
+                                    string="Employment Status"
+                                    force_save="1"
+                                />
+                            </group>
+                            <group
+                                name="detail_previous_1_2"
+                                colspan="1"
+                                col="2"
+                                string="New"
+                            >
+                                <field
+                                    string="Company"
+                                    name="new_company_id"
+                                    options='{"no_open": True, "no_create": True}'
+                                    attrs="{'readonly':[('change_company','=',False)], 'required':[('require_company','=',True)]}"
+                                />
+                                <field
+                                    string="Department"
+                                    name="new_department_id"
+                                    options='{"no_open": True, "no_create": True}'
+                                    attrs="{'readonly':[('change_department','=',False)], 'required':[('require_department','=',True)]}"
+                                />
+                                <field
+                                    string="Manager"
+                                    name="new_parent_id"
+                                    options='{"no_open": True, "no_create": True}'
+                                    attrs="{'readonly':[('change_parent','=',False)], 'required':[('require_parent','=',True)]}"
+                                />
+                                <field
+                                    string="Job"
+                                    name="new_job_id"
+                                    options='{"no_open": True, "no_create": True}'
+                                    attrs="{'readonly':[('change_job','=',False)], 'required':[('require_job','=',True)]}"
+                                />
+                                <field
+                                    string="Employment Status"
+                                    name="new_employment_status_id"
+                                    force_save="1"
+                                    options='{"no_open": True, "no_create": True}'
+                                    domain="[('id', 'in', allowed_employment_status_ids)]"
+                                    attrs="{'readonly':[('change_employment_status','=',False)], 'required':[('require_employment_status','=',True)]}"
+                                />
+                            </group>
+                        </group>
+                    </page>
+                    <page
+                        name="detail_new"
+                        string="Career Transition Detail"
+                        attrs="{'invisible':[('archieve','&lt;&gt;',True)]}"
+                    >
+                        <group name="detail_new_1" colspan="4" col="2">
+                            <group name="detail_new_1_1" colspan="1" col="2">
+                                <field
+                                    string="Company"
+                                    name="new_company_id"
+                                    options='{"no_open": True, "no_create": True}'
+                                    attrs="{'readonly':[('change_company','=',False)], 'required':[('require_company','=',True)]}"
+                                />
+                                <field
+                                    string="Department"
+                                    name="new_department_id"
+                                    options='{"no_open": True, "no_create": True}'
+                                    attrs="{'readonly':[('change_department','=',False)], 'required':[('require_department','=',True)]}"
+                                />
+                                <field
+                                    string="Manager"
+                                    name="new_parent_id"
+                                    options='{"no_open": True, "no_create": True}'
+                                    attrs="{'readonly':[('change_parent','=',False)], 'required':[('require_parent','=',True)]}"
+                                />
+                                <field
+                                    string="Job"
+                                    name="new_job_id"
+                                    options='{"no_open": True, "no_create": True}'
+                                    attrs="{'readonly':[('change_job','=',False)], 'required':[('require_job','=',True)]}"
+                                />
+                                <field
+                                    string="Employment Status"
+                                    name="new_employment_status_id"
+                                    force_save="1"
+                                    options='{"no_open": True, "no_create": True}'
+                                    domain="[('id', 'in', allowed_employment_status_ids)]"
+                                    attrs="{'readonly':[('change_employment_status','=',False)], 'required':[('require_employment_status','=',True)]}"
+                                />
+                            </group>
+                        </group>
+                    </page>
+                    <page
+                        name="change_policy"
+                        string="Change Policy"
+                        groups="base.group_system"
+                    >
+                        <group name="change_policy_1" colspan="4" col="2">
+                            <group name="change_policy_1_1" colspan="1" col="2">
+                                <field name="change_company" />
+                                <field name="change_department" />
+                                <field name="change_job" />
+                                <field name="change_parent" />
+                                <field name="change_employment_status" />
+                            </group>
+                            <group name="change_policy_1_2" colspan="1" col="2">
+                                <field name="require_reason" />
+                                <field name="require_company" />
+                                <field name="require_department" />
+                                <field name="require_job" />
+                                <field name="require_parent" />
+                                <field name="require_employment_status" />
+                            </group>
+                        </group>
+                    </page>
+                </xpath>
+            </data>
+        </field>
+    </record>
+
+    <record id="employee_career_transition_action" model="ir.actions.act_window">
+        <field name="name">Career Transition</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">employee_career_transition</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem
+        id="employee_career_transition_menu"
+        name="Career Transition"
+        parent="ssi_hr.hr_career_management_menu"
+        action="employee_career_transition_action"
+        groups="employee_career_transition_viewer_group"
+        sequence="25"
+    />
+</odoo>

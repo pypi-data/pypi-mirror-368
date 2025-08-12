@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Copyright 2023 OpenSynergy Indonesia
+     Copyright 2023 PT. Simetri Sinergi Indonesia
+     License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl). -->
+<odoo>
+    <record id="employee_career_transition_type_view_tree" model="ir.ui.view">
+        <field name="name">employee_career_transition_type - Tree</field>
+        <field name="model">employee_career_transition_type</field>
+        <field
+            name="inherit_id"
+            ref="ssi_master_data_mixin.mixin_master_data_view_tree"
+        />
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <data />
+        </field>
+    </record>
+
+    <record id="employee_career_transition_type_view_search" model="ir.ui.view">
+        <field name="name">employee_career_transition_type - Search</field>
+        <field name="model">employee_career_transition_type</field>
+        <field
+            name="inherit_id"
+            ref="ssi_master_data_mixin.mixin_master_data_view_search"
+        />
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <data />
+        </field>
+    </record>
+
+    <record id="employee_career_transition_type_view_form" model="ir.ui.view">
+        <field name="name">employee_career_transition_type - Form</field>
+        <field name="model">employee_career_transition_type</field>
+        <field
+            name="inherit_id"
+            ref="ssi_master_data_mixin.mixin_master_data_view_form"
+        />
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//field[@name='active']" position="after" />
+                <xpath expr="//page[1]" position="before">
+                    <page name="general" string="General">
+                        <group name="general_1" col="2" colspan="4">
+                            <field name="limit" />
+                            <field
+                                name="allowed_employment_status_ids"
+                                widget="many2many_tags"
+                            />
+                            <field
+                                name="default_employment_status_id"
+                                options='{"no_open": True, "no_create": True}'
+                                domain="[('id', 'in', allowed_employment_status_ids)]"
+                            />
+                        </group>
+                    </page>
+                    <page name="change" string="Data To Change">
+                        <group name="change_1" col="2" colspan="4">
+                            <field name="change_company" />
+                            <field name="change_department" />
+                            <field name="change_job" />
+                            <field name="change_parent" />
+                            <field name="change_employment_status" />
+                        </group>
+                        <group name="change_1_2" col="2" colspan="4">
+                            <field name="require_company" />
+                            <field name="require_department" />
+                            <field name="require_job" />
+                            <field name="require_parent" />
+                            <field name="require_employment_status" />
+                        </group>
+                    </page>
+                    <page name="reason" string="Reason">
+                        <group name="reason_1" col="2" colspan="4">
+                            <field name="require_reason" widget="boolean_toggle" />
+                        </group>
+                        <field name="reason_ids">
+                            <tree editable="top">
+                                <field name="name" />
+                                <field name="limit" />
+                                <field name="note" />
+                            </tree>
+                        </field>
+                    </page>
+                </xpath>
+            </data>
+        </field>
+    </record>
+
+    <record id="employee_career_transition_type_action" model="ir.actions.act_window">
+        <field name="name">Career Transition Types</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">employee_career_transition_type</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem
+        id="employee_career_transition_type_menu"
+        name="Career Transition Types"
+        parent="ssi_hr.menu_career_configuration"
+        action="employee_career_transition_type_action"
+        groups="employee_career_transition_type_group"
+        sequence="35"
+    />
+
+</odoo>
