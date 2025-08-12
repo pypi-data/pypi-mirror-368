@@ -1,0 +1,109 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "asymmetric-jwt-auth"
+version = "1.2.1"
+description = "Asymmetric key based authentication for HTTP APIs"
+readme = "README.rst"
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Web Environment",
+    "Framework :: Django",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: ISC License (ISCL)",
+]
+dependencies = [
+    "cryptography (>=44.0.2)",
+    "Django (>=4.2)",
+    "PyJWT (>=2.10.1,<3)",
+]
+requires-python = ">=3.11"
+
+[project.license]
+text = "ISC"
+
+[[project.authors]]
+name = "Craig Weber"
+email = "crgwbr@gmail.com"
+
+[[project.authors]]
+name = "Craig Weber"
+email = "crgwbr@gmail.com"
+
+[project.urls]
+Homepage = "https://gitlab.com/thelabnyc/asymmetric-jwt-auth"
+Repository = "https://gitlab.com/thelabnyc/asymmetric-jwt-auth"
+
+[dependency-groups]
+dev = [
+    "coverage (>=7.8.0,<8)",
+    "django-stubs (>=5.1.3,<6)",
+    "ruff (>=0.11.6)",
+    "freezegun (>=1.5.1,<2)",
+    "mypy (>=1.15.0,<2)",
+    "sphinx-rtd-theme (>=3.0.2,<4)",
+    "sphinx (>=8.2.3,<9)",
+    "types-cryptography (>=3.3.23.2,<4)",
+    "tox>=4.27.0",
+    "tox-uv>=1.26.1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["asymmetric_jwt_auth"]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+annotated_tag = true
+gpg_sign = true
+tag_format = "v$version"
+update_changelog_on_bump = true
+changelog_merge_prerelease = true
+version_provider = "pep621"
+version_scheme = "pep440"
+version_files = ["pyproject.toml:version"]
+pre_bump_hooks = ["pre-commit run --all-files || true"]
+post_bump_hooks = ["git push origin master $CZ_POST_CURRENT_TAG_VERSION"]
+
+[tool.isort]
+profile = "black"
+from_first = true
+
+[tool.ruff]
+line-length = 160
+
+[tool.ruff.lint.isort]
+from-first = true
+
+[tool.mypy]
+python_version = "3.11"
+plugins = ["mypy_django_plugin.main"]
+
+# Strict mode, see mypy --help
+warn_unused_configs = true
+disallow_subclassing_any = true
+disallow_any_generics = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+show_error_codes = true
+# Not turned on by strict
+strict_equality = true
+
+[tool.django-stubs]
+django_settings_module = "sandbox.settings"
+
+[[tool.mypy.overrides]]
+module = "*.migrations.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "*.tests.*"
+ignore_errors = true
