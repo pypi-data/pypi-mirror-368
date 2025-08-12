@@ -1,0 +1,776 @@
+{% load wagtailimages_tags %}
+{% load wagtailcore_tags wagtailimages_tags %}
+{% block content %}
+<div class="gallery-modern-block">
+    <header>
+        <div class="container">
+            <h2 class="h2-gallery">{{ value.titulo_secao }}</h2>
+            <p class="subtitle">{{ value.subtitulo_secao }}</p>
+        </div>
+    </header>
+<div class="container">
+    <div class="filters-container">
+        <div class="filters-wrapper">
+            <button class="scroll-btn left" id="scroll-left-{{ id }}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15 18l-6-6 6-6"/>
+                </svg>
+            </button>
+            <div class="filters" id="filters-container-{{ id }}">
+                <button class="filter-btn active" data-filter="all">Todos</button>
+                {% for categoria in categorias %}
+                <button class="filter-btn" data-filter="{{ categoria.slug }}">{{ categoria.nome }}</button>
+                {% endfor %}
+            </div>
+            <button class="scroll-btn right" id="scroll-right-{{ id }}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 18l6-6-6-6"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+    
+    <div class="gallery-carousel" id="gallery-carousel-{{ id }}">
+        <div class="carousel-container" id="carousel-container-{{ id }}">
+            {% for item in itens_ordenados %}
+            <div class="carousel-item" data-category="{{ item.categoria|slugify }}">
+                {% image item.imagem fill-1200x800 as img %}
+                <img src="{{ img.url }}" alt="{{ item.titulo }}">
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="carousel-nav">
+            <button id="prev-btn-{{ id }}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15 18l-6-6 6-6"/>
+                </svg>
+            </button>
+            <button id="next-btn-{{ id }}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 18l6-6-6-6"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Estado vazio (quando não há imagens) -->
+    <div class="empty-state" id="empty-state-{{ id }}" style="display: none;">
+        <div class="empty-icon">📷</div>
+        <p class="empty-text">Ainda não há fotos nesta categoria</p>
+    </div>
+</div>
+
+<!-- Lightbox para visualização das imagens -->
+<div class="lightbox" id="lightbox-{{ id }}">
+    <div class="lightbox-content">
+        <button class="lightbox-close">&times;</button>
+        <img src="" alt="setinha" class="lightbox-img">
+        <div class="lightbox-caption"></div>
+        <div class="lightbox-nav">
+            <button class="lightbox-prev">&lt;</button>
+            <button class="lightbox-next">&gt;</button>
+        </div>
+    </div>
+</div>
+
+    <style>
+        .gallery-modern-block {
+            --primary-color: {{ value.cor_principal }};
+            --secondary-color: #1e293b;
+            --accent-color: {{ value.cor_secundaria }};
+            --light-color: #f8fafc;
+            --dark-color: {{ value.cor_principal }};
+            --border-color: #e2e8f0;
+            --transition: all 0.3s ease;
+        }
+        
+        .gallery-modern-block {
+            background-color: var(--light-color);
+            color: var(--dark-color);
+        }
+        
+        
+        .gallery-modern-block .scroll-btn {
+            border: 1px solid var(--border-color);
+            color: var(--primary-color);
+            transition: var(--transition);
+        }
+        
+        .gallery-modern-block .scroll-btn:hover {
+            background-color: var(--primary-color);
+        }
+        
+        .gallery-modern-block .filter-btn {
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            transition: var(--transition);
+        }
+        
+        .gallery-modern-block .filter-btn.active {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .gallery-modern-block .carousel-nav button {
+            border: 1px solid var(--border-color);
+            color: var(--primary-color);
+            transition: var(--transition);
+        }
+        
+        .gallery-modern-block .carousel-nav button:hover {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .gallery-modern-block .add-event {
+            background-color: var(--accent-color);
+            transition: var(--transition);
+        }
+        
+        .gallery-modern-block .btn {
+            transition: var(--transition);
+        }
+        
+        .gallery-modern-block .btn-primary {
+            background-color: var(--primary-color);
+        }
+        
+        .gallery-modern-block .btn-primary:hover {
+            background-color: var(--secondary-color);
+        }
+    </style>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            initGalleryModern{{ id|escapejs }}();
+        });
+
+        function initGalleryModern{{ id|escapejs }}() {
+            // Variáveis específicas para esta instância
+            const blockId = "{{ id|escapejs }}";
+            let currentFilter = 'all';
+            let currentIndex = 0;
+            const carouselItems = document.querySelectorAll(`#carousel-container-${blockId} .carousel-item`);
+            
+            // Inicializar carrossel
+            function initCarousel() {
+                // Configurar posições iniciais
+                updateCarouselItems();
+                
+                // Adicionar evento de clique para os itens
+                carouselItems.forEach((item, index) => {
+                    item.addEventListener('click', () => {
+                        // Se o item clicado não for o ativo, navegue para ele
+                        if (!item.classList.contains('active')) {
+                            if (item.classList.contains('prev') || item.classList.contains('prev-out')) {
+                                prevSlide();
+                            } else if (item.classList.contains('next') || item.classList.contains('next-out')) {
+                                nextSlide();
+                            }
+                        } else {
+                            // Se for o item ativo, abra o lightbox
+                            openLightbox(index);
+                        }
+                    });
+                
+                // Fechar ao clicar fora
+                lightbox.addEventListener('click', (e) => {
+                    if (e.target === lightbox) {
+                        lightbox.classList.remove('active');
+                    }
+                });
+            }
+            
+            // Configurar rolagem horizontal de filtros
+            function setupFilterScroll() {
+                const scrollLeft = document.getElementById(`scroll-left-${blockId}`);
+                const scrollRight = document.getElementById(`scroll-right-${blockId}`);
+                const filtersContainer = document.getElementById(`filters-container-${blockId}`);
+                
+                // Quantidade a rolar de cada vez (largura de 3 botões + margem)
+                const scrollAmount = 250;
+                
+                scrollLeft.addEventListener('click', () => {
+                    filtersContainer.scrollBy({
+                        left: -scrollAmount,
+                        behavior: 'smooth'
+                    });
+                });
+                
+                scrollRight.addEventListener('click', () => {
+                    filtersContainer.scrollBy({
+                        left: scrollAmount,
+                        behavior: 'smooth'
+                    });
+                });
+                
+                // Mostrar/esconder botões de rolagem com base na posição de rolagem
+                function updateScrollButtons() {
+                    const isScrollable = filtersContainer.scrollWidth > filtersContainer.clientWidth;
+                    const isScrolledLeft = filtersContainer.scrollLeft > 0;
+                    const isScrolledRight = filtersContainer.scrollLeft + filtersContainer.clientWidth < filtersContainer.scrollWidth;
+                    
+                    scrollLeft.style.display = isScrollable && isScrolledLeft ? 'flex' : 'none';
+                    scrollRight.style.display = isScrollable && isScrolledRight ? 'flex' : 'none';
+                }
+                
+                // Verificar inicialmente
+                updateScrollButtons();
+                
+                // Verificar quando rolar
+                filtersContainer.addEventListener('scroll', updateScrollButtons);
+                
+                // Verificar em redimensionamento
+                window.addEventListener('resize', updateScrollButtons);
+            }
+            
+            // Verificar se deve mostrar estado vazio
+            function checkEmptyState() {
+                const emptyState = document.getElementById(`empty-state-${blockId}`);
+                const visibleItems = Array.from(carouselItems).filter(item => {
+                    const category = item.getAttribute('data-category');
+                    return currentFilter === 'all' || category === currentFilter;
+                });
+                
+                if (visibleItems.length === 0) {
+                    document.getElementById(`gallery-carousel-${blockId}`).style.display = 'none';
+                    emptyState.style.display = 'block';
+                } else {
+                    document.getElementById(`gallery-carousel-${blockId}`).style.display = '';
+                    emptyState.style.display = 'none';
+                }
+            }
+            
+            // Configurar botão de adicionar (apenas para administradores)
+            function setupAddButton() {
+                const addEventBtn = document.getElementById(`add-event-${blockId}`);
+                const addFirstPhotoBtn = document.getElementById(`add-first-photo-${blockId}`);
+                
+                // Se não houver botões, não fazer nada
+                if (!addEventBtn && !addFirstPhotoBtn) return;
+
+                // Se o botão existir, abrir o editor do painel de administração
+                if (addEventBtn) {
+                    addEventBtn.addEventListener('click', () => {
+                        // Esta função simplesmente redireciona para o painel de edição da página
+                        // O comportamento real seria implementado no backend
+                        window.location.href = window.location.pathname + '?edit';
+                    });
+                }
+                
+                // O mesmo para o botão de adicionar primeira foto
+                if (addFirstPhotoBtn) {
+                    addFirstPhotoBtn.addEventListener('click', () => {
+                        window.location.href = window.location.pathname + '?edit';
+                    });
+                }
+            }
+            
+            // Inicialização
+            initCarousel();
+            initFilters();
+            setupNavigationButtons();
+            setupLightbox();
+            setupFilterScroll();
+            setupAddButton();
+            
+            // Verificar estado vazio inicialmente
+            checkEmptyState();
+        }
+    </script>
+</div>
+
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        initGalleryModern{{ id|escapejs }}();
+    });
+    
+    function initGalleryModern{{ id|escapejs }}() {
+        // Variáveis específicas para esta instância
+        const blockId = "{{ id|escapejs }}";
+        let currentFilter = 'all';
+        let currentIndex = 0;
+        const carouselItems = document.querySelectorAll(`#carousel-container-${blockId} .carousel-item`);
+        
+        // Inicializar carrossel
+        function initCarousel() {
+            // Configurar posições iniciais
+            updateCarouselItems();
+            
+            // Adicionar evento de clique para os itens
+            carouselItems.forEach((item, index) => {
+                item.addEventListener('click', () => {
+                    // Se o item clicado não for o ativo, navegue para ele
+                    if (!item.classList.contains('active')) {
+                        if (item.classList.contains('prev') || item.classList.contains('prev-out')) {
+                            prevSlide();
+                        } else if (item.classList.contains('next') || item.classList.contains('next-out')) {
+                            nextSlide();
+                        }
+                    } else {
+                        // Se for o item ativo, abra o lightbox
+                        openLightbox(index);
+                    }
+                });
+            });
+    
+            // Se não houver itens, mostrar estado vazio
+            if (carouselItems.length === 0) {
+                document.getElementById(`gallery-carousel-${blockId}`).style.display = 'none';
+                document.getElementById(`empty-state-${blockId}`).style.display = 'block';
+            }
+        }
+        
+        // Atualizar posições dos itens do carrossel
+        function updateCarouselItems() {
+            let visibleItemCount = 0;
+            
+            carouselItems.forEach((item, index) => {
+                // Remover todas as classes de posição
+                item.classList.remove('active', 'prev', 'next', 'prev-out', 'next-out');
+                
+                // Verificar se o item deve ser mostrado com o filtro atual
+                const category = item.getAttribute('data-category');
+                if (currentFilter !== 'all' && category !== currentFilter) {
+                    item.style.display = 'none';
+                } else {
+                    item.style.display = '';
+                    visibleItemCount++;
+                }
+            });
+            
+            // Se não houver itens visíveis, mostrar estado vazio
+            if (visibleItemCount === 0) {
+                document.getElementById(`gallery-carousel-${blockId}`).style.display = 'none';
+                document.getElementById(`empty-state-${blockId}`).style.display = 'block';
+                return;
+            } else {
+                document.getElementById(`gallery-carousel-${blockId}`).style.display = '';
+                document.getElementById(`empty-state-${blockId}`).style.display = 'none';
+            }
+            
+            // Array de itens visíveis
+            const visibleItems = Array.from(carouselItems).filter(item => {
+                const category = item.getAttribute('data-category');
+                return currentFilter === 'all' || category === currentFilter;
+            });
+            
+            // Se não houver itens visíveis, não fazer nada
+            if (visibleItems.length === 0) return;
+            
+            // Garantir que o índice atual seja válido
+            if (currentIndex >= visibleItems.length) {
+                currentIndex = 0;
+            }
+            
+            // Obter o item ativo
+            const activeItemIndex = visibleItems.indexOf(visibleItems[currentIndex]);
+            
+            // Aplicar classes nos itens visíveis
+            visibleItems.forEach((item, index) => {
+                // Calcular a posição relativa ao índice ativo
+                const position = (index - activeItemIndex + visibleItems.length) % visibleItems.length;
+                
+                // Aplicar classe baseada na posição
+                if (position === 0) {
+                    item.classList.add('active');
+                } else if (position === 1) {
+                    item.classList.add('next');
+                } else if (position === visibleItems.length - 1) {
+                    item.classList.add('prev');
+                } else if (position === 2) {
+                    item.classList.add('next-out');
+                } else if (position === visibleItems.length - 2) {
+                    item.classList.add('prev-out');
+                } else {
+                    item.style.opacity = '0';
+                    item.style.visibility = 'hidden';
+                }
+                
+                // Garantir que os itens visíveis estejam visíveis
+                if (position === 0 || position === 1 || position === visibleItems.length - 1 || 
+                    position === 2 || position === visibleItems.length - 2) {
+                    item.style.opacity = '';
+                    item.style.visibility = '';
+                }
+            });
+            
+            // Atualizar controles de navegação
+            updateNavigationControls(visibleItems);
+        }
+        
+        // Atualizar controles de navegação (desativar botões se necessário)
+        function updateNavigationControls(visibleItems) {
+            const prevBtn = document.getElementById(`prev-btn-${blockId}`);
+            const nextBtn = document.getElementById(`next-btn-${blockId}`);
+            
+            // Se houver apenas um item visível, desativar os botões
+            if (visibleItems.length <= 1) {
+                prevBtn.disabled = true;
+                nextBtn.disabled = true;
+                prevBtn.style.opacity = '0.5';
+                nextBtn.style.opacity = '0.5';
+            } else {
+                prevBtn.disabled = false;
+                nextBtn.disabled = false;
+                prevBtn.style.opacity = '1';
+                nextBtn.style.opacity = '1';
+            }
+        }
+        
+        // Ir para o slide anterior
+        function prevSlide() {
+            // Array de itens visíveis
+            const visibleItems = Array.from(carouselItems).filter(item => {
+                const category = item.getAttribute('data-category');
+                return currentFilter === 'all' || category === currentFilter;
+            });
+            
+            // Se não houver itens visíveis, não fazer nada
+            if (visibleItems.length === 0) return;
+            
+            // Diminuir o índice
+            currentIndex = (currentIndex - 1 + visibleItems.length) % visibleItems.length;
+            
+            // Atualizar posições
+            updateCarouselItems();
+        }
+        
+        // Ir para o próximo slide
+        function nextSlide() {
+            // Array de itens visíveis
+            const visibleItems = Array.from(carouselItems).filter(item => {
+                const category = item.getAttribute('data-category');
+                return currentFilter === 'all' || category === currentFilter;
+            });
+            
+            // Se não houver itens visíveis, não fazer nada
+            if (visibleItems.length === 0) return;
+            
+            // Aumentar o índice
+            currentIndex = (currentIndex + 1) % visibleItems.length;
+            
+            // Atualizar posições
+            updateCarouselItems();
+        }
+        
+        // Abrir lightbox
+        function openLightbox(index) {
+            const lightbox = document.getElementById(`lightbox-${blockId}`);
+            const lightboxImg = lightbox.querySelector('.lightbox-img');
+            const lightboxCaption = lightbox.querySelector('.lightbox-caption');
+            
+            // Array de itens visíveis
+            const visibleItems = Array.from(carouselItems).filter(item => {
+                const category = item.getAttribute('data-category');
+                return currentFilter === 'all' || category === currentFilter;
+            });
+            
+            // Se não houver itens visíveis, não fazer nada
+            if (visibleItems.length === 0) return;
+            
+            // Obter o item ativo
+            const item = visibleItems[currentIndex];
+            const img = item.querySelector('img');
+            const title = item.querySelector('.item-title').textContent;
+            const date = item.querySelector('.item-date').textContent;
+            
+            // Configurar lightbox
+            lightboxImg.src = img.src;
+            lightboxImg.alt = img.alt;
+            lightboxCaption.innerHTML = `<strong>${title}</strong><br>${date}`;
+            
+            // Mostrar lightbox
+            lightbox.classList.add('active');
+        }
+        
+        // Inicializar filtros
+        function initFilters() {
+            const filterButtons = document.querySelectorAll(`#filters-container-${blockId} .filter-btn`);
+            
+            filterButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    // Remover classe ativa de todos os botões
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    
+                    // Aplicar filtro
+                    currentFilter = button.getAttribute('data-filter');
+                    
+                    // Resetar índice
+                    currentIndex = 0;
+                    
+                    // Atualizar carrossel
+                    updateCarouselItems();
+                });
+            });
+        }
+        
+        // Configurar botões de navegação
+        function setupNavigationButtons() {
+            const prevBtn = document.getElementById(`prev-btn-${blockId}`);
+            const nextBtn = document.getElementById(`next-btn-${blockId}`);
+            
+            prevBtn.addEventListener('click', prevSlide);
+            nextBtn.addEventListener('click', nextSlide);
+        }
+        
+        // Configurar lightbox
+        function setupLightbox() {
+            const lightbox = document.getElementById(`lightbox-${blockId}`);
+            const lightboxClose = lightbox.querySelector('.lightbox-close');
+            const lightboxPrev = lightbox.querySelector('.lightbox-prev');
+            const lightboxNext = lightbox.querySelector('.lightbox-next');
+            
+            // Fechar lightbox
+            lightboxClose.addEventListener('click', () => {
+                lightbox.classList.remove('active');
+            });
+            
+            // Navegar para trás no lightbox
+            lightboxPrev.addEventListener('click', () => {
+                prevSlide();
+                
+                // Array de itens visíveis
+                const visibleItems = Array.from(carouselItems).filter(item => {
+                    const category = item.getAttribute('data-category');
+                    return currentFilter === 'all' || category === currentFilter;
+                });
+                
+                // Se não houver itens visíveis, não fazer nada
+                if (visibleItems.length === 0) return;
+                
+                // Obter o item ativo
+                const item = visibleItems[currentIndex];
+                const img = item.querySelector('img');
+                const title = item.querySelector('.item-title').textContent;
+                const date = item.querySelector('.item-date').textContent;
+                
+                // Atualizar lightbox
+                lightbox.querySelector('.lightbox-img').src = img.src;
+                lightbox.querySelector('.lightbox-img').alt = img.alt;
+                lightbox.querySelector('.lightbox-caption').innerHTML = `<strong>${title}</strong><br>${date}`;
+            });
+            
+            // Navegar para frente no lightbox
+            lightboxNext.addEventListener('click', () => {
+                nextSlide();
+                
+                // Array de itens visíveis
+                const visibleItems = Array.from(carouselItems).filter(item => {
+                    const category = item.getAttribute('data-category');
+                    return currentFilter === 'all' || category === currentFilter;
+                });
+                
+                // Se não houver itens visíveis, não fazer nada
+                if (visibleItems.length === 0) return;
+                
+                // Obter o item ativo
+                const item = visibleItems[currentIndex];
+                const img = item.querySelector('img');
+                const title = item.querySelector('.item-title').textContent;
+                const date = item.querySelector('.item-date').textContent;
+                
+                // Atualizar lightbox
+                lightbox.querySelector('.lightbox-img').src = img.src;
+                lightbox.querySelector('.lightbox-img').alt = img.alt;
+                lightbox.querySelector('.lightbox-caption').innerHTML = `<strong>${title}</strong><br>${date}`;
+            });
+            
+            // Fechar ao clicar fora
+            lightbox.addEventListener('click', (e) => {
+                if (e.target === lightbox) {
+                    lightbox.classList.remove('active');
+                }
+            });
+        }
+        
+        // Configurar rolagem horizontal de filtros
+        function setupFilterScroll() {
+            const scrollLeft = document.getElementById(`scroll-left-${blockId}`);
+            const scrollRight = document.getElementById(`scroll-right-${blockId}`);
+            const filtersContainer = document.getElementById(`filters-container-${blockId}`);
+            
+            // Quantidade a rolar de cada vez (largura de 3 botões + margem)
+            const scrollAmount = 250;
+            
+            scrollLeft.addEventListener('click', () => {
+                filtersContainer.scrollBy({
+                    left: -scrollAmount,
+                    behavior: 'smooth'
+                });
+            });
+            
+            scrollRight.addEventListener('click', () => {
+                filtersContainer.scrollBy({
+                    left: scrollAmount,
+                    behavior: 'smooth'
+                });
+            });
+            
+            // Mostrar/esconder botões de rolagem com base na posição de rolagem
+            function updateScrollButtons() {
+                const isScrollable = filtersContainer.scrollWidth > filtersContainer.clientWidth;
+                const isScrolledLeft = filtersContainer.scrollLeft > 0;
+                const isScrolledRight = filtersContainer.scrollLeft + filtersContainer.clientWidth < filtersContainer.scrollWidth;
+                
+                scrollLeft.style.display = isScrollable && isScrolledLeft ? 'flex' : 'none';
+                scrollRight.style.display = isScrollable && isScrolledRight ? 'flex' : 'none';
+            }
+            
+            // Verificar inicialmente
+            updateScrollButtons();
+            
+            // Verificar quando rolar
+            filtersContainer.addEventListener('scroll', updateScrollButtons);
+            
+            // Verificar em redimensionamento
+            window.addEventListener('resize', updateScrollButtons);
+        }
+        
+        // Configurar suporte a gestos touch para navegação
+        function setupTouchNavigation() {
+            const carousel = document.getElementById(`carousel-container-${blockId}`);
+            let touchStartX = 0;
+            let touchEndX = 0;
+            
+            // Eventos touch para o carrossel
+            carousel.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+            }, { passive: true });
+            
+            carousel.addEventListener('touchend', (e) => {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            }, { passive: true });
+            
+            // Função para lidar com o gesto de swipe
+            function handleSwipe() {
+                // Definir um limiar mínimo para considerar como swipe (30px)
+                const swipeThreshold = 30;
+                
+                // Swipe da direita para a esquerda (mostrar próximo slide)
+                if (touchEndX < touchStartX - swipeThreshold) {
+                    nextSlide();
+                }
+                
+                // Swipe da esquerda para a direita (mostrar slide anterior)
+                if (touchEndX > touchStartX + swipeThreshold) {
+                    prevSlide();
+                }
+            }
+            
+            // Eventos touch para o lightbox
+            const lightbox = document.getElementById(`lightbox-${blockId}`);
+            
+            lightbox.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+            }, { passive: true });
+            
+            lightbox.addEventListener('touchend', (e) => {
+                touchEndX = e.changedTouches[0].screenX;
+                
+                // Definir um limiar mínimo mais alto para o lightbox (50px)
+                const lightboxSwipeThreshold = 50;
+                
+                // Swipe da direita para a esquerda (próxima imagem no lightbox)
+                if (touchEndX < touchStartX - lightboxSwipeThreshold) {
+                    // Navegar para frente no lightbox
+                    nextSlide();
+                    
+                    updateLightboxImage();
+                }
+                
+                // Swipe da esquerda para a direita (imagem anterior no lightbox)
+                if (touchEndX > touchStartX + lightboxSwipeThreshold) {
+                    // Navegar para trás no lightbox
+                    prevSlide();
+                    
+                    updateLightboxImage();
+                }
+            }, { passive: true });
+        }
+        
+        // Função auxiliar para atualizar a imagem do lightbox após gestos
+        function updateLightboxImage() {
+            const lightbox = document.getElementById(`lightbox-${blockId}`);
+            // Verificar se o lightbox está ativo
+            if (!lightbox.classList.contains('active')) return;
+            
+            const visibleItems = Array.from(carouselItems).filter(item => {
+                const category = item.getAttribute('data-category');
+                return currentFilter === 'all' || category === currentFilter;
+            });
+            
+            if (visibleItems.length === 0) return;
+            
+            const item = visibleItems[currentIndex];
+            const img = item.querySelector('img');
+            const title = item.querySelector('.item-title').textContent;
+            const date = item.querySelector('.item-date').textContent;
+            
+            // Atualizar lightbox
+            lightbox.querySelector('.lightbox-img').src = img.src;
+            lightbox.querySelector('.lightbox-img').alt = img.alt;
+            lightbox.querySelector('.lightbox-caption').innerHTML = `<strong>${title}</strong><br>${date}`;
+        }
+        
+        // Verificar se deve mostrar estado vazio
+        function checkEmptyState() {
+            const emptyState = document.getElementById(`empty-state-${blockId}`);
+            const visibleItems = Array.from(carouselItems).filter(item => {
+                const category = item.getAttribute('data-category');
+                return currentFilter === 'all' || category === currentFilter;
+            });
+            
+            if (visibleItems.length === 0) {
+                document.getElementById(`gallery-carousel-${blockId}`).style.display = 'none';
+                emptyState.style.display = 'block';
+            } else {
+                document.getElementById(`gallery-carousel-${blockId}`).style.display = '';
+                emptyState.style.display = 'none';
+            }
+        }
+        
+        // Configurar botão de adicionar (apenas para administradores)
+        function setupAddButton() {
+            const addEventBtn = document.getElementById(`add-event-${blockId}`);
+            const addFirstPhotoBtn = document.getElementById(`add-first-photo-${blockId}`);
+            
+            // Se não houver botões, não fazer nada
+            if (!addEventBtn && !addFirstPhotoBtn) return;
+    
+            // Se o botão existir, abrir o editor do painel de administração
+            if (addEventBtn) {
+                addEventBtn.addEventListener('click', () => {
+                    // Esta função simplesmente redireciona para o painel de edição da página
+                    // O comportamento real seria implementado no backend
+                    window.location.href = window.location.pathname + '?edit';
+                });
+            }
+            
+            // O mesmo para o botão de adicionar primeira foto
+            if (addFirstPhotoBtn) {
+                addFirstPhotoBtn.addEventListener('click', () => {
+                    window.location.href = window.location.pathname + '?edit';
+                });
+            }
+        }
+        
+        // Inicialização
+        initCarousel();
+        initFilters();
+        setupNavigationButtons();
+        setupLightbox();
+        setupFilterScroll();
+        setupTouchNavigation(); // Adicionada a chamada para a função de navegação por touch
+        setupAddButton();
+        
+        // Verificar estado vazio inicialmente
+        checkEmptyState();
+    }
+</script>
+{% endblock %}
