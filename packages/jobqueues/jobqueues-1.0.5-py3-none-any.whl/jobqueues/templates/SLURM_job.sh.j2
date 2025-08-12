@@ -1,0 +1,93 @@
+#!/bin/bash
+#
+#SBATCH --job-name={{ jobname }}
+#SBATCH --partition={{ partition }}
+#SBATCH --cpus-per-task={{ ncpu }}
+#SBATCH --mem={{ memory }}
+#SBATCH --priority={{ priority }}
+{% if workdir is not none %}#SBATCH -D {{ workdir }}
+{% endif %}
+{% if gpustring is not none %}#SBATCH --gres={{ gpustring }}
+{% endif %}
+{% if outputstream is not none %}#SBATCH --output={{ outputstream }}
+{% endif %}
+{% if errorstream is not none %}#SBATCH --error={{ errorstream }}
+{% endif %}
+{% if envvars is not none %}#SBATCH --export={{ envvars }}
+{% endif %}
+{% if time is not none %}#SBATCH --time={{ time }}
+{% endif %}
+{% if mailtype is not none %}#SBATCH --mail-type={{ mailtype }}
+{% endif %}
+{% if mailuser is not none %}#SBATCH --mail-user={{ mailuser }}
+{% endif %}
+{% if nodelist is not none %}#SBATCH --nodelist={{ nodelist }}
+{% endif %}
+{% if exclude is not none %}#SBATCH --exclude={{ exclude }}
+{% endif %}
+{% if account is not none %}#SBATCH --account={{ account }}
+{% endif %}
+{% if nodes is not none %}#SBATCH --nodes={{ nodes }}
+{% endif %}
+{% if ntasks is not none %}#SBATCH --ntasks={{ ntasks }}
+{% endif %}
+{% if ntasks_per_node is not none %}#SBATCH --ntasks-per-node={{ ntasks_per_node }}
+{% endif %}
+{% if ntasks_per_core is not none %}#SBATCH --ntasks-per-core={{ ntasks_per_core }}
+{% endif %}
+{% if cpus_per_task is not none %}#SBATCH --cpus-per-task={{ cpus_per_task }}
+{% endif %}
+{% if constraint is not none %}#SBATCH --constraint={{ constraint }}
+{% endif %}
+
+{% if sentinel is not none %}trap "touch {{ sentinel }}" EXIT SIGTERM
+{% endif %}
+
+{% for cmd in prerun %}
+{{ cmd }}
+{% endfor %}
+
+{% if nvidia_mps %}
+# assume CUDA_VISIBLE_DEVICES has been set by slurm
+GPU=$CUDA_VISIBLE_DEVICES
+
+echo "hostname: $(hostname)  GPU: $GPU"
+
+# the CUDA_MPS_PIPE_DIRECTORY is how a program connects to the mps-control and the mps-server
+# we can use a unique one for each job
+export CUDA_MPS_PIPE_DIRECTORY=~/.nvidia-mps_$(hostname)_gpu_${GPU}
+export CUDA_MPS_LOG_DIRECTORY=~/.nvidia-mps-logs_$(hostname)_gpu_${GPU}
+echo $CUDA_MPS_PIPE_DIRECTORY
+echo $CUDA_MPS_LOG_DIRECTORY
+
+# start the control demon
+nvidia-cuda-mps-control -d
+
+# start the server
+echo "start_server -uid ${UID}" | nvidia-cuda-mps-control
+
+# mps-control remaps the index of the device it is running on to 0 so we 
+# need to unset it to avoid "cuda_error_no_device"
+
+unset CUDA_VISIBLE_DEVICES
+{% endif %}
+
+{% for rsh in runsh %}
+cd {{ rsh[0] }}
+{{ rsh[1] }} {% if run_as_daemon %} | tee log_{{loop.index}}.txt &{% endif %}
+
+{% endfor %}
+{% if runsh|length > 1 %}
+cd {{ workdir }}
+{% endif %}
+
+{% if nvidia_mps %}
+wait
+# quit the server and the control. It will only quit the one corresponding to the CUDA_MPS_PIPE_DIRECTORY env variable
+echo quit | nvidia-cuda-mps-control
+{% endif %}
+
+{% if odir is not none %}
+mkdir -p {{ odir }}
+mv *.{{ trajext }} {{ odir }}
+{% endif %}
