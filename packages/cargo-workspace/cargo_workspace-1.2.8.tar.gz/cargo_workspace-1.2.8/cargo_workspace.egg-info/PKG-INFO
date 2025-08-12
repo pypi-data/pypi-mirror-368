@@ -1,0 +1,44 @@
+Metadata-Version: 2.4
+Name: cargo_workspace
+Version: 1.2.8
+Summary: Parse a cargo workspace and analyze its packages
+Author-email: Oliver Tale-Yazdi <oliver@tasty.limo>
+Project-URL: Homepage, https://github.com/ggwpez/py-cargo-workspace
+Keywords: cargo,rust
+Classifier: Programming Language :: Python :: 3
+Classifier: Operating System :: OS Independent
+Classifier: License :: OSI Approved :: GNU General Public License v3 (GPLv3)
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+Requires-Dist: toml>=0.10.0
+Provides-Extra: test
+Requires-Dist: pytest>=8.0.0; extra == "test"
+
+# Cargo Workspace
+
+Parse Rust Workspace files from a `Cargo.toml` file.
+
+## Example
+
+```python
+from cargo_workspace import Workspace
+
+# Path can be a file or directory:
+workspace = Workspace.from_path('Cargo.toml')
+
+for crate in workspace.crates:
+	print(f'Dependencies of {crate.name}:')
+	for dep in crate.dependencies:
+		print(f' - {dep.name}')
+```
+
+### Metadata
+
+The metadata of each crate is accessible as well:
+
+```python
+meta = crate.workspace.get('some.custom.key')
+
+if meta not None:
+	print(f'custom metadata found: {meta}')
+```
