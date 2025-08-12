@@ -1,0 +1,156 @@
+[project]
+name = "django-cast"
+version = "0.2.48"
+authors = [
+    {name = "Jochen Wersdörfer", email = "jochen-cast@wersdoerfer.de"},
+    {name = "Dominik Geldmacher", email = "oryon@cyberise.de"},
+]
+description = "Django Cast is a blogging and podcasting package built on Django and Wagtail CMS"
+requires-python = ">=3.9"
+keywords = [
+    "blog",
+    "podcast",
+    "video",
+    "audio"
+]
+classifiers = [
+    "Environment :: Web Environment",
+    "Framework :: Django",
+    "Framework :: Django :: 4.2",
+    "Framework :: Django :: 5.1",
+    "Framework :: Django :: 5.2",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Topic :: Internet",
+    "Development Status :: 3 - Alpha",
+    "Environment :: Web Environment",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+]
+
+dependencies = [
+    "crispy-bootstrap4",  # bootstrap4 theme
+    "django",  # Django itself
+    "django-crispy-forms",  # bootstrap4 theme
+    "django-contrib-comments",  # comments framework
+    "django-environ",  # needed by pluggy and pytest
+    "django-filter",  # filter section on blog index
+    "django-fluent-comments",  # comments framework
+    "django-htmx",  # htmx support
+    "django-model-utils",  # model mixins
+    "django-threadedcomments",  # comments framework
+    "django-vite",  # vite support for things like gallery-modal web components
+    "Pygments",  # syntax highlighting for code blocks
+    "python-akismet",  # needed to be installed for comments, but is not used
+    "python-slugify",  # slugify for page slugs
+    "rich",  # progress bars for management commands
+    "setuptools",  # required by django-model-utils for python >= 3.12 :/
+    "wagtail",  # wagtail itself
+]
+
+[build-system]
+requires = ["uv_build>=0.7.19,<0.8.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = "src"
+module-name = "cast"
+
+[dependency-groups]
+dev = [
+    "django-allauth",  # for mypy
+    "django-environ",
+    "django_extensions",
+    "django-stubs[compatible-mypy]",
+    "factory_boy",
+    "feedparser",
+    "furo",
+    "jupyter",
+    "mypy",
+    "pre-commit",
+    "pytest >= 6",
+    "pytest-cov >= 3",
+    "pytest-django",
+    "pytest-mock",
+    "pytest-randomly",
+    "pytz",
+    "ruff",
+    "tox",
+    "tox-uv",
+    "typer",
+    "types-python-slugify",
+    "types-requests",
+]
+
+[project.urls]
+Documentation = "https://django-cast.readthedocs.io/en/latest/"
+Source = "https://github.com/ephes/django-cast"
+
+[project.scripts]
+django-cast-quickstart = "cast.quickstart:main"
+
+[tool.ruff]
+line-length = 119
+target-version = "py310"
+exclude = ["*.ipynb", "*/migrations/*"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.ruff.lint.isort]
+force-single-line = false
+combine-as-imports = true
+split-on-trailing-comma = true
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "tests.settings"
+minversion = "6.0"
+testpaths = ["tests"]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+addopts = [
+    "-ra",
+    "--reuse-db",
+    "--no-migrations",
+    "--randomly-seed=1234",
+]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+plugins = ["mypy_django_plugin.main"]
+exclude = "[a-zA-Z]*/(migrations)|(example)/(.)*"  # ignore migrations
+files = ["src"]
+
+[tool.django-stubs]
+django_settings_module = "cast.settings"
+
+[tool.coverage.run]
+branch = true
+source = ["src/cast"]
+omit = [
+    "src/cast/migrations/*",
+    "src/cast/runner.py",
+    "src/cast/settings.py",
+    "src/cast/quickstart.py",
+]
+command_line = "runtests.py tests"
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]
+
+[mypy.plugins.django-stubs]
+django_settings_module = "cast.settings"

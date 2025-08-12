@@ -1,0 +1,66 @@
+{% extends "./base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% load wagtailcore_tags %}
+{% load wagtailimages_tags %}
+
+{% load django_vite %}
+
+{% if comments_are_enabled %}
+  {% load comments %}
+{% endif %}
+
+{% block css %}
+  {{ block.super }}
+  {% if comments_are_enabled %}
+    <link rel="stylesheet" type="text/css" href="{% static 'fluent_comments/css/ajaxcomments.css' %}" />
+  {% endif %}
+{% endblock css %}
+
+{% block meta %}
+  {{ block.super }}
+  {% if blog.noindex %}
+    <meta name="robots" content="noindex">
+  {% endif %}
+  <!-- twitter card / opengraph -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="{{ cover_image_url }}">
+  <meta name="twitter:image:alt" content="{{ cover_alt_text }}">
+  <meta name="twitter:description" content="{{ page.search_description }}">
+
+  <meta property="og:url" content="{{ page_url }}">
+  <meta property="og:title" content="{{ page.seo_title }}">
+  <meta property="og:image" content="{{ cover_image_url }}">
+  <meta property="og:image:alt" content="{{ cover_alt_text }}">
+  <meta property="og:type" content="article">
+  <meta property="og:description" content="{{ page.search_description }}">
+  <meta property="og:updated_time" content="{{ updated_timestamp }}">
+{% endblock %}
+
+{% block body_class %}template-blogpage{% endblock %}
+
+{% block title %}{{ page.title }}{% endblock title %}
+
+{% block content %}
+  {% include "./post_body.html" with render_detail=True %}
+
+  {% if comments_are_enabled %}
+    {% render_comment_list for page %}
+    {% render_comment_form for page %}
+  {% endif %}
+
+  <p><a href="{{ blog_url }}">Return to blog</a></p>
+
+{% endblock %}
+
+{% block javascript %}
+  {{ block.super }}
+  {% vite_hmr_client app="cast" %}
+  {% vite_asset 'src/gallery/image-gallery-bs4.ts' app="cast" %}
+  {% vite_asset 'src/audio/podlove-player.ts' app="cast" %}
+
+  <!-- full query is needed for comments -->
+  <script defer src="{% static 'cast/js/jquery/jquery-3.7.1.min.js' %}"></script>
+  <script defer type="text/javascript" src="{% static 'fluent_comments/js/ajaxcomments.js' %}"></script>
+{% endblock javascript %}
