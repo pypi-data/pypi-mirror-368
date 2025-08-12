@@ -1,0 +1,62 @@
+[tool.poetry]
+name = "rsi-divergence-detector"
+version = "0.1.0"
+description = "A tool to detect RSI divergences in price data."
+authors = ["Tomi Šeregi"]
+license = "BSD-3-Clause"
+readme = "README.md"
+repository = "https://github.com/AKzar1el/rsi_divergence_detector"
+keywords = ["rsi", "divergence", "finance", "trading", "technical-analysis"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Office/Business :: Financial :: Investment",
+    "Topic :: Scientific/Engineering :: Mathematics",
+]
+
+packages = [{ include = "rsi_divergence" }]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.14"
+
+# Pandas 2.2.2 gained NumPy 2.0 compat; 2.2.3 added Python 3.13 support.
+pandas = ">=2.2.3"
+
+# For Py3.9, pip will resolve to NumPy 1.26.x; for Py3.10–3.13 it can pick 2.x.
+numpy = ">=1.26"
+
+# SciPy 1.13 is the first to support NumPy 2.0 and still works on Python 3.9.
+# Newer SciPy (1.15/1.16) will be chosen automatically on newer Pythons.
+scipy = ">=1.13"
+
+typer = { extras = ["all"], version = "^0.9.0" }
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8"
+hypothesis = "^6.88.0"
+mypy = "^1.5.0"
+black = "^23.9.0"
+flake8 = "^6.1.0"
+# Optional for your plotting demo scripts (not imported by the library):
+# mplfinance = "^0.12"
+
+[tool.poetry.scripts]
+rsi_divergence = "rsi_divergence.cli:app"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 88
+
+[tool.mypy]
+ignore_missing_imports = true
