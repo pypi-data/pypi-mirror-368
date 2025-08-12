@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Copyright 2023 OpenSynergy Indonesia
+     Copyright 2023 PT. Simetri Sinergi Indonesia
+     License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl). -->
+<odoo>
+    <record id="hr_employee_view_form" model="ir.ui.view">
+    <field name="name">hr.employee - Form</field>
+    <field name="model">hr.employee</field>
+    <field name="mode">extension</field>
+    <field name="inherit_id" ref="hr.view_employee_form" />
+    <field name="arch" type="xml">
+        <data>
+            <xpath expr="//field[@name='company_id']" position="attributes">
+                <attribute name='readonly'>1</attribute>
+                <attribute name='force_save'>1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='parent_id']" position="attributes">
+                <attribute name='readonly'>1</attribute>
+                <attribute name='force_save'>1</attribute>
+            </xpath>
+            <xpath expr="//notebook" position="inside">
+                <page name="career_transition" string="Career Transition">
+                    <group name="career_transition_1_1" col="2" colspan="4">
+                        <field
+                                name="work_information_method"
+                                string="Method"
+                                invisible="0"
+                            />
+                    </group>
+                    <!-- <button
+                            name="action_set_method_2_career"
+                            string="From Career Transition"
+                            type="object"
+                            icon="fa-cogs"
+                            attrs="{'invisible':[('work_information_method','&lt;&gt;','manual')]}"
+                        />
+                    <button
+                            name="action_set_method_2_manual"
+                            string="Manual"
+                            type="object"
+                            icon="fa-cogs"
+                            attrs="{'invisible':[('work_information_method','&lt;&gt;', False)]}"
+                        /> -->
+                    <group
+                            name="career_transition_1_2"
+                            col="2"
+                            colspan="4"
+                            string="Career Transition"
+                            attrs="{'invisible':['|',('work_information_method','=', False),('work_information_method','=','manual')]}"
+                        >
+                        <field
+                                name="latest_career_transition_id"
+                                string="Career Transition"
+                            />
+                        <field name="join_career_transition_id" string="Join" />
+                        <field
+                                name="terminate_career_transition_id"
+                                string="Terminate"
+                            />
+                        <field
+                                name="permanent_career_transition_id"
+                                string="Permanent"
+                            />
+                        <field name="contract_career_transition_id" string="Contract" />
+                    </group>
+                    <field
+                            name="career_transition_ids"
+                            style="pointer-events:none;"
+                            attrs="{'invisible':['|',('work_information_method','=', False),('work_information_method','=','manual')]}"
+                        >
+                        <tree create='false' edit='false' delete='false'>
+                            <field name="name" />
+                            <field name="create_date" />
+                            <field name="type_id" />
+                            <field name="effective_date" />
+                            <field name="date_contract_start" />
+                            <field name="date_contract_end" />
+                            <field name="user_id" />
+                            <field name="archieve" />
+                            <field name="reason_id" />
+                            <field name="state" />
+                        </tree>
+                    </field>
+                    <group
+                            name="career_transition_1_3"
+                            col="2"
+                            colspan="4"
+                            string="Manual"
+                            attrs="{'invisible':['|',('work_information_method','=', False),('work_information_method','=','career_transition')]}"
+                        >
+                        <field name="manual_date_join" string="Join Date" />
+                        <field
+                                name="manual_date_termination"
+                                string="Termination Date"
+                            />
+                        <field name="manual_date_permanent" string="Permanent Date" />
+                        <field
+                                name="manual_date_contract_start"
+                                string="Contract Date Start"
+                            />
+                        <field
+                                name="manual_date_contract_end"
+                                string="Contract Date End"
+                            />
+                        <field name="manual_company_id" string="Company" />
+                        <field name="manual_department_id" string="Department" />
+                        <field name="manual_job_id" string="Job" />
+                        <field name="manual_parent_id" string="Manager" />
+                        <field
+                                name="manual_employment_status_id"
+                                string="Employment Status"
+                            />
+                    </group>
+                </page>
+            </xpath>
+        </data>
+    </field>
+</record>
+</odoo>
