@@ -1,0 +1,62 @@
+name: PRCodeSnip Pre-Merge Analysis
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  premerge-analysis:
+    runs-on: ubuntu-latest
+    name: 🚀 Pre-Merge Analysis
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install PRCodeSnip
+        run: |
+          pip install -e .
+          
+      - name: Run Pre-Merge Analysis
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          prcodesnip premerge-analyze \
+            --pr ${{ github.event.number }} \
+            --repo ${{ github.repository }} \
+            --commit-sha ${{ github.event.pull_request.head.sha }} \
+            --post-comment \
+            --create-status
+            
+      - name: Upload Analysis Results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: premerge-analysis-results
+          path: premerge-analysis.json
+          
+      - name: Risk Assessment Summary
+        if: always()
+        run: |
+          echo "## 📊 Risk Assessment Summary" >> $GITHUB_STEP_SUMMARY
+          
+          # Extract risk level from analysis results
+          RISK_LEVEL=$(jq -r '.risk_analysis.risk_assessment.risk_level' premerge-analysis.json 2>/dev/null || echo "unknown")
+          RISK_SYMBOL=$(jq -r '.risk_analysis.risk_assessment.risk_symbol' premerge-analysis.json 2>/dev/null || echo "❓")
+          RISK_SCORE=$(jq -r '.risk_analysis.risk_assessment.overall_score' premerge-analysis.json 2>/dev/null || echo "0.0")
+          
+          echo "**Risk Level:** $RISK_SYMBOL $RISK_LEVEL" >> $GITHUB_STEP_SUMMARY
+          echo "**Risk Score:** $RISK_SCORE/1.0" >> $GITHUB_STEP_SUMMARY
+          
+          # Add recommendations if available
+          if [ -f premerge-analysis.json ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 💡 Key Recommendations" >> $GITHUB_STEP_SUMMARY
+            jq -r '.risk_analysis.recommendations[]?' premerge-analysis.json 2>/dev/null | head -3 | while read rec; do
+              echo "- $rec" >> $GITHUB_STEP_SUMMARY
+            done
+          fi
