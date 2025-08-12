@@ -1,0 +1,195 @@
+#:schema https://json.schemastore.org/pyproject.json
+[project]
+description = "Pact CLI bundle for Python"
+name        = "pact-python-cli"
+
+dynamic  = ["version"]
+keywords = ["pact", "cli", "pact-python", "contract-testing"]
+license  = "MIT"
+readme   = "README.md"
+
+authors     = [{ name = "Joshua Ellis", email = "josh@jpellis.me" }]
+maintainers = [{ name = "Joshua Ellis", email = "josh@jpellis.me" }]
+
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: MacOS :: MacOS X",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python",
+  "Topic :: Software Development :: Testing",
+]
+
+requires-python = ">=3.9"
+
+  [project.urls]
+  "Bug Tracker"   = "https://github.com/pact-foundation/pact-python/issues"
+  "Changelog"     = "https://github.com/pact-foundation/pact-python/blob/main/pact-python-cli/CHANGELOG.md"
+  "Documentation" = "https://docs.pact.io"
+  "Homepage"      = "https://pact.io"
+  "Repository"    = "https://github.com/pact-foundation/pact-python"
+
+  [project.scripts]
+  pact                   = "pact_cli:_exec"
+  pact-broker            = "pact_cli:_exec"
+  pact-message           = "pact_cli:_exec"
+  pact-mock-service      = "pact_cli:_exec"
+  pact-plugin-cli        = "pact_cli:_exec"
+  pact-provider-verifier = "pact_cli:_exec"
+  pact-stub-service      = "pact_cli:_exec"
+  pactflow               = "pact_cli:_exec"
+
+[dependency-groups]
+# Linting and formatting tools use a more narrow specification to ensure
+# developper consistency. All other dependencies are as above.
+dev   = ["ruff==0.12.8", { include-group = "test" }, { include-group = "types" }]
+test  = ["pytest-cov~=6.0", "pytest~=8.0"]
+types = ["mypy==1.17.1"]
+
+################################################################################
+## Build System
+################################################################################
+[build-system]
+build-backend = "hatchling.build"
+requires      = ["hatch-vcs", "hatchling", "packaging"]
+
+[tool.hatch]
+
+  [tool.hatch.version]
+  source      = "vcs"
+  tag-pattern = '^pact-python-cli/(?P<version>\d+(?:\.\d+)*(?:(?:a|b|rc|\.post)\d+)?)$'
+
+    [tool.hatch.version.raw-options]
+    git_describe_command = [
+      "git",
+      "describe",
+      "--tags",
+      "--dirty",
+      "--always",
+      "--long",
+      "--match",
+      "pact-python-cli/*",
+    ]
+    root = ".."
+    version_scheme = "no-guess-dev"
+
+  [tool.hatch.build]
+
+    [tool.hatch.build.hooks.vcs]
+    version-file = "src/pact_cli/__version__.py"
+
+    [tool.hatch.build.targets.wheel]
+    packages = ["src/pact_cli"]
+
+      [tool.hatch.build.targets.wheel.hooks.custom]
+      patch = "hatch_build.py"
+
+  ########################################
+  ## Hatch Environment Configuration
+  ########################################
+  [tool.hatch.envs]
+
+    # Install dev dependencies in the default environment to simplify the developer
+    # workflow.
+    [tool.hatch.envs.default]
+    extra-dependencies = [
+      "hatchling",
+      "packaging",
+      "requests",
+      "setuptools ; python_version >= '3.12'",
+    ]
+    installer = "uv"
+    pre-install-commands = ["uv pip install --group dev -e ."]
+
+      [tool.hatch.envs.default.scripts]
+      all             = ["format", "lint", "test", "typecheck"]
+      format          = "ruff format {args}"
+      lint            = "ruff check --show-fixes {args}"
+      test            = "pytest tests/ {args}"
+      typecheck       = ["typecheck-src", "typecheck-tests"]
+      typecheck-src   = "mypy src/ {args}"
+      typecheck-tests = "mypy tests/ {args}"
+
+    # Test environment for running unit tests. This automatically tests against all
+    # supported Python versions.
+    [tool.hatch.envs.test]
+    installer            = "uv"
+    pre-install-commands = ["uv pip install --group test -e ."]
+
+      [[tool.hatch.envs.test.matrix]]
+      python = ["3.10", "3.11", "3.12", "3.13", "3.9"]
+
+################################################################################
+## PyTest Configuration
+################################################################################
+[tool.pytest]
+
+  [tool.pytest.ini_options]
+  addopts = [
+    "--import-mode=importlib",
+    # Coverage options
+    "--cov-config=pyproject.toml",
+    "--cov-report=xml",
+    "--cov=pact_cli",
+  ]
+
+  log_date_format = "%H:%M:%S"
+  log_format      = "%(asctime)s.%(msecs)03d [%(levelname)-8s] %(name)s: %(message)s"
+  log_level       = "NOTSET"
+
+################################################################################
+## Coverage
+################################################################################
+[tool.coverage]
+
+  [tool.coverage.paths]
+  pact-cli = ["/src/pact_cli"]
+  tests    = ["/tests"]
+
+  [tool.coverage.report]
+  exclude_lines = [
+    "@(abc\\.)?abstractmethod",   # Ignore abstract methods
+    "if TYPE_CHECKING:",          # Ignore typing
+    "if __name__ == .__main__.:", # Ignore non-runnable code
+    "raise NotImplementedError",  # Ignore defensive assertions
+  ]
+
+################################################################################
+## Ruff Configuration
+################################################################################
+[tool.ruff]
+extend = "../pyproject.toml"
+
+exclude = []
+
+################################################################################
+## Mypy Configuration
+################################################################################
+[tool.mypy]
+# Overwrite the exclusions from the root pyproject.toml.
+exclude = ''
+
+################################################################################
+## CI Build Wheel
+################################################################################
+[tool.cibuildwheel]
+# The repair tool unfortunately did not like the bundled Ruby distributable,
+# with false-positives missing libraries despite being bundled.
+repair-wheel-command = ""
+
+  [[tool.cibuildwheel.overrides]]
+  environment.MACOSX_DEPLOYMENT_TARGET = "10.13"
+  select                               = "*-macosx_x86_64"
+
+  [[tool.cibuildwheel.overrides]]
+  environment.MACOSX_DEPLOYMENT_TARGET = "11.0"
+  select                               = "*-macosx_arm64"
