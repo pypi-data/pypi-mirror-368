@@ -1,0 +1,9 @@
+//! Perform linear algebra operations involving Arrays of [f64], [Dual](crate::dual::Dual) and [Dual2](crate::dual::Dual2).
+
+mod linalg_dual;
+mod linalg_f64;
+
+pub use crate::dual::linalg::linalg_dual::{dmul11_, dmul21_, dmul22_, douter11_, dsolve};
+pub use crate::dual::linalg::linalg_f64::{
+    dfmul21_, dfmul22_, fdmul11_, fdmul21_, fdmul22_, fdsolve, fouter11_,
+};
