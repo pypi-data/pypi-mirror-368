@@ -1,0 +1,58 @@
+name: default
+config:
+  cloud-init.user-data: |
+    #cloud-config
+    package_update: true
+    package_upgrade: true
+    
+    packages:
+      - git
+      - build-essential
+      - curl
+      - python3
+      - unzip
+      - gfortran
+      - libblas-dev
+      - liblapack-dev
+      - libopenmpi-dev
+      - pkg-config
+      - cmake
+      - lmod
+      - make
+    
+    write_files:
+      - path: /etc/profile.d/spack.sh
+        permissions: '0644'
+        owner: root:root
+        content: |
+          # Spack system-wide environment
+          if [ -f /opt/spack/share/spack/setup-env.sh ]; then
+            . /opt/spack/share/spack/setup-env.sh
+          fi
+    
+    runcmd:
+      # Install Spack v1.0.0 into /opt/spack (idempotent)
+      - |
+        bash -lc '
+          set -euo pipefail
+          if [ ! -d /opt/spack ]; then
+            git clone --branch v1.0.0 https://github.com/spack/spack.git /opt/spack
+            chown -R root:root /opt/spack
+            chmod -R a+rX /opt/spack
+          fi
+        '
+
+devices:
+  eth0:
+    name: eth0
+    network: lxdbr0
+    type: nic
+  root:
+    path: /
+    pool: default
+    type: disk
+  slurm-factory-cache:
+    path: /opt/slurm-factory-cache
+    source: CACHE_SOURCE_PLACEHOLDER
+    shift: true
+    type: disk
