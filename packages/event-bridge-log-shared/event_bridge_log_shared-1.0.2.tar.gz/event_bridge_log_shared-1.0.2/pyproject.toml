@@ -1,0 +1,172 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "event-bridge-log-shared"
+dynamic = ["version"]
+description = "Shared models and utilities for Event Bridge Log Analytics Platform"
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.13"
+authors = [
+    {name = "cblack2008"}
+]
+keywords = ["aws", "eventbridge", "analytics", "microservices", "shared"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Monitoring",
+]
+
+dependencies = [
+    # Data Validation and Serialization
+    "pydantic>=2.11.0,<3.0.0",
+    "pydantic-settings>=2.10.0,<3.0.0",
+    # AWS SDK
+    "boto3>=1.40.0,<2.0.0",
+    "botocore>=1.40.0,<2.0.0",
+    # Date/Time handling
+    "python-dateutil>=2.8.0,<3.0.0",
+    # Environment management
+    "python-dotenv>=1.0.0,<2.0.0",
+    # Logging
+    "structlog>=23.0.0,<24.0.0",
+    "build>=1.3.0",
+    "twine>=6.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    # Testing
+    "pytest>=7.4.0,<8.0.0",
+    "pytest-asyncio>=0.21.0,<1.0.0",
+    "pytest-cov>=4.1.0,<5.0.0",
+    "pytest-mock>=3.12.0,<4.0.0",
+
+    # Code quality
+    "black>=25.1.0,<26.0.0",
+    "ruff>=0.12.8,<1.0.0",
+    "mypy>=1.7.0,<2.0.0",
+    "pre-commit>=3.7.0,<4.0.0",
+
+    # Documentation
+    "mkdocs>=1.5.0,<2.0.0",
+    "mkdocs-material>=9.0.0,<10.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/cblack2008/event-bridge-log-shared"
+Repository = "https://github.com/cblack2008/event-bridge-log-shared"
+Documentation = "https://cblack2008.github.io/event-bridge-log-shared"
+Issues = "https://github.com/cblack2008/event-bridge-log-shared/issues"
+Changelog = "https://github.com/cblack2008/event-bridge-log-shared/blob/main/CHANGELOG.md"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/event_bridge_log_shared"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "src/event_bridge_log_shared",
+  "LICENSE",
+  "README.md",
+  "pyproject.toml",
+]
+
+[tool.hatch.version]
+path = "src/event_bridge_log_shared/_version.py"
+
+[tool.black]
+line-length = 100
+target-version = ['py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  \.eggs
+  | \.git
+  | \.mypy_cache
+  | \.pytest_cache
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+plugins = ["pydantic.mypy"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+addopts = [
+    "--cov=src/event_bridge_log_shared",
+    "--cov-report=term-missing",
+    "--cov-report=html:htmlcov",
+    "--cov-report=xml:coverage.xml",
+    "--cov-branch",
+    "--cov-fail-under=85"
+]
+
+[tool.coverage.run]
+source = ["src/event_bridge_log_shared"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__init__.py",
+    "*/conftest.py"
+]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+show_missing = true
+precision = 2
