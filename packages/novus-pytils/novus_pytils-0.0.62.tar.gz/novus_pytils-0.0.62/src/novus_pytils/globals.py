@@ -1,0 +1,1 @@
+SUPPORTED_AUDIO_EXTENSIONS = ['.wav', '.ogg', '.flac', '.mp3', '.mp4']
