@@ -1,0 +1,57 @@
+Metadata-Version: 2.4
+Name: unboil-pydantic-sqlalchemy
+Version: 0.1.2
+Summary: A library to seamlessly integrate SQLAlchemy models with Pydantic.
+Project-URL: homepage, https://github.com/eyueldk/unboil-pydantic-sqlalchemy
+Project-URL: repository, https://github.com/eyueldk/unboil-pydantic-sqlalchemy
+Author: eyueldk
+License: MIT
+License-File: LICENSE
+Keywords: pydantic,sqlalchemy,unboil
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Requires-Python: >=3.9
+Requires-Dist: sqlalchemy>=2.0.0
+Description-Content-Type: text/markdown
+
+
+# Pydantic-Alchemy
+
+A SQLAlchemy type decorator for storing and retrieving Pydantic models in PostgreSQL JSONB columns.
+This library enables seamless integration between Pydantic and SQLAlchemy, allowing you to store validated data models directly in your database.
+
+## Features
+- Store Pydantic models in PostgreSQL JSONB columns
+- Automatic validation and serialization/deserialization
+- Works with Alembic migrations
+
+## Installation
+```bash
+pip install pydantic-alchemy
+```
+
+## Usage Example
+```python
+from pydantic import BaseModel
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from pydantic_alchemy import PydanticJSONB
+
+
+class Base(DeclarativeBase):
+    pass
+
+class Profile(BaseModel):
+    age: int
+    bio: str
+
+
+class User(Base):
+    __tablename__ = 'users'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    profile: Mapped[Profile] = mapped_column(PydanticJSONB(Profile))
+
+# Now, assigning a Profile instance to user.profile will automatically validate and serialize it.
+```
