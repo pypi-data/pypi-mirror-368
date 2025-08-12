@@ -1,0 +1,86 @@
+#!/usr/bin/env python3
+
+# Standard libraries
+from typing import List
+
+# Bundle class, pylint: disable=too-few-public-methods
+class Bundle:
+
+    # Aliases
+    ALIAS: str = 'gitlabci-local'
+
+    # Arguments
+    ARGUMENT_NETWORKS_ENUM: List[str] = ['bridge', 'host', 'none']
+    ARGUMENT_SSH_USER_DEFAULT: str = 'root'
+    ARGUMENT_TAGS_DEFAULT: List[str] = ['deploy', 'local', 'publish']
+
+    # Names
+    NAME: str = 'gcil'
+
+    # Packages
+    PACKAGE: str = 'gitlabci-local'
+
+    # Configurations
+    CONFIGURATION: str = '.gitlab-ci.yml'
+
+    # Details
+    DESCRIPTION: str = f'Launch {CONFIGURATION} jobs locally (aliases: {ALIAS})'
+
+    # Sources
+    REPOSITORY: str = 'https://gitlab.com/RadianDevCore/tools/gcil'
+
+    # Releases
+    RELEASE_FIRST_TIMESTAMP: int = 1579337311
+
+    # Environment
+    ENV_COMMIT_SHA: str = 'CI_COMMIT_SHA'
+    ENV_COMMIT_REF_NAME: str = 'CI_COMMIT_REF_NAME'
+    ENV_COMMIT_REF_SLUG: str = 'CI_COMMIT_REF_SLUG'
+    ENV_COMMIT_SHORT_SHA1: str = 'CI_COMMIT_SHORT_SHA'
+    ENV_DEBUG_UPDATES_DAILY: str = 'DEBUG_UPDATES_DAILY'
+    ENV_DEBUG_UPDATES_DISABLE: str = 'DEBUG_UPDATES_DISABLE'
+    ENV_DEBUG_UPDATES_FAKE: str = 'DEBUG_UPDATES_FAKE'
+    ENV_DEBUG_UPDATES_OFFLINE: str = 'DEBUG_UPDATES_OFFLINE'
+    ENV_DEBUG_VERSION_FAKE: str = 'DEBUG_VERSION_FAKE'
+    ENV_DEFAULT_BRANCH: str = 'CI_DEFAULT_BRANCH'
+    ENV_DISPLAY_XAUTH_MAGIC_ADD: str = 'CI_LOCAL_DISPLAY_XAUTH_MAGIC_ADD'
+    ENV_ENGINE_NAME: str = 'CI_LOCAL_ENGINE_NAME'
+    ENV_FORCE_COLOR: str = 'FORCE_COLOR'
+    ENV_GIT_BINARY_PATH: str = 'GIT_BINARY_PATH'
+    ENV_HISTORIES_DURATION_FAKE: str = 'CI_LOCAL_HISTORIES_DURATION_FAKE'
+    ENV_HOST: str = 'CI_LOCAL_HOST'
+    ENV_IMAGE_DEFAULT: str = 'CI_LOCAL_IMAGE_DEFAULT'
+    ENV_LOCAL: str = 'CI_LOCAL'
+    ENV_NO_COLOR: str = 'NO_COLOR'
+    ENV_NOTIFY_BINARY_PATH: str = 'NOTIFY_BINARY_PATH'
+    ENV_PODMAN_BINARY_PATH: str = 'PODMAN_BINARY_PATH'
+    ENV_PROJECT_NAME: str = 'CI_PROJECT_NAME'
+    ENV_PROJECT_NAMESPACE: str = 'CI_PROJECT_NAMESPACE'
+    ENV_USER_HOST_GID: str = 'CI_LOCAL_USER_HOST_GID'
+    ENV_USER_HOST_UID: str = 'CI_LOCAL_USER_HOST_UID'
+    ENV_USER_HOST_USERNAME: str = 'CI_LOCAL_USER_HOST_USERNAME'
+    ENV_WINPTY: str = 'CI_LOCAL_WINPTY'
+    ENV_WINPTY_PATH: str = 'WINPTY_BINARY_PATH'
+
+    # Flags
+    FLAG_AFTER: str = 'CI_LOCAL_AFTER'
+    FLAG_BASH: str = 'CI_LOCAL_BASH'
+    FLAG_BEFORE: str = 'CI_LOCAL_BEFORE'
+    FLAG_DEBUG: str = 'CI_LOCAL_DEBUG'
+    FLAG_DISPLAY: str = 'CI_LOCAL_DISPLAY'
+    FLAG_ENGINE: str = 'CI_LOCAL_ENGINE'
+    FLAG_EXTENDS_INCOMPLETE: str = 'CI_LOCAL_EXTENDS_INCOMPLETE'
+    FLAG_HOST: str = 'CI_LOCAL_HOST'
+    FLAG_MANUAL: str = 'CI_LOCAL_MANUAL'
+    FLAG_NETWORK: str = 'CI_LOCAL_NETWORK'
+    FLAG_NO_CONSOLE: str = 'CI_LOCAL_NO_CONSOLE'
+    FLAG_NO_VERBOSE: str = 'CI_LOCAL_NO_VERBOSE'
+    FLAG_NOTIFY: str = 'CI_LOCAL_NOTIFY'
+    FLAG_PRIVILEGED: str = 'CI_LOCAL_PRIVILEGED'
+    FLAG_REAL_PATHS: str = 'CI_LOCAL_REAL_PATHS'
+    FLAG_QUIET: str = 'CI_LOCAL_QUIET'
+    FLAG_RANDOM_PATHS: str = 'CI_LOCAL_RANDOM_PATHS'
+    FLAG_SHELL: str = 'CI_LOCAL_SHELL'
+    FLAG_SOCKETS: str = 'CI_LOCAL_SOCKETS'
+    FLAG_SSH: str = 'CI_LOCAL_SSH'
+    FLAG_WORKDIR: str = 'CI_LOCAL_WORKDIR'
