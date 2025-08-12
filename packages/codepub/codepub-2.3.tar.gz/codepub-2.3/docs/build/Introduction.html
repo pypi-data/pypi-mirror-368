@@ -1,0 +1,169 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>codePUB &mdash; CodePUB 2.3 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=57236720"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Installation" href="Installation.html" />
+    <link rel="prev" title="CodePUB" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            CodePUB
+              <img src="_static/logo.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">CodePUB</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">codePUB</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#task">Task</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#balanced-constant-weight-gray-codes">Balanced Constant-Weight Gray Codes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#definition-of-dcp-cwgcs">Definition of DCP-CWGCs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#mapping-and-constraints">Mapping and Constraints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#bba-and-rcbba">BBA and rcBBA</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Construction.html">DCP-CWGCs construction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Function%20reference.html">Function reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">CodePUB</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">codePUB</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/Introduction.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="codepub">
+<h1>codePUB<a class="headerlink" href="#codepub" title="Link to this heading"></a></h1>
+<p>codePUB package constructs balanced constant-weight Gray codes for detecting consecutive positives (DCP-CWGCs) for the efficient construction of combinatorial pooling schemes.</p>
+<section id="task">
+<h2>Task<a class="headerlink" href="#task" title="Link to this heading"></a></h2>
+<p>To minimize complexity and reduce costs of the high-throughput experiments, combinatorial pooling strategies have been developed. Such experiments use an encoding scheme where items are mixed across multiple pools, with each pool containing multiple items. Measurements are performed at the pool level, producing a unique pattern of signals for each item, which is then decoded to determine individual item measurements. With fewer pools than items, this approach improves efficiency compared to individual testing. Carefully designed encoding/decoding schemes can also detect errors, leveraging the presence of items in multiple pools.</p>
+<a class="reference internal image-reference" href="_images/comb_p_p.png"><img alt="Visual representation of combinatorial pooling" class="align-center" src="_images/comb_p_p.png" style="width: 80%;" />
+</a>
+</section>
+<section id="balanced-constant-weight-gray-codes">
+<h2>Balanced Constant-Weight Gray Codes<a class="headerlink" href="#balanced-constant-weight-gray-codes" title="Link to this heading"></a></h2>
+<p>We introduce <strong>balanced constant-weight Gray codes for detecting consecutive positives (DCP-CWGCs)</strong> as a novel combinatorial pooling strategy. Items are assigned to pools using a sequence of binary vectors (binary addresses). Addresses have constant Hamming weight, adjacent addresses differ by a Hamming distance of 2, and their OR-sums are unique. These properties enable error detection, ensure constant testing for individual items and consecutive item pairs, and maintain stable detection by balancing the number of items per pool.</p>
+<p>To construct balanced DCP-CWGCs with adjustable parameters, we developed a <strong>branch-and-bound algorithm (BBA)</strong>. This algorithm efficiently constructs DCP-CWGCs with a near-optimal balance for short to moderate code lengths (e.g., up to 3,000 items in under 250 seconds). It uses a depth-first heuristic to search for a Hamiltonian path in a bipartite graph formed by item addresses and their unions. To extend applicability and speed, an enhanced recursive branch-and-bound algorithm (<strong>rcBBA</strong>) constructs long codes by combining shorter, BBA-generated ones. Both methods are implemented in <strong>codePub</strong>.</p>
+</section>
+<section id="definition-of-dcp-cwgcs">
+<h2>Definition of DCP-CWGCs<a class="headerlink" href="#definition-of-dcp-cwgcs" title="Link to this heading"></a></h2>
+<p>A DCP-CWGC, denoted as <span class="math notranslate nohighlight">\((m, r, n)\)</span>, is a sequence of <span class="math notranslate nohighlight">\(n\)</span> distinct binary addresses, <span class="math notranslate nohighlight">\(C = \{a_1, a_2, \dots, a_n\}\)</span>, where each address <span class="math notranslate nohighlight">\(a_j = (a_{j,1}, a_{j,2}, \dots, a_{j,m})\)</span> satisfies the following constraints:</p>
+<ol class="arabic">
+<li><p><strong>Distinct OR-sums</strong>:
+For all <span class="math notranslate nohighlight">\(j, k \in \{1, 2, \dots, n-1\}\)</span> and <span class="math notranslate nohighlight">\(j \neq k\)</span>, the bitwise OR (denoted <span class="math notranslate nohighlight">\(\vee\)</span>) of consecutive addresses must be distinct:</p>
+<div class="math notranslate nohighlight">
+\[a_j \vee a_{j+1} \neq a_k \vee a_{k+1}\]</div>
+</li>
+<li><p><strong>Constant weight</strong>:
+For all <span class="math notranslate nohighlight">\(j \in \{1, 2, \dots, n\}\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\sum_{i=1}^m a_{j,i} = r.\]</div>
+</li>
+<li><p><strong>Adjacent distance</strong>:
+For all <span class="math notranslate nohighlight">\(j \in \{1, 2, \dots, n-1\}\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[D_H(a_j, a_{j+1}) = 2,\]</div>
+<p>where <span class="math notranslate nohighlight">\(D_H\)</span> represents the Hamming distance.</p>
+</li>
+</ol>
+</section>
+<section id="mapping-and-constraints">
+<h2>Mapping and Constraints<a class="headerlink" href="#mapping-and-constraints" title="Link to this heading"></a></h2>
+<p>This design maps directly to a pooling arrangement with <span class="math notranslate nohighlight">\(m\)</span> pools, weight <span class="math notranslate nohighlight">\(r\)</span>, and <span class="math notranslate nohighlight">\(n\)</span> items.</p>
+<ul class="simple">
+<li><p>Constraint (1) ensures unique identification of consecutive item pairs.</p></li>
+<li><p>Constraint (2) ensures consistent testing for each item.</p></li>
+<li><p>Together, constraints (2) and (3) maintain a constant OR-sum weight (<span class="math notranslate nohighlight">\(r+1\)</span>) for consecutive addresses, resulting in consistent testing for consecutive item pairs.</p></li>
+</ul>
+<p>Consequently, the scheme can detect single or consecutive positives and identify at least one error using the count of positive pools.</p>
+</section>
+<section id="bba-and-rcbba">
+<h2>BBA and rcBBA<a class="headerlink" href="#bba-and-rcbba" title="Link to this heading"></a></h2>
+<p>The details on both algorithms are described in our <a class="reference external" href="https://arxiv.org/abs/2502.08214">preprint</a> : <strong>“Unbiased and Error-Detecting Combinatorial Pooling Experiments with Balanced Constant-Weight Gray Codes for Consecutive Positives Detection”</strong>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="CodePUB" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Installation.html" class="btn btn-neutral float-right" title="Installation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Vasilisa Kovaleva, Guanchen He.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
