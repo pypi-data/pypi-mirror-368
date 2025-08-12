@@ -1,0 +1,29 @@
+name: publish.yml
+on:
+  push:
+    tags:
+      - v*
+  release:
+    types:
+      - published
+
+jobs:
+  build:
+    permissions:
+      id-token: write
+    environment: pypi
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - name: sync
+        run: uv sync --frozen --no-dev
+      - name: build
+        run: uv build
+      - name: publish
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          verbose: true
+
