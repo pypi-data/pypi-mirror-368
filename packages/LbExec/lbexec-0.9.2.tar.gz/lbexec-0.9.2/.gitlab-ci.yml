@@ -1,0 +1,71 @@
+###############################################################################
+# (c) Copyright 2021 CERN for the benefit of the LHCb Collaboration           #
+#                                                                             #
+# This software is distributed under the terms of the GNU General Public      #
+# Licence version 3 (GPL Version 3), copied verbatim in the file "COPYING".   #
+#                                                                             #
+# In applying this licence, CERN does not waive the privileges and immunities #
+# granted to it by virtue of its status as an Intergovernmental Organization  #
+# or submit itself to any jurisdiction.                                       #
+###############################################################################
+stages:
+  - test
+  - upload_pypi
+
+image: gitlab-registry.cern.ch/lhcb-docker/os-base/alma9-devel
+
+.setup_environment:
+  before_script:
+    - curl -L https://micromamba.snakepit.net/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
+    - eval "$(./bin/micromamba shell hook -s posix)"
+    - micromamba create -c conda-forge --yes --name lbexec-dev typer lbenv ipython black pre-commit pytest apptainer root
+    - micromamba activate lbexec-dev
+    - pip install -e .[testing] LbCondaWrappers
+
+pre-commit:
+  image: registry.cern.ch/docker.io/library/python:3.12
+  stage: test
+  rules:
+    - when: always
+  before_script:
+    - pip install pre-commit
+  script:
+    - pre-commit run --all-files
+  variables:
+    PRE_COMMIT_HOME: ${CI_PROJECT_DIR}/.cache/pre-commit
+
+pylint:
+  extends: .setup_environment
+  stage: test
+  rules:
+    - when: always
+  script:
+    - pylint src/LbExec
+
+mypy:
+  extends: .setup_environment
+  stage: test
+  rules:
+    - when: always
+  script:
+    - mypy --strict-optional src/LbExec
+
+pytest:
+  extends: .setup_environment
+  stage: test
+  rules:
+    - when: always
+  script:
+    - pytest
+
+deploy-to-pypi:
+  stage: upload_pypi
+  only:
+    - tags@lhcb-core/lbexec
+  image: registry.cern.ch/docker.io/library/python:3.12
+  before_script:
+    - pip install build twine
+  script:
+    - python -m build
+    - if [ -z "$TWINE_PASSWORD" ] ; then echo "Set TWINE_PASSWORD in CI variables" ; exit 1 ; fi
+    - twine upload -u __token__ dist/*

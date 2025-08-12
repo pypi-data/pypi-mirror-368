@@ -1,0 +1,105 @@
+[build-system]
+requires = ["setuptools>=64", "setuptools-scm[toml]>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "LbExec"
+description = "Used for configuring and running LHCb Applications"
+license = {text = "GPL-3.0-only"}
+classifiers = [
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3",
+]
+urls = {Homepage = "https://gitlab.cern.ch/lhcb-core/LbExec"}
+requires-python = ">=3.11"
+dependencies = [
+    "click >=8.0",
+    "lbenv",
+    "pydantic >=2",
+    "typer-slim >=0.15.0",
+    "packaging",
+    "pyyaml >=6.0",
+    "uproot",
+    "zstandard",
+]
+dynamic = ["version"]
+
+[project.readme]
+file = "README.md"
+content-type = "text/markdown"
+
+[project.optional-dependencies]
+testing = [
+    "black",
+    "flake8",
+    "flake8-bugbear",
+    "pylint",
+    "pytest",
+    "pytest-cov",
+    "mypy",
+    "types-PyYAML",
+    "scikit-hep-testdata",
+]
+
+[project.entry-points]
+# ##############################################################################
+# Linting
+# ##############################################################################
+
+[project.scripts]
+lbexec = "LbExec.__main__:parse_args"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = false
+
+[tool.setuptools.packages.find]
+where = ["src"]
+namespaces = false
+
+[tool.flake8]
+max-line-length = "80"
+ignore = "E501,W503,B950,B008,B905"
+# max-complexity = 12
+extend-ignore = """
+# See https://github.com/PyCQA/pycodestyle/issues/373
+E203,"""
+select = "C,E,F,W,B,B9"
+exclude = """
+.pyre/"""
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+src_paths = [
+    "src",
+    "tests",
+]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "--cov-report term-missing --cov=LbExec . -vvv"
+# ##############################################################################
+# Setuptools
+# ##############################################################################
+
+
+# Enable setuptools_scm to compute the version number from the most recent tag
+# https://github.com/pypa/setuptools_scm/#pyprojecttoml-usage
+[tool.setuptools_scm]
+
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+[tool.pixi.pypi-dependencies]
+LbExec = { path = ".", editable = true }
+
+[tool.pixi.environments]
+default = { solve-group = "default" }
+testing = { features = ["testing"], solve-group = "default" }
+
+[tool.pixi.tasks]
+
+[tool.pixi.dependencies]
+root = ">=6.34.6,<7"
