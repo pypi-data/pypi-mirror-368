@@ -1,0 +1,103 @@
+# Set package version from cleaned up git tags if possible,
+# otherwise fall back to date-based version.
+{% set tag_version = environ.get("GIT_DESCRIBE_TAG", "")|string|replace("-","_")|replace("v","")|replace("git","") %}
+{% set post_commit = environ.get("GIT_DESCRIBE_NUMBER", 0)|string %}
+{% set hash = environ.get("GIT_DESCRIBE_HASH", "local")|string %}
+{% set fallback_version = "0.0.0.{0}.dev+g{1}".format(datetime.datetime.now().strftime("%Y%m%d"), environ.get("GIT_FULL_HASH", "local")[:9]) %}
+{% set version = (tag_version if post_commit == "0" else "{0}.post{1}+{2}".format(tag_version, post_commit, hash)) if tag_version else fallback_version %}
+
+package:
+  name: digital_rf
+  version: {{ version }}
+
+source:
+  # use local path or git repository depending on if the build is local or done on CI
+  path: "../.."  # [not os.environ.get("CI")]
+  git_url: {{ environ.get("FEEDSTOCK_ROOT", "../../") }}  # [os.environ.get("CI")]
+
+build:
+  number: 0
+  skip: true  # [os.environ.get("RENDER_LIMIT_PYTHON") and py != 312]
+  run_exports:
+    - {{ pin_subpackage('digital_rf') }}
+  entry_points:
+    - drf = digital_rf.drf_command:main
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ stdlib('c') }}
+    - cmake >=3.20
+    - ninja
+    # cross-compilation dependencies
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    - python-build                           # [build_platform != target_platform]
+    - numpy                                  # [build_platform != target_platform]
+    - numpy >=2.0                            # [build_platform != target_platform]
+
+  host:
+    - hdf5
+    - mako
+    - numpy
+    - numpy >=2.0
+    - python
+    - python-build
+    - scikit-build-core
+    - setuptools-scm
+
+  run:
+    - h5py
+    - packaging
+    - python
+    - python-dateutil
+    - six
+    - watchdog
+
+test:
+  requires:
+    - gnuradio-core
+    - pytest >=3.6
+  imports:
+    - digital_rf
+    - digital_rf.digital_rf_hdf5
+    - digital_rf.watchdog_drf
+    - gr_digital_rf
+  source_files:
+    - python/tests/*.py
+    - python/examples/*.py
+  commands:
+    # verify that commands run
+    - drf --help
+
+    # run test suite and examples
+    - pytest --maxfail=10
+    - python python/examples/example_write_digital_metadata.py
+    - python python/examples/example_read_digital_metadata.py
+
+about:
+  home: https://github.com/MITHaystack/digital_rf
+  license: BSD-3-Clause
+  license_file: LICENSE
+  summary: Work with data in the Digital RF and Digital Metadata formats.
+  description: |
+    The Digital RF project encompasses a standardized HDF5 format for reading
+    and writing of radio frequency data and the software for doing so. The
+    format is designed to be self-documenting for data archive and to allow
+    rapid random access for data processing. For details on the format, refer
+    to the documentation.
+
+    This suite of software includes libraries for reading and writing data in
+    the Digital RF HDF5 format in C (``libdigital_rf``), Python
+    (``digital_rf``) with blocks for GNU Radio (``gr_digital_rf``), and
+    MATLAB. It also contains the `thor` UHD radio recorder script, Python
+    tools for managing and processing Digital RF data, example scripts that
+    demonstrate basic usage, and example applications that encompass a
+    complete data recording and processing chain for various use cases.
+
+  doc_url: https://github.com/MITHaystack/digital_rf/tree/master/docs
+  dev_url: https://github.com/MITHaystack/digital_rf
+
+extra:
+  recipe-maintainers:
+    - ryanvolz
