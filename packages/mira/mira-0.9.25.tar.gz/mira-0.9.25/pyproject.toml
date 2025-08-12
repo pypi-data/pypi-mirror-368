@@ -1,0 +1,132 @@
+[build-system]
+requires = ["hatchling", "uv-dynamic-versioning"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mira"
+description = "A package for simplifying object detection"
+authors = [{ name = "Fausto Morales", email = "faustomorales@gmail.com" }]
+requires-python = ">=3.8,<3.12"
+dynamic = ["version"]
+readme = "README.md"
+license = "MIT"
+classifiers = [
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Unix",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+]
+dependencies = [
+    "pandas",
+    "protobuf",
+    "numpy",
+    "tqdm",
+    "matplotlib",
+    "validators",
+]
+
+[project.optional-dependencies]
+detectors = [
+    "timm>=0.9.2,<0.10",
+    "scikit-image",
+    "pretrainedmodels==0.7.4",
+]
+segmentation = [
+    "pretrainedmodels==0.7.4",
+    "efficientnet_pytorch==0.7.1",
+]
+clip = [
+    "ftfy",
+    "regex",
+]
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[project.urls]
+Homepage = "https://github.com/faustomorales/mira"
+Repository = "https://github.com/faustomorales/mira"
+
+[dependency-groups]
+dev = [
+    "black",
+    "coverage[toml]",
+    "mypy",
+    "pytest",
+    "pylint",
+    "pytest-cov",
+    "torch",
+    "torchserve",
+    "jupyterlab",
+    "torch-model-archiver",
+    "qsl",
+    "opencv-python-headless",
+    "scipy",
+    "types-six",
+    "types-requests",
+    "types-setuptools",
+    "types-pkg-resources",
+    "twine>=6.1.0",
+]
+
+[tool.coverage.run]
+omit = ["mira/thirdparty/*"]
+
+[tool.pytest.ini_options]
+addopts = "--cov=mira --cov-report=term-missing"
+filterwarnings = [
+    "ignore:the imp module is deprecated in favour of importlib;:DeprecationWarning",
+    "ignore:Could not import the lzma module. Your installed Python is incomplete.:UserWarning",
+    "ignore:`layer.updates` will be removed in a future version.:UserWarning",
+    "ignore:Named tensors and all their associated APIs are an experimental feature and subject to change.:UserWarning"
+]
+
+[tool.pylint.main]
+extension-pkg-allow-list = [
+    "cv2"
+]
+init-hook="import mira.pylint; mira.pylint.patch(['mira/thirdparty'])"
+
+[tool.pylint.similarities]
+min-similarity-lines=10
+
+[tool.pylint."messages_control"]
+disable = [
+    "line-too-long",
+    "missing-module-docstring",
+    "invalid-name",
+    "attribute-defined-outside-init",
+    "too-many-locals",
+    "too-many-arguments",
+    "too-many-branches",
+    "too-many-statements",
+    "duplicate-code",
+    "protected-access",
+    "wrong-import-position",
+    "unnecessary-lambda-assignment",
+    "too-few-public-methods",
+    "use-dict-literal"
+]
+
+[tool.pylint.typecheck]
+generated-members = ["torch.*", "cv2.*"]
+
+[tool.mypy]
+exclude = [
+  'mira/thirdparty',
+  'mira/core/protos'
+]
+no_implicit_optional = false
+ignore_missing_imports = true
+check_untyped_defs = true
+
+[tool.black]
+extend-exclude = '''
+/(
+  # The following are specific to Black, you probably don't want those.
+  | mira/thirdparty
+  | mira/core/protos
+)/
+'''
