@@ -1,0 +1,240 @@
+from functools import partial
+import law
+import numpy as np
+import luigi
+from ligo.skymap.postprocess.crossmatch import crossmatch
+from ligo.skymap.tool import ligo_skymap_plot
+from astropy.coordinates import SkyCoord
+from astropy import units as u
+import h5py
+from mldatafind.law.parameters import PathParameter
+from mldatafind.law.tasks import Fetch
+from mldatafind.law.tasks import Query as _Query
+from mldatafind.law.tasks.condor.workflows import StaticMemoryWorkflow
+from .base import DATA_SANDBOX, AmplfiDataTaskMixin
+from .paths import paths
+from luigi.util import inherits
+from ligo.skymap.io.fits import read_sky_map
+from tqdm.auto import tqdm
+import multiprocessing as mp
+
+
+# add mixin for appending amplfi specific
+# environment variables to condor and containers
+class Query(AmplfiDataTaskMixin, _Query):
+    pass
+
+
+# override FetchTrain and FetchTest
+# tasks to use Query with mixin
+class FetchTrain(AmplfiDataTaskMixin, Fetch):
+    def workflow_requires(self):
+        reqs = {}
+        reqs["segments"] = Query.req(self, segments_file=self.segments_file)
+        return reqs
+
+
+class FetchTest(AmplfiDataTaskMixin, Fetch):
+    def workflow_requires(self):
+        reqs = {}
+        reqs["segments"] = Query.req(self, segments_file=self.segments_file)
+        return reqs
+
+
+class DataGeneration(law.WrapperTask):
+    """
+    Pipeline for launching FetchTrain and FetchTest tasks
+    """
+
+    dev = luigi.BoolParameter(
+        default=False, description="Run the task in development mode."
+    )
+
+    def requires(self):
+        yield FetchTrain.req(
+            self,
+            sandbox=DATA_SANDBOX,
+            data_dir=paths().data_dir / "train" / "background",
+            condor_directory=paths().condor_dir / "train",
+        )
+
+        yield FetchTest.req(
+            self,
+            sandbox=DATA_SANDBOX,
+            data_dir=paths().data_dir / "test" / "background",
+            condor_directory=paths().condor_dir / "test",
+        )
+
+
+class LigoSkymap(
+    AmplfiDataTaskMixin,
+    law.LocalWorkflow,
+    StaticMemoryWorkflow,
+    law.SandboxTask,
+):
+    """
+    Workflow for parallelizing skymap generation via ligo-skymap-from-samples
+    """
+
+    data_dir = PathParameter(
+        description="Path to the directory containing the "
+        "event sub directories."
+        "Each sub directory should contain "
+        "a posterior_samples.dat file."
+    )
+    ligo_skymap_args = luigi.OptionalListParameter(
+        description="Additional command line style arguments"
+        "to pass to ligo-skymap-from-samples.",
+        default="",
+    )
+    dev = luigi.BoolParameter(
+        default=False, description="Run the task in development mode."
+    )
+    sandbox = DATA_SANDBOX
+
+    def sandbox_env(self, env):
+        env = super().sandbox_env(env)
+        env.update({"MKL_NUM_THREADS": "1", "OMP_NUM_THREADS": "1"})
+        return env
+
+    def create_branch_map(self):
+        branch_map = {}
+        num = len([x for x in self.data_dir.iterdir() if x.is_dir()])
+        for idx in range(num):
+            branch_map[idx] = (
+                self.data_dir / str(idx) / "posterior_samples.dat"
+            )
+        return branch_map
+
+    def output(self):
+        event_dir = self.branch_data.parent
+        return law.LocalFileTarget(event_dir / "skymap.fits")
+
+    def run(self):
+        from ligo.skymap.tool import (
+            ligo_skymap_from_samples,
+        )
+
+        args = [
+            str(self.branch_data),
+            "-j",
+            str(self.request_cpus),
+            "-o",
+            str(self.branch_data.parent),
+        ]
+        if self.ligo_skymap_args:
+            args.extend(self.ligo_skymap_args)
+
+        # call ligo-skymap-from-samples
+        ligo_skymap_from_samples.main(args)
+
+
+CROSSMATCH_ATTRS = [
+    "searched_area",
+    "searched_vol",
+    "searched_prob",
+    "searched_prob_vol",
+    "searched_prob_dist",
+    "offset",
+]
+
+
+def process_skymap(skymap_item, parameter_file, plot, data_dir):
+    i, skymap_target = skymap_item
+    skymap = read_sky_map(skymap_target.path, moc=True, distances=True)
+
+    with h5py.File(parameter_file, "r") as f:
+        ra = f["phi"][i] * u.rad
+        dec = f["dec"][i] * u.rad
+        dist = f["distance"][i] * u.Mpc
+
+    coord = SkyCoord(ra=ra, dec=dec, distance=dist)
+
+    if plot:
+        ligo_skymap_plot.main(
+            [
+                skymap_target.path,
+                "--radec",
+                str(ra.to(u.deg).value),
+                str(dec.to(u.deg).value),
+                "--output",
+                str(data_dir / str(i) / "ligo_skymap.png"),
+            ]
+        )
+
+    # Perform crossmatch
+    cm = crossmatch(skymap, coord)
+
+    # Extract attributes
+    result = {}
+    for attr in CROSSMATCH_ATTRS:
+        result[attr] = getattr(cm, attr)
+
+    return i, result
+
+
+@inherits(LigoSkymap)
+class AggregateLigoSkymap(
+    AmplfiDataTaskMixin,
+    law.SandboxTask,
+):
+    """
+    Task to calculate and aggregate statstics from
+    the skymaps generated by the LigoSkymap using
+    ligo.skymap.postprocess.crossmatch.
+    """
+
+    parameter_file = luigi.OptionalParameter(
+        default="",
+        description="Path to an hdf5 file containing `phi`, `dec` and `dist`"
+        " datasets corresponding to the ground truth values of the event. For "
+        "example, this can be the output of the "
+        "`SaveInjectionParameters` lightning callback",
+    )
+    plot = luigi.BoolParameter(
+        default=False,
+        description="If True, will generate a plot using "
+        "ligo.skymap.tool.ligo_skymap_plot",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.sandbox = DATA_SANDBOX
+
+    def requires(self):
+        return LigoSkymap.req(
+            self,
+            request_disk=self.request_disk,
+            request_cpus=self.request_cpus,
+            request_memory=self.request_memory,
+        )
+
+    def output(self):
+        return law.LocalFileTarget(self.data_dir / "ligo_skymap_stats.hdf5")
+
+    def run(self):
+        func = partial(
+            process_skymap,
+            parameter_file=self.parameter_file,
+            plot=self.plot,
+            data_dir=self.data_dir,
+        )
+        skymaps = self.input()["collection"].targets
+        with mp.Pool(processes=min(mp.cpu_count(), len(skymaps))) as pool:
+            results = list(
+                tqdm(
+                    pool.imap(func, skymaps.items()),
+                    total=len(skymaps),
+                    desc="Crossmatching skymaps",
+                )
+            )
+
+        data = {attr: np.zeros(len(skymaps)) for attr in CROSSMATCH_ATTRS}
+
+        for i, result in results:
+            for attr in CROSSMATCH_ATTRS:
+                data[attr][i] = result[attr]
+
+        with h5py.File(self.output().path, "w") as f:
+            for attr, values in data.items():
+                f.create_dataset(attr, data=values)
