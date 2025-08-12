@@ -1,0 +1,266 @@
+Metadata-Version: 2.4
+Name: dyn_libs-test
+Version: 0.1.9
+Summary: Mobio Dynamic Fields
+Home-page: https://github.com/mobiovn
+Author: MOBIO
+Author-email: contact@mobio.vn
+License: MIT
+Project-URL: Source, https://github.com/mobiovn
+Keywords: mobio,dyn_libs
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Software Development :: Build Tools
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3 :: Only
+Requires-Python: >=3
+Description-Content-Type: text/markdown
+Requires-Dist: m-singleton>=0.3
+Requires-Dist: requests>=2.32.4
+Requires-Dist: unidecode==1.1.1
+Requires-Dist: elasticsearch>=8.0.0
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: keywords
+Dynamic: license
+Dynamic: project-url
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+# install_requires
+<pre>
+m-singleton==0.3 
+pymongo==3.7.2
+requests>=2.32.4
+unidecode==1.1.1
+mobio-elasticsearch7==1.0.1
+</pre>
+# Description
+Version 0.2.x hỗ trợ việc tạo, chỉnh sửa, xóa dynamic field. Bạn có thể chủ động extend lại các BaseClass và thêm các giá trị.
+
+* Kiến trúc chính của dynamic field  gồm 3 class chính
+
+1) BaseHistory
+2) BaseDataSelected
+3) BaseField
+
+# Examples
+
+* BaseHistory
+
+```python
+from mobio.libs.dynamic_field.helpers.field_helper.base_field import BaseHistory
+from datetime import datetime
+
+field_history = BaseHistory()
+field_history.set_staff_id("GiangNTH")
+field_history.set_created_time(datetime.utcnow())
+field_history.set_fullname("GiangNTH")
+field_history.set_username("giangnth")
+print(field_history.to_json())
+```
+Hoặc extend
+
+```python
+from mobio.libs.dynamic_field.helpers.field_helper.base_field import BaseHistory
+from datetime import datetime
+class ProfilingFieldHistory(BaseHistory):
+    LAST_PREVIEW = "last_preview"
+
+    def set_last_preview(self, last_preview: datetime):
+        self.result[self.LAST_PREVIEW] = last_preview
+
+    def get_last_preview(self):
+        return self.result.get(self.LAST_PREVIEW)
+
+field_history = ProfilingFieldHistory()
+field_history.set_staff_id("GiangNTH")
+field_history.set_created_time(datetime.utcnow())
+field_history.set_fullname("GiangNTH")
+field_history.set_username("giangnth")
+field_history.set_last_preview(datetime.utcnow())
+print(field_history.to_json())
+```
+* BaseDataSelected
+```python
+from mobio.libs.dynamic_field.helpers.field_helper.base_field import BaseDataSelected
+
+data_1 = BaseDataSelected()
+data_1.set_id(1)
+data_1.set_color("c1")
+data_1.set_enable(True)
+data_1.set_value("value 1")
+print(data_1.to_json())
+```
+Hoặc extend
+
+```python
+from mobio.libs.dynamic_field.helpers.field_helper.base_field import BaseDataSelected
+
+class ProfilingDataSelectedTest(BaseDataSelected):
+    IMAGE = "image"
+
+    def set_image(self, image: str):
+        if not image or (3 > len(image) or len(image) > 1000):
+            raise Exception(
+                "{}: must be between 3 and 1000 in length".format(self.IMAGE)
+            )
+        self.result[self.IMAGE] = image
+
+    def get_image(self):
+        return self.result.get(self.IMAGE)
+
+data_1 = ProfilingDataSelectedTest()
+data_1.set_id(1)
+data_1.set_color("c1")
+data_1.set_image("image1")
+data_1.set_enable(True)
+data_1.set_value("value 1")
+
+data_2 = ProfilingDataSelectedTest()
+data_2.set_all_data(id=2, image="image2", enable=False, value="value 2", color="c2")
+```
+
+* BaseField
+
+BaseField class chứa các configs của field, vd như cấu hình màn hình hiển thị, định dạng dữ liệu, nhóm hiển thị của field... etc
+Note: Field cũng có thể extend. :)
+    
+VD: 
+>> add/update field
+```python
+from mobio.libs.dynamic_field.helpers.field_helper.base_field import BaseField, BaseDataSelected, BaseHistory
+from flask import request
+from mobio.libs.dynamic_field.helpers import (
+    DynamicFieldStatus
+)
+from datetime import datetime
+from mobio.libs.dynamic_field.controllers.i_base_dyn_controller import (
+    IBaseDynController,
+)
+
+
+json_data = request.get_json() 
+
+# SET FIELD PROPERTIES
+dyn_field = BaseField()
+dyn_field.set_field_name(json_data.get(BaseField.FIELD_NAME))
+dyn_field.set_field_property(json_data.get(BaseField.FIELD_PROPERTY))
+dyn_field.set_display_type(json_data.get(BaseField.DISPLAY_TYPE))
+dyn_field.set_group(json_data.get(BaseField.GROUP))
+dyn_field.set_is_base(False)
+dyn_field.set_status(DynamicFieldStatus.ENABLE)
+dyn_field.set_support_sort(True)
+dyn_field.set_enable_data_color(json_data.get(BaseField.ENABLE_DATA_COLOR))
+
+data_1 = BaseDataSelected()
+data_1.set_id(1)
+data_1.set_color("c1")
+data_1.set_enable(True)
+data_1.set_value("value 1")
+dyn_field.set_data_selected([data_1])
+
+# SET FIELD HISTORY
+field_history = BaseHistory()
+field_history.set_staff_id("GiangNTH")
+field_history.set_created_time(datetime.utcnow())
+field_history.set_fullname("GiangNTH")
+field_history.set_username("giangnth")
+# SAVE TO DB and push ELS mapping. This function can detect add/update field 
+IBaseDynController(
+            mongo_url_connection="mongodb://test_user:test_pass@0.0.0.0:27017/test_db"
+        ).save_field(
+            merchant_id="uuid",
+            field_class=dyn_field,
+            updated_by=field_history,
+            els_index="mobio-profiling",
+        )
+```
+
+>> Remove field
+```python
+from mobio.libs.dynamic_field.helpers.field_helper.base_field import BaseHistory
+from datetime import datetime
+from mobio.libs.dynamic_field.controllers.i_base_dyn_controller import (
+    IBaseDynController,
+)
+
+field_key = "_dyn_giang_test_v2_p2_1645462060103"
+field_history = BaseHistory()
+field_history.set_staff_id("GiangNTH")
+field_history.set_created_time(datetime.utcnow())
+field_history.set_fullname("GiangNTH")
+field_history.set_username("giangnth")
+
+result = IBaseDynController(
+    mongo_url_connection="mongodb://test_user:test_pass@0.0.0.0:27017/test_db"
+).remove_field(
+    merchant_id="uuid",
+    field_key=field_key,
+    updated_by=field_history,
+)
+print("result remove field: {}: {}".format(field_key, result))
+```
+
+# Example config
+```
+[Elastic]
+index = dyn_test
+doc_type = df
+```
+
+
+# Change logs
+* 0.1.7
+    - Cập nhật lại thư viện bắt buộc từ mobio-elasticsearch7 sang elasticsearch>=7.17.4 hỗ trợ cài đặt thủ công elasticsearch
+* 0.2.12
+    - Chuyển đổi thư viện elasticsearch7 sang thư viện mobio-elasticsearch7 để pass scan trivy
+* 0.2.11
+    - Cập nhật thư viện elasticsearch từ version7 lên version8 (Không install thư viện này, có lỗi)
+* 0.2.9
+    - Thêm index cho thuộc tính field mới
+* 0.2.8
+    - Thay đổi thuộc tính field là tiền tệ sang 88 
+* 0.2.7
+    - Thêm thuộc tính field là tiền tệ 
+
+* 0.2.6
+    - upgrade requests library
+* 0.2.5.1
+    1) fix issue remove doc_type
+    2) fix issue missing after_token
+* 0.2.5
+    1) remove doc_type
+* 0.2.4
+    1) upgrade elasticsearch_client to 7.17.4
+* 0.2.3
+    1) remove flask, flask-cors in install_requires
+* 0.2.2
+    1) Everything can be extend
+    2) Logging field change model
+* 0.1.3
+    1) remove some print
+    2) fix create mapping integer to long
+* 0.1.2
+    1) fix missing model elastic
+*  0.1.1
+    1) add singleton to ElasticSearchBaseModel
+
+*  0.1.0
+    1) use elastic base model
+    2) change function args <b>add_els_config</b>
+    <pre>
+    def add_els_config(self, index, doc_type):
+        self.index = index
+        self.doc_type = doc_type
+    </pre>
