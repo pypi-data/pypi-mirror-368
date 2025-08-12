@@ -1,0 +1,57 @@
+# lattica-fhe-core
+
+Python bindings for Lattica's Fully Homomorphic Encryption (FHE) core library.
+
+## Installation
+
+```bash
+pip install lattica-fhe-core
+```
+
+## Overview
+
+This package provides low-level Python bindings to Lattica's FHE core C++ library, enabling homomorphic encryption operations on encrypted data. 
+It is primarily used as a dependency for higher-level Lattica libraries.
+
+## Requirements
+
+- Python >= 3.10
+- Linux x86_64 or macOS (Apple Silicon and Intel)
+- Pre-built binaries are included - no compilation required
+
+## Usage
+
+This package is typically not used directly. Instead, use Lattica's higher-level library:
+- `lattica-query` - For encrypted query processing and client-side operations
+
+## Example
+
+```python
+import lattica_fhe_core
+
+# The package exposes low-level FHE operations
+# See Lattica's documentation for complete usage examples
+```
+
+## Building from Source
+
+The source code is available at: [https://github.com/Lattica-ai/lattica_fhe_core](https://github.com/Lattica-ai/lattica_fhe_core)
+
+To build from source:
+```bash
+git clone https://github.com/Lattica-ai/lattica_fhe_core.git
+cd lattica_fhe_core
+make query
+```
+
+## Documentation
+
+For comprehensive documentation and examples, visit [https://platformdocs.lattica.ai/](https://platformdocs.lattica.ai/)
+
+## License
+
+This project is licensed under the terms in the LICENSE.txt file.
+
+## Support
+
+For support, please contact support@lattica.ai
