@@ -1,0 +1,94 @@
+{% load partials %}
+
+{% if use_crispy %}
+    {% load crispy_forms_tags %}
+{% endif %}
+
+
+<div class="overflow-x-auto"
+    style="overflow-y: auto; width: fit-content; padding-right: 20px;"
+    {% if enable_bulk_edit %}data-selection-key="{{ keyBase }}_{{ selection_key_suffix }}_selected"{% endif %}
+    >
+    <table class="table {{ table_classes }} w-auto">
+        <thead>
+            <tr>
+                {% if enable_bulk_edit %}
+                <!-- Bulk selection checkbox column -->
+                <th class="bg-neutral text-neutral-content text-center align-middle w-10 sticky top-0 z-10 will-change-transform backface-hidden">
+                    <input type="checkbox" id="select-all-checkbox"
+                             class="checkbox checkbox-sm checkbox-neutral border-1 border-white"
+                             {% if all_selected %}checked{% endif %}
+                             {% if some_selected and not all_selected %}indeterminate{% endif %}
+                             onchange="toggleAllSelection()">
+                </th>
+                {% endif %}
+                
+                {% for header, field_name, is_sortable in headers %}
+                <th class="bg-neutral text-neutral-content text-center align-middle truncate table-column-width sticky top-0 z-10 will-change-transform backface-hidden"
+                    {% if is_sortable %}style="cursor: pointer;"{% endif %}
+                    {% if is_sortable %}
+                        {% if use_htmx %}
+                        hx-get="?sort={% if current_sort == field_name %}-{% elif current_sort == '-'|add:field_name %}{% else %}{% endif %}{{ field_name }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}{% if filter_params %}&{{ filter_params }}{% endif %}"
+                        hx-headers='{"X-Filter-Sort-Request": "true"}'
+                        hx-target="#bulk-actions-container"
+                        hx-push-url="true"
+                        hx-trigger="click"
+                        {% else %}
+                        onclick="window.location.href='?sort={% if current_sort == field_name %}-{% elif current_sort == '-'|add:field_name %}{% else %}{% endif %}{{ field_name }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}{% if filter_params %}&{{ filter_params }}{% endif %}'"
+                        {% endif %}
+                    {% endif %}
+                    <span class="block h-full">
+                        {{ header }}
+                        {% if is_sortable %}
+                            {% if current_sort == field_name %}
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 inline-block">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                                </svg>
+                            {% elif current_sort == '-'|add:field_name %}
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 inline-block">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+                                </svg>
+                            {% endif %}
+                        {% endif %}
+                    </span>
+                </th>
+                {% endfor %}
+                <th class="bg-neutral text-neutral-content text-center align-middle sticky top-0 z-10 will-change-transform backface-hidden">
+                    <span class="text-center block w-full h-full">Actions</span>
+                </th>
+            </tr>
+        </thead>
+            <tbody>
+                {% for object in object_list %}
+                <tr class="text-center hover {% if object.is_selected %}bg-base-200{% endif %}">
+                    {% if enable_bulk_edit %}
+                    <!-- Row selection checkbox -->
+                    <td class="py-0 align-middle">
+                        <input type="checkbox"
+                               class="checkbox checkbox-sm row-select-checkbox"
+                               data-id="{{ object.id }}"
+                               {% if object.id|stringformat:"s" in selected_ids %}checked{% endif %}
+                               onchange="handleRowSelectionChange(this)"
+                               hx-post="{{ list_view_url }}toggle-selection/{{ object.id }}/"
+                               hx-target="#bulk-actions-container">
+                    </td>
+                    {% endif %}
+                    
+                    {% for field in object.fields %}
+                    <td class="{% if forloop.first %}font-medium{% endif %} py-0 align-middle px-2 truncate table-column-width"
+                        {% if not field|safe|stringformat:"s"|first in "<" %}data-tippy-content="{{field}}"{% endif %}>
+                        {{ field }}
+                    </td>
+                    {% endfor %}
+                    <td class="text-right py-1 align-middle">
+                        {{ object.actions }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+</div>
+
+{% if enable_bulk_edit %}
+<!-- No selection restore JS here; handled globally in object_list.html -->
+{% endif %}
