@@ -1,0 +1,77 @@
+Metadata-Version: 2.4
+Name: genericache
+Version: 0.5.1
+Summary: A thread-safe, process-safe cache for slow data fetching operations
+Author-email: Tomaz Vieira <tom.fogaca@gmail.com>
+Maintainer-email: Tomaz Vieira <tom.fogaca@gmail.com>
+License-Expression: MIT
+Project-URL: Repository, https://github.com/Tomaz-Vieira/genericache
+Project-URL: Home-page, https://github.com/Tomaz-Vieira/genericache
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: filelock>=3.16.1
+Dynamic: license-file
+
+# Genericache
+
+A thread-safe, process-safe cache for slow fetching operations, like web requests.
+
+## Usage
+
+```python
+    from genericache import DiskCache
+    from genericache.digest import UrlDigest
+    from pathlib import Path
+    from typing import Iterable
+    from hashlib import sha256
+
+    def my_fetch(url: str) -> Iterable[bytes]:
+        import httpx
+        return httpx.get(url).raise_for_status().iter_bytes(4096)
+
+    def url_hasher(url: str) -> UrlDigest:
+        return UrlDigest.from_str(url)
+
+    cache = DiskCache[str].create(
+        url_type=str,
+        cache_dir=Path("/tmp/my_cache"),
+        url_hasher=url_hasher,
+    )
+
+    reader, contents_digest = cache.fetch(
+        "https://www.ilastik.org/documentation/pixelclassification/snapshots/training2.png",
+        fetcher=my_fetch,
+    )
+    assert sha256(reader.read()).digest() == contents_digest.digest
+    assert cache.hits() == 0
+    assert cache.misses() == 1
+
+    reader, contents_digest = cache.fetch(
+        "https://www.ilastik.org/documentation/pixelclassification/snapshots/training2.png",
+        fetcher=my_fetch,
+    )
+    assert cache.hits() == 1
+    assert cache.misses() == 1
+```
+
+## Static type checking
+
+Run pyright over the entire project:
+
+```bash
+    python3 -m scripts.check
+```
+
+## Testing
+
+Run the modules inside `tests/`, e.g.:
+
+`uv run --python 3.11 python -m tests.test_disk_cache`
+
+You can also run all tests via the `run_tests` executable module:
+
+```bash
+    python3 -m scripts.run_tests
+```
+
