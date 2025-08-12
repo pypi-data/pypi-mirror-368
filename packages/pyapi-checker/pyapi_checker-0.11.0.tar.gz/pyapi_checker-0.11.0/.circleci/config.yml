@@ -1,0 +1,167 @@
+palantir_aliases:
+  - &always-run
+    filters:
+      branches:
+        only: /.*/
+      tags:
+        only: /.*/
+
+version: 2.1
+
+commands:
+  setup:
+    description: Setup
+    steps:
+      - checkout
+      - run:
+          name: delete_unrelated_tags
+          command: |
+            ALL_TAGS=$(git tag --points-at HEAD)
+
+            if [ -z "$ALL_TAGS" ]; then
+                echo "No-op as there are no tags on the current commit ($(git rev-parse HEAD))"
+                exit 0
+            fi
+
+            if [ -z "${CIRCLE_TAG:+x}" ]; then
+                echo "Non-tag build, deleting all tags which point to HEAD: [${ALL_TAGS/$'\n'/,}]"
+                echo "$ALL_TAGS" | while read -r TAG; do git tag -d "$TAG" 1>/dev/null; done
+                exit 0
+            fi
+
+            TAGS_TO_DELETE=$(echo "$ALL_TAGS" | grep -v "^$CIRCLE_TAG$" || :)
+            if [ -z "$TAGS_TO_DELETE" ]; then
+                echo "No-op as exactly one tag ($CIRCLE_TAG) points to HEAD"
+                exit 0
+            fi
+
+            echo "Detected tag build, deleting all tags except '$CIRCLE_TAG' which point to HEAD: [${TAGS_TO_DELETE/$'\n'/,}]"
+            echo "$TAGS_TO_DELETE" | while read -r TAG; do git tag -d "$TAG" 1>/dev/null; done
+
+  run-all-hatchw:
+    parameters:
+      command:
+        type: string
+      command_name:
+        type: string
+        default: << parameters.command >>
+      no_output_timeout:
+        type: string
+        default: 10m
+    steps:
+      - run:
+          name: << parameters.command_name >>
+          command: << parameters.command >>
+          no_output_timeout: << parameters.no_output_timeout >>
+
+  check-parallelism:
+    description: Check if the provided level of parallelism is valid for the set of python versions
+    steps:
+      - run-all-hatchw:
+          command_name: Check parallelism
+          command: | # Retrieve the minor versions hatch is testing against and create a bash array containing them.
+            PYTHON_TEST_VERSIONS=($(./hatchw env show --json | grep test.py | jq -r 'to_entries | map(select(.key | startswith("test.py"))) | .[].key | sub("test\\.py"; "")'))
+            echo "export PYTHON_TEST_VERSIONS=(${PYTHON_TEST_VERSIONS[*]})" >> $BASH_ENV
+
+  pytest:
+    description: Run pytest
+    steps:
+      - run-all-hatchw:
+          command_name: Run pytest
+          command: if [ $CIRCLE_NODE_INDEX -lt ${#PYTHON_TEST_VERSIONS[@]} ]; then ./hatchw env run -i py=${PYTHON_TEST_VERSIONS[$CIRCLE_NODE_INDEX]} -e test test-commands; fi
+          no_output_timeout: 30m
+      - store_artifacts: { path: ./build/pytest-results, destination: pytest-results }
+      - store_test_results: { path: ./build/pytest-results }
+
+  check-format:
+    description: Checks format of package
+    steps:
+      - run-all-hatchw:
+          command_name: Check code formatting
+          command: ./hatchw run check-format
+
+  build:
+    description: Build package
+    steps:
+      - run-all-hatchw:
+          command_name: Build package and other distributions
+          command: ./hatchw run build
+
+  publish:
+    description: Publish
+    steps:
+      - run-all-hatchw:
+          command_name: Initialize hatch root environments
+          command: ./hatchw run default:python --version
+      - run-all-hatchw:
+          command_name: Publish package
+          command: HATCH_INDEX_USER=$PYPI_USERNAME HATCH_INDEX_AUTH=$PYPI_PASSWORD ./hatchw publish build/dist
+
+jobs:
+  check:
+    docker: [{ image: cimg/python:3.12 }]
+    resource_class: medium
+    parallelism: 2
+    steps:
+      - setup
+      - check-parallelism
+      - pytest
+
+  check-format:
+    docker: [{ image: cimg/python:3.12 }]
+    resource_class: medium
+    steps:
+      - setup
+      - check-format
+
+  build:
+    docker: [{ image: cimg/python:3.12 }]
+    resource_class: medium
+    steps:
+      - setup
+      - build
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - project/build/dist
+
+  publish:
+    docker: [{ image: cimg/python:3.12 }]
+    resource_class: medium
+    steps:
+      - setup
+      - attach_workspace: { at: ~/ }
+      - publish
+
+  circle-all:
+    docker: [{ image: busybox:1.34.1 }]
+    resource_class: small
+    steps:
+      - run: { command: echo "All required jobs finished successfully" }
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - check:
+          <<: *always-run
+      - check-format:
+          <<: *always-run
+      - build:
+          <<: *always-run
+      - circle-all:
+          requires:
+          - check
+          - check-format
+          - build
+          filters:
+            tags:
+              only: /.*/
+      - publish:
+          requires:
+          - circle-all
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /.*/
