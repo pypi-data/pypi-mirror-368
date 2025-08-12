@@ -1,0 +1,66 @@
+from openpyxl.styles import *
+from openpyxl.chart import *
+from openpyxl.utils import *
+from openpyxl.utils.exceptions import *
+from .exception import *
+from .lib_logger import *
+import openpyxl as xl
+import pandas as pd
+from _typeshed import Incomplete
+from openpyxl.worksheet.worksheet import Worksheet as Worksheet
+
+logger: Incomplete
+
+class Cexcel:
+    class Color:
+        BLACK: Incomplete
+        WHITE: Incomplete
+        RED: Incomplete
+        GREEN: Incomplete
+        BLUE: Incomplete
+        YELLOW: Incomplete
+        DARKRED: Incomplete
+        DARKGREEN: Incomplete
+        DARKBLUE: Incomplete
+        DARKYELLOW: Incomplete
+    JSON_POSTFIX: str
+    @staticmethod
+    def create_simple_df(data: dict | list, columns: list): ...
+    @staticmethod
+    def create_df(data: list, columns: list = None, indexes: list = None): ...
+    def create_cell_style(self, font_size: int, font_color: Color, font_bold: bool = False, font_italic: bool = False, _border: Border = ..., _alignment: Alignment = ..., _fill: PatternFill = None): ...
+    def get_sheet(self, name: str, not_exist_then_create: bool = True): ...
+    def get_sheet_names(self): ...
+    def remove_sheet(self, name: str): ...
+    def save(self, file_path: str): ...
+    def close(self) -> None: ...
+    def __init__(self, file_path: str = None, wb: xl.Workbook = None) -> None: ...
+
+class _Csheet_:
+    class MERGE_DIR:
+        COLUMNS: int
+        ROWS: int
+    def append_message(self, msg: str, start_col_name: str, end_col_name: str, gap_blank: int = 1, gap_post: int = 0, border_rows: int = 1, style: NamedStyle = ...): ...
+    def append_df(self, df: pd.DataFrame, title: str = None, start_col_name: str = 'A', gap_blank: int = 1, gap_title: int = 1, title_border_rows: int = 3, title_style: NamedStyle = ..., skip_column: bool = False, column_style: NamedStyle = None, column_space: list = None, index_style: NamedStyle = ..., base_style: NamedStyle = ..., desp_text: str = None): ...
+    def extract_dfs(self): ...
+    @property
+    def name(self): ...
+    @property
+    def json_data(self): ...
+    def __init__(self, sheet: Worksheet, excel_path: str = None) -> None: ...
+
+class _CjsonSheet_:
+    class KEY:
+        SHEET: str
+        TITLE: str
+        DESP: str
+        DATA: str
+        TABLES: str
+    FORMAT_TYPE: str
+    @property
+    def data(self): ...
+    @property
+    def table_cnt(self): ...
+    def append_table(self, title: str, df: pd.DataFrame, desp: str = None): ...
+    def get_table(self, idx: int): ...
+    def __init__(self, name: str, json_path: str = None) -> None: ...

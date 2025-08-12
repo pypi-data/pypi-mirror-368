@@ -1,0 +1,6 @@
+__all__ = ['ENUM_STR', 'enum']
+
+class ENUM_STR:
+    def __init__(self, val: str) -> None: ...
+
+def enum(**enums): ...
