@@ -1,0 +1,129 @@
+name: Publish Release
+
+permissions:
+  actions: read
+  contents: read
+
+on:
+  workflow_call:
+    secrets:
+      PYPI_API_TOKEN:
+      PYPI_API_TOKEN_TEST:
+    inputs:
+      publish-to:
+        description: "Where to publish the package to"
+        type: string
+        default: "none"
+
+env:
+  PYTHON_VERSION: "3.13"
+
+jobs:
+  release-pypi-test:
+    name: "Release package to PyPi (Test)"
+    if: inputs.publish-to == 'pypi-test' || inputs.publish-to == 'all'
+    runs-on: ubuntu-latest
+    # environment: pypi-test
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v4
+      - name: Prepare common Python build environment
+        uses: ./.github/actions/python-build-env-setup
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: "Download Wheel Package"
+        uses: actions/download-artifact@v4
+        with:
+          name: planet-auth-wheel
+          # github-token: ${{ secrets.GH_PAT }}
+          # repository: '${{ github.repository }}'
+          # run-id: '${{ github.run_id }}'
+          path: dist
+      - name: "Download Source Package"
+        uses: actions/download-artifact@v4
+        with:
+          name: planet-auth-src-targz
+          # github-token: ${{ secrets.GH_PAT }}
+          # repository: '${{ github.repository }}'
+          # run-id: '${{ github.run_id }}'
+          path: dist
+      - name: 'Nox: Publish to PyPi (Test)'
+        env:
+          NOX_PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN_TEST }}
+        run: |
+          nox -s pkg_publish_pypi_test
+
+  # release-pypi-production:
+  #   name: "Release package to PyPi (Production)"
+  #   if: inputs.publish-to == 'pypi-prod' || inputs.publish-to == 'all'
+  #   runs-on: ubuntu-latest
+  #   # environment: pypi-prod
+  #   permissions:
+  #     # Needed for Trusted Publishing
+  #     id-token: write
+  #   steps:
+  #     - name: "Download Wheel Package"
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: planet-auth-wheel
+  #         path: dist
+  #     - name: "Download Source Package"
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: planet-auth-src-targz
+  #         path: dist
+  #     - name: "Trusted Publishing - Publish to PyPi (Production)"
+  #       uses: pypa/gh-action-pypi-publish@release/v1
+
+  release-none:
+    name: "Release (None)"
+    if: inputs.publish-to == 'none'
+    runs-on: ubuntu-latest
+    # environment: none
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v4
+      - name: Prepare common Python build environment
+        uses: ./.github/actions/python-build-env-setup
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: "Download Wheel Package"
+        uses: actions/download-artifact@v4
+        with:
+          name: planet-auth-wheel
+          path: dist
+      - name: "Download Source Package"
+        uses: actions/download-artifact@v4
+        with:
+          name: planet-auth-src-targz
+          path: dist
+      - name: "Nox: check package only. (Publishing NoOp / dry-run)"
+        run: |
+          echo "Skipping publishing of python package."
+          nox -s pkg_check
+
+
+  # Read the docs is published via webhook GitHub webhook
+  # release-readthedocs:
+  #   name: "Release documentation to readthedocs.com"
+  #   # needs: release-checkpoint
+  #   runs-on: ubuntu-latest
+  #   # environment: production
+  #   steps:
+  #     - name: "Checkout code"
+  #       uses: actions/checkout@v4
+  #     - name: "Prepare common Python build environment"
+  #       uses: ./.github/actions/python-build-env-setup
+  #       with:
+  #         python-version: ${{ env.PYTHON_VERSION }}
+  #     - name: "Download Built Documentations"
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: planet-auth-mkdocs-site
+  #         # github-token: ${{ secrets.GH_PAT }}
+  #         # repository: '${{ github.repository }}'
+  #         # run-id: '${{ github.run_id }}'
+  #         path: site
+  #     - name: "Nox: Publish to ReadTheDocs"
+  #       run: |
+  #         nox -s mkdocs_publish_readthedocs
