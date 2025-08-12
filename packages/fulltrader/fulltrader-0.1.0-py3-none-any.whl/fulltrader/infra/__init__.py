@@ -1,0 +1,3 @@
+# Integrações (DB, APIs, etc.)
+
+
