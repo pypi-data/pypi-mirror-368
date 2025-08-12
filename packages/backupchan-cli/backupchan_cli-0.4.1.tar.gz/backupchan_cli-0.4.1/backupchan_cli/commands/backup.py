@@ -1,0 +1,160 @@
+import requests.exceptions
+import os
+import sys
+import tarfile
+import tempfile
+import uuid
+from backupchan_cli import utility
+from backupchan import API, BackupchanAPIError, Backup, BackupType
+
+#
+# Utilities
+#
+
+def print_backup(backup: Backup, spaces: str, show_recycled: bool, index: int):
+    print(f" {index + 1}. | ID: {backup.id}")
+    print(f" {spaces} | Created at: {backup.pretty_created_at()}")
+    if show_recycled:
+        print(f" {spaces} | Recycled: {'Yes' if backup.is_recycled else 'No'}")
+    print(f" {spaces} | Size: {utility.humanread_file_size(backup.filesize)}")
+    if backup.manual:
+        print(f" {spaces} | Uploaded manually")
+    else:
+        print(f" {spaces} | Uploaded automatically")
+    print("=========")
+
+#
+#
+#
+
+def setup_subcommands(subparser):
+    #
+    #
+    #
+
+    upload_cmd = subparser.add_parser("upload", help="Upload a backup")
+    # For things like cron jobs etc. using the cli
+    upload_cmd.add_argument("--automatic", "-a", action="store_true", help="Mark backup as having been added automatically")
+    upload_cmd.add_argument("target_id", type=str, help="ID of the target to upload backup to")
+    upload_cmd.add_argument("filename", type=str, help="Name of the file to upload")
+    upload_cmd.set_defaults(func=do_upload)
+
+    #
+    #
+    #
+
+    download_cmd = subparser.add_parser("download", help="Download a backup")
+    download_cmd.add_argument("id", type=str, help="ID of the backup to dwonload")
+    download_cmd.add_argument("--directory", "-d", type=str, default=".", help="Directory to save downloaded backup to")
+    download_cmd.set_defaults(func=do_download)
+
+    #
+    #
+    #
+
+    delete_cmd = subparser.add_parser("delete", help="Delete an existing backup")
+    delete_cmd.add_argument("id", type=str, help="ID of the backup to delete")
+    delete_cmd.add_argument("--delete-files", "-d", action="store_true", help="Delete backup files as well")
+    delete_cmd.set_defaults(func=do_delete)
+
+    #
+    #
+    #
+
+    recycle_cmd = subparser.add_parser("recycle", help="Recycle an existing backup")
+    recycle_cmd.add_argument("id", type=str, help="ID of the backup to recycle")
+    recycle_cmd.set_defaults(func=do_recycle)
+
+    #
+    #
+    #
+
+    restore_cmd = subparser.add_parser("restore", help="Restore an existing backup")
+    restore_cmd.add_argument("id", type=str, help="ID of the backup to restore")
+    restore_cmd.set_defaults(func=do_restore)
+
+#
+# backupchan backup upload
+#
+
+def do_upload(args, api: API):
+    if os.path.isdir(args.filename):
+        try:
+            job_id = api.upload_backup_folder(args.target_id, args.filename, not args.automatic)
+        except requests.exceptions.ConnectionError:
+            utility.failure_network()
+        except BackupchanAPIError as exc:
+            utility.failure(f"Failed to upload backup: {str(exc)}")
+    else:
+        with open(args.filename, "rb") as file:
+            try:
+                api.upload_backup(args.target_id, file, os.path.basename(args.filename), not args.automatic)
+            except requests.exceptions.ConnectionError:
+                utility.failure_network()
+            except BackupchanAPIError as exc:
+                utility.failure(f"Failed to upload backup: {str(exc)}")
+    print(f"Backup uploaded and is now being processed by job #{job_id}.")
+
+#
+# backupchan backup download
+#
+
+def do_download(args, api: API):
+    try:
+        filename = api.download_backup(args.id, args.directory)
+    except requests.exceptions.ConnectionError:
+        utility.failure_network()
+    except BackupchanAPIError as exc:
+        utility.failure(f"Failed to upload backup: {str(exc)}")
+
+    print(f"Backup saved as '{filename}'.")
+
+#
+# backupchan backup delete
+#
+
+def do_delete(args, api: API):
+    delete_files = args.delete_files
+
+    try:
+        api.delete_backup(args.id, delete_files)
+    except requests.exceptions.ConnectionError:
+        utility.failure_network()
+    except BackupchanAPIError as exc:
+        if exc.status_code == 404:
+            utility.failure("Backup not found")
+        utility.failure(f"Failed to delete backup: {str(exc)}")
+
+    print("Backup deleted.")
+
+#
+# backupchan backup recycle
+#
+
+def do_recycle(args, api: API):
+    try:
+        api.recycle_backup(args.id, True)
+    except requests.exceptions.ConnectionError:
+        utility.failure_network()
+    except BackupchanAPIError as exc:
+        if exc.status_code == 404:
+            utility.failure("Backup not found")
+        utility.failure(f"Failed to recycle backup: {str(exc)}")
+
+    print("Backup recycled.")
+
+#
+# backupchan backup restore
+#
+
+def do_restore(args, api: API):
+    try:
+        api.recycle_backup(args.id, False)
+    except requests.exceptions.ConnectionError:
+        utility.failure_network()
+    except BackupchanAPIError as exc:
+        if exc.status_code == 404:
+            utility.failure("Backup not found")
+        utility.failure(f"Failed to restore backup: {str(exc)}")
+
+    print("Backup restored.")
