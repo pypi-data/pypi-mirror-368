@@ -1,0 +1,331 @@
+Metadata-Version: 2.1
+Name: datalakesurfer
+Version: 0.1.0
+Summary: A Python package for Azure Datalake Storage and Microsoft Fabric Lakehouse, enables format detection and schema retrieval for Iceberg, Delta, and Parquet formats.It also helps identify paritioned columns for parquet datasets.
+Home-page: https://github.com/keshavksingh/datalakesurfer
+Author: Keshav Kant Singh
+Author-email: masterkeshav@gmail.com
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: pyarrowfs-adlgen2==0.2.5
+Requires-Dist: adlfs==2023.12.0
+Requires-Dist: azure-identity==1.17.1
+Requires-Dist: azure-storage-file-datalake==12.17.0
+Requires-Dist: numpy==1.26.4
+Requires-Dist: pandas==1.5.3
+Requires-Dist: pyOpenSSL==24.2.1
+Requires-Dist: cryptography==43.0.1
+Requires-Dist: duckdb==1.1.1
+Requires-Dist: deltalake==0.20.2
+Requires-Dist: pydantic==2.11.7
+
+# DataLakeSurfer
+
+> **A unified toolkit for detecting, exploring, and validating data lake formats** across **Azure Data Lake Storage Gen2** and **Microsoft Fabric Lakehouse**.
+
+DataLakeSurfer lets you:
+
+- Detect whether a directory is **Iceberg**, **Delta**, or **Parquet**.
+- Retrieve **normalized schema** for supported formats.
+- Detect **partition columns** for Parquet datasets.
+- Validate configuration inputs with **Pydantic models**.
+- Work seamlessly with both **ADLS Gen2** and **Fabric Lakehouse**.
+
+---
+
+## ðŸ“‘ Table of Contents
+
+1. [Installation](#-installation)
+2. [Quick Start](#-quick-start)
+3. [Core Concepts](#-core-concepts)
+4. [Usage Examples](#-usage-examples)
+   - [1. Detect Format (ADLS)](#1-detect-format-adls)
+   - [2. Detect Format (Fabric)](#2-detect-format-fabric)
+   - [3. Retrieve Schema](#3-retrieve-schema)
+   - [4. Detect Partitions](#4-detect-partitions)
+5. [Supported Formats](#-supported-formats)
+6. [Development & Testing](#-development--testing)
+7. [License](#-license)
+
+---
+
+## ðŸš€ Installation
+
+```bash
+pip install datalakesurfer
+```
+
+Requirements:
+
+- Python 3.9+
+- `pyarrowfs-adlgen2==0.2.5`
+- `adlfs==2023.12.0`
+- `azure-identity==1.17.1`
+- `azure-storage-file-datalake==12.17.0`
+- `numpy==1.26.4`
+- `pandas==1.5.3`
+- `cryptography==43.0.1`
+- `duckdb==1.1.1`
+- `deltalake==0.20.2`
+- `pydantic==2.11.7`
+
+---
+
+## âš¡ Quick Start
+
+### Generate Token
+
+```python
+from azure.identity import DefaultAzureCredential, ClientSecretCredential
+from azure.core.credentials import AccessToken
+
+class CustomTokenCredential():
+    def __init__(self):
+        self.credential = DefaultAzureCredential()
+
+    def get_token(self):
+        token_response = self.credential.get_token("https://storage.azure.com/.default")
+
+        return (token_response.token, token_response.expires_on)
+
+class CustomTokenCredentialSeconday(object):
+    def __init__(self,token,expires_on):
+        self.token = token
+        self.expires_on = expires_on
+
+    def get_token(self, *scopes, **kwargs):
+        return AccessToken(self.token, self.expires_on)
+
+token,expires_on = CustomTokenCredential().get_token()
+print(token)
+print(expires_on)
+```
+
+```python
+from datalakesurfer.format_detector import FormatDetector
+f = FormatDetector(account_name="adlssynapseeus01",
+    file_system_name="datacontainer",
+    directory_path="salesorder",
+    token=token,
+    expires_on=expires_on).detect_format()
+print(f)
+
+# â†’ {'status': 'success', 'format': 'delta'}
+```
+
+---
+
+## ðŸ§  Core Concepts
+
+- **Format Detectors**: Identify dataset format (`iceberg`, `delta`, `parquet`).
+- **Schema Retrievers**: Extract a **normalized schema** regardless of source format.
+- **Partition Detectors**: Identify partitioning and list partition columns.
+- **Models**: All incoming parameters validated by **Pydantic** for correctness.
+
+---
+
+## ðŸ“š Usage Examples
+
+### 1. Detect Format (ADLS)
+
+```python
+from datalakesurfer.format_detector import FormatDetector
+f = FormatDetector(account_name="adlssynapseeus01",
+    file_system_name="iceberg-container",
+    directory_path="customerdw/mydb/product",
+    token=token,
+    expires_on=expires_on).detect_format()
+print(f)
+# {'status': 'success', 'format': 'iceberg'}
+
+from datalakesurfer.format_detector import FormatDetector
+f = FormatDetector(account_name="adlssynapseeus01",
+    file_system_name="datacontainer",
+    directory_path="SaleParquetData",
+    token=token,
+    expires_on=expires_on).detect_format()
+print(f)
+# {'status': 'success', 'format': 'parquet'}
+```
+
+---
+
+### 2. Detect Format (Fabric)
+
+```python
+from datalakesurfer.fabric_format_detector import FabricFormatDetector
+f = FabricFormatDetector(account_name="onelake",
+    file_system_name="devworkspace",
+    directory_path="devlakehouse.Lakehouse/Files/salesorder",
+    token=token,
+    expires_on=expires_on).detect_format()
+print(f)
+
+#abfss://devworkspace@onelake.dfs.fabric.microsoft.com/devlakehouse.Lakehouse/Files/salesorder
+# {'status': 'success', 'format': 'delta'}
+```
+
+---
+
+### 3. Retrieve Schema
+
+For **Parquet/Delta/Iceberg** in ADLS:
+
+```python
+from datalakesurfer.schemas.delta_schema import DeltaSchemaRetriever
+s = DeltaSchemaRetriever(account_name="adlssynapseeus01",
+    file_system_name="datacontainer",
+    directory_path="salesorder",
+    token=token,
+    expires_on=expires_on).get_schema()
+print(s)
+#{'status': 'success', 'schema': [{'column_name': 'SalesId', 'dtype': 'string'}, {'column_name': 'ProductName', 'dtype': 'string'}, {'column_name': 'SalesDateTime', 'dtype': 'timestamp'}, {'column_name': 'SalesAmount', 'dtype': 'int'}, {'column_name': 'EventProcessingTime', 'dtype': 'timestamp'}]}
+
+from datalakesurfer.schemas.iceberg_schema import IcebergSchemaRetriever
+s = IcebergSchemaRetriever(account_name="adlssynapseeus01",
+    file_system_name="iceberg-container",
+    directory_path="customerdw/mydb/product",
+    token=token,
+    expires_on=expires_on).get_schema()
+print(s)
+#{'status': 'success', 'schema': [{'column_name': 'productId', 'dtype': 'string'}, {'column_name': 'productName', 'dtype': 'string'}, {'column_name': 'productDescription', 'dtype': 'string'}, {'column_name': 'productPrice', 'dtype': 'double'}, {'column_name': 'dataModified', 'dtype': 'timestamp'}]}
+
+from datalakesurfer.schemas.parquet_schema import ParquetSchemaRetriever
+s = ParquetSchemaRetriever(account_name="adlssynapseeus01",
+    file_system_name="datacontainer",
+    directory_path="SaleParquetData",
+    token=token,
+    expires_on=expires_on).get_schema()
+print(s)
+
+#{'status': 'success', 'schema': [{'column_name': 'SalesId', 'dtype': 'string'}, {'column_name': 'ProductName', 'dtype': 'string'}, {'column_name': 'SalesDateTime', 'dtype': 'timestamp'}, {'column_name': 'SalesAmount', 'dtype': 'int'}, {'column_name': 'EventProcessingTime', 'dtype': 'timestamp'}]}
+
+```
+
+---
+
+### 4. Detect Partitions
+
+ADLS:
+
+```python
+from datalakesurfer.schemas.parquet_schema import ParquetSchemaRetriever
+f = ParquetSchemaRetriever(account_name="adlssynapseeus01",
+    file_system_name="datacontainer",
+    directory_path="LargeSaleParquetData2Billion",
+    token=token,
+    expires_on=expires_on).detect_partitions()
+print(f)
+#{'status': 'success', 'isPartitioned': True, 'partition_columns': [{'column_name': 'ProductName', 'dtype': 'string'}, {'column_name': 'SalesAmount', 'dtype': 'int32'}]}
+
+from datalakesurfer.schemas.parquet_schema import ParquetSchemaRetriever
+f = ParquetSchemaRetriever(account_name="adlssynapseeus01",
+    file_system_name="datacontainer",
+    directory_path="SaleParquetData",
+    token=token,
+    expires_on=expires_on).detect_partitions()
+print(f)
+#{'status': 'success', 'isPartitioned': False, 'partition_columns': []}
+```
+
+Fabric:
+
+```python
+from datalakesurfer.fabric_format_detector import FabricFormatDetector
+f = FabricFormatDetector(account_name="onelake",
+    file_system_name="devworkspace",
+    directory_path="devlakehouse.Lakehouse/Files/Product",
+    token=token,
+    expires_on=expires_on).detect_format()
+print(f)
+#{'status': 'success', 'format': 'parquet'}
+
+from datalakesurfer.fabric_format_detector import FabricFormatDetector
+f = FabricFormatDetector(account_name="onelake",
+    file_system_name="devworkspace",
+    directory_path="devlakehouse.Lakehouse/Files/FlightTripData",
+    token=token,
+    expires_on=expires_on).detect_format()
+print(f)
+#{'status': 'success', 'format': 'iceberg'}
+
+from datalakesurfer.schemas.fabric_delta_schema import FabricDeltaSchemaRetriever
+s = FabricDeltaSchemaRetriever(account_name="onelake",
+    file_system_name="devworkspace",
+    directory_path="devlakehouse.Lakehouse/Files/salesorder",
+    token=token,
+    expires_on=expires_on).get_schema()
+print(s)
+#{'status': 'success', 'schema': [{'column_name': 'SalesId', 'dtype': 'string'}, {'column_name': 'ProductName', 'dtype': 'string'}, {'column_name': 'SalesDateTime', 'dtype': 'timestamp'}, {'column_name': 'SalesAmount', 'dtype': 'int'}, {'column_name': 'EventProcessingTime', 'dtype': 'timestamp'}]}
+
+from datalakesurfer.schemas.fabric_iceberg_schema import FabricIcebergSchemaRetriever
+s = FabricIcebergSchemaRetriever(account_name="onelake",
+    file_system_name="devworkspace",
+    directory_path="devlakehouse.Lakehouse/Files/FlightTripData",
+    token=token,
+    expires_on=expires_on).get_schema()
+print(s)
+#{'status': 'success', 'schema': [{'column_name': 'flight_id', 'dtype': 'int'}, {'column_name': 'airline_code', 'dtype': 'int'}, {'column_name': 'passenger_count', 'dtype': 'int'}, {'column_name': 'flight_duration_minutes', 'dtype': 'bigint'}, {'column_name': 'baggage_weight', 'dtype': 'float'}, {'column_name': 'ticket_price', 'dtype': 'double'}, {'column_name': 'tax_amount', 'dtype': 'decimal(38,18)', 'typeproperties': {'precision': 10, 'scale': 2}}, {'column_name': 'destination', 'dtype': 'string'}, {'column_name': 'flight_data', 'dtype': 'string'}, {'column_name': 'is_international', 'dtype': 'boolean'}, {'column_name': 'departure_timestamp', 'dtype': 'timestamp'}, {'column_name': 'arrival_timestamp_ntz', 'dtype': 'timestamp'}, {'column_name': 'flight_date', 'dtype': 'date'}]}
+
+from datalakesurfer.schemas.fabric_parquet_schema import FabricParquetSchemaRetriever
+s = FabricParquetSchemaRetriever(account_name="onelake",
+    file_system_name="devworkspace",
+    directory_path="devlakehouse.Lakehouse/Files/Product",
+    token=token,
+    expires_on=expires_on).get_schema()
+print(s)
+
+# {'status': 'success', 'schema': [{'column_name': 'name', 'dtype': 'string'}, {'column_name': 'age', 'dtype': 'long'}]}
+
+from datalakesurfer.schemas.fabric_parquet_schema import FabricParquetSchemaRetriever
+s = FabricParquetSchemaRetriever(account_name="onelake",
+    file_system_name="devworkspace",
+    directory_path="devlakehouse.Lakehouse/Files/Product",
+    token=token,
+    expires_on=expires_on).detect_partitions()
+print(s)
+
+#{'status': 'success', 'isPartitioned': False, 'partition_columns': []}
+
+from datalakesurfer.schemas.fabric_parquet_schema import FabricParquetSchemaRetriever
+f = FabricParquetSchemaRetriever(account_name="onelake",
+    file_system_name="devworkspace",
+    directory_path="devlakehouse.Lakehouse/Files/Customer",
+    token=token,
+    expires_on=expires_on).detect_partitions()
+print(f)
+
+#{'status': 'success', 'isPartitioned': True, 'partition_columns': [{'column_name': 'city', 'dtype': 'string'}]}
+```
+
+---
+
+## ðŸ“¦ Supported Formats
+
+| Format  | ADLS Gen2 | Fabric OneLake |
+| ------- | --------- | -------------- |
+| Parquet | âœ…        | âœ…             |
+| Delta   | âœ…        | âœ…             |
+| Iceberg | âœ…        | âœ…             |
+
+---
+
+## ðŸ›  Development & Testing
+
+Run tests:
+
+```bash
+pytest
+```
+
+---
+
+## ðŸ“„ License
+
+MIT License â€“ See [LICENSE](LICENSE) for details.
+
+---
