@@ -1,0 +1,92 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sycksec-token"
+version = "1.0.0"
+description = "Secure token generation and verification engine with rate limiting"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Arjun Mani", email = "arjunmani45.mm@gmail.com"},
+]
+maintainers = [
+    {name = "Arjun Mani", email = "arjunmani45.mm@gmail.com"},
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Security",
+    "Topic :: Security :: Cryptography",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "cryptography>=3.4.8",
+    "pycryptodome>=3.15.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "pytest-cov>=2.0",
+    "black>=22.0",
+    "flake8>=4.0",
+    "mypy>=0.950",
+    "pre-commit>=2.15",
+]
+test = [
+    "pytest>=6.0",
+    "pytest-cov>=2.0",
+    "pytest-mock>=3.6",
+]
+
+[project.urls]
+Homepage = "https://github.com/sycksec/sycksec-core"
+Documentation = "https://sycksec-core.readthedocs.io/"
+Repository = "https://github.com/sycksec/sycksec-core.git"
+Issues = "https://github.com/sycksec/sycksec-core/issues"
+Changelog = "https://github.com/sycksec/sycksec-core/blob/main/CHANGELOG.md"
+
+[project.scripts]
+sycksec-cli = "sycksec.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "."}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["sycksec*"]
+exclude = ["tests*"]
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "--cov=sycksec --cov-report=term-missing --cov-report=html"
