@@ -1,0 +1,135 @@
+
+https://www.datacamp.com/courses/developing-python-packages
+
+- file layout
+- import structure
+- making your package installable
+- adding licenses and READMEs
+- style and unit tests
+- register and publish
+- using package templates
+
+
+- library (group of libraries)
+- script
+- module
+- package
+
+
+documentation
+- doc string at the top of the file
+- doc string at the top of a function
+- in line comments in script
+- choose coding style, e.g. numpy
+
+- package documentation in __init__
+
+pyment
+pyment -w -o numpydoc main.py
+
+
+
+structuring imports
+-------------------
+from . import module  # from current dir, import module
+from .. import moduel  # from one dir up, import module
+from .module import function  # from module in current dir, import function
+from ..subpackage.module import function  # from subpackage one dir up, from module in that subpackage, import function
+
+clean
+-----
+pyclean into makefile
+
+
+version
+-------
+version number
+0.1.0
+(major, minor, patch)
+major = big updates
+minor = new features
+patch = update existing functions, bug fixes
+
+
+setup.py
+--------
+create setup.py
+run pip install -e .
+The great part about installing your package in editable mode is that you don't
+need to reinstall it when you make changes to it.
+
+
+requirements
+------------
+pip freeze > requirements.txt
+pip install -r requirements.txt
+
+license
+-------
+https://choosealicense.com
+
+
+MANIFEST.in
+-----------
+which files to go with your package, include README and LICENSE
+
+
+Distribution
+------------
+source distribution = as is py files
+wheel distribution = processed to make it faster to install
+
+# create distributions
+terminal: pip install wheel
+terminal: python setup.py sdist bdist_wheel
+you can ignore build and .egg-info folders
+
+# upload
+terminal: pip install twine
+terminal: twine upload dist/*
+
+
+tests
+-----
+every function should have a test function
+tests folder should have same structure as package stucture
+terminal: pytest .
+
+
+test different versions of python
+---------------------------------
+tox is a tools that can run your code in different versions of py
+terminal: tox
+
+
+Style
+-----
+PEP8 check with flake8
+you can include # noqa (no quality assurance)
+or
+terminal: flake8 --ignore E222 main.py
+or search for
+terminal: flake8 --select F401 feature.py
+
+
+Cookiecutter
+------------
+terminal: pip install cookiecutter
+terminal: cookiecutter http://github.com/audreyr/cookiecutter-pypackage
+
+slug = pip install [slug]
+
+
+Versioning
+----------
+Version should be in setup.py and top level __init__.py
+terminal: bumpversion major
+terminal: bumpversion minor
+terminal: bumpversion patch
+to update version number in all appropriate places
+
+
+classifiers
+-----------
+metadata for your package
+list of classifiers: https://pypi.org/classifiers/

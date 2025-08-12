@@ -1,0 +1,91 @@
+
+https://github.com/pugillum/eneco_docker_kubernetes_training
+https://www.udemy.com/course/python-in-containers/
+https://www.udemy.com/course/learn-devops-the-complete-kubernetes-course/
+https://kubernetes.io/docs/tutorials/kubernetes-basics/
+
+
+prep work:
+
+----
+
+meeting met frank over smart-boiler-repair
+
+# forward a port to a pod
+kubectl port-forward smart-repair-api-5c7f464bc4-fh8x9 8000:8000
+
+# show all resources
+kubectl api-resources --verbs=list --namespaced -o name | xargs -n 1 kubectl get --show-kind --ignore-not-found -n smart-boiler
+
+# get details on current cluster
+kubectl config current-context
+
+# get clusters on activated environment
+az aks list
+
+# get available azure subscriptions
+az account subscription list
+
+# get namespaces in current context
+kubens / kubectl get namespace
+
+# check specific namespace
+kubectl get pods --namespace dsp-acc
+
+# show all resources in namespace
+kubectl api-resources --verbs=list --namespaced -o name | xargs -n 1 kubectl get --show-kind --ignore-not-found -n smart-boiler
+
+# apply config to k8s
+kubectl kustomize blabla/overlay/a | kubectl apply -f -
+
+# delete pod (will restart)
+kubectl delete pod <pod-name>
+
+# get deployment identifiers
+kubectl get deployments --all-namespaces (or --namespace <namespace_name>)
+
+# delete specific deployment including running pod
+kubectl delete -n namespace deployment deployment
+
+# forward a port to a pod
+kubectl port-forward smart-repair-api-5c7f464bc4-fh8x9 8000:8000
+
+# describe current resource
+kubectl describe <resource> <resource_name> e.g. pod pod_name
+
+----
+
+youtube: https://www.youtube.com/watch?v=7bA0gTroJjw
+
+kubectl (command line tool)
+
+master node (4 tasks)
+	- k8s api server
+	- scheduler (devides work over pods)
+	- controller manager
+	- etcd
+
+worker nodes -> pod(s) -> container(s)
+
+kubects get nodes
+kubectl get pods (-o -wide)
+kubects delete pods {name_of_pod}
+kubectl describe pods
+
+file: deployment.yaml (instructions/manifest) --> manifest is desired state
+	- specify e.g. number of containers, ports, resources, etc.
+
+kubectl apply -f {name_of_manifest}.yaml = deploy manifest
+
+k8s can scale out pods if CPU is above threshold
+
+expose pods to outside world via api
+'service' can be deployed by instructions in manifest
+'service' is de facto a load balancer
+- selector in yaml manifest determines the app it can access
+
+kubectl describe services {name_of_service}
+
+update your website or app by updating the manifest with new docker image and it will kill old and create new containers
+
+----
