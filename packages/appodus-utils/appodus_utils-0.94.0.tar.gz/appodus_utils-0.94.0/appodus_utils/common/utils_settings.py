@@ -1,0 +1,11 @@
+import json
+
+from appodus_utils import Utils
+from appodus_utils.config.settings import appodus_base_settings
+
+appodus_settings = Utils.get_from_env_fail_if_not_exists('APPODUS_SETTINGS')
+appodus_settings_dict = json.loads(appodus_settings)
+
+appodus_base_settings.copy(update=appodus_settings_dict)
+
+utils_settings = appodus_base_settings
