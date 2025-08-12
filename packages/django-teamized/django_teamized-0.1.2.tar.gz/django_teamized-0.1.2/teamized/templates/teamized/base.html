@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+{% comment %}
+    Base template for all pages
+    Other templates should extend this template and fill/replace blocks
+{% endcomment %}
+<html lang="de">
+
+{% load i18n static %}
+
+<head>
+    {% block head %}
+        <title>{% block title %}{% endblock %} | Teamized</title>
+        <meta charset="utf-8" />
+        {% block noindex %}
+            <meta name="robots" content="noindex">
+        {% endblock noindex %}
+        <meta name="viewport" content="width=device-width,initial-scale=1.0">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="apple-touch-icon" href="{% static 'teamized/favicon.ico' %}">
+        <link rel="shortcut icon" type="image/x-icon" href="{% static 'teamized/favicon.ico' %}">
+        <meta name="theme-color" content="#212529">
+        <link rel="manifest" href="{% url "teamized:manifest" %}{% if request.GET.debug %}?debug=true{% endif %}">
+
+        {% block stylesheets %}
+            <!-- FontAwesome (icon library) -->
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css"
+                  integrity="sha512-DxV+EoADOkOygM4IR9yXP8Sb2qwgidEmeqAEmDKIOfPRQZOWbXCzLC6vjbZyy0vPisbH2SyW27+ddLVCN+OMzQ=="
+                  crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <!-- Bootstrap (CSS framework) -->
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.7/css/bootstrap.min.css"
+                  integrity="sha512-fw7f+TcMjTb7bpbLJZlP8g2Y4XcCyFZW8uy8HsRZsH/SwbMw0plKHFHr99DN3l04VsYNwvzicUX/6qurvIxbxw=="
+                  crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <!-- Custom CSS -->
+            <link rel="stylesheet" href="{% static 'teamized/css/base.css' %}">
+        {% endblock %}
+
+    {% endblock head %}
+    {% block extrahead %}{% endblock %}
+</head>
+
+<body>
+
+{% block body %}
+
+    <!-- Menubar -->
+    {% block menubar %}
+        <nav id="menubar" class="navbar navbar-expand-lg bg-dark" data-bs-theme="dark">
+            <div class="container-fluid">
+                {% block menubartitle %}
+                    <a id="menubartitle" class="navbar-brand ms-3" href="{% url 'teamized:home' %}">Teamized</a>
+                {% endblock menubartitle %}
+                <!-- Navbar toggle for small devices -->
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar"
+                        aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <!-- Navigation bar -->
+                <div class="collapse navbar-collapse" id="navbar">
+                    <ul class="navbar-nav nav w-100 me-1 mb-2 justify-content-end">
+                        {% block all_menubar_items %}
+                            {% if not user.is_authenticated %}
+                                <li class="nav-item border-lg rounded border-secondary ms-2">
+                                    <a class="nav-link ms-1 me-1" href="{% url 'teamized:home' %}"
+                                       title="{% translate "Startseite" %}">
+                                        <i class="fa-solid fa-home"></i>
+                                        <span class="d-lg-none ms-2">{% translate "Startseite" %}</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item border-lg rounded border-secondary ms-2">
+                                    <a class="nav-link ms-1 me-1"
+                                       href="{% url 'account:login' %}?next={% url 'teamized:app' %}"
+                                       title="{% translate "Login" %}">
+                                        <i class="fa-solid fa-sign-in-alt"></i>
+                                        <span class="d-lg-none ms-2">{% translate "Login" %}</span>
+                                    </a>
+                                </li>
+                            {% else %}
+                                <li class="nav-item border-lg rounded border-secondary ms-2">
+                                    <a class="nav-link ms-1 me-1"
+                                       href="{% url 'account:home' %}?next={% url 'teamized:app' %}"
+                                       title="{% translate "Account" %}">
+                                        <i class="fa-solid fa-user"></i>
+                                        <span class="d-lg-none ms-2">{% translate "Account" %}:</span>
+                                        <span class="navbar-text ms-0 ms-lg-2">{{ user.username }}</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item border-lg rounded border-secondary ms-2">
+                                    <a class="nav-link ms-1 me-1" href="{% url 'teamized:home' %}"
+                                       title="{% translate "Startseite" %}">
+                                        <i class="fa-solid fa-home"></i>
+                                        <span class="d-lg-none ms-2">{% translate "Startseite" %}</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item border-lg rounded border-secondary ms-2">
+                                    <form method="post"
+                                          action="{% url 'account:logout' %}?next={% url 'teamized:home' %}">
+                                        {% csrf_token %}
+                                        <button class="btn nav-link ms-1 me-1" type="submit"
+                                                title="{% translate "Logout" %}">
+                                            <i class="fa-solid fa-sign-out-alt"></i>
+                                            <span class="d-lg-none ms-2">{% translate "Logout" %}</span>
+                                        </button>
+                                    </form>
+                                </li>
+                            {% endif %}
+                        {% endblock all_menubar_items %}
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    {% endblock menubar %}
+
+    <!-- Main content -->
+    {% block contentcontainer %}
+        <div class="px-4 py-3 container-fluid" id="maincontent">
+            {% block content %}
+            {% endblock content %}
+        </div>
+    {% endblock contentcontainer %}
+
+    <!-- Scripts -->
+    {% block scripts %}
+    {% endblock scripts %}
+
+{% endblock body %}
+
+</body>
+
+</html>
