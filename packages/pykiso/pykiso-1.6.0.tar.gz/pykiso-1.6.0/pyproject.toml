@@ -1,0 +1,181 @@
+[tool.poetry]
+name = "pykiso"
+version = "1.6.0"
+description = "Embedded integration testing framework."
+authors = ["Sebastian Fischer <sebastian.fischer@de.bosch.com>"]
+license = "Eclipse Public License - v 2.0"
+readme = "README.md"
+homepage = "https://pypi.org/project/pykiso/"
+repository = "https://github.com/eclipse/kiso-testing"
+documentation = "https://kiso-testing.readthedocs.io/en/latest/"
+packages = [{ include = "pykiso", from = "src" }]
+include = [
+    "src/pykiso/test_result/templates/report_template.html.j2",
+    "src/pykiso/test_result/templates/report_template.css",
+]
+keywords = ["testing", "integration testing", "framework", "testing framework"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Eclipse Public License 2.0 (EPL-2.0)",
+    "Operating System :: Unix",
+    "Operating System :: POSIX",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Utilities",
+]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+Jinja2 = "^3.0.0"
+importlib-metadata = { version = ">=4.12,<7.0", python = "<3.8" }
+black = { version = "*", optional = true }
+brainstem = "*"
+cantools = { version = "^39.4.2", python = ">=3.8,<4.0" }
+click = ">=7.0.0,<9.0.0"
+defusedxml = "^0.7.1"
+grpcio = { version = "^1.0.0", optional = true }
+hidapi = ">=0.12,<0.15"
+isort = { version = ">=5.11.4", optional = true }
+junitparser = "^3.2.0"
+MarkupSafe = "~2.0.1"                                                          # Allow support for Jinja2 between 2.11 < x < 3
+packaging = "*"
+protobuf = { version = "^4.24.2", optional = true }
+pykiso-python-uds = { version = "~3.2.0", optional = true }
+pylink-square = { version = "~1.2.0", optional = true }
+pyreadline3 = { version = "^3.4.1", python = "^3.5" }
+pyserial = { version = "^3.0", optional = true }
+python-can = { version = "~4.4.2", optional = true, extras = ["pcan,vector"] }
+PyVISA = { version = "^1.12.0", optional = true }
+PyVISA-py = { version = "~0.5.3", optional = true }
+PyYAML = "^6.0"
+requests = { version = "^2.28.2", optional = true }
+rich = { version = "^13.2.0", optional = true }
+robotframework = "3.2.2"
+tabulate = ">=0.8.9,<0.10.0"
+unittest-xml-reporting = "^3.2.0"
+viztracer = "^1.0.1"
+fastapi = "^0.115.3"
+uvicorn = "^0.32.0"
+xmltodict = "^0.14.2"
+
+[tool.poetry.extras]
+plugins = [
+    "pylink-square",
+    "pykiso-python-uds",
+    "python-can",
+    "pyserial",
+    "PyVISA",
+    "PyVISA-py",
+]
+can = ["pykiso-python-uds", "python-can"]
+debugger = ["pylink-square"]
+instrument = ["PyVISA", "PyVISA-py"]
+serial = ["pyserial"]
+grpc = ["grpcio", "protobuf"]
+testrail = ["rich", "requests"]
+pykitest = ["black", "isort"]
+all = [
+    "pylink-square",
+    "pykiso-python-uds",
+    "python-can",
+    "pyserial",
+    "PyVISA",
+    "PyVISA-py",
+    "rich",
+    "requests",
+    "isort",
+    "black",
+    "grpcio",
+    "protobuf",
+]
+
+[tool.poetry.group.dev.dependencies]
+bump2version = "*"
+coverage = { version = ">=6.5,<8.0", extras = ["toml"] }
+invoke = "*"
+pdbpp = "*"
+pre-commit = "*"
+pylint = "*"
+pytest = "*"
+pytest-cov = "*"
+pytest-mock = "*"
+Sphinx = "*"
+sphinx-rtd-theme = "*"
+sphinxcontrib-programoutput = "*"
+sphinx-autodoc-typehints = "*"
+ruff = "0.2.1"
+tox = "^4.15.0"
+freezegun = "^1.5.1"
+
+[tool.poetry.scripts]
+pykiso = 'pykiso.cli:main'
+pykiso-tags = 'pykiso.tool.show_tag:main'
+instrument-control = 'pykiso.lib.auxiliaries.instrument_control_auxiliary.instrument_control_cli:main'
+pykitest = 'pykiso.tool.pykiso_to_pytest.cli:main'
+testrail = "pykiso.tool.testrail.cli:cli_testrail"
+xray = "pykiso.tool.xray.cli:cli_xray"                                                                 # cli xray
+
+[tool.poetry.plugins]
+pytest11 = { pytest_kiso = "pykiso.pytest_plugin" }
+
+[tool.pytest.ini_options]
+testpaths = ["./tests"]
+addopts = """\
+    --verbose \
+    --log-level=DEBUG \
+    -p no:pytest_kiso \
+    --junitxml=reports/testReport.xml \
+    --cov-report=html \
+    --cov-report html:./tests/coverage_report.html \
+    --ignore=tests/test_acroname_usb_auxiliary.py \
+    --ignore=tests/test_robot_acroname.py \
+"""
+
+[tool.coverage.run]
+omit = [
+    "*/tests/*",
+    "*/examples/*",
+    "*/setup.py",
+    "*/tasks.py",
+    "*/src/pykiso/tool/testrail/*",
+    "*/src/pykiso/__main__.py",
+    "*/src/pykiso/lib/auxiliaries/acroname_auxiliary.py",
+    "*__init__.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pass",
+    "def __repr__",
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+# Linelength according to PEP 8.
+line-length = 120
+exclude = ['examples', 'tests', 'tasks.py']
+
+[tool.tox]
+legacy_tox_ini = """
+    [tox]
+    isolated_build = True
+    env_list =
+        python3.11
+        python3.12
+
+    [testenv]
+    description = run the tests with pytest
+    extras = all
+    allowlist_externals = pytest, poetry, invoke
+    commands = pytest
+"""
