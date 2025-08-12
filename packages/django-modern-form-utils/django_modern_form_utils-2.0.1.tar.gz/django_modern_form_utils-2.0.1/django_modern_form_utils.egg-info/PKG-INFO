@@ -1,0 +1,230 @@
+Metadata-Version: 2.4
+Name: django-modern-form-utils
+Version: 2.0.1
+Summary: Modernized form utilities for Django 3.2–5.2+
+Home-page: https://github.com/yourusername/django-modern-form-utils
+Author: Muhammad Ziauldin
+Author-email: Muhammad Ziauldin <ziauldin@nexgsol.com>
+License: BSD-3-Clause
+Project-URL: Homepage, https://github.com/Nexgsol/django-modern-form-utils
+Project-URL: Source, https://github.com/Nexgsol/django-modern-form-utils
+Project-URL: Issues, https://github.com/Nexgsol/django-modern-form-utils/issues
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Environment :: Web Environment
+Classifier: Framework :: Django
+Classifier: Framework :: Django :: 3.2
+Classifier: Framework :: Django :: 4.2
+Classifier: Framework :: Django :: 5.0
+Classifier: Framework :: Django :: 5.2
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Requires-Python: >=3.8
+Description-Content-Type: text/x-rst
+License-File: LICENSE.txt
+License-File: AUTHORS.rst
+Requires-Dist: Django>=3.2
+Requires-Dist: Pillow>=7.0
+Provides-Extra: tests
+Requires-Dist: Django>=3.2; extra == "tests"
+Requires-Dist: mock; extra == "tests"
+Requires-Dist: Pillow; extra == "tests"
+Dynamic: author
+Dynamic: home-page
+Dynamic: license-file
+Dynamic: requires-python
+
+==============================
+django-modern-form-utils
+==============================
+
+``django-modern-form-utils`` is a modernized fork of the deprecated ``django-form-utils`` package, updated to support **Django 4.x and 5.x**, and compatible with **Python 3.8+**.
+
+This package provides reusable form enhancements and rendering utilities designed for modern Django projects.
+
+Features
+========
+
+1. **BetterForm** and **BetterModelForm**:
+   - Organize form fields into **fieldsets** for improved layout.
+   - Attach **row-level attributes** (e.g. ``class``, ``style``) to each field.
+
+2. **Template Filters for Forms**:
+   - ``label`` — Custom label rendering.
+   - ``value_text``, ``selected_values`` — Display selected choices as text.
+   - ``optional``, ``is_checkbox``, ``is_multiple``, ``is_select``, ``is_radio`` — Field-type-aware rendering helpers.
+
+3. **ClearableFileField / ClearableImageField**:
+   - Show a checkbox to clear file/image fields at form level.
+   - Works out-of-the-box with Django Admin via ``ClearableFileFieldsAdmin``.
+
+4. **ImageWidget**:
+   - Shows thumbnails for image fields (supports ``sorl-thumbnail`` or ``easy-thumbnails``).
+
+5. **AutoResizeTextarea Widget**:
+   - Automatically resizes ``<textarea>`` based on input.
+   - jQuery-based enhancement.
+
+Installation
+============
+
+.. code-block:: bash
+
+   pip install django-modern-form-utils
+
+Then, add it to your ``INSTALLED_APPS``:
+
+.. code-block:: python
+
+   INSTALLED_APPS = [
+       ...
+       "modern_form_utils",
+   ]
+
+If you want to override the default templates, provide your own versions in:
+``templates/modern_form_utils/better_form.html`` and ``form.html``.
+
+Usage
+=====
+
+BetterForm Example
+------------------
+
+.. code-block:: python
+
+   from modern_form_utils.forms import BetterForm
+
+   class MyForm(BetterForm):
+       one = forms.CharField()
+       two = forms.CharField()
+       three = forms.CharField()
+
+       class Meta:
+           fieldsets = [
+               ("main", {"fields": ["two"], "legend": ""}),
+               ("Advanced", {
+                   "fields": ["three", "one"],
+                   "description": "Advanced fields",
+                   "classes": ["advanced", "collapse"]
+               }),
+           ]
+           row_attrs = {
+               "one": {"style": "display: none"}
+           }
+
+ClearableFileField Example
+--------------------------
+
+.. code-block:: python
+
+   from modern_form_utils.fields import ClearableFileField
+
+   class MyModelForm(forms.ModelForm):
+       resume = ClearableFileField()
+
+ImageWidget Example
+-------------------
+
+.. code-block:: python
+
+   from modern_form_utils.widgets import ImageWidget
+
+   class MyForm(forms.ModelForm):
+       avatar = forms.ImageField(widget=ImageWidget())
+
+AutoResizeTextarea Example
+--------------------------
+
+.. code-block:: python
+
+   from modern_form_utils.widgets import AutoResizeTextarea
+
+   class MyForm(forms.Form):
+       description = forms.CharField(widget=AutoResizeTextarea())
+
+Template Filters
+================
+
+Load the template filters:
+
+.. code-block:: django
+
+   {% load modern_form_utils %}
+
+Then use in templates:
+
+.. code-block:: django
+
+   {{ form|render }}
+   {{ form.fieldname|label:"Custom Label" }}
+   {{ form.fieldname|value_text }}
+   {% if form.fieldname|is_checkbox %}...{% endif %}
+
+Admin Integration
+=================
+
+To make file fields in Django admin clearable:
+
+.. code-block:: python
+
+   from modern_form_utils.admin import ClearableFileFieldsAdmin
+
+   class MyAdmin(ClearableFileFieldsAdmin):
+       pass
+
+To use ImageWidget in admin:
+
+.. code-block:: python
+
+   class MyAdmin(admin.ModelAdmin):
+       formfield_overrides = {
+           models.ImageField: {"widget": ImageWidget},
+       }
+
+Settings
+========
+
+JQUERY\_URL
+-----------
+
+.. code-block:: python
+
+   JQUERY_URL = "https://code.jquery.com/jquery-3.6.0.min.js"
+
+If unset, defaults to:
+
+::
+
+   https://ajax.googleapis.com/ajax/libs/jquery/1.8/jquery.min.js
+
+Contributing
+============
+
+- Fork this repo
+- Make sure tests pass via ``python runtests.py``
+- Supports Django 3.2, 4.2, 5.0+ on Python 3.8–3.12
+
+Credits
+=======
+
+Original author: **Carl Meyer** (django-form-utils)
+
+This package: Updated and maintained by **Muhammad Ziauldin**
+
+GitHub: https://github.com/ziauldin123
+
+Organization: https://github.com/Nexgsol
+
+Package: ``django-modern-form-utils``
+
+License
+=======
+
+BSD License (same as the original)
