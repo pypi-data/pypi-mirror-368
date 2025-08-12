@@ -1,0 +1,137 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    app: resources-custom-config-app1
+    chart: producer-app-3.6.1
+    release: resources-custom-config-app1
+    streams-bootstrap/kind: producer-app
+  name: resources-custom-config-app1
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        app: resources-custom-config-app1
+        release: resources-custom-config-app1
+        streams-bootstrap/kind: producer-app
+    spec:
+      containers:
+        - env:
+            - name: ENV_PREFIX
+              value: APP_
+            - name: APP_BOOTSTRAP_SERVERS
+              value: http://k8kafka-cp-kafka-headless.kpops.svc.cluster.local:9092
+            - name: APP_SCHEMA_REGISTRY_URL
+              value: http://localhost:8081/
+            - name: APP_OUTPUT_TOPIC
+              value: resources-custom-config-app1
+            - name: JAVA_TOOL_OPTIONS
+              value: '-XX:MaxRAMPercentage=75.0 '
+          image: bakdata-demo-producer-app:latest
+          imagePullPolicy: Always
+          name: resources-custom-config-app1
+          resources:
+            limits:
+              cpu: 500m
+              memory: 2G
+            requests:
+              cpu: 200m
+              memory: 2G
+      restartPolicy: OnFailure
+
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  labels:
+    strimzi.io/cluster: my-cluster
+  name: resources-custom-config-app1
+spec:
+  config: {}
+  partitions: 3
+  replicas: 1
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: resources-custom-config-app2
+    chart: streams-app-3.6.1
+    pipeline: resources-custom-config
+    release: resources-custom-config-app2
+    streams-bootstrap/kind: streams-app
+  name: resources-custom-config-app2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: resources-custom-config-app2
+      release: resources-custom-config-app2
+  template:
+    metadata:
+      labels:
+        app: resources-custom-config-app2
+        release: resources-custom-config-app2
+        streams-bootstrap/kind: streams-app
+    spec:
+      containers:
+        - env:
+            - name: ENV_PREFIX
+              value: APP_
+            - name: KAFKA_LARGE_MESSAGE_ID_GENERATOR
+              value: com.bakdata.kafka.MurmurHashIdGenerator
+            - name: APP_VOLATILE_GROUP_INSTANCE_ID
+              value: 'true'
+            - name: APP_BOOTSTRAP_SERVERS
+              value: http://k8kafka-cp-kafka-headless.kpops.svc.cluster.local:9092
+            - name: APP_SCHEMA_REGISTRY_URL
+              value: http://localhost:8081/
+            - name: APP_INPUT_TOPICS
+              value: resources-custom-config-app1
+            - name: APP_OUTPUT_TOPIC
+              value: resources-custom-config-app2
+            - name: APP_ERROR_TOPIC
+              value: resources-custom-config-app2-error
+            - name: JAVA_TOOL_OPTIONS
+              value: '-Dcom.sun.management.jmxremote.port=5555 -Dcom.sun.management.jmxremote.authenticate=false
+                -Dcom.sun.management.jmxremote.ssl=false -XX:MaxRAMPercentage=75.0 '
+          image: some-image:latest
+          imagePullPolicy: Always
+          name: resources-custom-config-app2
+          resources:
+            limits:
+              cpu: 500m
+              memory: 2G
+            requests:
+              cpu: 200m
+              memory: 300Mi
+      terminationGracePeriodSeconds: 300
+
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  labels:
+    strimzi.io/cluster: my-cluster
+  name: resources-custom-config-app2-error
+spec:
+  config:
+    cleanup.policy: compact,delete
+  partitions: 1
+  replicas: 1
+
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  labels:
+    strimzi.io/cluster: my-cluster
+  name: resources-custom-config-app2
+spec:
+  config: {}
+  partitions: 3
+  replicas: 1
+

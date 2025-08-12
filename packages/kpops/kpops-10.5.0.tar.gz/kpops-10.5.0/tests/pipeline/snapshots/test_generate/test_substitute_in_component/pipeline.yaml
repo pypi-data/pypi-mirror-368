@@ -1,0 +1,132 @@
+- type: scheduled-producer
+  name: scheduled-producer
+  prefix: resources-component-type-substitution-
+  to:
+    topics:
+      resources-component-type-substitution-scheduled-producer:
+        type: output
+        value_schema: com.bakdata.fake.Produced
+        partitions_count: 12
+        configs:
+          cleanup.policy: compact,delete
+    models:
+      com/bakdata/kafka/fake: 1.0.0
+  namespace: example-namespace
+  values:
+    image: example-registry/fake-image
+    imageTag: 0.0.1
+    kafka:
+      bootstrapServers: http://k8kafka-cp-kafka-headless.kpops.svc.cluster.local:9092
+      schemaRegistryUrl: http://localhost:8081/
+      outputTopic: resources-component-type-substitution-scheduled-producer
+    commandLine:
+      FAKE_ARG: fake-arg-value
+    schedule: 30 3/8 * * *
+    labels:
+      app_type: scheduled-producer
+      app_name: scheduled-producer
+      app_schedule: 30 3/8 * * *
+  version: 3.6.1
+  helm_release_name: resources-component-type-substitution-scheduled-b0010
+  helm_name_override: resources-component-type-substitution-schedule-b0010
+- type: converter
+  name: converter
+  prefix: resources-component-type-substitution-
+  to:
+    topics:
+      resources-component-type-substitution-converter:
+        type: output
+        partitions_count: 50
+        configs:
+          retention.ms: '-1'
+          cleanup.policy: compact,delete
+      resources-component-type-substitution-converter-error:
+        type: error
+        value_schema: com.bakdata.kafka.DeadLetter
+        partitions_count: 10
+        configs:
+          cleanup.policy: compact,delete
+    models: {}
+  namespace: example-namespace
+  values:
+    image: bakdata-demo-streams-app
+    kafka:
+      bootstrapServers: http://k8kafka-cp-kafka-headless.kpops.svc.cluster.local:9092
+      schemaRegistryUrl: http://localhost:8081/
+      outputTopic: resources-component-type-substitution-converter
+      applicationId: converter-resources-component-type-substitution-converter
+      inputTopics:
+        - resources-component-type-substitution-scheduled-producer
+      errorTopic: resources-component-type-substitution-converter-error
+      config:
+        large.message.id.generator: com.bakdata.kafka.MurmurHashIdGenerator
+    resources:
+      requests:
+        memory: 2G
+      limits:
+        memory: 2G
+    commandLine:
+      CONVERT_XML: true
+    autoscaling:
+      enabled: true
+      lagThreshold: 10000
+      maxReplicas: 1
+    statefulSet: false
+  version: 3.6.1
+  helm_release_name: resources-component-type-substitution-converter
+  helm_name_override: resources-component-type-substitution-converter
+- type: filter
+  name: filter-app
+  prefix: resources-component-type-substitution-
+  to:
+    topics:
+      resources-component-type-substitution-filter-app:
+        type: output
+        partitions_count: 50
+        configs:
+          retention.ms: '-1'
+      resources-component-type-substitution-filter-app-error:
+        type: error
+        value_schema: com.bakdata.kafka.DeadLetter
+        partitions_count: 1
+        configs:
+          cleanup.policy: compact,delete
+    models: {}
+  namespace: example-namespace
+  values:
+    image: fake-registry/filter
+    imageTag: 2.4.1
+    kafka:
+      bootstrapServers: http://k8kafka-cp-kafka-headless.kpops.svc.cluster.local:9092
+      schemaRegistryUrl: http://localhost:8081/
+      outputTopic: resources-component-type-substitution-filter-app
+      applicationId: filter-resources-component-type-substitution-filter-app
+      inputTopics:
+        - resources-component-type-substitution-converter
+      errorTopic: resources-component-type-substitution-filter-app-error
+      config:
+        large.message.id.generator: com.bakdata.kafka.MurmurHashIdGenerator
+    resources:
+      requests:
+        memory: 3G
+    commandLine:
+      TYPE: nothing
+    autoscaling:
+      enabled: true
+      lagThreshold: 10000
+      minReplicas: 4
+      maxReplicas: 4
+      topics:
+        - resources-component-type-substitution-filter-app
+    statefulSet: false
+    labels:
+      app_type: filter
+      app_name: filter-app
+      app_resources_requests_memory: 3G
+      filter: filter-app-filter
+      test_placeholder_in_placeholder: filter-app-filter
+    replicaCount: 4
+  version: 3.6.1
+  helm_release_name: resources-component-type-substitution-filter-app
+  helm_name_override: resources-component-type-substitution-filter-app
+

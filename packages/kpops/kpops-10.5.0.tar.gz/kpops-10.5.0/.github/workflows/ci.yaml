@@ -1,0 +1,230 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, ready_for_review, synchronize]
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  UV_VERSION: "0.5.14"
+
+jobs:
+  lint:
+    name: Lint
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-24.04
+        python-version: ["3.11"]
+        include:
+          - python-version: "3.11"
+            os: ubuntu-24.04
+            format-for-github: true
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          version: ${{ env.UV_VERSION }}
+
+      - name: Check uv.lock
+        run: uv lock --check
+
+      - name: Lint (ruff)
+        run: |
+          uv run --frozen ruff check . --config pyproject.toml --no-fix ${{ matrix.format-for-github && '--output-format=github' }}
+
+      - name: Typing (basedpyright)
+        run: |
+          if [[ "${{ matrix.format-for-github }}" == "true" ]]
+          then
+            echo "::add-matcher::.github/pyright-matcher.json"
+          fi;
+          uv run --frozen basedpyright
+
+  format:
+    name: Format
+    runs-on: [ubuntu-24.04]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.11"
+          version: ${{ env.UV_VERSION }}
+
+      - name: ruff
+        run: uv run --frozen ruff format --check
+
+      - name: dprint
+        uses: dprint/check@v2.2
+
+  test:
+    name: Test
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-24.04
+          - windows-2022
+        python-version: ["3.11", "3.12"]
+        is-draft-pr:
+          - ${{ github.event.pull_request.draft }}
+        exclude:
+          # skip Windows jobs on draft PRs because they are slow
+          - os: windows-2022
+            is-draft-pr: true
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          version: ${{ env.UV_VERSION }}
+
+      - name: Test
+        run: uv run --frozen pytest tests
+
+  docs:
+    name: Docs
+    runs-on: [ubuntu-24.04]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          version: ${{ env.UV_VERSION }}
+
+      - name: Generate schema (kpops schema)
+        run: |
+          uv run --frozen -m hooks.gen_schema
+          git diff --quiet HEAD -- docs/docs/schema
+
+      - name: Generate CLI Usage docs (typer-cli)
+        run: uv run --frozen
+          lefthook run pre-commit --commands kpops-docs-cli --force
+
+      - name: Generate Environment variable docs
+        run: uv run --frozen
+          lefthook run pre-commit --commands kpops-docs-env-vars --force
+
+      - name: Generate pipeline definitions
+        run: uv run --frozen
+          lefthook run pre-commit --commands kpops-docs-components --force
+
+      - name: Test docs build (mkdocs)
+        run: uv run --frozen --group=docs
+          mkdocs build -f docs/mkdocs.yml
+
+  # TODO: extract into ci-templates
+  publish-snapshot-version:
+    name: Publish snapshot to TestPyPI
+    needs: [lint, format, test, docs]
+    runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.11"
+          version: ${{ env.UV_VERSION }}
+
+      - name: Generate snapshot time
+        id: snapshot-time
+        run: |
+          snapshot_time=$(date +'%Y%m%d%H%M%S')
+          echo "snapshot-time=${snapshot_time}" >> "$GITHUB_OUTPUT"
+
+      - name: Bump version patch
+        id: bump-version
+        uses: bakdata/ci-templates/actions/bump-version@1.50.4
+        with:
+          release-type: patch
+
+      - name: Restore clean Git working directory
+        # clean Git working directory is needed for the next bumpversion call
+        # we only need the version result from the first `patch` bump which is stored as a step output
+        run: git restore .
+
+      - name: Bump version snapshot time
+        uses: bakdata/ci-templates/actions/bump-version@1.50.4
+        with:
+          release-type: patch
+          new-version: ${{ steps.bump-version.outputs.release-version }}${{ steps.snapshot-time.outputs.snapshot-time }} # e.g. 9.1.1-dev20250108102827
+
+      - name: Build
+        run: uv build
+
+      - name: Publish TestPyPI
+        run: uv publish
+        env:
+          UV_PUBLISH_URL: https://test.pypi.org/legacy/
+
+  publish-docs-from-main:
+    name: Publish docs (main)
+    runs-on: ubuntu-24.04
+    if: ${{ github.ref == 'refs/heads/main' }}
+    needs: [lint, format, test, docs]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Publish docs from main branch
+        uses: ./.github/actions/update-docs
+        with:
+          username: ${{ secrets.GH_USERNAME }}
+          email: ${{ secrets.GH_EMAIL }}
+          token: ${{ secrets.GH_TOKEN }}
+          version: main
+
+  publish-dev-docs-from-pr:
+    name: Publish docs (dev)
+    runs-on: ubuntu-24.04
+    if: ${{ github.event_name == 'pull_request' }}
+    needs: [lint, format, test, docs]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      # Checks to see if any files in the PR match one of the listed file types.
+      # This will return true if there's a file in docs folder that was added, deleted, or modified in the PR.
+      - name: Check if files in docs folder have changed
+        uses: dorny/paths-filter@v3
+        id: docs-changes
+        with:
+          filters: |
+            docs:
+              - added|deleted|modified: 'docs/**'
+
+      - name: Publish dev docs from PR
+        if: steps.docs-changes.outputs.docs == 'true'
+        uses: ./.github/actions/update-docs
+        with:
+          username: ${{ secrets.GH_USERNAME }}
+          email: ${{ secrets.GH_EMAIL }}
+          token: ${{ secrets.GH_TOKEN }}
+          version: dev

@@ -1,0 +1,122 @@
+- type: scheduled-producer
+  name: scheduled-producer
+  prefix: resources-first-pipeline-
+  to:
+    topics:
+      resources-first-pipeline-scheduled-producer:
+        type: output
+        value_schema: com.bakdata.fake.Produced
+        partitions_count: 12
+        configs:
+          cleanup.policy: compact,delete
+    models:
+      com/bakdata/kafka/fake: 1.0.0
+  namespace: example-namespace
+  values:
+    image: example-registry/fake-image
+    imageTag: 0.0.1
+    kafka:
+      bootstrapServers: http://k8kafka-cp-kafka-headless.kpops.svc.cluster.local:9092
+      schemaRegistryUrl: http://localhost:8081/
+      outputTopic: resources-first-pipeline-scheduled-producer
+    commandLine:
+      FAKE_ARG: fake-arg-value
+    schedule: 30 3/8 * * *
+  version: 3.6.1
+  helm_release_name: resources-first-pipeline-scheduled-producer
+  helm_name_override: resources-first-pipeline-scheduled-producer
+- type: converter
+  name: converter
+  prefix: resources-first-pipeline-
+  to:
+    topics:
+      resources-first-pipeline-converter:
+        type: output
+        partitions_count: 50
+        configs:
+          retention.ms: '-1'
+          cleanup.policy: compact,delete
+      resources-first-pipeline-converter-error:
+        type: error
+        value_schema: com.bakdata.kafka.DeadLetter
+        partitions_count: 10
+        configs:
+          cleanup.policy: compact,delete
+    models: {}
+  namespace: example-namespace
+  values:
+    image: bakdata-demo-streams-app
+    kafka:
+      bootstrapServers: http://k8kafka-cp-kafka-headless.kpops.svc.cluster.local:9092
+      schemaRegistryUrl: http://localhost:8081/
+      outputTopic: resources-first-pipeline-converter
+      applicationId: converter-resources-first-pipeline-converter
+      inputTopics:
+        - resources-first-pipeline-scheduled-producer
+      errorTopic: resources-first-pipeline-converter-error
+      config:
+        large.message.id.generator: com.bakdata.kafka.MurmurHashIdGenerator
+    resources:
+      requests:
+        memory: 2G
+      limits:
+        memory: 2G
+    commandLine:
+      CONVERT_XML: true
+    autoscaling:
+      enabled: true
+      lagThreshold: 10000
+      maxReplicas: 1
+    statefulSet: false
+  version: 3.6.1
+  helm_release_name: resources-first-pipeline-converter
+  helm_name_override: resources-first-pipeline-converter
+- type: filter
+  name: a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name
+  prefix: resources-first-pipeline-
+  to:
+    topics:
+      ? resources-first-pipeline-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name
+      : type: output
+        partitions_count: 50
+        configs:
+          retention.ms: '-1'
+      ? resources-first-pipeline-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-error
+      : type: error
+        value_schema: com.bakdata.kafka.DeadLetter
+        partitions_count: 1
+        configs:
+          cleanup.policy: compact,delete
+    models: {}
+  namespace: example-namespace
+  values:
+    image: fake-registry/filter
+    imageTag: 2.4.1
+    kafka:
+      bootstrapServers: http://k8kafka-cp-kafka-headless.kpops.svc.cluster.local:9092
+      schemaRegistryUrl: http://localhost:8081/
+      outputTopic: resources-first-pipeline-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name
+      applicationId: filter-resources-first-pipeline-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name
+      inputTopics:
+        - resources-first-pipeline-converter
+      errorTopic: resources-first-pipeline-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-error
+      config:
+        large.message.id.generator: com.bakdata.kafka.MurmurHashIdGenerator
+    resources:
+      requests:
+        memory: 3G
+    commandLine:
+      TYPE: nothing
+    autoscaling:
+      enabled: true
+      lagThreshold: 10000
+      minReplicas: 4
+      maxReplicas: 4
+      topics:
+        - resources-first-pipeline-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name-a-long-name
+    statefulSet: false
+    replicaCount: 4
+  version: 3.6.1
+  helm_release_name: resources-first-pipeline-a-long-name-a-long-nam-68327
+  helm_name_override: resources-first-pipeline-a-long-name-a-long-name-a-long-n-68327
+

@@ -1,0 +1,27 @@
+streams-bootstrap:
+  version: "3.6.1"
+  namespace: development-namespace
+  values:
+    kafka:
+      bootstrapServers: "${config.kafka_brokers}"
+      schemaRegistryUrl: "${config.schema_registry.url}"
+
+producer-app:
+  to:
+    topics:
+      ${output_topic_name}:
+        type: output
+        partitions_count: 3
+
+streams-app:
+  values:
+    labels:
+      pipeline: ${pipeline.name}
+  to:
+    topics:
+      ${error_topic_name}:
+        type: error
+        partitions_count: 1
+      ${output_topic_name}:
+        type: output
+        partitions_count: 3

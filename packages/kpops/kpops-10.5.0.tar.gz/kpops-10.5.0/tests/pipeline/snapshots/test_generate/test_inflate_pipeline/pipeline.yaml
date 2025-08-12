@@ -1,0 +1,180 @@
+- type: scheduled-producer
+  name: scheduled-producer
+  prefix: resources-pipeline-with-inflate-
+  to:
+    topics:
+      resources-pipeline-with-inflate-scheduled-producer:
+        type: output
+        value_schema: com.bakdata.fake.Produced
+        partitions_count: 12
+        configs:
+          cleanup.policy: compact,delete
+    models:
+      com/bakdata/kafka/fake: 1.0.0
+  namespace: example-namespace
+  values:
+    image: example-registry/fake-image
+    imageTag: 0.0.1
+    kafka:
+      bootstrapServers: http://k8kafka-cp-kafka-headless.kpops.svc.cluster.local:9092
+      schemaRegistryUrl: http://localhost:8081/
+      outputTopic: resources-pipeline-with-inflate-scheduled-producer
+    commandLine:
+      FAKE_ARG: fake-arg-value
+    schedule: 30 3/8 * * *
+  version: 3.6.1
+  helm_release_name: resources-pipeline-with-inflate-scheduled-producer
+  helm_name_override: resources-pipeline-with-inflate-scheduled-producer
+- type: converter
+  name: converter
+  prefix: resources-pipeline-with-inflate-
+  to:
+    topics:
+      resources-pipeline-with-inflate-converter:
+        type: output
+        partitions_count: 50
+        configs:
+          retention.ms: '-1'
+          cleanup.policy: compact,delete
+      resources-pipeline-with-inflate-converter-error:
+        type: error
+        value_schema: com.bakdata.kafka.DeadLetter
+        partitions_count: 10
+        configs:
+          cleanup.policy: compact,delete
+    models: {}
+  namespace: example-namespace
+  values:
+    image: bakdata-demo-streams-app
+    kafka:
+      bootstrapServers: http://k8kafka-cp-kafka-headless.kpops.svc.cluster.local:9092
+      schemaRegistryUrl: http://localhost:8081/
+      outputTopic: resources-pipeline-with-inflate-converter
+      applicationId: converter-resources-pipeline-with-inflate-converter
+      inputTopics:
+        - resources-pipeline-with-inflate-scheduled-producer
+      errorTopic: resources-pipeline-with-inflate-converter-error
+      config:
+        large.message.id.generator: com.bakdata.kafka.MurmurHashIdGenerator
+    resources:
+      requests:
+        memory: 2G
+      limits:
+        memory: 2G
+    commandLine:
+      CONVERT_XML: true
+    autoscaling:
+      enabled: true
+      lagThreshold: 10000
+      maxReplicas: 1
+    statefulSet: false
+  version: 3.6.1
+  helm_release_name: resources-pipeline-with-inflate-converter
+  helm_name_override: resources-pipeline-with-inflate-converter
+- type: should-inflate
+  name: should-inflate
+  prefix: resources-pipeline-with-inflate-
+  to:
+    topics:
+      resources-pipeline-with-inflate-should-inflate:
+        type: output
+        partitions_count: 50
+        configs:
+          retention.ms: '-1'
+      resources-pipeline-with-inflate-should-inflate-error:
+        type: error
+        value_schema: com.bakdata.kafka.DeadLetter
+        partitions_count: 1
+        configs:
+          cleanup.policy: compact,delete
+    models: {}
+  namespace: example-namespace
+  values:
+    image: fake-registry/filter
+    imageTag: 2.4.1
+    kafka:
+      bootstrapServers: http://k8kafka-cp-kafka-headless.kpops.svc.cluster.local:9092
+      schemaRegistryUrl: http://localhost:8081/
+      outputTopic: resources-pipeline-with-inflate-should-inflate
+      applicationId: filter-resources-pipeline-with-inflate-should-inflate
+      inputTopics:
+        - resources-pipeline-with-inflate-converter
+      errorTopic: resources-pipeline-with-inflate-should-inflate-error
+      config:
+        large.message.id.generator: com.bakdata.kafka.MurmurHashIdGenerator
+    resources:
+      requests:
+        memory: 3G
+    commandLine:
+      TYPE: nothing
+    autoscaling:
+      enabled: true
+      lagThreshold: 10000
+      minReplicas: 4
+      maxReplicas: 4
+      topics:
+        - resources-pipeline-with-inflate-should-inflate
+    statefulSet: false
+    replicaCount: 4
+  version: 3.6.1
+  helm_release_name: resources-pipeline-with-inflate-should-inflate
+  helm_name_override: resources-pipeline-with-inflate-should-inflate
+- type: kafka-sink-connector
+  name: should-inflate-inflated-sink-connector
+  prefix: resources-pipeline-with-inflate-
+  to:
+    topics:
+      kafka-sink-connector:
+        type: output
+        configs: {}
+      should-inflate-inflated-sink-connector:
+        configs: {}
+        label: test
+    models: {}
+  config:
+    connector.class: io.confluent.connect.elasticsearch.ElasticsearchSinkConnector
+    name: resources-pipeline-with-inflate-should-inflate-inflated-sink-connector
+    topics: resources-pipeline-with-inflate-should-inflate
+    transforms.changeTopic.replacement: resources-pipeline-with-inflate-should-inflate-index-v1
+    batch.size: '2000'
+    behavior.on.malformed.documents: warn
+    behavior.on.null.values: delete
+    connection.compression: 'true'
+    key.ignore: 'false'
+    linger.ms: '5000'
+    max.buffered.records: '20000'
+    read.timeout.ms: '120000'
+    tasks.max: '1'
+  resetter_values: {}
+- type: streams-app
+  name: should-inflate-inflated-streams-app
+  prefix: resources-pipeline-with-inflate-
+  to:
+    topics:
+      resources-pipeline-with-inflate-should-inflate-should-inflate-inflated-streams-app:
+        type: output
+        configs: {}
+      resources-pipeline-with-inflate-should-inflate-inflated-streams-app-error:
+        type: error
+        value_schema: com.bakdata.kafka.DeadLetter
+        partitions_count: 1
+        configs:
+          cleanup.policy: compact,delete
+    models: {}
+  namespace: example-namespace
+  values:
+    image: bakdata-demo-streams-app
+    kafka:
+      bootstrapServers: http://k8kafka-cp-kafka-headless.kpops.svc.cluster.local:9092
+      schemaRegistryUrl: http://localhost:8081/
+      outputTopic: resources-pipeline-with-inflate-should-inflate-should-inflate-inflated-streams-app
+      inputTopics:
+        - kafka-sink-connector
+      errorTopic: resources-pipeline-with-inflate-should-inflate-inflated-streams-app-error
+      config:
+        large.message.id.generator: com.bakdata.kafka.MurmurHashIdGenerator
+    statefulSet: false
+  version: 3.6.1
+  helm_release_name: resources-pipeline-with-inflate-should-inflate--2ea20
+  helm_name_override: resources-pipeline-with-inflate-should-inflate-inflated-s-2ea20
+

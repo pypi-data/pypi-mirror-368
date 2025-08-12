@@ -1,0 +1,37 @@
+- type: streams-app
+  name: streams-app
+  prefix: resources-no-user-defined-components-
+  from:
+    topics:
+      example-topic:
+        type: input
+    components: {}
+  to:
+    topics:
+      example-output:
+        type: output
+        configs: {}
+      resources-no-user-defined-components-streams-app-error:
+        type: error
+        value_schema: com.bakdata.kafka.DeadLetter
+        partitions_count: 1
+        configs:
+          cleanup.policy: compact,delete
+    models: {}
+  namespace: example-namespace
+  values:
+    image: fake-image
+    kafka:
+      bootstrapServers: http://k8kafka-cp-kafka-headless.kpops.svc.cluster.local:9092
+      schemaRegistryUrl: http://localhost:8081/
+      outputTopic: example-output
+      inputTopics:
+        - example-topic
+      errorTopic: resources-no-user-defined-components-streams-app-error
+      config:
+        large.message.id.generator: com.bakdata.kafka.MurmurHashIdGenerator
+    statefulSet: false
+  version: 3.6.1
+  helm_release_name: resources-no-user-defined-components-streams-app
+  helm_name_override: resources-no-user-defined-components-streams-app
+

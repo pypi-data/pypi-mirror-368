@@ -1,0 +1,27 @@
+pipeline-component:
+  prefix: ""
+
+kubernetes-app:
+  namespace: example-namespace
+
+kafka-connector:
+  namespace: example-namespace
+
+streams-bootstrap:
+  values:
+    kafka:
+      bootstrapServers: 127.0.0.1:9092
+      schemaRegistryUrl: 127.0.0.1:8081
+
+streams-app:
+  values:
+    labels:
+      pipeline: ${pipeline.name}
+
+producer-app:
+  to:
+    topics:
+      ${output_topic_name}:
+        type: output
+        configs:
+          cleanup.policy: compact,delete

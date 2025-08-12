@@ -1,0 +1,60 @@
+- type: producer-app
+  name: app1
+  prefix: resources-custom-config-
+  to:
+    topics:
+      resources-custom-config-app1:
+        type: output
+        partitions_count: 3
+        configs: {}
+    models: {}
+  namespace: development-namespace
+  values:
+    image: bakdata-demo-producer-app
+    kafka:
+      bootstrapServers: http://k8kafka-cp-kafka-headless.kpops.svc.cluster.local:9092
+      schemaRegistryUrl: http://localhost:8081/
+      outputTopic: resources-custom-config-app1
+    resources:
+      requests:
+        memory: 2G
+      limits:
+        memory: 2G
+  version: 3.6.1
+  helm_release_name: resources-custom-config-app1
+  helm_name_override: resources-custom-config-app1
+- type: streams-app
+  name: app2
+  prefix: resources-custom-config-
+  to:
+    topics:
+      resources-custom-config-app2-error:
+        type: error
+        value_schema: com.bakdata.kafka.DeadLetter
+        partitions_count: 1
+        configs:
+          cleanup.policy: compact,delete
+      resources-custom-config-app2:
+        type: output
+        partitions_count: 3
+        configs: {}
+    models: {}
+  namespace: development-namespace
+  values:
+    image: some-image
+    kafka:
+      bootstrapServers: http://k8kafka-cp-kafka-headless.kpops.svc.cluster.local:9092
+      schemaRegistryUrl: http://localhost:8081/
+      outputTopic: resources-custom-config-app2
+      inputTopics:
+        - resources-custom-config-app1
+      errorTopic: resources-custom-config-app2-error
+      config:
+        large.message.id.generator: com.bakdata.kafka.MurmurHashIdGenerator
+    statefulSet: false
+    labels:
+      pipeline: resources-custom-config
+  version: 3.6.1
+  helm_release_name: resources-custom-config-app2
+  helm_name_override: resources-custom-config-app2
+

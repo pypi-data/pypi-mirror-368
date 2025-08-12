@@ -1,0 +1,54 @@
+- type: streams-app
+  name: streams-app-development
+  prefix: resources-pipeline-with-env-defaults-
+  from:
+    topics:
+      example-topic:
+        type: input
+    components: {}
+  to:
+    topics:
+      example-output:
+        type: output
+        configs: {}
+      resources-pipeline-with-env-defaults-streams-app-development-error:
+        type: error
+        value_schema: com.bakdata.kafka.DeadLetter
+        partitions_count: 1
+        configs:
+          cleanup.policy: compact,delete
+    models: {}
+  namespace: development-namespace
+  values:
+    image: fake-image
+    kafka:
+      bootstrapServers: http://k8kafka-cp-kafka-headless.kpops.svc.cluster.local:9092
+      schemaRegistryUrl: http://localhost:8081/
+      outputTopic: example-output
+      inputTopics:
+        - example-topic
+      errorTopic: resources-pipeline-with-env-defaults-streams-app-development-error
+      config:
+        large.message.id.generator: com.bakdata.kafka.MurmurHashIdGenerator
+    statefulSet: false
+  version: 3.6.1
+  helm_release_name: resources-pipeline-with-env-defaults-streams-ap-49439
+  helm_name_override: resources-pipeline-with-env-defaults-streams-app-development
+- type: kafka-sink-connector
+  name: es-sink-connector
+  prefix: resources-pipeline-with-env-defaults-
+  config:
+    connector.class: io.confluent.connect.elasticsearch.ElasticsearchSinkConnector
+    name: resources-pipeline-with-env-defaults-es-sink-connector
+    topics: example-output
+    batch.size: '2000'
+    behavior.on.malformed.documents: warn
+    behavior.on.null.values: delete
+    connection.compression: 'true'
+    key.ignore: 'false'
+    linger.ms: '5000'
+    max.buffered.records: '20000'
+    read.timeout.ms: '120000'
+    tasks.max: '1'
+  resetter_values: {}
+

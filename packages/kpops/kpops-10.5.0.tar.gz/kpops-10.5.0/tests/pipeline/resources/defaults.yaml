@@ -1,0 +1,125 @@
+pipeline-component:
+  name: ${component.type}
+
+kubernetes-app:
+  namespace: example-namespace
+
+streams-bootstrap:
+  values:
+    kafka:
+      bootstrapServers: ${config.kafka_brokers}
+      schemaRegistryUrl: ${config.schema_registry.url}
+  version: "3.6.1"
+
+producer-app: # inherits from streams-bootstrap
+  values:
+    image: bakdata-demo-producer-app
+
+streams-app: # inherits from streams-bootstrap
+  values:
+    image: bakdata-demo-streams-app
+    kafka:
+      config:
+        large.message.id.generator: com.bakdata.kafka.MurmurHashIdGenerator
+  to:
+    topics:
+      ${error_topic_name}:
+        type: error
+        value_schema: com.bakdata.kafka.DeadLetter
+        partitions_count: 1
+        configs:
+          cleanup.policy: compact,delete
+
+scheduled-producer:
+  values:
+    image: "example-registry/fake-image"
+    imageTag: "0.0.1"
+  to:
+    topics:
+      ${output_topic_name}:
+        type: output
+        value_schema: com.bakdata.fake.Produced
+        partitions_count: 12
+        configs:
+          cleanup.policy: compact,delete
+    models:
+      "com/bakdata/kafka/fake": 1.0.0
+
+converter:
+  values:
+    kafka:
+      application_id: converter-${output_topic_name}
+    resources:
+      limits:
+        memory: 3G
+    autoscaling:
+      enabled: true
+      maxReplicas: 1
+      lagThreshold: 10000
+  to:
+    topics:
+      ${output_topic_name}:
+        type: output
+        partitions_count: 50
+        configs:
+          retention.ms: "-1"
+          cleanup.policy: compact,delete
+      ${error_topic_name}:
+        type: error
+        value_schema: com.bakdata.kafka.DeadLetter
+        partitions_count: 10
+        configs:
+          cleanup.policy: compact,delete
+
+filter:
+  values:
+    image: "fake-registry/filter"
+    imageTag: "2.4.1"
+    kafka:
+      application_id: filter-${output_topic_name}
+    autoscaling:
+      enabled: true
+      maxReplicas: 1
+      lagThreshold: 10000
+      topics:
+        - "${output_topic_name}"
+  to:
+    topics:
+      ${output_topic_name}:
+        type: output
+        partitions_count: 50
+        configs:
+          retention.ms: "-1"
+
+should-inflate:
+  values:
+    image: "fake-registry/filter"
+    imageTag: "2.4.1"
+    kafka:
+      application_id: filter-${output_topic_name}
+    autoscaling:
+      enabled: true
+      maxReplicas: 1
+      lagThreshold: 10000
+      topics:
+        - "${output_topic_name}"
+  to:
+    topics:
+      ${output_topic_name}:
+        type: output
+        partitions_count: 50
+        configs:
+          retention.ms: "-1"
+
+kafka-sink-connector:
+  config:
+    batch.size: "2000"
+    behavior.on.malformed.documents: "warn"
+    behavior.on.null.values: "delete"
+    connection.compression: "true"
+    connector.class: "io.confluent.connect.elasticsearch.ElasticsearchSinkConnector"
+    key.ignore: "false"
+    linger.ms: "5000"
+    max.buffered.records: "20000"
+    read.timeout.ms: "120000"
+    tasks.max: "1"

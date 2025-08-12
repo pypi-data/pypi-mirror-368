@@ -1,0 +1,79 @@
+- type: streams-app
+  name: app1
+  prefix: resources-no-input-topic-pipeline-
+  from:
+    topics:
+      .*:
+        type: pattern
+    components: {}
+  to:
+    topics:
+      example-output:
+        type: output
+        configs: {}
+      resources-no-input-topic-pipeline-app1-error:
+        type: error
+        value_schema: com.bakdata.kafka.DeadLetter
+        partitions_count: 1
+        configs:
+          cleanup.policy: compact,delete
+    models: {}
+  namespace: example-namespace
+  values:
+    image: bakdata-demo-streams-app
+    kafka:
+      bootstrapServers: http://k8kafka-cp-kafka-headless.kpops.svc.cluster.local:9092
+      schemaRegistryUrl: http://localhost:8081/
+      outputTopic: example-output
+      inputPattern: .*
+      errorTopic: resources-no-input-topic-pipeline-app1-error
+      config:
+        large.message.id.generator: com.bakdata.kafka.MurmurHashIdGenerator
+    resources:
+      requests:
+        memory: 2G
+      limits:
+        memory: 2G
+    commandLine:
+      CONVERT_XML: true
+    statefulSet: false
+  version: 3.6.1
+  helm_release_name: resources-no-input-topic-pipeline-app1
+  helm_name_override: resources-no-input-topic-pipeline-app1
+- type: streams-app
+  name: app2
+  prefix: resources-no-input-topic-pipeline-
+  to:
+    topics:
+      example-output-extra:
+        configs: {}
+        label: extra
+      test-output-extra:
+        configs: {}
+        label: test-output
+      resources-no-input-topic-pipeline-app2-error:
+        type: error
+        value_schema: com.bakdata.kafka.DeadLetter
+        partitions_count: 1
+        configs:
+          cleanup.policy: compact,delete
+    models: {}
+  namespace: example-namespace
+  values:
+    image: bakdata-demo-streams-app
+    kafka:
+      bootstrapServers: http://k8kafka-cp-kafka-headless.kpops.svc.cluster.local:9092
+      schemaRegistryUrl: http://localhost:8081/
+      labeledOutputTopics:
+        extra: example-output-extra
+        test-output: test-output-extra
+      inputTopics:
+        - example-output
+      errorTopic: resources-no-input-topic-pipeline-app2-error
+      config:
+        large.message.id.generator: com.bakdata.kafka.MurmurHashIdGenerator
+    statefulSet: false
+  version: 3.6.1
+  helm_release_name: resources-no-input-topic-pipeline-app2
+  helm_name_override: resources-no-input-topic-pipeline-app2
+
