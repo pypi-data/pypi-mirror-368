@@ -1,0 +1,206 @@
+# src\file_conversor\backend\pillow_backend.py
+
+"""
+This module provides functionalities for handling image files using ``pillow`` backend.
+"""
+
+from pathlib import Path
+
+from PIL import Image, ImageOps
+from PIL.ExifTags import TAGS
+
+# user-provided imports
+from file_conversor.config import Log
+from file_conversor.config.locale import get_translation
+from file_conversor.backend.abstract_backend import AbstractBackend
+from file_conversor.utils.file import File
+
+LOG = Log.get_instance()
+
+_ = get_translation()
+logger = LOG.getLogger(__name__)
+
+
+class PillowBackend(AbstractBackend):
+    """
+    A class that provides an interface for handling image files using ``pillow``.
+    """
+
+    Exif = Image.Exif
+    Exif_TAGS = TAGS
+
+    SUPPORTED_IN_FORMATS = {
+        "bmp": {},
+        "gif": {},
+        "ico": {},
+        "jfif": {},
+        "jpg": {},
+        "jpeg": {},
+        "jpe": {},
+        "png": {},
+        "psd": {},
+        "tif": {},
+        "tiff": {},
+        "webp": {},
+    }
+    SUPPORTED_OUT_FORMATS = {
+        "bmp": {"format": "BMP"},
+        "gif": {"format": "GIF"},
+        "ico": {"format": "ICO"},
+        "jpg": {"format": "JPEG"},
+        "apng": {"format": "PNG"},
+        "png": {"format": "PNG"},
+        "pdf": {"format": "PDF"},
+        "tif": {"format": "TIFF"},
+        "webp": {"format": "WEBP"},
+    }
+
+    def __init__(self, verbose: bool = False,):
+        """
+        Initialize the ``pillow`` backend
+
+        :param verbose: Verbose logging. Defaults to False.      
+        """
+        super().__init__()
+        self._verbose = verbose
+
+    def info(self, input_file: str,) -> Exif:
+        """
+        Get EXIF info from input file.
+
+        :param input_file: Input image file.
+
+        :raises FileNotFoundError: if input file not found.
+        """
+        self.check_file_exists(input_file)
+
+        img = Image.open(input_file)
+        return img.getexif()
+
+    def convert(
+        self,
+        output_file: str,
+        input_file: str,
+        quality: int = 90,
+        optimize: bool = True,
+    ):
+        """
+        Convert input file into an output.
+
+        :param output_file: Output image file.
+        :param input_file: Input image file.
+        :param quality: Final quality of image file (1-100). If 100, activates lossless compression. Valid only for JPG, WEBP out formats. Defaults to 90.
+        :param optimize: Improve file size, without losing quality (lossless compression). Valid only for JPG, PNG, WEBP out formats Defaults to True.
+
+        :raises ValueError: invalid quality value. Valid values are 1-100.
+        :raises FileNotFoundError: if input file not found.
+        """
+        self.check_file_exists(input_file)
+        if quality < 1 or quality > 100:
+            raise ValueError(f"{_('Invalid quality level. Valid values are')} 1-100.")
+
+        out_file = File(output_file)
+        format = self.SUPPORTED_OUT_FORMATS[out_file.get_extension()]["format"]
+
+        img = Image.open(input_file)
+        self._save_fix_errors(
+            img,
+            output_file,
+            format=format,
+            quality=quality,
+            optimize=optimize,
+            lossless=True if quality == 100 else False,  # valid only for WEBP
+        )
+
+    def rotate(self, output_file: str, input_file: str, rotate: int):
+        """
+        Rotate input file by X degrees.
+
+        :param output_file: Output image file.
+        :param input_file: Input image file.
+        :param rotate: Rotation degrees (0-360).
+
+        :raises FileNotFoundError: if input file not found.
+        """
+        self.check_file_exists(input_file)
+
+        out_file = File(output_file)
+        format = self.SUPPORTED_OUT_FORMATS[out_file.get_extension()]["format"]
+
+        img = Image.open(input_file)
+        img = img.rotate(rotate)
+        self._save_fix_errors(
+            img,
+            output_file,
+            format=format,
+            quality=90,
+            optimize=True,
+        )
+
+    def mirror(self, output_file: str, input_file: str, x_y: bool):
+        """
+        Mirror input file in relation X or Y axis.
+
+        :param output_file: Output image file.
+        :param input_file: Input image file.
+        :param x_y: Mirror in relation to x or y axis. True for X axis (mirror image horizontally). False for Y axis (flip image vertically).
+
+        :raises FileNotFoundError: if input file not found.
+        """
+        self.check_file_exists(input_file)
+
+        out_file = File(output_file)
+        format = self.SUPPORTED_OUT_FORMATS[out_file.get_extension()]["format"]
+
+        img = Image.open(input_file)
+        if x_y:
+            img = ImageOps.mirror(img)
+        else:
+            img = ImageOps.flip(img)
+        self._save_fix_errors(
+            img,
+            output_file,
+            format=format,
+            quality=90,
+            optimize=True,
+        )
+
+    def _save_fix_errors(self, img: Image.Image, output_file: str | Path, format: str, **params):
+        """
+        Corrects common errors in images and saves them.
+
+        :param img: Image to be corrected.
+        :param output_file: File to save img.
+        :param format: Target format to save img.
+        :param params: Additional parameters for saving the image, such as quality and optimize.
+
+        :raises Exception: if image correction fails.
+        """
+        try:
+            format = format.upper()  # ensure uppercase format
+
+            # 0. Preservar EXIF e ICC se existirem
+            if "exif" in img.info:
+                params.setdefault("exif", img.info["exif"])
+            if "icc_profile" in img.info:
+                params.setdefault("icc_profile", img.info["icc_profile"])
+
+            # 1. Transparência -> converter para RGBA
+            if img.mode == "P" and "transparency" in img.info:
+                img = img.convert("RGBA")
+
+            # 2. Converter modos incompatíveis com o formato de destino
+            if format in ("JPEG",) and img.mode not in ("RGB", "L"):
+                img = img.convert("RGB")
+            elif format in ("PNG", "WEBP") and img.mode not in ("RGB", "RGBA"):
+                img = img.convert("RGBA")
+            elif format == "TIFF" and img.mode not in ("RGB", "RGBA", "L"):
+                img = img.convert("RGB")
+            elif format == "BMP" and img.mode not in ("RGB",):
+                img = img.convert("RGB")
+        except Exception as e:
+            logger.error(f"{_('Image correction failed')}: {e}")
+            raise
+
+        # save image
+        img.save(output_file, format=format, **params)
