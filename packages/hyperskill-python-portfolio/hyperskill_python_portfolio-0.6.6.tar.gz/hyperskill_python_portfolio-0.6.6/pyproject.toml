@@ -1,0 +1,240 @@
+[project]
+name = "hyperskill-python-portfolio"
+dynamic = ["version"]
+description = """
+My journey through Hyperskill, captured in a portfolio of Python projects.
+Each solution is refactored for quality, tested with pytest, and statically checked with mypy.
+"""
+
+authors = [
+  { name = "Jegors Čemisovs", email = "jegors.cemisovs@gmail.com" },
+]
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["education", "hyperskill"]
+readme = "README.md"
+requires-python = ">=3.12"
+classifiers = [
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Development Status :: 4 - Beta",
+  "Topic :: Education",
+]
+dependencies = [
+  "requests"
+]
+
+[project.urls]
+Homepage = "https://github.com/rabestro/hyperskill-python-portfolio"
+Repository = "https://github.com/rabestro/hyperskill-python-portfolio.git"
+Issues = "https://github.com/rabestro/hyperskill-python-portfolio/issues"
+Documentation = "https://rabestro.github.io/hyperskill-python-portfolio/"
+
+[project.optional-dependencies]
+dev = [
+  "ruff",
+  "mypy",
+  "radon",
+  "pytest",
+  "types-requests",
+  "poethepoet",
+]
+docs = [
+  "mkdocs",
+  "mkdocs-material",
+  "mkdocs-gen-files",
+  "mkdocs-literate-nav",
+  "mkdocstrings-python"
+]
+
+[project.scripts]
+loancalc = "hyperskill_python_portfolio.loancalc.main:main"
+hangman = "hyperskill_python_portfolio.hangman.main:main"
+rps = "hyperskill_python_portfolio.rps.main:main"
+billsplitter = "hyperskill_python_portfolio.billsplitter.main:main"
+chatbot = "hyperskill_python_portfolio.chatbot.main:main"
+zookeeper = "hyperskill_python_portfolio.zookeeper.main:main"
+coffeemachine = "hyperskill_python_portfolio.coffee_machine.main:main"
+honestcalc = "hyperskill_python_portfolio.honest_calculator.main:main"
+cconverter = "hyperskill_python_portfolio.currency_converter.main:main"
+
+# ==============================================================================
+# Tooling Configuration
+# ==============================================================================
+
+[tool.uv]
+package = true
+index-strategy = "unsafe-best-match"
+
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+
+
+[tool.ruff]
+target-version = "py312"
+line-length = 99
+exclude = ["src/hyperskill_python_portfolio/_version.py"]
+
+[tool.ruff.lint]
+select = [
+  "S", # flake8-bandit: Catches common security issues.
+  "E", # pycodestyle: Enforces style rules (e.g., indentation, line length).
+  "F", # Pyflakes: Detects logical errors (e.g., unused imports, undefined names).
+  "I", # isort: Ensures imports are neatly sorted and organized.
+  "UP", # pyupgrade: Automatically rewrites code to use modern Python syntax.
+  "B", # flake8-bugbear: Finds likely bugs and design problems.
+  "S", # flake8-bandit (security checks)
+  "C4", # flake8-comprehensions: Pushes for more idiomatic list/dict/set comprehensions.
+  "C90", # mccabe (complexity checks)
+  "D", # pydocstyle: Enforces standards for docstring formatting.
+  "TID", # flake8-tidy-imports: Restricts relative imports to enforce a clean architecture.
+  "RUF", # Ruff-specific rules: Catches ambiguities and improves code clarity.
+  "A001", # flake8-builtins: Avoid shadowing Python built-ins
+]
+ignore = []
+
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.isort]
+# Sections for grouping imports. Order matters.
+known-first-party = ["hyperskill_python_portfolio", "tests"]
+required-imports = ["from __future__ import annotations"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+  "D100", # Missing docstring in public module
+  "D101", # Missing docstring in public class
+  "D102", # Missing docstring in public method
+  "D103", # Missing docstring in public function
+  "D104", # Missing docstring in public package
+  "S101", # Use of `assert` is standard practice in tests
+]
+
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+docstring-code-format = true
+
+
+[tool.mypy]
+mypy_path = "src"
+strict = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+addopts = "-ra -q --strict-markers"
+
+
+[tool.radon]
+exclude = ["tests", "docs"]
+cc_min = "B"
+mi_min = 70
+
+# ==============================================================================
+# Poe the Poet Task Runner Configuration
+# ==============================================================================
+[tool.poe.tasks]
+
+[tool.poe.tasks.install]
+cmd = "uv sync --all-extras"
+help = "📦 Installs all project dependencies including extras"
+
+# --- Quality & Formatting ---
+[tool.poe.tasks.format]
+cmd = "ruff format src tests"
+help = "🎨 Formats code using Ruff"
+
+[tool.poe.tasks.lint]
+cmd = "ruff check src tests"
+help = "🔍 Lints code using Ruff"
+
+[tool.poe.tasks.fix]
+cmd = "ruff check src tests --fix --show-fixes"
+help = "✨ Lints and automatically fixes issues with Ruff"
+
+[tool.poe.tasks.mypy]
+cmd = "mypy src/ --install-types"
+help = "🧐 Checks static types with mypy"
+
+# --- Testing & Code Metrics ---
+[tool.poe.tasks.test]
+cmd = "pytest"
+help = "🧪 Runs tests with pytest"
+
+[tool.poe.tasks.cc]
+cmd = "radon cc src/ --show-complexity --average --total-average"
+help = "🔬 Reports cyclomatic complexity"
+
+[tool.poe.tasks.mi]
+cmd = "radon mi --show --sort src/"
+help = "🔧 Reports maintainability index"
+
+
+# --- Build & Distribution ---
+[tool.poe.tasks.build]
+cmd = "uv build"
+help = "🏗️  Builds the wheel and sdist packages"
+
+[tool.poe.tasks.publish-test]
+shell = """
+  if [ -z "$${UV_PUBLISH_TOKEN}" ]; then
+    echo "❌ Error: UV_PUBLISH_TOKEN environment variable is not set."
+    exit 1
+  fi
+  uv publish --index testpypi
+"""
+help = "🚀 Publishes artifacts to TestPyPI"
+
+# --- Cleanup ---
+[tool.poe.tasks.clean]
+# The long string of arguments is broken out for readability.
+script = "poethepoet.scripts:rm('build', 'dist', '**/*.egg-info', '.eggs', '.pytest_cache', '.coverage', '.mypy_cache', '.ruff_cache', '**/__pycache__', '**/*.pyc', '.DS_Store')"
+help = "🧹 Removes build artifacts and cache files (cross-platform)"
+
+
+# --- Project Execution ---
+[tool.poe.tasks.run]
+cmd = "python -m hyperskill_python_portfolio.scripts.runner"
+help = "▶️  Runs an application (e.g., poe run loancalc --principal 1000)"
+
+
+# --- Aggregation & Advanced Tasks ---
+[tool.poe.tasks.quality]
+sequence = ["lint", "mypy", "cc", "mi"]
+help = "🏅 Runs all static analysis checks"
+
+[tool.poe.tasks.check]
+sequence = ["quality", "test", "build"]
+help = "✅ Runs all checks (quality, tests, build)"
+
+[tool.poe.tasks."check-platform"]
+help = "🐍 Reports the current OS platform"
+control.expr = "sys.platform"
+switch = [
+  { case = "win32", expr = "'Running on Windows ⊞'" },
+  { case = "linux", expr = "'Running on Linux 🐧'" },
+  { case = "darwin", expr = "'Running on macOS '" },
+  { expr = "f'Running on an unknown platform: {sys.platform}'" }, # Default case
+]
+
+# ==============================================================================
+# Build System Configuration
+# ==============================================================================
+
+[build-system]
+requires = ["setuptools>=80.0", "setuptools-scm>=8.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+write_to = "src/hyperskill_python_portfolio/_version.py"

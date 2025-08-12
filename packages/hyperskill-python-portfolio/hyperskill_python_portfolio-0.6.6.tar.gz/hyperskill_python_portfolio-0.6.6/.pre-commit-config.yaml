@@ -1,0 +1,57 @@
+repos:
+  # ==============================================================================
+  # Language-Agnostic Hooks (General file health)
+  # ==============================================================================
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: \.md$
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [ --allow-multiple-documents ]
+        exclude: ^mkdocs\.yml$
+      - id: check-toml
+      - id: check-added-large-files
+        args: [ --maxkb=2048 ]
+      - id: check-merge-conflict
+      - id: mixed-line-ending
+        args: [ --fix=lf ]
+
+  # ==============================================================================
+  # Security Scanning (Prevent committing secrets)
+  # ==============================================================================
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.28.0
+    hooks:
+      - id: gitleaks
+
+  # ==============================================================================
+  # Python Formatting & Linting (Standardized on Ruff)
+  # ==============================================================================
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.12.8
+    hooks:
+      - id: ruff-check
+        name: ruff-linter
+        args: [ --fix ]
+      - id: ruff-format
+        name: ruff-formatter
+
+  # =================================_=============================================
+  # Documentation & Text File Linting
+  # ==============================================================================
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.1
+    hooks:
+      - id: codespell
+        args:
+          - --ignore-words-list=nd,re,te,ths,fo # Add words to ignore if needed
+          - --skip=*.lock,*.json # Skip files that often have "misspelled" technical words
+
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: 'v1.17.1'
+    hooks:
+    -   id: mypy
+        additional_dependencies: ['pytest', 'types-requests']

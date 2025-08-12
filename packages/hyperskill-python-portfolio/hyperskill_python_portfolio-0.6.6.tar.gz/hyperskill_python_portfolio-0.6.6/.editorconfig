@@ -1,0 +1,352 @@
+# https://spec.editorconfig.org/
+# This is the top-most EditorConfig file.
+# A best practice to prevent settings from parent directories from interfering.
+root = true
+
+# Apply these rules to all files in the repository as a baseline.
+[*]
+# Sets the character set to UTF-8, the universal standard for text files.
+charset = utf-8
+
+# Enforces Unix-style line endings (LF), which prevents cross-platform issues
+# with Git.
+end_of_line = lf
+
+# A clear and consistent indentation policy. Using spaces is the most
+# compatible choice. 4 spaces is a common standard for Python.
+indent_style = space
+indent_size = 4
+tab_width = 4
+
+# Ensures files are POSIX-compliant and prevents issues with some command-line tools.
+insert_final_newline = true
+
+# Keeps the codebase clean and avoids noise in diffs.
+trim_trailing_whitespace = true
+
+# Good for team consistency. Specifies the language for the IDE's spell checker.
+spelling_language = en-US
+
+# Sets a project-wide line length.
+max_line_length = 99
+
+
+# --- JetBrains IDE Behavior ---------------------------------------------------
+# These settings fine-tune the editor's behavior for a better user experience.
+
+# Draws a vertical line at the `max_line_length` column. This provides a
+# non-intrusive visual guide to help developers adhere to the line length limit.
+ij_visual_guides = 99
+
+# Prevents the editor from automatically wrapping lines as you type.
+# Auto-wrapping during typing can be disruptive. It's better to wrap manually
+# or on save, which is handled by other settings.
+ij_wrap_on_typing = false
+
+
+# --- JetBrains Formatter Control ----------------------------------------------
+# These properties enable special comments to disable formatting for specific
+# blocks of code, which is useful for preserving manual alignment in data
+# structures or ASCII art.
+
+# Enables the use of formatter tags (`@formatter:off` and `@formatter:on`).
+ij_formatter_tags_enabled = true
+
+# Defines the comment that disables the formatter.
+ij_formatter_off_tag = @formatter:off
+
+# Defines the comment that re-enables the formatter.
+ij_formatter_on_tag = @formatter:on
+
+
+# Override for common data and config formats to use 2-space indentation
+# and disable line length checks, as they often contain long strings.
+# This is a very thoughtful override.
+[*.{json,yml,yaml,xml,toml}]
+indent_size = 2
+max_line_length = unset
+
+
+# Specific rules for Makefiles.
+[Makefile]
+# This is essential. Makefiles strictly require tab characters for indentation.
+# Including this prevents very common and frustrating errors.
+indent_style = tab
+max_line_length = unset
+
+
+# Rules for lock files.
+# These files are machine-generated and their formatting should not be changed.
+# We unset most rules to prevent accidental corruption by the editor.
+[{poetry.lock,uv.lock}]
+max_line_length = unset
+trim_trailing_whitespace = unset
+indent_style = unset
+indent_size = unset
+
+
+# A smart exception for the LICENSE file.
+[LICENSE]
+# The formatting of a LICENSE file is often fixed and should not be altered.
+# Unsetting these rules prevents the editor from modifying it.
+indent_size = unset
+indent_style = unset
+
+
+################################################################################
+# Python-Specific Settings for JetBrains IDEs (PyCharm, IntelliJ)
+################################################################################
+#
+# This section configures the IDE's code formatter to align with the project's
+# primary linting and formatting tools (`ruff`, which includes `pycodestyle`,
+# `isort`, and `flake8` rules).
+#
+# Adhering to these settings ensures that code formatted automatically by the
+# IDE will pass the project's pre-commit hooks and CI checks, creating a
+# smooth and consistent development experience for everyone on the team.
+#
+[*.{py,pyi,pyw}]
+
+# --- Import Style -------------------------------------------------------------
+# Configures the "Optimize Imports" feature to match `ruff`'s `isort` rules.
+# This ensures imports are always sorted and grouped consistently.
+ij_python_optimize_imports_join_from_imports_with_same_source = true
+ij_python_optimize_imports_case_insensitive_order = true
+ij_python_optimize_imports_sort_imports = true
+ij_python_optimize_imports_sort_by_type_first = true
+ij_python_optimize_imports_always_split_from_imports = false
+ij_python_optimize_imports_sort_names_in_from_imports = false
+ij_python_align_multiline_imports = false
+
+
+# --- Wrapping and Trailing Commas ---------------------------------------------
+# These rules govern how lines are wrapped and how trailing commas are used,
+# which is crucial for readability and clean version control history.
+
+# CRITICAL: This MUST be true to respect the project-wide `max_line_length`.
+# It tells the IDE to automatically wrap lines that are too long.
+ij_python_wrap_long_lines = true
+
+# Use trailing commas for multiline statements. This is a best practice that
+# leads to cleaner Git diffs. When adding a new item, only one line is
+# changed, instead of two.
+ij_python_use_trailing_comma_in_parameter_list = true
+ij_python_use_trailing_comma_in_arguments_list = true
+ij_python_use_trailing_comma_in_collections = true
+
+# Default wrapping style for multiline statements. "Normal" means wrap if
+# the line exceeds `max_line_length`, which is the desired behavior.
+ij_python_from_import_wrapping = normal
+ij_python_from_import_parentheses_force_if_multiline = true
+ij_python_call_parameters_wrap = normal
+ij_python_method_parameters_wrap = normal
+ij_python_dict_wrapping = normal
+ij_python_list_wrapping = normal
+ij_python_tuple_wrapping = normal
+ij_python_set_wrapping = normal
+
+
+# --- Spacing (PEP 8 Compliance) -----------------------------------------------
+# These settings enforce PEP 8 spacing rules around operators, commas, colons,
+# and brackets, preventing common `pycodestyle` errors (E2xx).
+
+# Enforce spaces around operators: `a + b`, not `a+b`.
+ij_python_spaces_around_additive_operators = true
+ij_python_spaces_around_multiplicative_operators = true
+ij_python_spaces_around_bitwise_operators = true
+ij_python_spaces_around_equality_operators = true
+ij_python_spaces_around_relational_operators = true
+ij_python_spaces_around_shift_operators = true
+ij_python_spaces_around_assignment_operators = true
+ij_python_spaces_around_power_operator = true
+
+# CRITICAL: NO space around '=' in keyword arguments or default parameters.
+# This prevents `pycodestyle` error E251. Correct: `func(arg=1)`.
+ij_python_spaces_around_eq_in_keyword_argument = false
+ij_python_spaces_around_eq_in_named_parameter = false
+
+# Enforce spacing for commas, colons, and semicolons: `d = {'a': 1}`.
+ij_python_space_after_comma = true
+ij_python_space_before_comma = false
+ij_python_space_after_py_colon = true
+ij_python_space_before_py_colon = false
+ij_python_space_before_for_semicolon = false
+
+# Control spacing within parentheses, brackets, and braces.
+# PEP 8 style is no spaces: `my_list[0]`, not `my_list[ 0 ]`.
+ij_python_spaces_within_brackets = false
+ij_python_spaces_within_braces = false
+ij_python_spaces_within_method_parentheses = false
+ij_python_spaces_within_method_call_parentheses = false
+ij_python_space_within_empty_method_parentheses = false
+ij_python_space_within_empty_method_call_parentheses = false
+
+
+# --- Blank Lines (PEP 8 Compliance) -------------------------------------------
+# These rules enforce PEP 8 standards for vertical spacing, which is vital
+# for code readability and logical separation.
+
+# Enforce 2 blank lines between top-level functions and classes (E302, E305).
+ij_python_blank_lines_around_top_level_classes_functions = 2
+
+# Enforce 1 blank line between methods within a class (E301).
+ij_python_blank_lines_around_method = 1
+ij_python_blank_lines_around_class = 1
+
+# No extra blank lines at the start of a class body.
+ij_python_blank_lines_before_first_method = 0
+
+
+# --- Indentation and Alignment ------------------------------------------------
+# These are stylistic choices for how code is aligned when wrapped.
+
+# Sets the indent size for wrapped lines. A double indent (8) is a common
+# PEP 8 convention for a "hanging indent" to improve readability.
+ij_continuation_indent_size = 8
+
+# Standard indentation for wrapped lines.
+ij_python_use_continuation_indent_for_parameters = true
+ij_python_use_continuation_indent_for_arguments = true
+
+# Stylistic alignment of multiline statements (optional, but consistent).
+ij_python_align_multiline_parameters = true
+ij_python_align_multiline_parameters_in_calls = true
+ij_python_align_collections_and_comprehensions = true
+
+# --- IDE Behavior -------------------------------------------------------------
+# Enforces that only spaces are used for indentation, preventing mixed tabs
+# and spaces, which is critical for Python.
+ij_smart_tabs = false
+
+
+################################################################################
+# Markdown-Specific Settings (.md, .markdown)
+################################################################################
+#
+# This section defines formatting rules for Markdown files to ensure our
+# project documentation (e.g., READMEs, MkDocs pages) is consistent, readable,
+# and easy to maintain.
+#
+[{*.markdown,*.md}]
+
+# --- Core Editor Behavior -----------------------------------------------------
+# These are the most critical rules that affect how editors handle Markdown files.
+
+# CRITICAL: Disables trimming of trailing whitespace.
+# In Markdown, two trailing spaces create a hard line break (<br>).
+# Trimming whitespace would break this essential formatting feature.
+trim_trailing_whitespace = false
+
+# Prose should not be bound by the same strict line lengths as code.
+# Unsetting this allows for natural sentence flow without forcing awkward wraps.
+max_line_length = unset
+
+# --- JetBrains IDEs Specific Formatting ---------------------------------------
+# These rules fine-tune the Markdown formatter in PyCharm/IntelliJ for a
+# clean and standardized appearance across all our documents.
+
+# Enforce consistent spacing for common Markdown elements.
+ij_markdown_force_one_space_after_header_symbol = true
+ij_markdown_force_one_space_after_list_bullet = true
+ij_markdown_force_one_space_after_blockquote_symbol = true
+
+# Automatically format tables for consistent padding and alignment.
+ij_markdown_format_tables = true
+
+# Control wrapping behavior for long lines of prose.
+ij_markdown_wrap_text_if_long = true
+ij_markdown_wrap_text_inside_blockquotes = true
+ij_markdown_insert_quote_arrows_on_wrap = true
+
+# Preserve intentional line breaks within paragraphs. This is important for
+# things like poems, log snippets, or addresses.
+ij_markdown_keep_line_breaks_inside_text_blocks = true
+
+# Standardize vertical spacing (blank lines) around block elements for readability.
+ij_markdown_max_lines_around_block_elements = 1
+ij_markdown_max_lines_around_header = 1
+ij_markdown_max_lines_between_paragraphs = 1
+ij_markdown_min_lines_around_block_elements = 1
+ij_markdown_min_lines_around_header = 1
+ij_markdown_min_lines_between_paragraphs = 1
+
+# General cleanup and consistency rules.
+ij_markdown_force_one_space_between_words = true
+ij_markdown_keep_indents_on_empty_lines = false
+
+
+################################################################################
+# YAML-Specific Settings (.yml, .yaml)
+################################################################################
+#
+# This section defines detailed formatting rules for YAML files, such as the
+# project's `mkdocs.yaml`, to ensure they are consistent and readable.
+#
+[{*.yaml,*.yml}]
+
+# Ensures that values in adjacent key-value pairs are not vertically aligned.
+# This leads to cleaner version control diffs.
+ij_yaml_align_values_properties = do_not_align
+
+# Automatically adds a new sequence marker (`- `) on the next line when
+# pressing Enter within a list.
+ij_yaml_autoinsert_sequence_marker = true
+
+# Ensures nested mappings start on the line immediately after the parent key.
+ij_yaml_block_mapping_on_new_line = false
+
+# Enforces that list items are indented relative to their parent.
+ij_yaml_indent_sequence_value = true
+
+# Removes any whitespace from empty lines to keep the file clean.
+ij_yaml_keep_indents_on_empty_lines = false
+
+# Preserves intentional line breaks, which is important for multi-line strings.
+ij_yaml_keep_line_breaks = true
+
+# If true, the formatter leaves comments starting at column 1 untouched.
+ij_yaml_line_comment_at_first_column = true
+
+# Ensures sequences start on the line immediately after the parent key.
+ij_yaml_sequence_on_new_line = false
+
+# Enforces no space before the colon in a key-value pair (`key: value`).
+ij_yaml_space_before_colon = false
+
+# Adds spaces inside braces for JSON-style objects: `{ key: value }`.
+ij_yaml_spaces_within_braces = true
+
+# Adds spaces inside brackets for JSON-style arrays: `[ item1, item2 ]`.
+ij_yaml_spaces_within_brackets = true
+
+
+################################################################################
+# .editorconfig Self-Formatting Rules
+################################################################################
+#
+# This section applies formatting rules to this .editorconfig file itself,
+# ensuring that even our configuration is clean and consistently styled.
+# These rules are specific to JetBrains IDEs.
+#
+[.editorconfig]
+
+# --- Core Formatting ----------------------------------------------------------
+# Allow longer lines for this config file, as comments can be extensive.
+max_line_length = 120
+
+# This is the key spacing rule for .editorconfig files.
+# It ensures readability by adding spaces around the '=' assignment operator.
+# e.g., `key = value` instead of `key=value`.
+ij_editorconfig_spaces_around_assignment_operators = true
+
+# --- Spacing for Lists --------------------------------------------------------
+# Ensures that comma-separated values (e.g., in file globs) are easy to read.
+# e.g., `[{*.py,*.pyi}]`
+ij_editorconfig_space_after_comma = true
+ij_editorconfig_space_before_comma = false
+
+# --- Alignment ----------------------------------------------------------------
+# Disables vertical alignment of declarations.
+# `false` is often preferred to prevent large diffs when a single long key
+# is added or changed.
+ij_editorconfig_align_group_field_declarations = false
