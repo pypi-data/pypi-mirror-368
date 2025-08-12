@@ -1,0 +1,82 @@
+Metadata-Version: 2.4
+Name: backupchan-client-lib
+Version: 1.0.1
+Summary: Library for interfacing with Backup-chan.
+Author-email: Moltony <koronavirusnyj@gmail.com>
+License: BSD-3-Clause
+Project-URL: Homepage, https://github.com/Backupchan/client-lib
+Project-URL: Repository, https://github.com/Backupchan/client-lib.git
+Project-URL: Issues, https://github.com/Backupchan/client-lib/issues
+Project-URL: Changelog, https://github.com/Backupchan/client-lib/blob/main/CHANGELOG.md
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Natural Language :: English
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Topic :: System :: Archiving :: Backup
+Classifier: Topic :: Software Development :: Libraries
+Classifier: Typing :: Typed
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: requests
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: requests-mock; extra == "dev"
+Dynamic: license-file
+
+# Backup-chan client library
+
+![PyPI - License](https://img.shields.io/pypi/l/backupchan-client-lib)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/backupchan-client-lib)
+![PyPI - Version](https://img.shields.io/pypi/v/backupchan-client-lib)
+
+This is the Python library for interfacing with a Backup-chan server.
+
+## Installing
+
+```bash
+# The easy way
+pip install backupchan-client-lib
+
+# Install from source
+git clone https://github.com/Backupchan/client-lib.git backupchan-client-lib
+cd backupchan-client-lib
+pip install .
+```
+
+For instructions on setting up the server, refer to Backup-chan server's README.
+
+## Testing
+
+```
+pytest
+```
+
+## Example 
+
+```python
+from backupchan import *
+
+# Connect to a server
+api = API("http://192.168.1.43", 5000, "your api key")
+
+# Print every target
+targets = api.list_targets()
+for target in targets:
+    print(target)
+
+# Create a new target
+target_id = api.new_target(
+    "the waifu collection", # name
+    BackupType.MULTI,
+    BackupRecycleCriteria.AGE,
+    10, # recycle value
+    BackupRecycleAction.RECYCLE,
+    "/var/backups/waifu", # location
+    "wf-$I_$D", # name template
+    False, # deduplicate
+    None # alias
+)
+target = api.get_target(target_id)
+print(f"Created new target: {target}")
+```
