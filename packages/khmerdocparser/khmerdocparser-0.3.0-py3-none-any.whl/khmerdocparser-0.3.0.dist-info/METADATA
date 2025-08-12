@@ -1,0 +1,89 @@
+Metadata-Version: 2.4
+Name: khmerdocparser
+Version: 0.3.0
+Summary: A smart Python tool to extract Khmer text from PDF and image files, using OCR for scanned documents and direct extraction for native PDFs.
+Author-email: Nimol Thuon <nimol.thuon@gmail.com>
+Project-URL: Homepage, https://github.com/your_username/khmerdocparser
+Project-URL: Bug Tracker, https://github.com/your_username/khmerdocparser/issues
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Topic :: Text Processing
+Classifier: Topic :: Utilities
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: pdf2image
+Requires-Dist: pytesseract
+Requires-Dist: Pillow
+Requires-Dist: opencv-python-headless
+Requires-Dist: pdfplumber
+Requires-Dist: tqdm
+Dynamic: license-file
+
+# Khmer Document Parser v0.3.0
+
+`khmerdocparser` is a smart, all-in-one command-line tool to extract Khmer text from both **PDF and image files**.
+
+It intelligently handles PDFs by first attempting a fast, direct text extraction. If that fails (as with a scanned document), it automatically falls back to a powerful OCR engine with image preprocessing to ensure the best possible results.
+
+## Features
+
+- **Universal Support**: Handles both PDF and common image files (`.png`, `.jpg`, etc.).
+- **Smart PDF Parsing**: Uses `pdfplumber` for native PDFs and falls back to Tesseract OCR for scanned PDFs.
+- **Advanced OCR**: Applies image preprocessing (Grayscaling, Binarization, Noise Removal) for high accuracy on scanned documents.
+- **User-Friendly**: Provides progress bars and detailed logging.
+
+## Prerequisites
+
+This package requires **two** crucial external dependencies: **Poppler** and **Tesseract OCR**.
+
+### 1. Tesseract OCR Installation
+
+You must install the Tesseract engine and the Khmer (`khm`) language pack.
+
+- **Windows**: Download and run the installer from [UB-Mannheim's GitHub](https://github.com/UB-Mannheim/tesseract/wiki). **Ensure you select the Khmer language pack during installation.** Add Tesseract to your system's PATH.
+- **macOS**: `brew install tesseract tesseract-lang`
+- **Linux (Ubuntu/Debian)**: `sudo apt-get install tesseract-ocr tesseract-ocr-khm`
+
+### 2. Poppler Installation
+
+- **Windows**: Download the latest binary from [here](https://github.com/oschwartz10612/poppler-windows/releases/), extract it, and add the `bin` folder to your system's PATH.
+- **macOS**: `brew install poppler`
+- **Linux (Ubuntu/Debian)**: `sudo apt-get install poppler-utils`
+
+## Installation
+
+Once Poppler and Tesseract are installed, you can install or upgrade the package from PyPI:
+
+```bash
+pip install --upgrade khmerdocparser
+```
+
+## Usage
+
+The command is the same for any supported file type.
+
+### Extract from a PDF or Image
+
+```bash
+# Process a PDF
+khmerdocparser /path/to/your/document.pdf
+
+# Process an image
+khmerdocparser /path/to/your/scanned_image.png
+```
+
+### Save Output to a File
+
+This is the recommended way to view Khmer text correctly.
+
+```bash
+khmerdocparser my_document.pdf -o my_document_text.txt
+```
+
+### Specifying Paths Manually (if not in PATH)
+
+```bash
+khmerdocparser doc.pdf --tesseract_path "C:\Tesseract\tesseract.exe" --poppler_path "C:\Poppler\bin"
+```
