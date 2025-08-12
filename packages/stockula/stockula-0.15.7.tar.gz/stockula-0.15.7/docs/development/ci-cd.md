@@ -1,0 +1,609 @@
+# CI/CD Documentation
+
+This document describes the continuous integration and deployment setup for Stockula.
+
+## Overview
+
+Stockula uses GitHub Actions for automated testing, building, and deployment. The CI/CD pipeline consists of three main
+workflows:
+
+1. **Testing** - Automated code quality and test execution
+1. **Release Management** - Automated versioning and PyPI publishing
+1. **Docker Builds** - Multi-platform container image creation
+
+## GitHub Actions Workflows
+
+### Test Workflow (`test.yml`)
+
+**Triggers:**
+
+- Push to `main` branch
+- All pull requests
+
+**Jobs:**
+
+#### 1. Linting
+
+- **Purpose**: Ensure code quality and consistent formatting
+- **Tools**: `ruff` for linting and formatting
+- **Checks**:
+  - Code style violations
+  - Import sorting
+  - Format consistency
+- **Configuration**: Uses `pyproject.toml` for ruff settings
+- **Local Script**: `utils/lint.py` runs the same commands as CI for consistency
+
+#### 2. Unit Tests
+
+- **Purpose**: Test individual components in isolation
+- **Framework**: pytest
+- **Coverage**: Reports to Codecov with `unit` flag
+- **Location**: `tests/unit/`
+
+#### 3. Integration Tests (Currently Disabled)
+
+- **Purpose**: Test component interactions with database
+- **Database**: SQLite (will migrate to PostgreSQL)
+- **Coverage**: Reports to Codecov with `integration` flag
+- **Location**: `tests/integration/`
+- **Note**: Temporarily disabled pending test infrastructure updates
+
+### Release Please Workflow (`release.yml`)
+
+**Triggers:**
+
+- Push to `main` branch **only** (not develop)
+
+**Features:**
+
+- Monitors commits on `main` for Conventional Commits format
+- Creates/updates release PRs automatically
+- On PR merge:
+  - Creates GitHub release with version tag
+  - Tags version (e.g., `v0.15.6`)
+  - Updates CHANGELOG.md
+  - Bumps version in pyproject.toml and __init__.py
+  - Publishes to PyPI
+
+**Important Notes:**
+
+- **Only runs on main branch** - develop branch does NOT trigger releases
+- Version bumps happen only when merging to main
+- Docker images are built separately on both main and develop branches
+
+**Configuration:**
+
+- `release-please-config.json`: Workflow configuration
+- `.release-please-manifest.json`: Current version tracking
+- `include-component-in-tag: false`: Simple version tags without project prefix
+
+### Docker Build Workflow (`docker-build.yml`)
+
+**Triggers:**
+
+- Push to `main` or `develop` branches
+- Pull requests merged to `main` or `develop`
+- GitHub releases
+- Manual workflow dispatch (for testing)
+
+**Features:**
+
+- Multi-platform builds using buildx
+- Platforms: `linux/amd64`, `linux/arm64` (standard image), `linux/amd64` only (GPU image)
+- Publishes to GitHub Container Registry (ghcr.io)
+- Two image variants:
+  - **Standard CLI**: Full-featured CLI without GPU support
+  - **GPU CLI**: CUDA-enabled image with PyTorch GPU acceleration (~8-10GB optimized)
+- Automatic tagging based on branch:
+  - **Main branch**: `v<major>.<minor>.<patch>` + `latest` floating tag
+  - **Develop branch**: `<version>-dev.<short-sha>` + `develop` floating tag
+  - **Releases**: Uses release tag (e.g., `v0.15.3`)
+  - **Release candidates**: Additional `rc` floating tag
+
+**Optimizations:**
+
+- **Layer Caching**: Uses both GitHub Actions cache and registry cache
+- **BuildKit**: Latest BuildKit with performance optimizations
+- **Registry Cache**: Stores build cache in ghcr.io for persistence
+- **Optimized Dockerfile**:
+  - Cache mounts for package managers
+  - Separated dependency and source layers
+  - Compiled Python bytecode during build
+- **Reduced Context**: Comprehensive `.dockerignore` file
+
+**Performance:**
+
+- Initial build: ~30 minutes (multi-platform)
+- Subsequent builds: ~5-10 minutes (with warm cache)
+- Cache strategies:
+  - GitHub Actions cache (ephemeral, fast)
+  - Registry cache (persistent, shared across workflows)
+  - Base image caching from `:latest` tag
+
+### Docker Tagging Strategy
+
+**Main Branch (Stable Releases):**
+
+When code is pushed or PRs are merged to `main`:
+
+- **Version tag**: `v<major>.<minor>.<patch>` (e.g., `v0.15.3`)
+- **Floating tag**: `latest` - Always points to the most recent stable release
+- **GPU suffix**: `-gpu` appended for GPU-enabled images
+
+**Develop Branch (Development Builds):**
+
+When code is pushed or PRs are merged to `develop`:
+
+- **Version tag**: `<version>-dev.<short-sha>` (e.g., `0.15.3-dev.abc1234`)
+- **Floating tag**: `develop` - Always points to the most recent development build
+- **GPU suffix**: `-gpu` appended for GPU-enabled images
+
+**Examples:**
+
+```bash
+# Pull latest stable release
+docker pull ghcr.io/mkm29/stockula:latest
+docker pull ghcr.io/mkm29/stockula:v0.15.3
+
+# Pull latest development build
+docker pull ghcr.io/mkm29/stockula:develop
+docker pull ghcr.io/mkm29/stockula:0.15.3-dev.abc1234
+
+# Pull GPU-enabled images
+docker pull ghcr.io/mkm29/stockula:latest-gpu
+docker pull ghcr.io/mkm29/stockula:v0.15.3-gpu
+docker pull ghcr.io/mkm29/stockula:develop-gpu
+```
+
+**Benefits:**
+
+- **Clear separation**: Stable vs development images are clearly distinguished
+- **Traceability**: Development builds include commit SHA for exact source tracking
+- **Easy access**: Floating tags (`latest`, `develop`) for convenience
+- **Semantic versioning**: Stable releases follow standard version format
+
+## Linting Script
+
+The `scripts` module provides a `lint` command for consistent linting checks between local development and CI:
+
+### Usage
+
+```bash
+# Run the same checks as CI
+uv run lint
+```
+
+### What it does
+
+1. **Ruff Check**: Runs `uv run ruff check src tests`
+
+   - Validates code style, imports, and common issues
+   - Same scope as CI (only `src` and `tests` directories)
+
+1. **Format Check**: Runs `uv run ruff format --check src tests`
+
+   - Validates code formatting without making changes
+   - Ensures consistent style across the codebase
+
+### Output
+
+- ✅ **Success**: All checks pass (same as CI)
+
+- ❌ **Failure**: Shows specific issues and provides fix commands:
+
+  ```bash
+  🔧 To fix these issues, run:
+    uv run ruff check src tests --fix
+    uv run ruff format src tests
+  ```
+
+### Benefits
+
+- **CI Consistency**: Runs identical commands to the CI pipeline
+- **Easy Access**: Available as `uv run lint` from any directory in the project
+- **Fast Feedback**: Catch issues locally before pushing
+- **Clear Instructions**: Provides exact commands to fix issues
+- **Module Integration**: Part of the project's Python package structure
+
+## Development Workflow
+
+### 1. Local Development
+
+```bash
+# Install dependencies
+uv sync --all-extras --dev
+
+# Run tests locally
+uv run pytest
+
+# Check code style (consistent with CI)
+uv run lint
+
+# Or run individual commands
+uv run ruff check src tests
+uv run ruff format --check src tests
+
+# Fix linting issues
+uv run ruff check src tests --fix
+uv run ruff format src tests
+```
+
+### 2. Creating a Pull Request
+
+1. Create feature branch from `develop`:
+
+   ```bash
+   git checkout develop
+   git pull origin develop
+   git checkout -b feat/my-feature
+   ```
+
+1. Make changes following Conventional Commits:
+
+   ```bash
+   git commit -m "feat: add new trading strategy"
+   git commit -m "fix: correct calculation in backtest"
+   git commit -m "chore: update dependencies"
+   ```
+
+1. Push branch and create PR to `develop` branch
+
+1. CI will automatically run tests and linting
+
+1. After PR is merged to `develop`:
+
+   - Docker images are automatically built with `-dev` tags
+   - Images are available at `ghcr.io/mkm29/stockula:develop`
+
+### 3. Release Process
+
+1. **Development Phase**:
+
+   - All feature branches merge to `develop`
+   - Docker images built with `-dev` tags for testing
+   - Development images available at `ghcr.io/mkm29/stockula:develop`
+
+1. **Release Preparation**:
+
+   - Create PR from `develop` to `main` when ready for release
+   - Review all changes accumulated in `develop`
+   - Ensure all tests pass
+
+1. **Release Please Integration**:
+
+   - Release Please monitors `main` and creates release PRs
+   - Review Release PR: Check CHANGELOG.md and version bump
+
+1. **Merge Release PR**: Triggers:
+
+   - GitHub release creation
+   - PyPI package publishing
+   - Docker images with stable version tags
+   - Images tagged as `latest` and version-specific tags
+
+## Secrets and Environment Variables
+
+### Required Secrets
+
+1. **`RELEASE_PLEASE_TOKEN`**
+
+   - Personal Access Token with `repo` and `workflow` scopes
+   - Used by release-please to create PRs and releases
+
+1. **`PYPI_API_TOKEN`**
+
+   - PyPI API token for package publishing
+   - Used in release workflow
+
+1. **`CODECOV_TOKEN`**
+
+   - Required for uploading coverage reports to Codecov
+   - Get token from: <https://app.codecov.io/gh/mkm29/stockula/settings>
+   - Used in test workflow for coverage reporting
+
+### Optional Secrets
+
+1. **`POSTGRES_TEST_PASSWORD`**
+   - For future PostgreSQL integration tests
+   - Falls back to `test_password_only` if not set
+
+## Conventional Commits
+
+All commits should follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
+
+### Format
+
+```
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+### Types
+
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `style`: Code style changes (formatting, etc.)
+- `refactor`: Code refactoring
+- `perf`: Performance improvements
+- `test`: Test additions or modifications
+- `build`: Build system changes
+- `ci`: CI configuration changes
+- `chore`: Other changes (dependencies, etc.)
+
+### Examples
+
+```bash
+feat: add momentum trading strategy
+fix: correct profit calculation in backtester
+docs: update API documentation for forecasting
+chore: bump pandas to 2.2.0
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Release Please not creating releases**
+
+   - Ensure commits follow Conventional Commits format
+   - Check that `RELEASE_PLEASE_TOKEN` has correct permissions
+   - Verify no open release PRs exist
+
+1. **Docker build failures**
+
+   - Check multi-platform compatibility
+
+   - Ensure base images support all target architectures
+
+   - Review build logs for architecture-specific issues
+
+   - Clear caches if encountering stale cache issues:
+
+     ```bash
+     # Clear GitHub Actions cache (automatic on workflow update)
+     # Clear registry cache by pushing new buildcache tag
+     ```
+
+1. **Test failures in CI but not locally**
+
+   - Check for environment-specific dependencies
+   - Verify database connections and migrations
+   - Review CI environment variables
+
+### Debugging Workflows
+
+1. **Enable debug logging**:
+
+   - Add `ACTIONS_STEP_DEBUG: true` to repository secrets
+   - Provides detailed logs for troubleshooting
+
+1. **Run workflows manually**:
+
+   - Use `workflow_dispatch` trigger for testing
+   - Helpful for debugging without code changes
+
+## Best Practices
+
+1. **Keep workflows fast**:
+
+   - Use caching for dependencies (uv cache)
+   - Run tests in parallel where possible
+   - Minimize unnecessary steps
+
+1. **Fail fast**:
+
+   - Order jobs from fastest to slowest
+   - Run linting before tests
+   - Use job dependencies wisely
+
+1. **Security**:
+
+   - Use least-privilege principle for tokens
+   - Rotate secrets regularly
+   - Avoid hardcoding sensitive data
+
+1. **Monitoring**:
+
+   - Set up notifications for workflow failures
+   - Monitor workflow run times
+   - Track test coverage trends
+
+## Local CI Testing with Act
+
+[Act](https://github.com/nektos/act) allows you to run GitHub Actions workflows locally using Docker. This is invaluable
+for debugging CI failures without pushing commits to GitHub.
+
+### Installation
+
+```bash
+# macOS (via Homebrew)
+brew install act
+
+# Or via GitHub CLI
+gh extension install https://github.com/nektos/gh-act
+
+# Alternative: Download binary from releases
+# https://github.com/nektos/act/releases
+```
+
+### Basic Usage
+
+```bash
+# Run all workflows (like a push to main)
+act
+
+# Run a specific workflow
+act -W .github/workflows/test.yml
+
+# Run a specific job within a workflow
+act -W .github/workflows/test.yml -j unit-tests
+
+# Simulate different events
+act pull_request          # PR events
+act push                 # Push events
+act workflow_dispatch    # Manual triggers
+```
+
+### Running Stockula CI Locally
+
+#### 1. Test Workflow
+
+```bash
+# Run the entire test workflow
+act -W .github/workflows/test.yml
+
+# Run only linting (fastest feedback)
+act -W .github/workflows/test.yml -j lint
+
+# Run only unit tests
+act -W .github/workflows/test.yml -j unit-tests
+
+# Run with specific Python version matrix
+act -W .github/workflows/test.yml -j unit-tests --matrix python-version:3.13
+```
+
+#### 2. Debug Database Issues
+
+When debugging the database table creation race conditions we experienced:
+
+```bash
+# Run unit tests with verbose output
+act -W .github/workflows/test.yml -j unit-tests --verbose
+
+# Override the test command to add debugging flags
+act -W .github/workflows/test.yml -j unit-tests \
+  -s PYTEST_ADDOPTS="-v -s --tb=long --no-cov -x"
+```
+
+#### 3. Environment Variables and Secrets
+
+```bash
+# Use a .secrets file for sensitive data
+echo "CODECOV_TOKEN=fake_token_for_testing" > .secrets
+act -W .github/workflows/test.yml --secret-file .secrets
+
+# Set environment variables inline
+act -W .github/workflows/test.yml \
+  --env STOCKULA_DEBUG=true \
+  --env PYTEST_CURRENT_TEST=true
+```
+
+### Configuration
+
+Create `.actrc` in your project root for consistent settings:
+
+```bash
+# .actrc
+--container-architecture linux/amd64
+--artifact-server-path /tmp/artifacts
+--env-file .env.act
+--secret-file .secrets
+```
+
+### Useful Act Options
+
+```bash
+# Use specific runner image (matches GitHub's exactly)
+act --pull=false --runner-image catthehacker/ubuntu:act-latest
+
+# Bind mount source code (faster than copying)
+act --bind
+
+# Keep containers running for debugging
+act --reuse
+
+# Dry run to see what would execute
+act --dry-run
+
+# List available workflows and jobs
+act --list
+
+# Debug a specific failing step
+act -W .github/workflows/test.yml -j unit-tests \
+  --verbose \
+  --env ACTIONS_STEP_DEBUG=true
+```
+
+### Debugging Database Race Conditions
+
+The specific database table creation errors we encountered can be debugged locally:
+
+```bash
+# 1. First, identify the issue
+act -W .github/workflows/test.yml -j unit-tests --dry-run
+
+# 2. Run with database debugging
+act -W .github/workflows/test.yml -j unit-tests \
+  --env STOCKULA_DEBUG=true \
+  --env PYTEST_CURRENT_TEST=true \
+  -s PYTEST_ADDOPTS="-v -s --tb=short -x"
+
+# 3. Test parallel execution specifically
+act -W .github/workflows/test.yml -j unit-tests \
+  -s PYTEST_ADDOPTS="-n auto --tb=short -v"
+
+# 4. Debug with sequential execution to isolate race conditions
+act -W .github/workflows/test.yml -j unit-tests \
+  -s PYTEST_ADDOPTS="-n 0 --tb=long -v"
+```
+
+### Limitations of Act
+
+1. **Performance**: Slower than GitHub Actions due to local Docker overhead
+1. **Environment Differences**: Some system-specific behaviors may differ
+1. **Services**: External services (databases, caches) need manual setup
+1. **Secrets**: Real secrets should never be used in local testing
+1. **Matrix Jobs**: Limited support for complex matrix strategies
+
+### Best Practices
+
+1. **Start Small**: Test individual jobs before running entire workflows
+1. **Use .actrc**: Configure consistent settings for your project
+1. **Mock Secrets**: Never use real API tokens or credentials
+1. **Fast Iteration**: Use `--reuse` flag to keep containers running
+1. **Debug Incrementally**: Add `--verbose` and environment variables as needed
+1. **Match Versions**: Ensure local Python/Node versions match CI
+
+### Integration with Development Workflow
+
+```bash
+# Before pushing changes
+act -W .github/workflows/test.yml -j lint    # Fast feedback
+act -W .github/workflows/test.yml -j unit-tests  # Comprehensive testing
+
+# Debug failing tests
+act -W .github/workflows/test.yml -j unit-tests \
+  --verbose \
+  --env ACTIONS_STEP_DEBUG=true \
+  -s PYTEST_ADDOPTS="-k test_specific_failing_test -v -s"
+
+# Test release workflow (without actually releasing)
+act -W .github/workflows/release-please.yml --dry-run
+```
+
+Act has been instrumental in identifying and fixing the database isolation issues we encountered, allowing us to
+reproduce the exact conditions that caused parallel test failures in GitHub Actions.
+
+## Future Improvements
+
+1. **PostgreSQL Migration**
+
+   - Enable integration tests with PostgreSQL
+   - Add database migration testing
+   - Performance benchmarking
+
+1. **Advanced Testing**
+
+   - Add performance regression tests
+   - Implement visual regression for charts
+   - Add security scanning (SAST/DAST)
+
+1. **Deployment Automation**
+
+   - Add staging environment deployment
+   - Implement blue-green deployments
+   - Add automated rollback capabilities
