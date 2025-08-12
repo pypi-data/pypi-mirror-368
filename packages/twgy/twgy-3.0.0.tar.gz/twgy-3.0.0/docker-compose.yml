@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  twgy-v3:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: twgy-v3
+    volumes:
+      - ./data:/app/data
+      - ./output:/app/output
+      - ./logs:/app/logs
+    environment:
+      - TWGY_LOG_LEVEL=INFO
+      - TWGY_DEVICE=cpu
+      - TWGY_CACHE_SIZE=10000
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-m", "src.cli", "system-info"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: API service (when implemented)
+  twgy-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: twgy-api
+    command: ["python", "-m", "src.api.app"]
+    volumes:
+      - ./data:/app/data
+      - ./output:/app/output
+      - ./logs:/app/logs
+    environment:
+      - TWGY_LOG_LEVEL=INFO
+      - TWGY_DEVICE=cpu
+      - TWGY_API_HOST=0.0.0.0
+      - TWGY_API_PORT=8000
+    ports:
+      - "8001:8000"
+    restart: unless-stopped
+    depends_on:
+      - twgy-v3
+    profiles:
+      - api
+
+  # Optional: Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: twgy-nginx
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+    depends_on:
+      - twgy-api
+    restart: unless-stopped
+    profiles:
+      - production
+
+volumes:
+  twgy_data:
+  twgy_logs:
+  twgy_output:
