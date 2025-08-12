@@ -1,0 +1,78 @@
+[project]
+name="langchain-linkup"
+version="0.1.7"
+description = "A Langchain integration for the Linkup API"
+readme = "README.md"
+keywords = ["linkup", "api", "langchain", "integration", "search", "retriever"]
+license = "MIT"
+requires-python = ">=3.9,<4.0"
+authors = [
+  { name = "LINKUP TECHNOLOGIES", email = "contact@linkup.so" }
+]
+classifiers = [
+  "Intended Audience :: Developers",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+]
+
+dependencies = [
+  "langchain-core",
+  "linkup-sdk>=0.2.8",
+]
+
+[dependency-groups]
+dev = [
+  "langchain-openai",
+  "langchain-tests==0.3.4",
+  "langgraph",
+  "load-dotenv",
+  "mypy",
+  "pre-commit",
+  "pytest",
+  "pytest-asyncio",
+  "pytest-cov",
+  "pytest-mock",
+  "pytest-socket",
+  "setuptools",
+  "types-setuptools"
+]
+
+[project.urls]
+Homepage = "https://github.com/LinkupPlatform/langchain-linkup"
+Documentation = "https://github.com/LinkupPlatform/langchain-linkup#readme"
+Source = "https://github.com/LinkupPlatform/langchain-linkup"
+Tracker = "https://github.com/LinkupPlatform/langchain-linkup/issues"
+
+[tool.mypy]
+exclude = ['^tests/']
+strict = true
+
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"
+asyncio_mode = "auto" # Prevent some async tests in langchain-tests to be skipped
+
+[tool.coverage.report]
+exclude_also = ["raise ValueError", "raise TypeError"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = [
+  "E", # pycodestyle
+  "F", # pyflakes
+  "I", # isort
+  "S", # flake8-bandit
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff.lint.extend-per-file-ignores]
+"tests/**/test_*.py" = ["S101"] # Use of assert detected
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/langchain_linkup"]
