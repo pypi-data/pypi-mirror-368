@@ -1,0 +1,80 @@
+name: Test
+
+on: [push, pull_request]
+
+jobs:
+  pytest:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ '3.9', '3.10', '3.11', '3.12' ] # , '3.13'
+        dep-versions: [ '' ]  # 'numpy1'
+        exclude:
+          - python-version: '3.12'
+            dep-versions: 'numpy1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          pip install -r requirements/tests-requirements-py${{ matrix.python-version }}.txt
+          if [[ -n "${{ matrix.dep-versions }}" ]]; then
+            pip install -r requirements/tests-requirements-var-${{ matrix.dep-versions }}.txt
+          fi
+          pip install -e .
+      - name: Pytest
+        run: |
+          cd tests
+          pytest -v -W error::RuntimeWarning --cov=xplt --cov-report=xml --cov-report=term-missing
+
+  docs:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: 'requirements/.python-version'
+      - name: Install dependencies
+        run: |
+          pip install -r requirements/docs-requirements.txt
+          pip install -e .
+      - name: Sphinx build
+        run: |
+          sphinx-build docs _build/html
+
+  pre-commit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: 'requirements/.python-version'
+      - uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: --all-files --hook-stage=manual
+
+#  versioning:
+#    if: ${{ github.ref_type == 'branch' && github.ref_name != 'main'}}
+#    runs-on: ubuntu-24.04
+#    steps:
+#      - uses: actions/checkout@v4
+#        with:
+#          fetch-depth: 0
+#      - uses: actions/setup-python@v5
+#        with:
+#          python-version-file: 'requirements/.python-version'
+#      - run: |
+#          # Determine version
+#          pip install -e .
+#          VERSION=$(python3 -c "from xplt import __version__;print('v' + __version__)")
+#          echo "Xplt version: $VERSION"
+#          # Ensure it is unique
+#          TAG=$(git tag -l $VERSION)
+#          echo "Matching git tag: $TAG"
+#          if [[ $TAG ]]; then
+#            echo "Version is not unique. Please update it in 'xplt/__init__.py'"
+#            exit 1
+#          fi
