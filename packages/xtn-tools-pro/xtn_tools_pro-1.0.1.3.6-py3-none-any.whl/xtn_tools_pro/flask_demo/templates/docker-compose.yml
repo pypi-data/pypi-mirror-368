@@ -1,0 +1,20 @@
+version: '3'
+services:
+  python-app:
+    container_name: {{ project_name }}
+    build:
+      context: .  # 使用当前目录作为构建上下文
+      dockerfile: Dockerfile  # 指定Dockerfile路径
+    volumes:
+      - /home/{{ project_name }}:/app  # 将本地目录挂载到容器内
+    ports:
+      - "10089:10089"  # 映射Python应用程序端口到主机上
+      - "5000:5000"  # 映射Python应用程序端口到主机上
+    networks:
+      - 1panel-network  # 指定连接到现有的网络
+    environment:
+      - TZ=Asia/Shanghai  # 设置容器的时区为上海时间
+    restart: always  # 设置失败重启策略
+networks:
+  1panel-network:
+    external: true  # 声明连接到外部网络
