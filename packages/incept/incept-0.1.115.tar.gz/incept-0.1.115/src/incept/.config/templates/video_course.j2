@@ -1,0 +1,29 @@
+{# ~/.incept/templates/video_course.j2 #}
+{
+  "folder": "{{ numeric_prefix }}_{{ course_slug }}",
+  "files": [
+    {
+      "file": "tvshow.nfo",
+      "template_content": {{ (
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?>\n"
+        "<tvshow>\n"
+        "  <title>" ~ course_title ~ "</title>\n"
+        "  <plot>" ~ description ~ "</plot>\n"
+        "  <genre>Education</genre>\n"
+        "  <studio>" ~ (institute|join(', ') if institute else 'Unknown') ~ "</studio>\n"
+        "  <year>" ~ year|string ~ "</year>\n"
+        "</tvshow>\n"
+      ) | tojson }}
+    },
+    { "file": "poster.jpg" },
+    { "file": "fanart.jpg" },
+    { "file": "background.jpg" },
+    { "file": "logo.png" },
+    { "file": "thumb.jpg" }
+  ],
+  "subfolders": [
+{% for chapter in chapters %}
+    {{ chapter | tojson }}{% if not loop.last %},{% endif %}
+{% endfor %}
+  ]
+}
