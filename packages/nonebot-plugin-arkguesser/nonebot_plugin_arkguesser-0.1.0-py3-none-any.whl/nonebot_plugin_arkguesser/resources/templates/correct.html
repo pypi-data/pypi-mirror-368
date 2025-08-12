@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        /* 基础布局样式 */
+        body {
+            margin: 0;
+            padding: 4px;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            width: {{ width }}px;
+            height: {{ height }}px;
+            box-sizing: border-box;
+        }
+        
+        .game-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            background-color: #ffffff;
+            border-radius: 4px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        /* 图片区域样式 */
+        .image-section {
+            flex: 0 0 180px;
+            height: 360px;
+            background-color: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            position: relative;
+            padding: 0;
+            overflow: hidden;
+        }
+        
+        .operator-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: left center;
+            border-radius: 0;
+        }
+        
+        /* 信息区域样式 */
+        .info-section {
+            flex: 1;
+            padding: 4px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+            background-color: #fafafa;
+        }
+        
+        /* 标题样式 */
+        .answer-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 4px;
+            text-align: center;
+            padding: 4px 6px;
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            border-radius: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        /* 统计表格样式 */
+        .stats-table {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1px 2px;
+            overflow-y: auto;
+            max-height: calc(100% - 60px);
+            align-items: start;
+        }
+        
+        .stat-row {
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(76, 175, 80, 0.05) 100%);
+            border: 1px solid rgba(76, 175, 80, 0.3);
+            display: flex;
+            padding: 2px 3px;
+            border-radius: 2px;
+            min-height: 28px;
+            align-items: center;
+        }
+        
+        .stat-label {
+            flex: 0 0 50px;
+            font-weight: bold;
+            color: #2e7d32;
+            font-size: 18px;
+            white-space: nowrap;
+        }
+        
+        .stat-value {
+            flex: 1;
+            text-align: right;
+            color: #1b5e20;
+            font-weight: 500;
+            font-size: 18px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            line-height: 1.3;
+        }
+        
+        /* 星级样式 */
+        .star {
+            color: #ffc107;
+            text-shadow: 0 0 2px rgba(0,0,0,0.3);
+            font-size: 19px;
+        }
+        
+        /* 势力分行样式 */
+        .faction-line {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 2px;
+            justify-content: flex-end;
+            text-align: right;
+        }
+        
+        .parent-faction, .sub-faction {
+            color: #1b5e20;
+            font-size: 16px;
+            line-height: 1.2;
+            word-break: break-all;
+            max-width: 100%;
+        }
+        
+        /* 当势力名称较长时，自动调整字体大小 */
+        .faction-line.short-text .parent-faction,
+        .faction-line.short-text .sub-faction {
+            font-size: 16px;
+        }
+        
+        .faction-line.long-text .parent-faction,
+        .faction-line.long-text .sub-faction {
+            font-size: 14px;
+        }
+        
+        .faction-line.very-long-text .parent-faction,
+        .faction-line.very-long-text .sub-faction {
+            font-size: 12px;
+        }
+        
+        /* 种族和出身地字体缩放样式 */
+        .origin-value, .race-value {
+            color: #1b5e20;
+            font-size: 16px;
+            line-height: 1.2;
+            word-break: break-all;
+            max-width: 100%;
+            text-align: right;
+        }
+        
+        /* 当种族或出身地名称较长时，自动调整字体大小 */
+        .origin-value.long-text,
+        .race-value.long-text {
+            font-size: 14px;
+        }
+        
+        .origin-value.very-long-text,
+        .race-value.very-long-text {
+            font-size: 12px;
+        }
+        
+        /* 子职业字体缩放样式 */
+        .subProfession-value {
+            color: #1b5e20;
+            font-size: 18px;
+            line-height: 1.2;
+            word-break: break-all;
+            max-width: 100%;
+            text-align: right;
+            transition: font-size 0.2s ease;
+        }
+        
+        /* 当子职业名称较长时，自动调整字体大小 */
+        .subProfession-value.short-text {
+            font-size: 16px;
+        }
+        
+        .subProfession-value.long-text {
+            font-size: 14px;
+        }
+        
+        .subProfession-value.very-long-text {
+            font-size: 12px;
+        }
+        
+        /* 子职业提示内容缩放样式 */
+        .subProfession-hint {
+            color: #1b5e20;
+            font-size: 16px;
+            line-height: 1.2;
+            word-break: break-all;
+            max-width: 100%;
+            text-align: right;
+            transition: font-size 0.2s ease;
+        }
+        
+        /* 当子职业提示内容较长时，自动调整字体大小 */
+        .subProfession-hint.long-text {
+            font-size: 14px;
+        }
+        
+        .subProfession-hint.very-long-text {
+            font-size: 12px;
+        }
+        
+        .separator {
+            margin: 0 2px;
+            color: #666;
+        }
+        
+        /* 标签样式 */
+        .tag {
+            display: inline-block;
+            padding: 2px 4px;
+            margin: 1px;
+            background-color: #4caf50; /* 答案图中标签底色为绿色 */
+            color: white;
+            border-radius: 3px;
+            font-size: 16px;
+            white-space: nowrap;
+        }
+        
+        /* 标签行跨列样式 */
+        .stat-row.tags-row {
+            grid-column: 1 / -1;
+        }
+        
+        /* 标签容器样式 */
+        .tags-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+            justify-content: flex-end;
+        }
+        
+        /* 标签行整体底色样式 */
+        .tags-exact_match {
+            background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c8 100%);
+            border-color: #4caf50;
+            color: #2e7d32;
+        }
+        
+        .tags-partial_match {
+            background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+            border-color: #ff9800;
+            color: #e65100;
+        }
+        
+        .tags-no_match {
+            background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+            border-color: #f44336;
+            color: #c62828;
+        }
+        
+        /* 单个标签匹配状态样式 */
+        .tag-matched {
+            background-color: #4caf50; /* 正确时绿色高亮 */
+            color: white;
+            border: 1px solid #2e7d32;
+        }
+        
+        /* 成功徽章 */
+        .success-badge {
+            position: absolute;
+            top: 3px;
+            right: 3px;
+            background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+            color: white;
+            padding: 3px 6px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 14px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <!-- 左侧图片区域 -->
+        <div class="image-section">
+            <img src="{{ illustration }}" alt="{{ name }}" class="operator-image">
+            <div class="success-badge">正确答案！</div>
+        </div>
+        
+        <!-- 右侧信息区域 -->
+        <div class="info-section">
+            <div class="answer-title">
+                {{ name }}
+            </div>
+            
+            <div class="stats-table">
+                <!-- 第一列 -->
+                <div class="stat-row">
+                    <div class="stat-label">职业</div>
+                    <div class="stat-value">{{ profession }}</div>
+                </div>
+                
+                <div class="stat-row">
+                    <div class="stat-label">子职业</div>
+                    <div class="stat-value">
+                        {% set subProfession_class = 'very-long-text' if subProfession|length > 12 else 'long-text' if subProfession|length > 6 else 'short-text' if subProfession|length > 2 else '' %}
+                        <span class="subProfession-value {{ subProfession_class }}">{{ subProfession }}</span>
+                    </div>
+                </div>
+                
+                <div class="stat-row">
+                    <div class="stat-label">星级</div>
+                    <div class="stat-value">{{ rarity }}星</div>
+                </div>
+                
+                <div class="stat-row">
+                    <div class="stat-label">出身地</div>
+                    <div class="stat-value">
+                        {% set origin_class = 'very-long-text' if origin|length > 12 else 'long-text' if origin|length > 8 else '' %}
+                        <span class="origin-value {{ origin_class }}">{{ origin }}</span>
+                    </div>
+                </div>
+                
+                <div class="stat-row">
+                    <div class="stat-label">种族</div>
+                    <div class="stat-value">
+                        {% set race_class = 'very-long-text' if race|length > 12 else 'long-text' if race|length > 8 else '' %}
+                        <span class="race-value {{ race_class }}">{{ race }}</span>
+                    </div>
+                </div>
+                
+                <!-- 第二列 -->
+                <div class="stat-row">
+                    <div class="stat-label">性别</div>
+                    <div class="stat-value">{{ gender }}</div>
+                </div>
+                
+                <div class="stat-row">
+                    <div class="stat-label">位置</div>
+                    <div class="stat-value">{{ position }}</div>
+                </div>
+                
+                <div class="stat-row">
+                    <div class="stat-label">势力</div>
+                    <div class="stat-value">
+                        {% if parent_faction %}
+                            {% set total_length = (parent_faction|length + faction|length) %}
+                            {% set faction_class = 'very-long-text' if total_length > 12 else 'long-text' if total_length > 6 else 'short-text' if total_length > 2 else '' %}
+                            <div class="faction-line {{ faction_class }}">
+                                <span class="parent-faction">{{ parent_faction }}</span>
+                                <span class="separator">></span>
+                                <span class="sub-faction">{{ faction }}</span>
+                            </div>
+                        {% else %}
+                            {% set faction_class = 'very-long-text' if faction|length > 12 else 'long-text' if faction|length > 6 else 'short-text' if faction|length > 2 else '' %}
+                            <div class="faction-line {{ faction_class }}">
+                                <span class="sub-faction">{{ faction }}</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                {% if tags %}
+                <div class="stat-row tags-row">
+                    <div class="stat-label">标签</div>
+                    <div class="stat-value">
+                        <div class="tags-container">
+                            {% for tag in tags %}
+                                <span class="tag">{{ tag }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- 空位填充，保持布局平衡 -->
+                {% if not tags %}
+                <div></div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>
