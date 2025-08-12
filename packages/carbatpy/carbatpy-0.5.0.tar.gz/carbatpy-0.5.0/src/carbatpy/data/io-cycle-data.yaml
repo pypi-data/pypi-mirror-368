@@ -1,0 +1,123 @@
+cold_storage:
+  fixed: null
+  fractions:
+  - 1.0
+  p_low: 200000.0
+  props: REFPROP
+  species: Methanol
+  temp_high: ambient
+  temp_low: 255.0
+compressor:
+  calc_type: const_eta
+  dt_superheat: 5
+  eta_s: 0.7
+  fixed: power
+  model: FlowDevice
+  power: 1000.0
+  species:
+    working_fluid:
+      in: start
+      out: condenser
+      p_in: p_low
+      p_out: p_high
+condenser:
+  area: 1
+  calc_type: const
+  dt_min: 3.0
+  fixed: m_dot_w
+  model: StaticHeatExchanger
+  overall_u: 100
+  q_dot: 1000.0
+  species:
+    hot_storage:
+      in: temp_low
+      out: temp_high
+      p_in: p_low
+      p_out: p_low
+    working_fluid:
+      in: temp_high
+      out: temp_low
+      p_in: p_high
+      p_out: p_high
+evaporator:
+  area: 1
+  calc_type: const
+  dt_min: 3.0
+  fixed: m_dot_w
+  model: StaticHeatExchanger
+  overall_u: 100
+  species:
+    cold_storage:
+      in: temp_high
+      out: temp_low
+      p_in: p_low
+      p_out: p_low
+    working_fluid:
+      in: throttle
+      out: start
+      p_in: p_low
+      p_out: p_low
+fluids_all:
+  cold_storage: source-sink
+  hot_storage: source-sink
+  working_fluid: cycle
+hot_storage:
+  fixed: null
+  fractions:
+  - 1.0
+  p_low: 200000.0
+  props: REFPROP
+  species: Water
+  temp_high: 368.150
+  temp_low: ambient
+process:
+  cycle:
+  - start
+  - compressor
+  - condenser
+  - throttle
+  - evaporator
+  - start
+  name: heat_pump
+  type: heat_pump
+start:
+  calc_type: null
+  dt_min: 3.0
+  dt_superheat: 5.0
+  model: Start
+  phase: vapor
+  species:
+    cold_storage:
+      in: temp_high
+      out: temp_high
+      p_in: p_low
+      p_out: p_low
+    working_fluid:
+      in: temp_start  # determined by dt_superheat and storage tmperature, p_low will be changed!
+      out: temp_start
+      p_in: p_low
+      p_out: p_low
+throttle:
+  calc_type: const_h
+  fixed: m_dot
+  model: FlowDevice
+  species:
+    working_fluid:
+      in: condenser
+      out: evaporator
+      p_in: p_high
+      p_out: p_low
+working_fluid:
+  fractions:
+  - 0.771733787
+  - 0.0222759488
+  - 0.178685867
+  - 0.027304397199999997
+  optimize: None
+  p_high: 1487011.28
+  p_low: 103162.0708
+  props: REFPROP
+  setting: initial
+  species: Propane * Butane * Pentane * Hexane
+  temp_high: 3.94957070e+02
+  temp_low: ambient
