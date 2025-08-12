@@ -1,0 +1,53 @@
+# known issues:
+# Address lines do not have language codes => defaulting to application language code
+# Applicants/Representatives do not have an identifier
+# THTM: no MarkFeature => deduce
+# No Publication Section
+
+{% from 'navigation.tmpl' import match %}
+
+representative:
+    identifier: {{ Representative.RepresentativeIdentifier }}
+    kind: {{ Representative.RepresentativeLegalEntity}}
+    fullName:
+      {% call(nameline) match('FormattedNameAddress.Name.FormattedName', Representative.RepresentativeAddressBook) %}
+      - text: {{ nameline | create_full_name }}
+        languageCode: {{ nameline.LastName | guess_language('en') }}
+      {% endcall %}
+    firstName:
+      {% call(nameline) match('FormattedNameAddress.Name.FormattedName.FirstName', Representative.RepresentativeAddressBook) %}
+      - languageCode: {{ nameline | guess_language('en') }}
+        text: {{ nameline }}
+      {% endcall %}  
+    lastName:
+      {% call(nameline) match('FormattedNameAddress.Name.FormattedName.LastName', Representative.RepresentativeAddressBook) %}
+      - languageCode: {{ nameline | guess_language('en') }}
+        text: {{ nameline }}
+      {% endcall %}    
+    middleName:
+      {% call(nameline) match('FormattedNameAddress.Name.FormattedName.MiddleName', Representative.RepresentativeAddressBook) %}
+      - languageCode: {{ nameline | guess_language('en') }}
+        text: {{ nameline }}
+      {% endcall %}  
+    organizationName:
+      {% call(nameline) match('FormattedNameAddress.Name.FormattedName.OrganizationName', Representative.RepresentativeAddressBook) %}
+      - languageCode: {{ nameline | guess_language('en') }}
+        text: {{ nameline }}
+      {% endcall %}  
+    fullAddress:
+      {% call(adrline) match('PostalAddress', Representative.RepresentativeAddressBook) %}
+      - text: {{ adrline }}
+        languageCode: {{ adrline | guess_language('en') }}
+      {% endcall %}
+    detailedAddress:
+      - languageCode: {{ Representative.RepresentativeAddressBook.FormattedNameAddress.Address.FormattedAddress.AddressStreet | guess_language('en') }}
+        text: {{ Representative.RepresentativeAddressBook.FormattedNameAddress.Address.FormattedAddress.AddressStreet }}
+        cityName: {{ Representative.RepresentativeAddressBook.FormattedNameAddress.Address.FormattedAddress.AddressCity }}
+        geographicRegionName: {{ Representative.RepresentativeAddressBook.FormattedNameAddress.Address.FormattedAddress.AddressState }}
+        postalCode: {{ Representative.RepresentativeAddressBook.FormattedNameAddress.Address.FormattedAddress.AddressPostcode }}
+    contact:
+      phone: {{ Representative.RepresentativeAddressBook.ContactInformationDetails.Phone }}
+      fax: {{ Representative.RepresentativeAddressBook.ContactInformationDetails.Fax }}
+      email: {{ Representative.RepresentativeAddressBook.ContactInformationDetails.Email }}
+      url: {{ Representative.RepresentativeAddressBook.ContactInformationDetails.URL }}
+    countryCode: {{ Representative.RepresentativeAddressBook.FormattedNameAddress.Address.AddressCountryCode }}

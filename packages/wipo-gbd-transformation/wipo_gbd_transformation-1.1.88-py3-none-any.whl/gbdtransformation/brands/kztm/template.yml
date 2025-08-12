@@ -1,0 +1,117 @@
+{% from 'navigation.tmpl' import match %}
+
+type: TRADEMARK
+kind:
+  - {{ U_ID.patent_type | translate_kind }}
+markFeature: {{ U_ID | translate_feature }}
+
+registrationOfficeCode: KZ
+designatedCountries:
+  - KZ
+
+st13: {{ U_ID.inid_210 | st13('KZ', appdate=U_ID.inid_220) }}
+
+applicationNumber: {{ U_ID.inid_210 }}
+applicationDate:  {{ U_ID.inid_220 }}
+registrationNumber: {{ U_ID.inid_111 }}
+registrationDate: {{ U_ID.inid_151 }}
+
+applicationLanguageCode: ru
+
+expiryDate: {{ U_ID.inid_170 }}
+
+# rarely passed
+terminationDate:
+
+{% set status = U_ID.inid_170 | deduce_status %}
+officeStatus: {{ status }}
+gbdStatus:  {{ status }}
+
+wordMarkSpecification:
+  markVerbalElement:
+    {% if U_ID.trademark_name_ru %}
+    - languageCode: ru
+      text: {{ U_ID.trademark_name_ru }}
+    {% endif %}
+    {% if U_ID.trademark_name_kz %}
+    - languageCode: kz
+      text: {{ U_ID.trademark_name_kz }}
+    {% endif %}
+    {% if U_ID.trademark_name_en and not U_ID.trademark_name_en == U_ID.trademark_name_ru %}
+    - languageCode: en
+      text: {{ U_ID.trademark_name_en }}
+    {% endif %}
+
+{% if U_ID.image == 'yes' %}
+{% set color_names = U_ID.colors_claimed | get_color_names %}
+{% set vienna_codes = U_ID.vienne_classification.class | get_vienna_codes %}
+markImageDetails:
+  - name: {{ U_ID.inid_210 }}
+    colourIndicator: {{ U_ID.colors_claimed | get_true_or_false }}
+    colourClaimed:
+    {% for cname in color_names %}
+      - languageCode: {{ cname | guess_language('ru') }}
+        text: {{ cname }}
+    {% endfor %}
+
+    {% if (vienna_codes | length) > 0 %}
+    classification:
+      kind: Vienna
+      version: {{ ASK_THE_OFFICE }}
+      code:
+      {% for code in vienna_codes %}
+        - {{ code }}
+      {% endfor %}
+    {% endif %}
+{% endif %}
+
+{% set gs = U_ID.list_of_goods_and_services | get_goods_services %}
+{% if (gs.keys() | length) > 0%}
+goodsServicesClassification:
+  kind: Nice
+  version: {{ ASK_THE_OFFICE }}
+  class:
+  {% for nc in gs.keys() %}
+  {% if not nc == '00' %}
+    - code: {{ nc | int }}
+      terms:
+        ru:
+          {% for term in gs[nc] %}
+          - {{ term }}
+          {% endfor %}
+  {% endif %}
+  {% endfor %}
+{% endif %}
+
+goodsServicesUnclassified:
+  ru:
+    {% for term in gs['00'] or [] %}
+    - {{ term }}
+    {% endfor %}
+
+{% set applicants = U_ID.application_parties.inid_730 | parse_persons %}
+applicants:
+  {% for applicant in applicants %}
+  - fullName:
+      - languageCode: ru
+        text: {{ applicant.name }}
+    fullAddress:
+      - languageCode: {{ applicant.address | guess_language('ru') }}
+        text: {{ applicant.address }}
+    countryCode: {{ applicant.country }}
+  {% endfor %}
+
+{% set representatives = U_ID.application_parties.inid_740 | parse_persons %}
+representatives:
+  {% for representative in representatives %}
+  - fullName:
+      - languageCode: ru
+        text: {{ representative.name }}
+    fullAddress:
+      - languageCode: {{ representative.address | guess_language('ru') }}
+        text: {{ representative.address }}
+    countryCode: {{ representative.country }}
+  {% endfor %}
+
+extra:
+  id: {{ U_ID.id }}

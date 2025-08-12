@@ -1,0 +1,37 @@
+applicationNumber: {{tm.master.shutugan_no|first}}
+applicationDate: {{tm.master.shutugan_bi|first|to_str|convertdate('%Y%m%d') }}
+
+markFeature: {{ tm.master.rittaishohyo_umu |first| make_feature }}
+
+{% if tm.goods.size > 0 %}
+goodsServicesClassification:
+  class:
+    {% for g in tm.goods.itertuples() %}
+    - code: {{ g.rui | int }}
+      term:
+      {% for term in g.shohinekimumeisho|to_str|split_terms('，') %}
+        - {{ term }}
+      {% endfor %}
+    {% endfor %}
+{% endif %}
+
+{% if tm.prio.size > 0 %}
+priorities:
+{% for p in tm.prio.itertuples() %}
+  - countryCode: {{ p.yusenkenkuni_code |first}}
+    number: {{ p.yusenkenshutugan_no | first }}
+    date: {{ p.yusenkenshucho_bi|first}}
+{% endfor %}
+{% endif %}
+
+{% if tm.reps.size > 0 %}
+representatives:
+{% for rep in tm.reps.itertuples() %}
+  - identifier: {{rep.shutugannindairinin_code | int}}
+    fullName: {{ rep.rep.shutugannindairinin_simei | try_to_8bit}}
+    fullAddress: {{ rep.shutugannindairinin_jusho | try_to_8bit}}
+{%endfor %}
+{% endif %}
+
+extra:
+  divisionNumber: {{tm.master.split_num|first}}

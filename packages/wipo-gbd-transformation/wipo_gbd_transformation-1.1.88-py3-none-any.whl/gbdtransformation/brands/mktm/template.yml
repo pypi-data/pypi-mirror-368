@@ -1,0 +1,112 @@
+{% from 'navigation.tmpl' import match %}
+
+{% set TradeMark = Transaction.TradeMarkTransactionBody.TransactionContentDetails.TransactionData.TradeMarkDetails.TradeMark %}
+
+{% set status = TradeMark.MarkCurrentStatusCode | translate_status %}
+{% set kind = TradeMark.KindMark | translate_kind %}
+{% set appyear = TradeMark.ApplicationNumber | get_appyear %}
+
+type: TRADEMARK
+kind: {{ kind }}
+st13: {{ TradeMark.ApplicationNumber | st13('MK', appdate=appyear) }}
+
+markFeature: {{ TradeMark.MarkFeature | translate_feature }}
+registrationOfficeCode: {{ TradeMark.RegistrationOfficeCode }}
+designatedCountries:
+  - {{ TradeMark.RegistrationOfficeCode }}
+applicationNumber: {{ TradeMark.ApplicationNumber }}
+applicationDate: {{ TradeMark.ApplicationDate | convertdate('%Y-%m-%d') }}
+registrationNumber: {{ TradeMark | get_registration_nb(TradeMark.MarkCurrentStatusCode)}}
+registrationDate: {{ TradeMark.RegistrationDate }}
+applicationLanguageCode: {{ TradeMark.ApplicationLanguageCode }}
+officeStatus: {{ TradeMark.MarkCurrentStatusCode }}
+gbdStatus: {{ status }}
+statusDate: {{ TradeMark.MarkCurrentStatusDate | convertdate('%Y-%m-%d') }}
+expiryDate: {{ TradeMark.ExpiryDate}}
+terminationDate: {{ TradeMark.MarkCurrentStatusDate | get_termination(status) }}
+wordMarkSpecification:
+  markVerbalElement:
+    {% call(desc) match('WordMarkSpecification.MarkVerbalElementText', TradeMark) %}
+    - text: {{ desc}}
+      languageCode: {{ desc | guess_language(desc._languageCode, TradeMark.ApplicationLanguageCode) }}
+    {% endcall %}
+markImageDetails:
+  {% call(img) match('MarkImageDetails.MarkImage', TradeMark) %}
+  - name: {{ img.MarkImageFilename }}
+    colourIndicator: {{ img.MarkImageColourClaimedText | get_true_or_false }}
+    colourClaimed:
+      {% call(desc) match('MarkImageColourClaimedText', img) %}
+      - text: {{ desc }}
+        languageCode: {{ desc | guess_language(TradeMark.ApplicationLanguageCode) }}
+      {% endcall %}
+    classification:
+      kind: Vienna
+      code:
+      {% call(code) match('MarkImageCategory.CategoryCodeDetails.CategoryCode', img) %}
+      - {{ code }}
+      {% endcall %}
+  {% endcall %}
+
+{% call(nc_gs) match('GoodsServicesDetails.GoodsServices', TradeMark) %}
+goodsServicesClassification:
+  kind: Nice
+  version: {{ ASK_THE_OFFICE }}
+  class:
+    {% call(nice) match('ClassDescriptionDetails.ClassDescription', nc_gs) %}
+    - code: {{ nice.ClassNumber | int }}
+      terms:
+      {% if nice.GoodsServicesDescription | has_value %}
+      {% call(desc) match('GoodsServicesDescription', nice) %}
+        {{ desc | guess_language(TradeMark.ApplicationLanguageCode) | field_name }}:
+        {% for gsline in desc | remove_trailing('.') | split_terms %}
+          - {{ gsline | lower }}
+        {% endfor %}
+      {% endcall %}
+      {% endif %}
+    {% endcall %}
+{% endcall %}
+
+priorities:
+  {% call(priority) match('PriorityDetails.Priority', TradeMark) %}
+  - countryCode: {{ priority.PriorityCountryCode }}
+    number: {{ priority.PriorityNumber }}
+    date: {{ priority.PriorityDate }}
+  {% endcall %}
+
+applicants:
+  {% call(Applicant) match('ApplicantDetails.Applicant', TradeMark) %}
+  - kind: {{ Applicant.ApplicantLegalEntity }}
+    {% call(nameline) match('FormattedNameAddress.Name.FreeFormatName.FreeFormatNameDetails.FreeFormatNameLine', Applicant.ApplicantAddressBook) %}
+    fullName:
+      - text: {{ nameline}}
+        languageCode: {{ nameline | guess_language(TradeMark.ApplicationLanguageCode) }}
+      {% endcall %}
+    fullAddress:
+      {% call(adrline) match('FormattedNameAddress.Address.FreeFormatAddress.FreeFormatAddressLine', Applicant.ApplicantAddressBook) %}
+      - text: {{ adrline}}
+        languageCode: {{ adrline | guess_language(TradeMark.ApplicationLanguageCode) }}
+      {% endcall %}
+    {% call(adrline) match('FormattedNameAddress.Address', Applicant.ApplicantAddressBook) %}
+    countryCode: {{ adrline.AddressCountryCode }}
+    {% endcall %}
+  {% endcall %}
+representatives:
+  {% call(Representative) match('RepresentativeDetails.Representative', TradeMark) %}
+  {% if not Representative.RepresentativeIdentifier.endswith('-null') %}
+  - identifier: {{ Representative.RepresentativeIdentifier }}
+    kind: {{ Representative.RepresentativeLegalEntity }}
+    {% call(nameline) match('FormattedNameAddress.Name.FreeFormatName.FreeFormatNameDetails.FreeFormatNameLine', Representative.RepresentativeAddressBook) %}
+    fullName:
+      - text: {{ nameline}}
+        languageCode: {{ nameline | guess_language(TradeMark.ApplicationLanguageCode) }}
+      {% endcall %}
+    fullAddress:
+      {% call(adrline) match('FormattedNameAddress.Address.FreeFormatAddress.FreeFormatAddressLine', Representative.RepresentativeAddressBook) %}
+      - text: {{ adrline}}
+        languageCode: {{ adrline | guess_language(TradeMark.ApplicationLanguageCode) }}
+      {% endcall %}
+    {% call(adrline) match('FormattedNameAddress.Address', Representative.RepresentativeAddressBook) %}
+    countryCode: {{ adrline.AddressCountryCode }}
+    {% endcall %}
+  {% endif %}
+  {% endcall %}

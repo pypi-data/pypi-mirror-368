@@ -1,0 +1,90 @@
+{% from 'navigation.tmpl' import match %}
+
+{% set _space = " " %}
+
+type: {{ LISBON.NUMBER._KIND }}
+kind:
+  - Other
+
+markFeature: Word
+
+registrationOfficeCode: LISBON
+designatedCountries:
+  - XX
+
+reference:
+  office: {{ LISBON.COO.CC }}
+
+st13: {{ LISBON | get_st13_lisbon(LISBON.REG.DATE | convertdate('%d/%m/%Y')) }}
+registrationNumber: {{ LISBON.NUMBER._KIND | append(_space, LISBON.NUMBER.__value) }}
+registrationDate: {{ LISBON.REG.DATE | convertdate('%d/%m/%Y') }}
+applicationLanguageCode: {{ LISBON.NUMBER._ORGLANG | lower}}
+
+officeStatus: {{ LISBON.NUMBER._STATUS | get_office_status }}
+gbdStatus: {{ LISBON.NUMBER._STATUS | get_gbd_status }}
+
+markDisclaimerDetails:
+  {% call(desc) match('LEGAL', LISBON.LEGALGR) %}
+  {% call(tmp) match('TEXT', desc) %}
+  - text: {{ tmp  }}
+    languageCode: {{ tmp | guess_language(desc._LANG) | lower }}
+    {% endcall %}
+  {% endcall %}
+
+wordMarkSpecification:
+  markVerbalElement:
+    - languageCode: {{ LISBON.NUMBER._ORGLANG | lower }}
+      text: {{ LISBON.APPGR.APP | get_names }}
+
+  markTranslation:
+  {% call(verbal) match('TRANSLAT', LISBON.TRANSLATGR) %}
+    - languageCode: {{ verbal | guess_language(verbal._LANG) | lower }}
+      text: {{ verbal }}
+  {% endcall %}
+
+  markTransliteration: {{ LISBON.TRANSLIT }}
+
+goodsServicesUnclassified:
+  {% call(verbal) match('PRODUCT', LISBON.PRODUCTGR) %}
+    {{ verbal._LANG | lower | field_name }}:
+    - {{ verbal }}
+  {% endcall %}
+
+publications:
+  - identifier: {{ LISBON.PUB }}
+
+applicants:
+  - fullName:
+  {% call(HOL) match('HOL', LISBON.HOLGR) %}
+    - text: {{ HOL.__value }}
+      languageCode: {{ HOL.__value | guess_language(HOL._LANG) | lower }}
+  {% endcall %}
+    countryCode: {{ LISBON.COO.CC }}
+
+events:
+  {% for event in LISBON | get_events %}
+  - officeKind: {{ event.kind }}
+    gbdKind: {{ event.gbd_kind }}
+    date: {{ event.date | convertdate('%d.%m.%Y') }}
+    country: {{ event.country }}
+    {% if event.extra %}
+    doc: {{ event.extra | to_link }}
+    {% endif %}
+  {% endfor %}
+
+extra:
+  area:
+  {% call(area) match('AREA', LISBON.AREAGR) %}
+    - text: {{ area.__value }}
+      languageCode: {{ area.__value | guess_language(area._LANG) | lower }}
+  {% endcall %}
+  lisbonact: {{ LISBON.LISBONACT | get_true_or_false }}
+  geneveact: {{ LISBON.GENEVEACT | get_true_or_false }}
+  geneveactcc:
+  {% call (cc) match ('GENEVE_ACT.CC', LISBON)%}
+    - {{ cc }}
+  {% endcall %}
+  cancellationdoc: {{ LISBON.CANCELLATION.PDF }}
+  regdoc: {{ LISBON.REG.CERTIF }}
+  pdf: {{ LISBON.REG.NOTIF | to_link }}
+

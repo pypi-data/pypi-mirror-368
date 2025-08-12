@@ -1,0 +1,45 @@
+{% from 'navigation.tmpl' import match %}
+{% set appnum = inn | get_appnum  %}
+{% set status = inn | get_status  %}
+
+type: INN
+
+markFeature: Word
+registrationOfficeCode: WHO
+designatedCountries:
+  - XX
+
+applicationNumber: {{ appnum }}
+
+{% if status == 'Recommended' %}
+registrationNumber: {{ appnum }}
+{% endif %}
+
+st13: {{ appnum | get_st13_INN }}
+officeStatus: {{ status }}
+gbdStatus: {{ status | translate_status }}
+
+wordMarkSpecification:
+  markVerbalElement:
+    {% for el in inn | get_languages %}
+    - languageCode: {{ el.lang }}
+      text: {{ el.value }}
+    {% endfor %}
+
+representatives:
+  - fullName:
+      - languageCode: en
+        text: World Health Organization (WHO)
+    fullAddress:
+      - languageCode: en
+        text: Av. Appia 20, 1202 Genève
+    countryCode: CH
+
+extra:
+  code: {{ inn.code }}
+  recommended:
+    value: {{ inn.recommended.__value }}
+    entry: {{ inn.recommended._entry }}
+  proposed:
+    value: {{ inn.proposed.__value }}
+    entry: {{ inn.proposed._entry }}

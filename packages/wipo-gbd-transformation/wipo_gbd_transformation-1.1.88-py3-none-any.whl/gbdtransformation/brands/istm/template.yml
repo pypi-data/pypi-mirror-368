@@ -1,0 +1,119 @@
+{% from 'navigation.tmpl' import match %}
+
+{% set appdate = mark.applicationDate | convertdate('%d.%m.%Y %H:%M:%S') %}
+st13: {{ mark.vmid | st13('IS', appdate=appdate) }}
+registrationOfficeCode: IS
+type: TRADEMARK
+
+{% if mark.deleted | get_true_or_false %}
+gbdStatus: Delete
+{% else %}
+
+{% set status = mark.statusEN | translate_status(mark.status) %}
+
+kind:
+  - Individual
+
+reference:
+{% if mark.mpNumber %}
+  office: WO
+  registration:
+    - number: {{ mark.mpNumber }}
+{% endif %}
+
+markFeature: {{ mark.type | translate_feature(mark.is3DMark) }}
+designatedCountries:
+  - IS
+applicationNumber: {{ mark.vmid }}
+applicationDate: {{ appdate}}
+publicationDate: {{ mark.datePublished | convertdate('%d.%m.%Y %H:%M:%S') }}
+registrationNumber: {{ mark.registrationNumber if not mark.registrationNumber == '0' }}
+registrationDate: {{ mark.dateRegistration | convertdate('%d.%m.%Y %H:%M:%S') }}
+applicationLanguageCode: is
+{% if mark.dateExpires %}
+expiryDate: {{ mark.dateExpires | convertdate('%d.%m.%Y %H:%M:%S') }}
+{% elif status == 'Expired' and mark.dateUnRegistered %}
+expiryDate: {{ mark.dateUnRegistered | convertdate('%d.%m.%Y %H:%M:%S') }}
+{% endif %}
+{% if status == 'Ended' and mark.dateUnRegistered %}
+terminationDate: {{ mark.dateUnRegistered | convertdate('%d.%m.%Y %H:%M:%S') }}
+{% endif %}
+officeStatus: {{ mark.status }}
+gbdStatus: {{ status }}
+statusDate: {{ mark.dateModified | convertdate('%d.%m.%Y %H:%M:%S') }}
+{% if mark.description %}
+markDescriptionDetails:
+  - languageCode: is
+    text: {{mark.description}}
+{% endif %}
+{% if mark.text %}
+wordMarkSpecification:
+  markVerbalElement:
+    - languageCode: {{mark.text|guess_language(default='en', opts=['en', 'is'])}}
+      text: {{mark.text}}
+{% endif %}
+markImageDetails:
+  {% if mark.orginalImagePath %}
+  - name: {{ mark.orginalImagePath}}
+    colourIndicator: {{ mark.isColorMark | get_true_or_false }}
+    {% call (classif) match('imageCategories', mark) %}
+    classification:
+      kind: Vienna
+      code:
+        {% for vienna in classif | split_terms(';') %}
+        - {{vienna}}
+        {% endfor %}
+    {% endcall %}
+  {% endif %}
+
+{% call(nc_gs) match('markCategories', mark) %}
+goodsServicesClassification:
+  kind: Nice
+  version: {{ ASK_THE_OFFICE }}
+  class:
+  {% call(nice) match('item', nc_gs) %}
+  - code: {{ nice.categoryNumber | int }}
+    {% if nice.categoryDescription %}
+    terms:
+      {{ nice.categoryDescription | guess_language(default='en') }}:
+        {% for gsline in nice.categoryDescription | remove_trailing('.') | split_terms %}
+        - {{ gsline | lower }}
+        {% endfor %}
+    {% endif %}
+  {% endcall %}
+{% endcall %}
+
+priorities:
+  {% call(priority) match('priority.uten', mark) %}
+    - countryCode: {{ priority.country }}
+      number: {{ priority.number | remove_trailing('-') }}
+      date: {{ priority.date }}
+  {% endcall %}
+
+applicants:
+  {% call(applicant) match('markOwners.item', mark) %}
+      - identifier: {{ details.ssn }}
+        fullName:
+          - text: {{ applicant.name }}
+            languageCode: is
+        countryCode: {{ 'IS' if applicant.isForeign == 'False' else applicant.country }}
+        fullAddress:
+          - text: {{ applicant | get_full_address }}
+            languageCode: is
+    {% endcall %}
+
+{% if mark.markAgent.name %}
+representatives:
+  {% call(applicant) match('markAgent', mark) %}
+      - identifier: {{ details.ssn }}
+        fullName:
+          - text: {{ applicant.name }}
+            languageCode: is
+        countryCode: {{ applicant.country }}
+        fullAddress:
+          - text: {{ applicant | get_full_address }}
+            languageCode: is
+    {% endcall %}
+{% endif %}
+
+{% endif %}

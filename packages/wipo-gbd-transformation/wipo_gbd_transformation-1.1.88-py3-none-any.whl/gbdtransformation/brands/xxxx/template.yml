@@ -1,0 +1,363 @@
+{% from 'navigation.tmpl' import match %}
+
+# common filter methods accessible in this template
+# gbdtransformation.common.filters
+#   .convertdate
+#   .contains
+#   .append
+#   .guess_language
+#   . ...
+# gbdtransformation.brands.filters
+#   .st13
+#   .pad_vienna
+#   .split_terms (for goods and services)
+#
+# TESTING:
+# developing the template:
+#   see the transformation output:
+#       gbd-transform /data/brands/collections/xxtm/ xxtm -t1
+#   test for transformation errors:
+#       gbd-transform /data/brands/collections/xxtm/ xxtm -r200 -w4 -q
+# validating the template:
+#   gbd-transform /data/brands/collections/xxtm/ xxtm -r2000 -w40 -q --qc
+
+type: # (TRADEMARK|EMBLEM|AO|GI|INN)
+kind:
+  - str # (Individual|Collective|Certificate|Defensive|Other|Membership|Undefined)
+markFeature: # (Word|Stylized characters|Figurative|Combined|Three dimensional|Colour|Sound|Hologram|Olfactory|Motion|Municipal|Chimney|Other|Undefined|Unknown)
+
+registrationOfficeCode:
+designatedCountries:
+  - str (CountryCode)
+
+# rarely passed
+filingPlace:
+
+# some collections indicate that the application
+# originates from international filing and provide IR number
+# (question to ask in GBD participation questionnaire)
+reference:
+  application:
+    - number:
+      date:
+      office:
+  registration:
+    - number:
+      date:
+      office:
+
+# can be deduced from appnum given office cc and (optional) appdate
+st13: # {{ Trademark.ApplicationNumber | st13('XX', appdate=... }}
+
+applicationNumber:
+# dates can be converted if not matching expected format
+applicationDate: # ex: {{ Trademark.ApplicationDate | convertdate('%Y%m%d') }}
+
+publicationDate: #
+
+# some collections have registration number
+# equals application number when registered
+registrationNumber:
+# some collections we can guess registration date
+# from event list
+registrationDate:
+
+applicationLanguageCode:
+# rarely passed
+secondLanguageCode:
+
+expiryDate:
+# rarely passed
+terminationDate:
+
+# status as is in the document
+officeStatus:
+# status as translated to gbdFormat
+gbdStatus:  # (Ended|Expired|Pending|Registered|Unknown|Delete)
+# can also be the date of the last event in markevents if given
+statusDate:
+
+markDisclaimerDetails:
+  - languageCode: # use guess_language to set it if not passed
+                  # ex {{ Trademark.MarkDisclaimerDetails | guess_language(lang='..', default='..') }}
+                  #   lang: the language if provided in doc
+                  #   default: default language if lang not provided.
+                  #   if no lang no default => use langdetect library
+    text:
+
+markDescriptionDetails:
+  - languageCode:
+    text:
+
+wordMarkSpecification:
+  markVerbalElement:
+    - languageCode:
+      text:
+  markSignificantVerbalElement:
+    - languageCode:
+      text:
+  markTranslation:
+    - languageCode:
+      text:
+  markTransliteration:
+
+markImageDetails:
+  - name:
+    colourIndicator:
+    colourClaimed:
+      - languageCode:
+        text:
+    description:
+      - languageCode:
+        text:
+    classification:
+      kind: Vienna #mostly
+      version: 7 #mostly
+      code:
+        - string
+
+markSoundDetails:
+  - filename:
+    fileformat:
+
+markVideoDetails:
+  - filename:
+    fileformat:
+
+goodsServicesClassification:
+  kind: Nice #inid (511)
+  version:
+  class:
+    - code:
+      terms:
+        - {{ languageCode }}:
+          - str
+
+nationalGoodsServicesClassification:
+  kind: KIPO # for eg
+  version:
+  class:
+    - code:
+      terms:
+        - {{ languageCode }}:
+          - str
+
+# some datasets have goods and services
+# terms that are not classified under a
+# nice class
+goodsServicesUnclassified:
+  {{ languageCode }}:
+    - str
+
+priorities:
+  - countryCode:
+    number:
+    date:
+    comment:
+
+publications:
+  - identifier:
+    date:
+    section:
+
+applicants:
+  - identifier:
+    kind:
+    fullName:
+      - languageCode:
+        text:
+    firstName:
+      - languageCode:
+        text:
+    lastName:
+      - languageCode:
+        text:
+    middleName:
+      - languageCode:
+        text:
+    organizationName:
+      - languageCode:
+        text:
+    fullAddress:
+      - languageCode:
+        text:
+    detailedAddress:
+      - languageCode:
+        text:
+        cityName:
+        geographicRegionName:
+        postalCode:
+        countryCode:
+    contact:
+      phone: 
+      fax: 
+      email: 
+      url:
+    countryCode: # sometimes, country name is provided instead
+
+# if different from applicants, and explicitely distinguished from them
+holders:
+  - identifier:
+    kind:
+    fullName:
+      - languageCode:
+        text:
+    firstName:
+      - languageCode:
+        text:
+    lastName:
+      - languageCode:
+        text:
+    middleName:
+      - languageCode:
+        text:
+    organizationName:
+      - languageCode:
+        text:
+    fullAddress:
+      - languageCode:
+        text:
+    detailedAddress:
+      - languageCode:
+        text:
+        cityName:
+        geographicRegionName:
+        postalCode:
+        countryCode:
+    contact:
+      phone: 
+      fax: 
+      email: 
+      url:
+    countryCode: # sometimes, country name is provided instead
+
+representatives:
+  - identifier:
+    kind:
+    fullName:
+      - languageCode:
+        text:
+    firstName:
+      - languageCode:
+        text:
+    lastName:
+      - languageCode:
+        text:
+    middleName:
+      - languageCode:
+        text:
+    organizationName:
+      - languageCode:
+        text:
+    fullAddress:
+      - languageCode:
+        text:
+    detailedAddress:
+      - languageCode:
+        text:
+        cityName:
+        geographicRegionName:
+        postalCode:
+        countryCode:
+    contact:
+      phone: 
+      fax: 
+      email: 
+      url:
+    countryCode: # sometimes, country name is provided instead
+
+correspondence:
+  fullName:
+    - languageCode:
+      text:
+  firstName:
+    - languageCode:
+      text:
+  lastName:
+    - languageCode:
+      text:
+  middleName:
+    - languageCode:
+      text:
+  organizationName:
+    - languageCode:
+      text:
+  fullAddress:
+    - languageCode:
+      text:
+  detailedAddress:
+    - languageCode:
+      text:
+      cityName:
+      geographicRegionName:
+      postalCode:
+      countryCode:
+  contact:
+    phone: 
+    fax: 
+    email: 
+    url:
+  countryCode:
+
+events:
+  - officeKind:
+    gbdKind: # Filed, Registered, Published, Pending, Inactive,
+              # Opposed, Withdrawn, Expired, Examined, Invalidated,
+              # Rejected, Abandoned, Suspended, Surrendered, Appealed,
+              # Awaiting court action, Converted, Notification, Unknown
+    date:
+
+appeals:
+  - kind:
+    date:
+    decisionDate: 
+
+# licence information, not frequent, but provided by Singapore, Norway and UK as of 2025-04-23
+licences:
+  - licenceCategory: # Exclusive, NonExclusive, Other
+    goodsServicesLimitation: 
+      - languageCode:
+        text:
+    periodLimitationEndDate:
+    licenceDate: # date Agreement signed
+    licenceStatus: # Cancelled, Valid, Other
+    effectiveDate: # date notice received at the IP office
+    licensee:
+      - identifier:
+        kind:
+        fullName:
+          - languageCode:
+            text:
+        firstName:
+          - languageCode:
+            text:
+        lastName:
+          - languageCode:
+            text:
+        middleName:
+          - languageCode:
+            text:
+        organizationName:
+          - languageCode:
+            text:
+        fullAddress:
+          - languageCode:
+            text:
+        detailedAddress:
+          - languageCode:
+            text:
+            cityName:
+            geographicRegionName:
+            postalCode:
+            countryCode:
+        contact:
+          phone: 
+          fax: 
+          email: 
+          url:
+        countryCode: # sometimes, country name is provided instead
+
+# here goes extra information that is office specific and that is pertinent for us to retain.
+extra:
+
+
