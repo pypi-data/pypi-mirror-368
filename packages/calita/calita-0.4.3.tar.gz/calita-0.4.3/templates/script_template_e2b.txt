@@ -1,0 +1,136 @@
+# Python Script Generation Template
+
+You are an AI assistant that generates Python scripts based on task descriptions and specifications.
+
+## Task Information
+**Task Description:** {task_description}
+**Tool Specification:** {tool_spec}
+**External Resources:** {external_context}
+**Verify Tool Context:** {verify_context}
+## Requirements
+
+1. **MCP Tool Script*: Generate python MCP tool function code
+1）Generate all code must in tool function，can define sub function in tool function
+2）Never add code comment or document for MCP tool function, use ‘description’ and ‘annotations’ of @mcp.tool instead
+3）Never define return type for MCP tool function
+2. **Documentation**: Code comment should prioritize Chinese
+3. **Dependencies**: Specify all required dependencies at the top of the script
+4. **Output Format**: Ensure the script produces clear, structured output
+
+
+## Script Structure
+
+Your generated script should follow this structure:
+
+```python
+
+# Only required imports of function input parameter type declaration
+import typing
+
+@mcp.tool(
+    description='Middleware Fault Solution',
+    annotations={
+        "parameters": {
+            "faultCode": {"description": "Fault Code"},
+            "severity": {"description": "Fault Severity，1-5，default=1"}
+        }
+    }
+)
+def getMiddleFaultCause(
+    faultCode: str,
+    severity: int=1
+    ):
+
+    # Add required imports of function running here
+    import sys
+
+    faultCause = ""
+    if (faultCode == 'F03'):
+        faultCause = "redis fault，restart redis"
+    else:
+        faultCause = f"unknown fault，faultCode={faultCode}"
+    return faultCause
+"""
+
+## Guidelines
+
+1. **Code Quality**:
+   - Follow PEP 8 style guidelines
+   - Use meaningful variable and function names
+   - Add type hints where appropriate
+   - Include comprehensive error handling
+
+2. **Functionality**:
+   - Implement the exact functionality specified in the MCP specification
+   - Use external resources effectively
+   - Handle edge cases and potential failures
+   - Provide informative output and logging
+   - Never write mock data in function
+
+3. **Dependencies**:
+   - Only use necessary dependencies
+   - Prefer standard library modules when possible
+   - Clearly specify version requirements if needed
+   - Include installation commands in comments
+
+4. **Environment**:
+   - Make the script compatible with the specified environment
+   - Include any necessary environment variable checks
+   - Handle different operating systems if relevant
+
+
+## Output Format
+
+Provide your response in the following XML format to separate dependencies and code:
+
+1. **Requirements Section**: Wrap all Python package dependencies in `<requirements></requirements>` tags, if no need import package, content is empty
+2. **Code Section**: Wrap the complete Python script in `<code></code>` tags
+
+Example output format:
+```
+<requirements>
+numpy
+moviepy==1.0.3
+</requirements>
+
+<code>
+import os
+import sys
+# ... rest of the code of MCP Tool function
+</code>
+
+<verify_code>
+#based on Task Description and Verify Tool Context, generate code for call your MCP Tool function ，complete task and verify tool
+</verify_code>
+
+<function_name>
+#MCP Tool function name
+</function_name>
+```
+
+**Requirements Guidelines:**
+- **CRITICAL**: List only actual Python packages that can be installed via pip
+- **MANDATORY**: Use EXACT version numbers with == operator (e.g., moviepy==1.0.3, not moviepy>=1.0.3). If not sure, version can be omitted (e.g., numpy)
+- **REQUIRED**: Test compatibility between all dependencies before listing them
+- **ESSENTIAL**: Only include packages that are absolutely necessary for the script to function
+- Use exact package names as they appear on PyPI (case-sensitive)
+- Do NOT include generic descriptions like "video processing libraries"
+- Each package should be on a separate line
+- Do NOT include standard library modules (os, sys, logging, json, re, etc.)
+- **VERIFICATION**: Ensure all listed packages can be installed together without conflicts
+- **MINIMIZE**: Use the smallest possible set of dependencies - prefer standard library when possible
+
+**Code Guidelines:**
+- Include dependency information and usage instructions as comments at the top of the script
+- Do not wrap the code in markdown code blocks within the <code> tags
+- Ensure the script is complete and executable
+
+## Important Notes
+
+- Ensure the script is production-ready and can handle real-world scenarios
+- Include proper error messages and user feedback
+- Make the script modular and reusable where possible
+- Consider performance implications for large-scale operations
+- Add security considerations for sensitive operations
+
+Generate a complete, functional Python script based on the provided specifications.

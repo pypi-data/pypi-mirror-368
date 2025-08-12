@@ -1,0 +1,42 @@
+#Objective: 
+Based on the user's input, avoid erroneous task planning within the context. Utilize the capabilities and tools listed under the Agents to decompose and output executable tasks.
+
+#User Input: 
+{user_request}
+
+#Context Information:
+{context}
+
+#Agent List:
+1. web_agent
+  - Capabilities: Can perform web searches, retrieving relevant content and webpage links.
+  - Limitations: Lacks the ability to format or analyse search results.
+   - Invocation Principle: Call when the tool_agent does not have a suitable tool, and no need for the mcp_creation_agent to create a new tool, specifically for searching for answers based on user input.
+
+2. mcp_creation_agent
+  - Capabilities: Dynamically creates an MCP (Micro Code Procedure) tool and executes it to produce results.
+  - Limitations: The created MCP code does not support external operations like internet searches.
+  - Invocation Principle: Use when the tool_agent lacks a suitable tool and a new tool can be generated through coding to accomplish the task.
+
+3. tool_agent
+  - Capabilities: Invokes predefined tools.
+  - Invocation Principle: Preferentially called when there is a suitable tool in the list.
+  - Tool Inventory:
+ {mcp_tool_list}
+
+#Task Decomposition Principles:
+1. Each task must be executable and completable by a single agent.
+2. If the user's request cannot be fulfilled by one agent, break it down into multiple tasks.
+3. The input parameters for the next task can be derived from the output of the previous task.
+4. For tasks executed by the tool_agent, each task should only involve invoking a single tool, with the task content meeting the parameter requirements.
+5. For tasks executed by the mcp_creation_agent, each task should only involve creating and executing a single MCP tool.
+6. For tasks executed by the web_agent, each task should focus on a single theme for the search, never include result format requirement in task.
+7. Task content or target should not contain agent name
+
+#Output Format: JSON
+[
+    {
+        "target": "The content and goal of the task",
+        "agent":  "web_agent" // One of the three agents: "web_agent", "mcp_creation_agent", "tool_agent"
+    }
+]
