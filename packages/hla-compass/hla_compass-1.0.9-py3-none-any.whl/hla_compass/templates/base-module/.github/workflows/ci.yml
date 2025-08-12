@@ -1,0 +1,286 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.9', '3.10', '3.11']
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r backend/requirements.txt
+        pip install pytest pytest-cov black isort mypy
+    
+    - name: Lint with black
+      run: |
+        black --check backend/ --line-length=88
+    
+    - name: Check import sorting with isort
+      run: |
+        isort --check-only backend/
+    
+    - name: Type check with mypy
+      run: |
+        mypy backend/main.py --ignore-missing-imports
+      continue-on-error: true  # Type checking is informational for now
+    
+    - name: Run unit tests
+      run: |
+        pytest backend/tests/ -v --cov=backend --cov-report=xml --cov-report=term
+    
+    - name: Test module execution
+      run: |
+        cd backend && python main.py
+    
+    - name: Upload coverage to Codecov
+      if: matrix.python-version == '3.11'
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+  validate-manifest:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install JSON schema validator
+      run: |
+        pip install jsonschema
+    
+    - name: Validate manifest.json structure
+      run: |
+        python -c "
+        import json
+        import sys
+        
+        required_fields = ['name', 'version', 'displayName', 'description', 'author', 'type', 'computeType']
+        
+        try:
+            with open('manifest.json', 'r') as f:
+                manifest = json.load(f)
+            
+            missing = [field for field in required_fields if field not in manifest]
+            if missing:
+                print(f'Missing required fields in manifest.json: {missing}')
+                sys.exit(1)
+            
+            print('✓ manifest.json validation passed')
+        except Exception as e:
+            print(f'Error validating manifest.json: {e}')
+            sys.exit(1)
+        "
+
+  docker-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Build Docker image
+      run: |
+        docker build -t simple-analyzer:test .
+    
+    - name: Test in Docker container
+      run: |
+        docker run --rm simple-analyzer:test python -m pytest backend/tests/ -v
+    
+    - name: Test module execution in Docker
+      run: |
+        docker run --rm simple-analyzer:test python backend/main.py
+
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install security tools
+      run: |
+        pip install safety bandit
+    
+    - name: Check for known security vulnerabilities
+      run: |
+        safety check -r backend/requirements.txt
+      continue-on-error: true  # Don't fail CI for security warnings
+    
+    - name: Run bandit security linter
+      run: |
+        bandit -r backend/ -f json -o bandit-report.json
+      continue-on-error: true
+    
+    - name: Upload security scan results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-reports
+        path: bandit-report.json
+
+  performance-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r backend/requirements.txt
+        pip install pytest pytest-benchmark
+    
+    - name: Run performance benchmarks
+      run: |
+        python -c "
+        import json
+        import time
+        import sys
+        import os
+        sys.path.append('backend')
+        from main import execute
+        
+        # Load sample input
+        with open('examples/sample_input.json', 'r') as f:
+            input_data = json.load(f)
+        
+        # Benchmark execution
+        start = time.time()
+        result = execute(input_data, {'job_id': 'benchmark'})
+        duration = time.time() - start
+        
+        print(f'Execution time: {duration:.3f}s')
+        print(f'Status: {result[\"status\"]}')
+        
+        # Performance assertions
+        if duration > 5.0:  # Should complete within 5 seconds
+            print('⚠️  Warning: Execution took longer than expected')
+        else:
+            print('✓ Performance test passed')
+        "
+
+  build-package:
+    runs-on: ubuntu-latest
+    needs: [test, validate-manifest, docker-test]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build wheel
+    
+    - name: Create distribution package
+      run: |
+        # Create a simple package structure
+        mkdir -p dist
+        
+        # Copy module files
+        cp -r backend/ dist/
+        cp manifest.json dist/
+        cp examples/ dist/ -r
+        
+        # Create version info
+        python -c "
+        import json
+        with open('manifest.json', 'r') as f:
+            manifest = json.load(f)
+        
+        with open('dist/VERSION', 'w') as f:
+            f.write(f\"{manifest['name']}-{manifest['version']}\")
+        "
+        
+        # Create zip package
+        cd dist && zip -r ../simple-analyzer-$(cat VERSION).zip . && cd ..
+        
+        echo "Package created: simple-analyzer-$(cat dist/VERSION).zip"
+        ls -la *.zip
+    
+    - name: Upload package artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: module-package
+        path: "*.zip"
+        retention-days: 30
+
+  # Optional: Deploy to staging/development environment
+  deploy-dev:
+    runs-on: ubuntu-latest
+    needs: [build-package]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: development
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download package artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: module-package
+    
+    - name: Deploy to development (mock)
+      run: |
+        echo "🚀 Deploying to development environment..."
+        echo "Package: $(ls *.zip)"
+        echo "✓ Deployment simulation complete"
+        
+        # In a real deployment, you would:
+        # 1. Install HLA-Compass CLI
+        # 2. Authenticate with the platform
+        # 3. Deploy the module package
+        # 
+        # Example:
+        # pip install hla-compass
+        # hla-compass auth login --token ${{ secrets.HLA_COMPASS_TOKEN }}
+        # hla-compass deploy $(ls *.zip) --env dev
