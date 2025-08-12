@@ -1,0 +1,1 @@
+pc application get monitor
