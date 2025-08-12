@@ -1,0 +1,45 @@
+# Cursor Project Rule: Using Pre-commit for Automated Checks
+---
+description: |
+  All code changes in the zenodotos project must pass pre-commit checks before being committed. Pre-commit provides automated checks for code quality, ensuring consistent standards across the codebase.
+
+rules:
+  - Install pre-commit hooks after cloning the repository
+  - Run pre-commit checks before committing changes
+  - Fix all pre-commit check failures before proceeding
+  - Do not bypass pre-commit checks
+  - Keep pre-commit configuration up to date
+
+configuration:
+  install:
+    command: pre-commit install
+  check:
+    command: pre-commit run --all-files
+  update:
+    command: pre-commit autoupdate
+
+hooks:
+  - name: ruff
+    description: Linting and formatting with ruff
+    command: ruff check --fix
+  - name: ruff-format
+    description: Code formatting with ruff
+    command: ruff format
+  - name: ty
+    description: Type checking with ty
+    command: ty check
+  - name: pytest
+    description: Running tests with coverage
+    command: pytest --cov=zenodotos --cov-report=term-missing --cov-fail-under=80
+
+rationale: |
+  Pre-commit provides automated checks that ensure:
+  - Consistent code style and formatting
+  - Type safety across the codebase
+  - Test coverage requirements are met
+  - Code quality standards are maintained
+  - Development workflow efficiency
+  - Reduced code review overhead
+  - Early detection of issues
+
+  Using pre-commit helps maintain high code quality and consistency while improving the development experience.
