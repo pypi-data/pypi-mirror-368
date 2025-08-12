@@ -1,0 +1,168 @@
+Metadata-Version: 2.4
+Name: wowool-numbers
+Version: 2.1.4
+Summary: Wowool Numbers
+Home-page: https://www.wowool.com/
+Author: Wowool
+Author-email: info@wowool.com
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: wowool-sdk<3.6.0,>=3.5.3
+Dynamic: author
+Dynamic: author-email
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+# From written word to numerical value
+
+The numbers app enriches numerical annotations for written numbers, units and money amounts by extending the annotations with attributes representing the normalized values.
+
+## Options
+
+#### NumbersOptions
+
+```typescript
+interface NumbersOptions {
+  comma_separator?: string;
+  language?: string;
+  source?: string;
+}
+```
+
+with:
+
+| Property          | Description                                                                                                                                                               |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `comma_separator` | Default character to use as a comma separator in case it cannot be determined                                                                                             |
+| `language`        | Language file to use                                                                                                                                                      |
+| `source`          | Wowool source code to annotate a `Number`. Optional and only used if the language has not been set and no domain has previously been run that already annotations numbers |
+
+## Results
+
+The entity `Number` is extended with:
+
+- The attribute `canonical` representing the normalized value
+
+The entity `MoneyAmount` is extended with:
+
+- The attribute `amount` representing the normalized value
+- The attribute `currency` representing the currency, if present
+
+Examples of a domain that produce `Number` and `MoneyAmount` is `entity`.
+
+## Examples
+
+<sample data-uuid="numbers"></sample>
+# From written word to numerical value
+
+The numbers app enriches numerical annotations for written numbers, units and money amounts by extending the annotations with attributes representing the normalized values.
+
+## Options
+
+#### NumbersOptions
+
+```typescript
+interface NumbersOptions {
+  comma_separator?: string;
+  language?: string;
+  source?: string;
+}
+```
+
+with:
+
+| Property          | Description                                                                                                                                                               |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `comma_separator` | Default character to use as a comma separator in case it cannot be determined                                                                                             |
+| `language`        | Language file to use                                                                                                                                                      |
+| `source`          | Wowool source code to annotate a `Number`. Optional and only used if the language has not been set and no domain has previously been run that already annotations numbers |
+
+## Results
+
+The entity `Number` is extended with:
+
+- The attribute `canonical` representing the normalized value
+
+The entity `MoneyAmount` is extended with:
+
+- The attribute `amount` representing the normalized value
+- The attribute `currency` representing the currency, if present
+
+Examples of a domain that produce `Number` and `MoneyAmount` is `entity`.
+
+# API
+
+## Examples
+
+You will need to install the english language module to run the sample. `pip install wowool-english` 
+
+### Converting written numbers into values
+
+The file shows how to use the wowool pipeline to extract and normalize monetary amounts from English text. The pipeline processes the text and enrich the annotation with the Number and MoneyAmount annotations.
+
+* MoneyAmount@(amount='2000000.0' code='EUR' name='Euro' )
+* Number@(canonical='2000000.0' )
+* MoneyAmount@(amount='1189.0' code='USD' name='United States dollar' )
+* Number,@(canonical='1189.0' )
+
+
+```python
+from wowool.sdk import Pipeline
+
+text = "I have 2m euro's and ten thousand one hundred eighty-nine dollars."
+pipeline = Pipeline(["english", "numbers.language", "entity", "numbers.app"])
+document = pipeline(text)
+print(document)
+
+```
+
+results in:
+
+```
+S:(  0, 66)
+ T:(  0,  1): I,{+1p, +init-cap, +init-token, +nom, +sg},[I:Pron-Pers]
+ T:(  2,  6): have,[have:V-Pres-have]
+ C:(  7, 14): MoneyAmount,@(amount='2000000.0' code='EUR' name='Euro' )
+ C:(  7,  9): Number,@(canonical='2000000.0' )
+ T:(  7,  8): 2,[2:Num]
+ T:(  8,  9): m,{+value, +wowool/english-numbers@dev},[million:Num-Std]
+ C:( 10, 14): CurrencyUnit
+ T:( 10, 14): euro,{+currency},[euro:Nn-Sg]
+ T:( 14, 16): 's,[be:V-Pres-Sg-be]
+ T:( 17, 20): and,[and:Conj-Coord]
+ C:( 21, 65): MoneyAmount,@(amount='10189.0' code='USD' name='United States dollar' )
+ C:( 21, 57): Number,@(canonical='10189.0' )
+ T:( 21, 24): ten,{+wowool/english-numbers@dev},[ten:Num-Std]
+ T:( 25, 33): thousand,{+quant, +wowool/english-numbers@dev},[thousand:Num-Std]
+ T:( 34, 37): one,{+wowool/english-numbers@dev},[one:Num-Std]
+ T:( 38, 45): hundred,{+quant, +wowool/english-numbers@dev},[hundred:Num-Std]
+ T:( 46, 52): eighty,{+wowool/english-numbers@dev},[eighty:Num-Std]
+ T:( 52, 53): -,[-:Punct]
+ T:( 53, 57): nine,{+wowool/english-numbers@dev},[nine:Num-Std]
+ C:( 58, 65): CurrencyUnit
+ T:( 58, 65): dollars,{+currency},[dollar:Nn-Pl]
+ T:( 65, 66): .,[.:Punct-Sent]
+wowool_numbers, []
+```
+
+
+
+
+## License
+
+In both cases you will need to acquirer a license file at https://www.wowool.com
+
+### Non-Commercial
+
+    This library is licensed under the GNU AGPLv3 for non-commercial use.  
+    For commercial use, a separate license must be purchased.  
+
+### Commercial license Terms
+
+    1. Grants the right to use this library in proprietary software.  
+    2. Requires a valid license key  
+    3. Redistribution in SaaS requires a commercial license.  
