@@ -1,0 +1,18 @@
+from .plot_library import (
+    scatter,
+    compo_plot,
+    scatter_groups,
+    spatial,
+    violin,
+    heatmap,
+    dotplot,
+    plot_dendrogram,
+    hvfplot,
+    qcviolin,
+    volcano,
+    rank_plot,
+    ridgeplot,
+    wordcloud,
+    plot_gsea,
+    elbowplot,
+)
