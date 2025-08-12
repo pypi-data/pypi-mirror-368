@@ -1,0 +1,70 @@
+[build-system]
+requires = [
+    "hatchling",
+    "hatch-semver"
+]
+build-backend = "hatchling.build"
+
+[project]
+name = "twirpy"
+dynamic = ["version"]
+description = "Twirp runtime library for Python"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "BSD-3-Clause"
+keywords = [
+  "protobuf",
+  "rpc",
+  "twirp",
+]
+dependencies = [
+    "asgiref",
+    "protobuf",
+    "requests",
+    "structlog",
+]
+
+[project.urls]
+repository = "https://github.com/cryptact/twirpy"
+
+[project.optional-dependencies]
+async = [
+    "aiohttp",
+]
+
+[tool.hatch.version]
+path = "twirp/__init__.py"
+validate-bump = true
+scheme = "semver"
+
+[tool.hatch.build.targets.sdist]
+include = ["/twirp"]
+[tool.hatch.build.targets.wheel]
+packages = ["twirp"]
+
+[tool.hatch.envs.default]
+python = "3.13"
+dependencies = [
+    "aiohttp",
+]
+
+[tool.hatch.envs.types]
+extra-dependencies = [
+  "mypy>=1.0.0",
+]
+[tool.hatch.envs.types.scripts]
+check = "mypy --install-types --non-interactive twirp"
+
+[tool.ruff]
+line-length = 120
+lint.select = [
+  "F",   # pyflakes
+  "PLE", # pylint errors
+  "UP",  # pyupgrade
+]
+lint.fixable = [
+  "F",   # pyflakes
+  "PLE", # pylint errors
+  "UP",  # pyupgrade
+]
+exclude = ["example/rpc"]
