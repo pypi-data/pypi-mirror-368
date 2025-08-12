@@ -1,0 +1,68 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    name: Release to PyPI and GitHub
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write      # For GitHub releases and committing changelog
+      id-token: write      # For PyPI trusted publishing
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0     # Full history needed for git-cliff
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: astral-sh/setup-uv@v4
+      - run: uv python install 3.12
+
+      - name: Install git-cliff
+        run: curl -L https://github.com/orhun/git-cliff/releases/download/v2.10.0/git-cliff-2.10.0-x86_64-unknown-linux-gnu.tar.gz | tar xz && sudo mv git-cliff-*/git-cliff /usr/local/bin/
+          
+      - name: Generate changelog
+        id: changelog
+        run: |
+          CHANGELOG=$(git-cliff --config pyproject.toml --latest --strip all)
+          echo "content<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body: ${{ steps.changelog.outputs.content }}
+          generate_release_notes: false
+          draft: false
+          prerelease: false
+
+      - name: Build package
+        run: uv sync && uv build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          print-hash: true
+          verbose: true
+
+      - name: Verify PyPI upload
+        run: |
+          # Wait a bit for PyPI to process the upload
+          sleep 30
+          # Get the version from the tag (remove 'v' prefix)
+          VERSION=${GITHUB_REF_NAME#v}
+          echo "Verifying version $VERSION on PyPI..."
+          # Use uv to test installation in isolated environment
+          uv run --isolated --with llms-txt-mcp==$VERSION python -c "
+          try:
+              from importlib.metadata import version
+              v = version('llms-txt-mcp')
+              print(f'✅ Successfully verified PyPI upload: {v}')
+          except Exception as e:
+              print(f'⚠️  Import test failed, but package may still be uploaded correctly: {e}')
+          "

@@ -1,0 +1,191 @@
+[project]
+name = "llms-txt-mcp"
+dynamic = ["version"]
+description = "Lean MCP server for minimal-context docs via llms.txt"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Misha Kolesnik", email = "misha@kolesnik.io"}
+]
+requires-python = ">=3.12"
+dependencies = [
+    "mcp[cli]>=1.12.0",
+    "pydantic>=2.0.0",
+    "httpx>=0.27.0",
+    "PyYAML>=6.0.0",
+    "sentence-transformers>=3.0.0",
+    "chromadb>=0.5.0",
+]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Topic :: Software Development :: Build Tools",
+]
+keywords = [
+    "mcp",
+    "model context protocol",
+    "claude code",
+    "documentation",
+    "llms.txt",
+    "semantic search",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "mypy>=1.11.0",
+    "ruff>=0.6.0",
+]
+
+[project.scripts]
+llms-txt-mcp = "src.server:main"
+
+[project.urls]
+Homepage = "https://github.com/tenequm/llms-mcp-txt"
+Repository = "https://github.com/tenequm/llms-mcp-txt"
+Issues = "https://github.com/tenequm/llms-mcp-txt/issues"
+
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+    "tests/**",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    # Core linting
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "UP",     # pyupgrade
+    
+    # Type safety & annotations
+    "FA",     # flake8-future-annotations
+    "TC",     # flake8-type-checking
+    
+    # Code quality & bug prevention
+    "B",      # flake8-bugbear (common bugs)
+    "C4",     # flake8-comprehensions (better comprehensions)
+    
+    # Modern Python practices
+    "YTT",    # flake8-2020 (misuse of sys.version)
+    "RSE",    # flake8-raise (better exception raising)
+    "T20",    # flake8-print (no print statements)
+    "PT",     # flake8-pytest-style (pytest best practices)
+]
+
+# Per-file ignores for practical development
+[tool.ruff.lint.per-file-ignores]
+"tests/*.py" = [
+    "T20",     # Allow print in tests
+]
+"__init__.py" = [
+    "F401",    # Allow unused imports in __init__ files
+]
+"src/server.py" = [
+    "TC002",   # Context is needed at runtime by FastMCP for function introspection
+]
+"src/*.py" = [
+    "B008",    # Allow function calls in argument defaults (common pattern)
+    "C901",    # Allow complex functions when they make sense
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+asyncio_mode = "auto"
+addopts = "--tb=short --strict-markers"
+markers = [
+    "performance: marks tests as performance tests (may be slower)",
+    "format_detection: tests for detecting llms.txt formats",
+    "parsing: tests for parsing llms.txt content",
+    "mcp_tools: tests for MCP tool functionality",
+    "integration: integration tests"
+]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/_version.py"
+
+[tool.git-cliff.changelog]
+header = """# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+"""
+body = """
+{% for group, commits in commits | group_by(attribute="group") %}
+## {{ group | striptags | trim | upper_first }}
+{% for commit in commits %}
+- {{ commit.message | upper_first }} ([{{ commit.id | truncate(length=7, end="") }}]({{ remote.github.owner }}/{{ remote.github.repo }}/commit/{{ commit.id }}))
+{%- if commit.breaking %}
+  
+  **BREAKING:** {{ commit.breaking_description }}
+{%- endif %}
+{% endfor %}
+{% endfor %}
+"""
+trim = true
+
+[tool.git-cliff.git]
+conventional_commits = true
+filter_unconventional = false
+split_commits = false
+commit_parsers = [
+    { message = "^feat", group = "Features" },
+    { message = "^fix", group = "Bug Fixes" },
+    { message = "^doc", group = "Documentation" },
+    { message = "^perf", group = "Performance" },
+    { message = "^refactor", group = "Refactoring" },
+    { message = "^style", group = "Styling" },
+    { message = "^test", group = "Testing" },
+    { message = "^chore\\(release\\): prepare for", skip = true },
+    { message = "^chore\\(deps\\)", skip = true },
+    { message = "^chore\\(pr\\)", skip = true },
+    { message = "^chore\\(pull\\)", skip = true },
+    { message = "^chore|^ci", group = "Miscellaneous Tasks" },
+    { body = ".*security", group = "Security" },
+    { message = "^revert", group = "Revert" },
+]
+filter_commits = false
+tag_pattern = "v[0-9].*"
+skip_tags = "v0.1.0-beta.1"
+ignore_tags = ""
+topo_order = false
+sort_commits = "oldest"
+
+[dependency-groups]
+dev = [
+    "types-pyyaml>=6.0.12.20250809",
+]
+
