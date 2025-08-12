@@ -1,0 +1,111 @@
+[build-system]
+build-backend = "hatchling.build"
+requires = [
+  "hatch-vcs==0.5",
+  "hatchling==1.27",
+]
+
+[project]
+name = "tap-google-play"
+description = "Singer tap for GooglePlay, built with the Meltano SDK for Singer Taps."
+readme = "README.md"
+keywords = [
+  "ELT",
+  "GooglePlay",
+  "Meltano",
+  "singer.io",
+]
+license = "Apache-2.0"
+maintainers = [
+  { name = "Edgar Ramírez-Mondragón", email = "edgarrmondragon@hey.com" },
+]
+authors = [
+  { name = "hotglue", email = "hello@hotglue.xyz" },
+  { name = "Edgar Ramírez-Mondragón", email = "edgarrmondragon@hey.com" },
+]
+requires-python = ">=3.10"
+
+classifiers = [
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+]
+dynamic = [ "version" ]
+dependencies = [
+  "google-play-scraper==1.2.7",
+  "singer-sdk~=0.48.0",
+]
+
+scripts.tap-google-play = "tap_google_play.tap:TapGooglePlay.cli"
+
+[dependency-groups]
+dev = [
+  "mypy>=1.11.1",
+  "pytest>=7",
+  "pytest-github-actions-annotate-failures>=0.2",
+  "singer-sdk[testing]",
+]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.ruff]
+line-length = 88
+src = [
+  "tap_google_play",
+  "tests",
+]
+lint.select = [
+  "ALL",
+]
+lint.ignore = [
+  "DJ",     # flake8-django
+  "FIX002", # line-contains-todo
+]
+lint.per-file-ignores."noxfile.py" = [
+  "ANN",
+]
+lint.per-file-ignores."tests/*" = [
+  "ANN201", # missing-return-type-public-function
+  "S101",   # assert
+  "SLF001", # private-member-access
+]
+lint.unfixable = [
+  "ERA001", # commented-out-code
+]
+lint.flake8-annotations.allow-star-arg-any = true
+lint.isort.known-first-party = [
+  "tap_google_play",
+]
+lint.isort.required-imports = [
+  "from __future__ import annotations",
+]
+lint.pydocstyle.convention = "google"
+
+[tool.pyproject-fmt]
+max_supported_python = "3.14"
+
+[tool.pytest.ini_options]
+addopts = "-vvv"
+filterwarnings = [
+  "error",
+  "default:No records were available to test:UserWarning",
+]
+
+[tool.mypy]
+warn_redundant_casts = true
+warn_unreachable = true
+warn_unused_configs = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+ignore_missing_imports = true
+module = [
+  "google_play_scraper.*", # https://github.com/JoMingyu/google-play-scraper/issues/223
+]
+
+[tool.uv]
+required-version = ">=0.5.19"
