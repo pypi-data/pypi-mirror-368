@@ -1,0 +1,597 @@
+DHParser Version 1.9.0
+......................
+
+- more fine-grained cancelation, not only batch-processes can be
+  canceled after each processed file, but now also processing
+  pipelines can be canceled after each step. Processing steps
+  themselves can also be canceld, if the have and make use of
+  a cancel_query attribute. (For the time being only compile.Compile
+  offers a cancel_query-attribute, but tree transformations
+  and eventually grammar-objects may follow in the future.)
+- bugfix: test not to forget to call the preprocessor (if present)!
+- if empty tags are not explicitly passed to nodtree.Node.as_xml()
+  they will be determined automatically
+- auto-generated parser skript now allows to select a particular
+  compilation target, like the AST or any other intermediate
+  or final stage from the processing-pipline
+- automated app-script completely overhauled, now much better for
+  exploring parsers and processing pipelines.
+- start_parser-paramters added to compile.compile_source() and
+  pipeline.full_pipline()
+- left_biased-parameter added to nodetree.ContentMapping.insert_node()
+- an (empty) ...Config.ini-file is now automatically generated
+  for new projects
+- a small sub-chapter concerning XML-reflow was added to the
+  documentation
+
+
+DHParser Verion 1.8.3 (20.3.2024)
+.................................
+
+- nodetree.py: experimental split-method added to Node-class
+- collections.namedtuple replaced by typing.NamedTuple-class
+- configuration.py: read_local_config() now reads and processes
+  all config files from scriptdir, user's config dir and
+  current directory in that order
+- multiprocessing code now works with 'forkserver' as well
+- Python3.14 compatibility (forkserver,
+  staticmethod(functools.partial(...) where required)
+
+
+DHParser Version 1.8.2 (6.2.2024)
+.................................
+
+- bugfixes for xast and nast-serializations
+- removed warnings about unused symbols in the AST-table to avoid,
+  because it is too confusing for newcomers.
+- updates to nodetree.ContentMapping: methods path(), pos() and path_str()
+  added; markup() now avoids the generation of single anynomous leaves.
+- xml and S-expression-serialization now allows word wrapping
+- script XMLreflow.py added to reflow XML-files (experimental)
+- experimental nodetree.SerializationMapping added (not yet documented,
+  see tests in test_nodetree for now...)
+
+
+DHParser Version 1.8.1 (19.10.2024)
+...................................
+
+- optional speed optimizations (experimental!) that work by compiling
+  certain parts of the grammar to regular expressions. See config value
+  "optimizations" or put "@optimizations=all" at the top of your grammar.
+- serializations for xast and unist ("ndst") added.
+  See https://github.com/syntax-tree/unist
+  and https://github.com/syntax-tree/xast
+- fast-path for Series-parser, in case no items are marked as mandatory
+- faster unit-tests: History recording will only be invoked if a
+  test fails, in which case the test will be repeated with history
+  recording. (If a tested parser contains lookahead statements,
+  history-recording is always invoked, because it is needed to
+  detect false negatives.)
+- unit-test-scripts (i.e. "tst_..._grammary.py") can now be invoked
+  with the "--history" (or "-p") option to record detailed logs for all
+  tests, not only those tests that have failed. (So, it is easier to
+  study what a particular parser actually does.)
+- functions added: nodetree.drop_leaf() and transform.pull_up()
+- changes: parse.py: removed memoization equivalence classes to
+  simplify code (speed up was very neglible, anyway)
+  parse.py: Regular expressions of RegExp-parsers are now evaluated
+  lazily to keep startup times in check
+- nim-rewrite of parser core under way, e.g. run-ranges added as
+  first step to get rid of regular epressions.
+- lsp-module removed from documentation to avoid index-clutter
+
+
+DHParser Version 1.7.2 (22.2.2024)
+..................................
+
+- removed unnecessary directories from pyproject.toml, e.g.
+  tests, documentation_src... These are not required for
+  running DHParser and can always be obtained from git
+- comments inside insignificant whitespace can now be retained
+  by adding "no_comments"[sic!] to the @drop-directive
+- DHParser now comes with a few predefined parsing-functions
+  in DHParser.parsers. For now, there is parse_HTML and parse_XML
+  (in contrast to nodetree.parse_xml, the latter is slower, but
+  strictly adheres to the XML-grammar of the W3C except
+  DTDs inside an XML-document, which is not supported)
+- ebnf-grammar now allows to specify character ranges with
+  (e.g.) "[\x00CD-\x0CFD]" (EXPERIMENTAL)
+
+
+DHParser Version 1.7.1 (28.1.2024)
+..................................
+
+- case-insensitive plain-text-parser added (parse.IgnoreCase)
+- [config]-section in test-files is now repeated in the report
+- Documentation for parse.ParsingError-class
+- compile.py: better error message for missing visitor-methods
+- HTML-Grammar added to examples/XML
+- bugfixes and a few more tests
+- more work on experimental nim-rewrite of the parser-core:
+  enough parser-classes for standard EBNF, plus error-recovery
+
+DHParser Version 1.7
+....................
+
+- refactoring: processing-pipeline-support now in a dedicated module
+
+DHParser Version 1.6.1 (27.10.2023)
+...................................
+
+- Better support for processing-pipelines: compile.py, dsl.py
+  and autogenerated ...Parse.py- and tst...py-scripts now
+  use junctions for each processing-stage.
+- compile.py, dsl.py, testing.py: Testing of processing stages beyond
+  the AST is now fully supported, as long as the results can be
+  serialized as strings.
+- SmartRE-parser (EXPERIMENTAL) added for more seamless integration
+  of regular expressions: If regular expressions contain named groups,
+  these will appear as named nodes in the tree.
+
+
+DHParser Version 1.5.0 (19.7.2023)
+..................................
+
+- parse.py: The (insignificant) "Whitespace"-parser is now optional
+  per default. This simplifies writing regular expressions for
+  insignificant whitespace, but can lead to BREAKING badly formulated
+  grammars, because optional-testing during static analysis is now
+  more comprehensive.
+- ebnf.py: bugfix for linefeed whitespace-parser and added line-start
+  whitespace-parser.
+- parse.py: removed methods for combining parsers, i.e. turn cascades
+  of nested Series, Interleave or Alternative parsers into one
+  flat parser with a longer list of arguments, because these are
+  practically never needed and have undesired side effects.
+- parse.py: Speed-Optimization by implementing simplified __call__-methods
+  for leaf-parsers and for parsers that do not memoize.
+- parse.py: class LateBindingUnary added (experimental!)
+- testing.py: allow to set config-values in test-files.
+- EXPERIMENTAL: started a nim-rewrite of the parser core to increase
+  parser speed to the level of a compiled language, i.e. nim (nim-lang.org)
+
+
+DHParser Version 1.4.2 (19.4.2023)
+..................................
+
+- NEW: Macros for EBNF grammars added!
+- better support for (post-)processing pipelines (dsl.py and compile.py)
+- added an (autogenerated) ...App.py script that allows to select files
+  for compilation with a simple GUI. (This helps to deploy projects
+  for users that are not used to the command line.)
+  Like the ...Parser.py and ...Server.py-scripts, this script is
+  generated when running the grammar-tests-script for the first time in
+  a new project.
+- refactoring of the template for autogenerated ...Parser.py-scripts
+  to make them shorter and more readable.
+- autogenerated tst_..._grammar.py-script will generate ...Server.py
+  and ...App.py script only once and not regenerate them automatically
+  if they have been deleted. Pass "--scripts" on the command line to
+  re-create these scripts if needed.
+- nodetree.py: support for SXML-serialization
+  (see https://okmij.org/ftp/Scheme/SXML.html)
+
+
+DHParser Version 1.3.5 (10.2.2023)
+..................................
+
+- bugfixes, some to restore broken backwards compatibility
+
+
+DHParser Version 1.3.4 (30.1.2023)
+..................................
+
+- bugfix ebnf.py: possible name conflicts between symbol names in a grammar
+  and parser class names in DHParser.parse will now be evaded
+- backwards incompatible change: ident-parameter removed from
+  DHParser.toolkit.ThreadLocalSingletonFactory
+- various bugfixes
+
+
+DHParser Version 1.3.3 (8.12.2022)
+..................................
+
+- nodetree.Node.evaluate() now supports another "mode" where path information
+  is passed to the evaluating functions, making it much more versatile
+- Cython is not listed as a dependency anymore in the pyproject.toml.
+  To use Cython speedups, Cython 3 alpha 11 is required (alpha 1-9
+  are also reported to work, but not alpha 11. Many thanks to Ailton Andrade
+  de Oliveira for cheking this out!) and the command "dhparser_cythonize"
+  or "dhparser_cythonize_stringview" must be run from the command line.
+- a couple of minor bug-fixes
+
+
+DHParser Version 1.3.2 (23.11.2022)
+...................................
+
+- Workaround: Cython-dependency set to version 0.29, because DHParser
+  1.3+ could otherwise not be installed with pip. DHParser can
+  run completely without Cython. Cython is only needed if you want
+  to speed up DHParser a little (up to 2x). Starting from DHParser 1.3.0
+  this requires the 3.0 alpha Version of Cython, because older versions
+  stumble over "from __future__ import annotations" (which however is
+  needed by the sphinx-documentation builder to build the type information
+  in the documentation properly).
+
+
+DHParser Version 1.3.1 (21.11.2022)
+...................................
+
+- Bugfix: generated project-test-script "tst_..._grammar.py" crashed
+  when trying to read and output error messages from EBNF-compilation
+
+DHParser Version 1.3.0 (17.11.2022)
+...................................
+
+- New Requirement: Python 3.7 or greater!!!
+  (due to from __future__ import annoataions)
+- EBNF-grammars can now refer to custom Python parsers
+- EBNF-grammars can now attach errors to the syntax-tree directly,
+  e.g. number = digits | @Error("Not A Number") /.*?\d/
+- cython support moved to cython3, cython3 compatibility restored
+- support for arbitrary data, i.e. not only tree-data in intermediary
+  steps of DHParser.compile-module's processing pipelines via optional
+  RootNode.data - attribute
+- order of detailed manuals in documentation re-arranged
+
+
+DHParser Version 1.2 (3.10.2022)
+................................
+
+- BACKWARD INCOMPATIBLE CHANGE: refactoring of names:
+  Trail -> Path, trail -> path, because path is much more
+  salient and cannot as easily be confused with root
+- BACKWARD INCOMPATIBLE CHANGE: nodetree.py: content mapping
+  and markup refactored by introducing class ContentMapping.
+  This makes using content mappings and adding markup easier
+  and yield more readable code.
+- compiler.py moved visitor_name() and attr_visitor_name() to
+  class Compiler. This makes it possible to overload these methods,
+  which can become useful, when a single method should handle
+  several different nodes or attributes - similar to the way tree
+  traversal is handeled in transform.py
+- added wildcard()-method to class compiler.Compiler. This allows
+  to track missing on_XXX()-methods as well as implementing a
+  dispatch mechanism that calls one and the same method for several
+  node-names (like in module DHParser.travers)
+
+DHParser Version 1.1.2 (24.8.2022)
+..................................
+
+- Added (experimental) support for adding markup to a tree.
+  (See nodetree.markup())
+- Added content_of() and strlen_of()-functions to nodetree.py
+  which allow to select only parts of the tree.
+- nodetree-content-map can now also be restricted to parts
+  of a tree.
+
+DHParser Version 1.1.1 (22.7.2022)
+..................................
+
+- some experimental suuport in DHParser.nodetree for adding
+  markup and milestones into a nodetree
+- documentation extended
+
+
+DHParser Version 1.1.0 (25.6.2022)
+..................................
+
+- refactoring (breaking changes!) "Node.name" instead
+  of "Node.tag_name" and type Context is now called "Trail"
+- various bug fixes
+- documentation extended
+
+DHParser Version 1.0.2 (18.5.2022)
+..................................
+
+- faster parser: now uses text locations instead of string views to hand over
+  the rest of the document to the next parser. Approx 25% faster!
+- Cython compatibility restored
+
+
+DHParser Version 1.0.1 (27.4.2022)
+..................................
+
+- Some refactorings and performance improvements, e.g. Parser.apply()
+  which makes resetting Parser and Grammer objects faster
+- Grammar.match() and Grammar.fullmatch()-method added to allow
+  using DHParser-grammers like regular expression objects in some
+  cases.
+- BREAKING CHANGE: Node.__len__() disabled and replaced by Node.strlen() to
+  avoid error-prone ambiguities: Node.strlen() vs len(node.children)
+- DEPRECATION: Node.tag_name has been renamed to Node.name and
+  Parser.tag_name to Parser.node_name.
+
+
+DHParser Version 1.0.0 (9.2.2022)
+.................................
+
+- Module syntaxtree has been renamed to nodetree, because this expresses
+  the general character of this module better which can be used for
+  any kind of (XML-)tree-structure, not just syntax-trees
+- many bugfixes
+- Python3.11 compatibility
+
+
+DHParser Version 0.9.9
+......................
+
+- @include-directive added
+- bugfixes for context sensitive parsers (capture, retrieve, pop)
+- documentation extended
+
+DHParser Version 0.9.8
+......................
+
+- Language Server Protocol support extended. DHParser/lsp.py now
+  contains TypedDict-definitions for all LSP-interfaces and enums.
+- support for local config-files.
+
+DHParser Version 0.9.7 (1.9.2021)
+.................................
+
+- test-suites can now contain test-data for tree-transformation
+  stages beyond AST, if their output is serializable as string.
+- Support for the language server protocol via: DHParser/lsp.py
+- reentry-points for resume and skip can now also be determined
+  with an EBNF-parser, and not only regular expressions as before.
+- Documentation extended
+
+
+DHParser Version 0.9.6 (1.7.2021)
+.................................
+
+- Documentation extended
+- Better support for error-reporting from preprocessors
+
+
+DHParser Version 0.9.5 (1.6.2021)
+.................................
+
+- Python 3.5 compatibility dropped! DHParser now requires at least Python 3.6.
+  This allows to use typing.NamedTuples and dataclasses for a clearer
+  expression of types.
+- batch processing: just use several files or a directory or a
+  shell pattern as parameters for the xxxParser.py or xxxServer.py-Skripts
+- DHParser.compile.Compiler is now more tolerant w.r.t to compiler-methods
+  that manipulate the parent tree (`fallback_compiler`-method rewritten)
+- DHParser.syntaxtree: added "skip_subtree"-parameter to Node.select-methods
+- DHParser.syntaxtree: more functions for navigating contexts, e.g.
+  prev_context, next_context.
+- DHParser.syntaxtree: added insert() and remove() methods to Node class
+- DHParser.syntaxtree: added a mini API for manipulating attributes
+- DHParser.parse: added early horizontal tree-reduction to class CombinedParser
+- DHParser.ebnf: added ""@reduction"-directive
+- DHParser.preprocess:  added support for chaining of source texts via include
+
+
+DHParser Version 0.9.4 (6.10.2020)
+..................................
+
+- better Language server support (modules server.py and lsp.py - still
+  somewhat experimental)
+- language servers can now also be connected via streams, not only tcp
+- Rudimentary Language Server example (for Visual Studio Code etc.) in 
+  examples/EBNF added
+- faster tree serialization with Node.as_sxpr or Node.as_xml
+
+
+DHParser Version 0.9.3 (23.6.2020)
+..................................
+
+- Complete refactoring of left-recursion algorithm. No performance surprises
+  or running out of stack space anymore (see parse.Forward.__call__())
+- transform functions now try to keep error messages attached to nodes when
+  reshaping tree (see transform.update_attr())
+- now using argparse instead of hand-written code for argument parsing
+
+
+DHParser Version 0.9.2 (11.5.2020)
+..................................
+
+- Moved to poetry-packaging <https://github.com/python-poetry/poetry>
+
+
+DHParser Version 0.9.1 (8.5.2020)
+.................................
+
+- Support for various variants of EBNF-Grammars (see examples/EBNF/grammar_examples)
+- More static error checking for EBNF-Grammars
+- for debugging, notices informing about where the parser resumes after
+  an error can be added to the error messages. (See config-parameter
+  "resume_notices" and '@ resume_XXXX' as well as '@ skip_XXX'-directives.)
+- added support for tag-less parsers: i.e. parser that are assigned to a
+  symbol that matches a certain regular expression, say, a leading underscore
+  will be treated as anonymous parsers
+- extended support for dropping of content during parsing-stage, now any
+  tag-less parser's content can be dropped, not only that of the Token
+  and Whitespace-parsers
+- AllOf- and SomeOf-parsers have been exchanged in favor of a more flexible
+  Interleave-parser
+- (some) static analysis of the generated parser during ebnf-compilation for
+  possible mistakes
+- better parsing history (now moved from parse.py to the new trace.py-module)
+- some speed optimizations
+- refactoring: history tracking has been moved from parse.py to module 
+  trace.py (new) and log.py
+
+
+DHParser Version 0.9.0 (20.10.2019)
+...................................
+
+- rudimentary language server support (still experimental!)
+- translation pipeline only stops on fatal errors. This makes previews
+  even for partially erroneous code possible
+- better cython support
+- scripts (dhparser.py, dhparser_rename.py) moved to
+  DHParser/scripts-directory
+- syntaxtree.py streamlined
+  (breaking change: Node.select_by_tag() remove, use Node.select() instead
+- added DHParser/templates subdirectory and moved larger code templates
+  from dhparser.py script to the templates-subdirectory
+
+
+DHParser Version 0.8.9 (5.4.2019)
+.................................
+
+- experimental server module
+- json-serialization of Nodes
+
+
+DHParser Version 0.8.8 (4.3.2019)
+.................................
+
+- setup: entry-script repaired
+
+
+DHParser Version 0.8.7 (3.3.2019)
+.................................
+
+- better packaging
+
+
+DHParser Version 0.8.6 (3.3.2019)
+.................................
+
+- default configuration now centralized in DHParser/configuration.py
+- dropped python 3.4 support
+- infinite loops in ZeroOrMore, OneOrMore and the like will now simply
+  be broken rather than reported as an error
+- better parser-optimization, i.e. flattening and dropping of irrelevant
+  nodes while parsing already.
+- no caching of node.content anymore, because this was conceptually
+  unsound. Trees are refactored and nodes dropped all the time which
+  would require invalidating the cache, which would be hard to implement.
+- mini-framework for static grammar analysis added (see parse.Grammar).
+  As of now: no use case
+
+
+DHParser Version 0.8.5 (10.2.2019)
+..................................
+
+- optimization: flattens anonymous nodes already while parsing
+- optimization: drops empty anonymous nodes already during parsing
+- optimization: optionally allows to drop anonymous whitespace and tokens
+  while parsing
+- major refactorings of node and parser class hierarchy: much simpler now,
+  no zombie classes needed any more
+- parser_guard() is now integrated into the Parser class: Parsing
+  functionality moved to _parse() method, while Parser.__call__() is now the
+  new parser guard
+- better support for customized error messages + bug fixes
+- better cython support (makes it about 2.5 times as fast if cython is used)
+- testing.grammar_suite now uses multiprocessing to run tests
+- parse.Parser.apply() reworked
+
+
+DHParser Version 0.8.4 (6.1.2019)
+.................................
+
+- customized resuming after parser errors! (still experimental, see
+  tests/test_ebnf.TestCustomizedResumeParsing as well as
+  tests/test_parse.TestReentryAfterError)
+- error messages for parser errors can now be configured to be more
+  user friendly (see test/test_ebnf.TestCuratedErrors)
+- lookahead parsers can now be unit-tested (experimental)
+- customized (faster) deepcopy of syntax trees
+- better customization of XML-serialization of syntax-trees
+- support for thread-safe globals and configuration data
+  via toolkit-module
+- development status of package raised to "4 - Beta". It's really quite
+  stable now, but backwards incompatible changes may still happen!
+
+
+DHParser Version 0.8.3 (20.8.2018)
+..................................
+
+- new transformation function collapse_children_if()
+- restored compatibility with Python 3.4
+- StepByStep Guide typos fixed
+- bug fixes
+
+
+DHParser Version 0.8.2 (10.7.2018)
+..................................
+
+- refactoring of module parser.py for more simplicity. RE is now
+  a simple (macro-style) function instead of a class of its own.
+  Class Token has been merged with PlainText. Possible break of
+  backwards compatibility with certain AST-transformation-tables in
+  connection with Token and RE-nodes!
+
+
+DHParser Version 0.8.1 (2.7.2018)
+.................................
+
+- compatibility fixes for Python 3.7
+
+
+DHParser Version 0.8.0 (24.6.2018)
+..................................
+
+- refactoring of error reporting: it is now done centrally through the
+  (newly introduced) syntaxtree.RootNode object; makes it faster and easier
+- "step by step" guide added to the documentation
+- XML is now a first class citizen for serialization next to S-expressions:
+  xml serialization can now also be read with syntaxtree.parse_xml() plus
+  better serialization with syntaxtree.Node.as_xml()
+- added example: XML-Parser
+- added optional CST-reporting on a case by case basis to the testing
+  framework, using the "*"-marker to indicate which test should add CSTs to
+  the report
+- moved compilation support to a separate module: compile.py
+- source mapping added if preprocessor changes source code
+  (see module preprocess.py)
+- new semantics for syntaxtree.Node.__str__: now includes error messages;
+  use Node.content to retrieve the content without any error messages
+- LaTeX-example: better AST-transformations.
+
+
+DHParser Version 0.7.8 (29.11.2017)
+...................................
+
+- added parsers for arbitrarily ordered elements (parser.Unordered class)
+- various bug fixes
+- html based history logs for better readability
+- code cleanups
+
+
+DHParser Version 0.7.7 (2.9.2017)
+.................................
+
+- dhparser script now creates and initializes project dir
+- parsing is now based on a StringView class which other
+  than plain Python strings does not copy strings when
+  slicing. (Speeds up parsing for longer documents.)
+- AST-transformations now receive the complete context, i.e.
+  the list of all parent nodes instead of just the node to
+  transform
+
+
+DHParser Version 0.7.4 (2.7.2017)
+.................................
+
+- package now includes 'dhparser' script
+- more transformation primitives for AST-transformation
+- various bug fixes
+
+
+DHParser Version 0.7.3 (27.6.2017)
+..................................
+
+- bug fixes for setuptools packaging
+
+
+DHParser Version 0.7.1 (27.6.2017)
+..................................
+
+- first PyPI release
+- added type annotations for static type checking with mypy
+- many changes, some incompatible with prior versions
+
+
+DHParser Version 0.6.0 (23.4.2017)
+..................................
+
+first public release
+
