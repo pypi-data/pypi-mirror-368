@@ -1,0 +1,214 @@
+Metadata-Version: 2.4
+Name: playwright-simple-scraper
+Version: 0.1.5.dev0
+Summary: A simple Playwright-based scraper that has simple result (based on List[str])
+Author-email: elecbrandy <elecbrandy@gmail.com>
+License: MIT
+Project-URL: Homepage, https://github.com/elecbrandy/playwright-simple-scraper
+Project-URL: Repository, https://github.com/elecbrandy/playwright-simple-scraper
+Project-URL: Issues, https://github.com/elecbrandy/playwright-simple-scraper/issues
+Keywords: playwright,scraping,web-scraping,automation,crawler
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Internet :: WWW/HTTP
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: playwright>=1.44
+Requires-Dist: nest_asyncio>=1.5.6
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: black; extra == "dev"
+Requires-Dist: isort; extra == "dev"
+Dynamic: license-file
+
+# playwright-simple-scraper
+
+A tiny scraper built on Playwright.
+Give it a URL and a CSS selector → get back the texts or the links that match.
+
+It tries a few safe strategies (stealth, human-like, Firefox, mobile, proxy-like headers) and returns as soon as one works.
+
+<br>
+
+## Requirements
+- Python 3.9+
+- Playwright package
+- At least one Playwright browser installed (we’ll install Chromium below)
+
+<br>
+
+## Install (local dev)
+
+From the project root (where `pyproject.toml` is):
+
+``` bash
+# (optional) create a virtual env
+python3 -m venv .venv
+source .venv/bin/activate    # on Windows: .venv\Scripts\activate
+
+# install your package in editable mode + dev tools
+pip install -e ".[dev]"
+
+# download a browser once (required by Playwright)
+playwright install chromium
+# (optional) also install:  playwright install firefox
+```
+
+<br>
+
+## Quick start
+
+``` python
+from playwright_simple_scraper import scrape_context, scrape_href
+
+# 1) Get inner text of matched elements
+res1 = scrape_context(
+    "https://news.ycombinator.com",
+    ".athing .titleline > a"
+)
+
+# 2) Get href attributes of matched elements
+res2 = scrape_href(
+    "https://news.ycombinator.com",
+    ".athing .titleline > a"
+)
+```
+
+Or run the example script:
+
+```bash
+python examples/simple_usage.py
+```
+
+## What the functions return
+
+Both functions return a `ScrapeResult` dataclass:
+
+```python
+@dataclass
+class ScrapeResult:
+    url: str
+    selector: str
+    result: List[str]       # your texts or hrefs
+    count: int              # len(result)
+    fetched_at: datetime    # UTC timestamp
+
+    def first(self) -> Optional[str]: ...
+    def to_dict(self) -> dict: ...
+)
+```
+
+* `scrape_context(url, selector, respect_robots=True, user_agent="*")`
+
+  * Returns texts (innerText) of the matched elements.
+* `scrape_href(url, selector, respect_robots=True, user_agent="*")`
+
+  * Returns the `href` attribute of the matched elements.
+
+Note: `respect_robots` and `user_agent` are placeholders for now (not implemented yet).
+
+## CSS selector tips
+
+* Start simple (e.g., `h1`, `a.article-link`, `#main .title > a`).
+* If nothing returns, check the page in DevTools and try a different selector.
+* Many sites load content late; the scraper already waits, but strong bot protection may still block you.
+
+## How it works (short)
+
+1. Validate inputs.
+2. Try strategies in this order until one works:
+
+   * stealth (hides automation hints, blocks heavy assets, light human moves)
+   * human\_like (slower loads, extra waits, human scroll/click)
+   * diff\_browser (Firefox)
+   * mobile (mobile UA/layout)
+   * proxy (adds proxy-like headers and random IP-ish headers)
+3. Return results on first success; otherwise raise an error.
+
+## Jupyter note
+
+Jupyter already runs an event loop.
+This library uses `nest_asyncio` internally so you can call `scrape_*()` without `await`.
+If you still see loop errors, restart the kernel and try again.
+
+## Running tests
+
+```bash
+pytest -q
+```
+
+The basic test runs `examples/simple_usage.py` and checks it finishes without errors.
+
+## Troubleshooting
+
+* “Playwright browser not installed”
+
+  * Run: `playwright install chromium` (or `firefox` if you use the Firefox strategy).
+* Empty results
+
+  * Your selector may not match. Test it in DevTools.
+  * Some sites have strong bot protection. Slow down, try again later, or provide your own proxies/cookies.
+* Import errors
+
+  * The package folder must be `playwright_simple_scraper/` (with `__init__.py`) and you should install with `pip install -e ".[dev]"` from the project root.
+* Timeouts / hanging
+
+  * Sites can be slow or blocked. The strategies use waits between \~15–45s. If needed, adjust timeouts in `strategies/*.py`.
+
+## FAQ
+
+* Does it respect robots.txt?
+
+  * Not yet. The flags exist but are not implemented.
+* Can I change headless mode?
+
+  * Currently it runs headless by default. You can change it in `core.py` (look for `_run_sync(..., True)`).
+* Which browsers are used?
+
+  * Chromium by default, plus a Firefox strategy.
+* Can I set a custom timeout or headers?
+
+  * Not via public API yet. You can tweak each strategy in `playwright_simple_scraper/strategies/`.
+
+## Project layout
+
+```
+playwright-simple-scraper/
+├─ playwright_simple_scraper/
+│  ├─ __init__.py
+│  ├─ core.py
+│  ├─ browser.py
+│  ├─ model.py
+│  ├─ utils.py
+│  └─ strategies/
+│     ├─ stealth.py
+│     ├─ human_like.py
+│     ├─ diff_browser.py
+│     ├─ mobile.py
+│     └─ proxy.py
+├─ examples/
+│  └─ simple_usage.py
+├─ tests/
+│  └─ test_core.py
+├─ pyproject.toml
+└─ README.md
+```
+
+## License
+
+MIT
+
+## Notes & ethics
+
+* Follow each site’s Terms of Service and local laws.
+* Keep request rates polite.
+* Do not use this tool to harm services or violate privacy.
