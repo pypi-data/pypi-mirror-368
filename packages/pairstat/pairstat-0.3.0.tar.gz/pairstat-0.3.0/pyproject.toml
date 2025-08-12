@@ -1,0 +1,119 @@
+[build-system]
+requires=[
+  "cython",
+  "cython-cmake>=0.2",
+  # since tool.scikit-build.minimum-version is set to "build-system.requires",
+  # the minimum build-requirement for scikit-build-core controls some default
+  # behaviors when newer versions of scikit-build-core are installed
+  # (we should keep an eye on this and keep increasing it over time)
+  "scikit-build-core>=0.11"
+]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "pairstat"
+version = "0.3.0"
+description = "Package for computing 2-point statistics (correlation functions and structure functions)"
+authors = [
+  {name = "Matthew Abruzzo", email = "matthewabruzzo@gmail.com" },
+]
+requires-python = ">=3.11"
+dependencies = [
+  'numpy',
+  # https://github.com/numpy/numpy/issues/27037 (is this necessary? -- borrrowed from yt)
+  "numpy!=2.0.1 ; platform_machine=='arm64' and platform_system=='Darwin'",
+]
+license = "MIT OR Apache-2.0"
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Unix",
+    "Natural Language :: English",
+    "Programming Language :: C++",
+    "Programming Language :: Cython",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering :: Astronomy",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+
+[project.readme]
+file = "README.rst"
+content-type = "text/x-rst"
+
+[project.urls]
+Homepage = 'https://github.com/mabruzzo/pairstat'
+Documentation = 'https://pairstat.readthedocs.io/en/latest/'
+Source = 'https://github.com/mabruzzo/pairstat'
+Tracker = 'https://github.com/mabruzzo/pairstat/issues'
+
+[dependency-groups]
+# these are development dependencies. They can be installed with pip (v25.1+)
+# by invoking `pip install --user --group {name}` from the directory holding this
+# configuration file
+docs = [
+  "sphinx>=7.0",
+  "furo>=2024.01.29",
+  "numpydoc>=1.8.0",
+  "sphinx-tabs>=3.0.0",
+  # the following could be used to embed notebooks in documentation
+  'ipykernel',
+  'matplotlib',
+  'nbsphinx',
+]
+
+# these are for tests
+dev = [
+  'scipy',
+  'pytest',
+  'h5py',
+]
+
+[project.optional-dependencies]
+# these are dependencies for extraneous features that are not currently
+# documented. We will either start documenting these features, or we will
+# remove them before the first release
+extra-features = [
+  'pydantic',
+  'schwimmbad',
+  'yt',
+]
+
+[tool.pytest.ini_options]
+# addopts inspired by: learn.scientific-python.org/development/guides/pytest/
+#  -ra: The -r tells pytest to report extra test summary info on the events
+#       corresponding to all characters following the r. Here, the "a"
+#       corresponds to "all" events (other than passing tests)
+#  --showlocals: directs pytest to show local variables in tracebacks
+#  --strict-markers: ensures we don't try to use an unspecified fixture
+#  --string-config: all configuration mistakes are reported as errors
+addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
+filterwarnings=["ignore::pairstat._kernels_cy.ExperimentalWarning"]
+norecursedirs = ["other"]
+# by default, we treat any test marked xfail that doesn't fail as an error
+# (we can override this locally, if necessary)
+xfail_strict = true
+testpaths = [
+  "tests",
+]
+
+
+[tool.scikit-build]
+# if the following version of CMake isn't found, scikit-build-core will
+# download and use a compatible CMake-verison
+cmake.version = "CMakeLists.txt"
+
+# The build type to use when building the project. Valid options are: "Debug",
+# "Release", "RelWithDebInfo", "MinSizeRel", "", etc.
+cmake.build-type = "Release"
+
+# since this is set, this provides a method for backward compatibility.
+minimum-version = "build-system.requires"
+
+wheel.exclude = ["**.pyx"]
