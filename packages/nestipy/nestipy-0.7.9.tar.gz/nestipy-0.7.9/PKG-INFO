@@ -1,0 +1,184 @@
+Metadata-Version: 2.4
+Name: nestipy
+Version: 0.7.9
+Summary: Nestipy is a Python framework built on top of BlackSheep that follows the modular architecture of NestJS
+Author-email: tsiresymila <tsiresymila@gmail.com>
+License-File: LICENSE
+Requires-Python: <4,>=3.11
+Requires-Dist: aio-pika<10,>=9.4.3
+Requires-Dist: aiofiles<25,>=24.1.0
+Requires-Dist: aiomqtt<3,>=2.3.0
+Requires-Dist: async-timeout<6,>=5.0.1
+Requires-Dist: asyncclick<9,>=8.1.7.2
+Requires-Dist: chardet<6,>=5.2.0
+Requires-Dist: click<9,>=8.1.7
+Requires-Dist: dataclasses-json<0.7,>=0.6.7
+Requires-Dist: dotenv>=0.9.9
+Requires-Dist: essentials<2,>=1.1.5
+Requires-Dist: fastapi>=0.116.1
+Requires-Dist: grpcio-tools<2,>=1.74.0
+Requires-Dist: grpcio<2,>=1.74.0
+Requires-Dist: httpx<0.28,>=0.27.2
+Requires-Dist: itsdangerous<3,>=2.2.0
+Requires-Dist: jinja2<4,>=3.1.4
+Requires-Dist: minijinja<3,>=2.5.0
+Requires-Dist: nats-py<3,>=2.9.0
+Requires-Dist: orjson>=3.11.1
+Requires-Dist: pydantic[email]>=2.11.7
+Requires-Dist: pyee<13,>=12.1.1
+Requires-Dist: python-multipart<0.0.18,>=0.0.17
+Requires-Dist: python-socketio<6,>=5.11.1
+Requires-Dist: pyyaml<7,>=6.0.2
+Requires-Dist: redis<6,>=5.2.0
+Requires-Dist: rich<15,>=14.1.0
+Requires-Dist: snakecase<2,>=1.0.1
+Requires-Dist: strawberry-graphql>=0.278.0
+Requires-Dist: ujson<6,>=5.9.0
+Provides-Extra: blacksheep
+Description-Content-Type: text/markdown
+
+<p align="center">
+  <a target="_blank"><img src="https://raw.githubusercontent.com/nestipy/nestipy/release-v1/nestipy.png" width="200" alt="Nestipy Logo" /></a></p>
+<p align="center">
+    <a href="https://pypi.org/project/nestipy">
+        <img src="https://img.shields.io/pypi/v/nestipy?color=%2334D058&label=pypi%20package" alt="Version">
+    </a>
+    <a href="https://pypi.org/project/nestipy">
+        <img src="https://img.shields.io/pypi/pyversions/nestipy.svg?color=%2334D058" alt="Python">
+    </a>
+    <a href="https://github.com/tsiresymila1/nestipy/blob/main/LICENSE">
+        <img src="https://img.shields.io/github/license/tsiresymila1/nestipy" alt="License">
+    </a>
+</p>
+
+## Description
+
+<p>Nestipy is a Python framework built on top of FastAPI that follows the modular architecture of NestJS</p>
+<p>Under the hood, Nestipy makes use of <a href="https://fastapi.tiangolo.com/" target="_blank">FastAPI</a>, but also provides compatibility with a wide range of other libraries, like <a href="https://fastapi.tiangolo.com/" target="_blank">Blacksheep</a>, allowing for easy use of the myriad of third-party plugins which are available.</p>
+
+## Getting started
+
+```cmd
+    pip install nestipy-cli
+    nestipy new my_app
+    cd my_app
+    nestipy start --dev
+```
+
+```
+    ├── src
+    │    ├── __init__.py
+    ├── app_module.py
+    ├── app_controller.py
+    ├── app_service.py
+    ├── main.py
+    ├── cli.py
+    ├── pyproject.yml
+    ├── uv.lock
+    ├── README.md
+    
+       
+```
+The main.py file contains an instance of application and bootstrapping it with uvicorn.
+
+```python
+import uvicorn
+from nestipy.core import NestipyFactory
+
+from app_module import AppModule
+
+app = NestipyFactory.create(AppModule)
+
+if __name__ == '__main__':
+    uvicorn.run('main:app', reload=True)
+```
+Inside module, we got,
+
+```python
+from app_command import AppCommand
+from app_controller import AppController
+from app_service import AppService
+
+from nestipy.common import Module
+
+
+@Module(
+    controllers=[AppController],
+    providers=[AppService, AppCommand]
+)
+class AppModule: ...
+
+```
+For controller, we got something like
+```python
+from typing import Annotated
+
+from nestipy.common import Controller, Get, Post, Put, Delete
+from nestipy.ioc import Inject, Body, Param
+
+from app_service import AppService
+
+
+@Controller()
+class AppController:
+    service: Annotated[AppService, Inject()]
+
+    @Get()
+    async def get(self) -> str:
+        return await self.service.get()
+
+    @Post()
+    async def post(self, data: Annotated[dict, Body()]) -> str:
+        return await self.service.post(data=data)
+
+    @Put("/{app_id}")
+    async def put(
+        self, app_id: Annotated[int, Param("app_id")], data: Annotated[dict, Body()]
+    ) -> str:
+        return await self.service.put(id_=app_id, data=data)
+
+    @Delete("/{app_id}")
+    async def delete(self, app_id: Annotated[int, Param("app_id")]) -> None:
+        await self.service.delete(id_=app_id)
+
+```
+And, for `app_service.py`
+```python
+from nestipy.common import Injectable
+
+
+@Injectable()
+class AppService:
+    @classmethod
+    async def get(cls):
+        return "test"
+
+    @classmethod
+    async def post(cls, data: dict):
+        return "test"
+
+    @classmethod
+    async def put(cls, id_: int, data: dict):
+        return "test"
+
+    @classmethod
+    async def delete(cls, id_: int):
+        return "test"
+
+```
+## Documentation
+
+View full documentation from [here](https://nestipy.vercel.app).
+
+## Support
+
+Nestipy is an MIT-licensed open source project. It can grow thanks to the sponsors and support from the amazing backers.
+If you'd like to join them, please [read more here].
+
+## Stay in touch
+
+- Author - [Tsiresy Mila](https://tsiresymila.vercel.app)
+
+## License
+
+Nestipy is [MIT licensed](LICENSE).
