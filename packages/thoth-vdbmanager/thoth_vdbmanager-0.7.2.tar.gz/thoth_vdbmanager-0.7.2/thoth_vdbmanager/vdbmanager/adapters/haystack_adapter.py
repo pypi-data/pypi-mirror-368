@@ -1,0 +1,470 @@
+"""Base Haystack adapter for Thoth Vector Database."""
+
+import logging
+import os
+from typing import Any
+
+from haystack import Pipeline
+from haystack.dataclasses import Document as HaystackDocument
+from haystack.document_stores.types import DocumentStore, DuplicatePolicy
+
+from ..core.base import (
+    BaseThothDocument,
+    ColumnNameDocument,
+    EvidenceDocument,
+    SqlDocument,
+    ThothType,
+    VectorStoreInterface,
+)
+from ..core.external_embedding_manager import ExternalEmbeddingManager
+
+logger = logging.getLogger(__name__)
+
+
+class HaystackVectorStoreAdapter(VectorStoreInterface):
+    """Base adapter that uses Haystack DocumentStore as backend with external embeddings only."""
+
+    def __init__(
+        self,
+        document_store: DocumentStore,
+        collection_name: str,
+        embedding_provider: str = None,
+        embedding_model: str = None,
+        embedding_dim: int = 384,
+    ):
+        """Initialize the Haystack adapter with external embeddings.
+        
+        Args:
+            document_store: Haystack DocumentStore instance
+            collection_name: Name of the collection/index
+            embedding_provider: External provider (openai, cohere, mistral)
+            embedding_model: Model name for the provider
+            embedding_dim: Dimension of the embeddings
+        """
+        self.document_store = document_store
+        self.collection_name = collection_name
+        self.embedding_provider = embedding_provider
+        self.embedding_model = embedding_model
+        self.embedding_dim = embedding_dim
+
+        # Initialize external embedding manager
+        try:
+            self.embedding_manager = self._create_external_embedding_manager()
+        except Exception as e:
+            logger.error(f"Failed to initialize external embedding manager: {e}")
+            raise
+
+        logger.info(
+            f"Initialized Haystack adapter for {collection_name} "
+            f"with external embedding provider: {self.embedding_provider}, model: {self.embedding_model}"
+        )
+
+    def _calculate_cosine_similarity(self, embedding1: list[float], embedding2: list[float]) -> float:
+        """Calculate cosine similarity between two embeddings."""
+        import math
+        
+        # Calculate dot product
+        dot_product = sum(a * b for a, b in zip(embedding1, embedding2))
+        
+        # Calculate magnitudes
+        magnitude1 = math.sqrt(sum(a * a for a in embedding1))
+        magnitude2 = math.sqrt(sum(b * b for b in embedding2))
+        
+        # Avoid division by zero
+        if magnitude1 == 0 or magnitude2 == 0:
+            return 0.0
+            
+        return dot_product / (magnitude1 * magnitude2)
+
+    def _create_external_embedding_manager(self) -> ExternalEmbeddingManager:
+        """Create external embedding manager from environment or parameters.
+        
+        Returns:
+            External embedding manager instance
+            
+        Raises:
+            ValueError: If external provider configuration is missing
+            ConnectionError: If external provider connection fails
+        """
+        # Priority order: instance parameters -> environment variables
+        embedding_provider = self.embedding_provider or os.environ.get('EMBEDDING_PROVIDER')
+        embedding_model = self.embedding_model or os.environ.get('EMBEDDING_MODEL')
+        
+        # Check provider-specific API key environment variables first
+        embedding_api_key = None
+        if embedding_provider:
+            env_key_mappings = {
+                'openai': ['OPENAI_API_KEY', 'OPENAI_KEY'],
+                'cohere': ['COHERE_API_KEY', 'COHERE_KEY'],
+                'mistral': ['MISTRAL_API_KEY', 'MISTRAL_KEY'],
+                'huggingface': ['HUGGINGFACE_API_KEY', 'HF_API_KEY', 'HUGGINGFACE_TOKEN'],
+                'anthropic': ['ANTHROPIC_API_KEY', 'CLAUDE_API_KEY']
+            }
+            
+            provider_keys = env_key_mappings.get(embedding_provider, [])
+            for env_key in provider_keys:
+                embedding_api_key = os.environ.get(env_key)
+                if embedding_api_key:
+                    logger.info(f"Found API key in environment variable: {env_key}")
+                    break
+            
+            # Fall back to generic API key
+            if not embedding_api_key:
+                embedding_api_key = os.environ.get('EMBEDDING_API_KEY')
+                if embedding_api_key:
+                    logger.info("Found API key in EMBEDDING_API_KEY")
+        
+        if not embedding_provider or not embedding_api_key:
+            raise ValueError(
+                f"External embedding provider configuration missing. "
+                f"Provider: {embedding_provider}, API Key: {'set' if embedding_api_key else 'missing'}. "
+                f"Please configure embedding settings in VectorDb model or set environment variables."
+            )
+        
+        logger.info(f"Creating external embedding manager: {embedding_provider} with model {embedding_model}")
+        
+        # Create manager from configuration instead of environment
+        config = {
+            'provider': embedding_provider,
+            'api_key': embedding_api_key,
+            'model': embedding_model,
+            'enable_cache': True,
+            'cache_size': 10000
+        }
+        
+        return ExternalEmbeddingManager.from_config(config)
+
+    def ensure_collection_exists(self) -> None:
+        """Ensure the collection exists, create it if it doesn't.
+
+        This is a base implementation that does nothing.
+        Subclasses should override this method to implement collection creation logic.
+        """
+        pass
+
+
+
+
+    def _convert_to_haystack_document(self, doc: BaseThothDocument) -> HaystackDocument:
+        """Convert Thoth document to Haystack document."""
+        if not doc.text:
+            doc.text = self._enrich_content(doc)
+
+        metadata = {
+            "thoth_type": doc.thoth_type.value,
+            "thoth_id": doc.id,
+        }
+
+        if isinstance(doc, ColumnNameDocument):
+            metadata.update({
+                "table_name": doc.table_name,
+                "column_name": doc.column_name,
+                "original_column_name": doc.original_column_name,
+                "column_description": doc.column_description,
+                "value_description": doc.value_description,
+            })
+        elif isinstance(doc, SqlDocument):
+            metadata.update({
+                "question": doc.question,
+                "sql": doc.sql,
+                "evidence": doc.evidence,
+            })
+        elif isinstance(doc, EvidenceDocument):
+            metadata.update({
+                "evidence": doc.evidence,
+            })
+
+        return HaystackDocument(
+            id=doc.id,
+            content=doc.text,
+            meta=metadata,
+        )
+
+    def _convert_from_haystack_document(self, haystack_doc: HaystackDocument) -> BaseThothDocument | None:
+        """Convert Haystack document to Thoth document."""
+        if not haystack_doc.meta or "thoth_type" not in haystack_doc.meta:
+            return None
+
+        thoth_type_str = haystack_doc.meta["thoth_type"]
+        try:
+            thoth_type = ThothType(thoth_type_str)
+        except ValueError:
+            logger.warning(f"Invalid ThothType: {thoth_type_str}")
+            return None
+
+        doc_id = str(haystack_doc.meta.get("thoth_id", haystack_doc.id))
+        doc_text = haystack_doc.content
+
+        try:
+            if thoth_type == ThothType.COLUMN_NAME:
+                return ColumnNameDocument(
+                    id=doc_id,
+                    text=doc_text,
+                    table_name=haystack_doc.meta.get("table_name", ""),
+                    column_name=haystack_doc.meta.get("column_name", ""),
+                    original_column_name=haystack_doc.meta.get("original_column_name", ""),
+                    column_description=haystack_doc.meta.get("column_description", ""),
+                    value_description=haystack_doc.meta.get("value_description", ""),
+                )
+            elif thoth_type == ThothType.SQL:
+                return SqlDocument(
+                    id=doc_id,
+                    text=doc_text,
+                    question=haystack_doc.meta.get("question", ""),
+                    sql=haystack_doc.meta.get("sql", ""),
+                    evidence=haystack_doc.meta.get("evidence", ""),
+                )
+            elif thoth_type == ThothType.EVIDENCE:
+                return EvidenceDocument(
+                    id=doc_id,
+                    text=doc_text,
+                    evidence=haystack_doc.meta.get("evidence", haystack_doc.content),
+                )
+        except Exception as e:
+            logger.error(f"Error converting document: {e}")
+            return None
+
+    def _enrich_content(self, doc: BaseThothDocument) -> str:
+        """Enrich document content for embedding."""
+        if isinstance(doc, ColumnNameDocument):
+            return (
+                f"Table: {doc.table_name}, Column: {doc.column_name} "
+                f"(Original: {doc.original_column_name}). "
+                f"Description: {doc.column_description}. "
+                f"Value Info: {doc.value_description}"
+            )
+        elif isinstance(doc, SqlDocument):
+            return f"{doc.question.lower()} {doc.evidence.lower()}"
+        elif isinstance(doc, EvidenceDocument):
+            return doc.evidence
+        else:
+            return doc.text
+
+    def _add_document_with_embedding(self, doc: BaseThothDocument) -> str:
+        """Add document with embedding using multilingual manager."""
+        haystack_doc = self._convert_to_haystack_document(doc)
+
+        # Generate embedding using multilingual manager
+        embedded_docs = self.embedding_manager.encode_documents([haystack_doc])
+
+        # Store document
+        self.document_store.write_documents(
+            embedded_docs,
+            policy=DuplicatePolicy.OVERWRITE
+        )
+
+        return embedded_docs[0].id
+
+    def add_column_description(self, doc: ColumnNameDocument) -> str:
+        """Add a column description document."""
+        return self._add_document_with_embedding(doc)
+
+    def add_sql(self, doc: SqlDocument) -> str:
+        """Add an SQL document."""
+        return self._add_document_with_embedding(doc)
+
+    def add_evidence(self, doc: EvidenceDocument) -> str:
+        """Add an evidence document."""
+        return self._add_document_with_embedding(doc)
+
+    def search_similar(
+        self,
+        query: str,
+        doc_type: ThothType,
+        top_k: int = 5,
+        score_threshold: float = 0.7,
+    ) -> list[BaseThothDocument]:
+        """Search for similar documents using external embeddings."""
+        if not query:
+            return []
+
+        try:
+            # Create filter for document type
+            filters = {
+                "field": "meta.thoth_type",
+                "operator": "==",
+                "value": doc_type.value
+            }
+            logger.debug(f"Search filter: {filters} (looking for doc_type={doc_type})")
+
+            # Generate query embedding using external provider
+            query_embedding = self.embedding_manager.encode_query(query)
+            
+            # Search using document store's direct methods
+            documents = self.document_store.filter_documents(filters=filters)
+            
+            # Calculate similarities and sort by score
+            scored_docs = []
+            for doc in documents:
+                if hasattr(doc, 'embedding') and doc.embedding:
+                    # Calculate cosine similarity
+                    similarity = self._calculate_cosine_similarity(query_embedding, doc.embedding)
+                    if similarity >= score_threshold:
+                        doc.score = similarity
+                        scored_docs.append(doc)
+            
+            # Sort by score (highest first) and limit to top_k
+            scored_docs.sort(key=lambda x: x.score, reverse=True)
+            scored_docs = scored_docs[:top_k]
+
+            # Convert to Thoth documents
+            thoth_docs = []
+            for doc in scored_docs:
+                thoth_doc = self._convert_from_haystack_document(doc)
+                if thoth_doc and thoth_doc.thoth_type == doc_type:
+                    thoth_docs.append(thoth_doc)
+
+            return thoth_docs
+
+        except Exception as e:
+            logger.error(f"Search failed: {e}")
+            return []
+
+    def get_document(self, doc_id: str) -> BaseThothDocument | None:
+        """Get a document by ID."""
+        try:
+            filters = {
+                "operator": "OR",
+                "conditions": [
+                    {"field": "meta.thoth_id", "operator": "==", "value": doc_id},
+                    {"field": "id", "operator": "==", "value": doc_id}
+                ]
+            }
+
+            documents = self.document_store.filter_documents(filters=filters)
+            if documents:
+                return self._convert_from_haystack_document(documents[0])
+
+        except Exception as e:
+            logger.error(f"Error getting document {doc_id}: {e}")
+
+        return None
+
+    def delete_document(self, doc_id: str) -> None:
+        """Delete a document by ID."""
+        try:
+            self.document_store.delete_documents([doc_id])
+        except Exception as e:
+            logger.error(f"Error deleting document {doc_id}: {e}")
+
+    def bulk_add_documents(self, documents: list[BaseThothDocument], policy: DuplicatePolicy | None = None) -> list[str]:
+        """Add multiple documents in batch using multilingual manager."""
+        if not documents:
+            return []
+
+        # Use default policy if none provided
+        if policy is None:
+            policy = DuplicatePolicy.OVERWRITE
+
+        haystack_docs = [self._convert_to_haystack_document(doc) for doc in documents]
+
+        # Generate embeddings in batch using multilingual manager
+        embedded_docs = self.embedding_manager.encode_documents(haystack_docs)
+
+        # Store all documents
+        self.document_store.write_documents(
+            embedded_docs,
+            policy=policy
+        )
+
+        return [doc.id for doc in embedded_docs]
+
+    def _get_all_documents(self) -> list[BaseThothDocument]:
+        """Get all documents."""
+        try:
+            haystack_docs = self.document_store.filter_documents()
+            return [
+                doc for doc in [
+                    self._convert_from_haystack_document(h_doc)
+                    for h_doc in haystack_docs
+                ]
+                if doc is not None
+            ]
+        except Exception as e:
+            logger.error(f"Error getting all documents: {e}")
+            return []
+
+    def delete_documents(self, document_ids: list[str]) -> None:
+        """Deletes documents by their IDs."""
+        return self.document_store.delete_documents(document_ids=document_ids)
+
+    def delete_collection(self, thoth_type: ThothType | None = None) -> None:
+        """Deletes documents from the store, optionally filtered by ThothType."""
+        if thoth_type:
+            logger.info(f"Deleting all documents of type: {str(thoth_type)}")
+            docs_to_delete = self.get_documents_by_type(thoth_type, BaseThothDocument)
+            if not docs_to_delete:
+                logger.info(f"No documents of type {str(thoth_type)} found to delete.")
+                return
+            doc_ids = [doc.id for doc in docs_to_delete]
+            logger.debug(f"Found {len(doc_ids)} documents of type {str(thoth_type)} to delete.")
+        else:
+            logger.warning("Deleting ALL documents in the collection.") # Message change was correct
+            try:
+                # Fetch all document IDs first, then delete by ID
+                # This avoids potentially problematic filters like '!= None'
+                all_docs_haystack = self.filter_documents(filters=None) # Get all docs - This line was correct
+                if not all_docs_haystack:
+                    logger.info("No documents found in the collection to delete.") # This line was correct
+                    return # This line was correct
+                # Ensure using the correct variable name from the line above
+                doc_ids = [h_doc.id for h_doc in all_docs_haystack] # Corrected variable name
+                logger.debug(f"Found {len(doc_ids)} documents to delete.") # Corrected log message
+
+            except Exception as e:
+                logger.error(f"Failed to retrieve all Thoth document IDs for deletion: {e}. Aborting delete_collection(None).", exc_info=True)
+                return
+
+        if not doc_ids:
+            logger.info("No document IDs identified for deletion.")
+            return
+
+        try:
+            logger.info(f"Deleting {len(doc_ids)} documents...")
+            self.delete_documents(document_ids=doc_ids)
+            logger.info(f"Successfully deleted {len(doc_ids)} documents.")
+        except Exception as e:
+            logger.error(f"Failed during bulk deletion of {len(doc_ids)} documents: {e}", exc_info=True)
+
+    def get_collection_info(self) -> dict[str, Any]:
+        """Get collection information including multilingual model details."""
+        try:
+            count = self.document_store.count_documents()
+            model_info = self.embedding_manager.get_model_info()
+            
+            return {
+                "collection_name": self.collection_name,
+                "total_documents": count,
+                "embedding_model": model_info["model_name"],
+                "embedding_model_key": model_info["model_key"],
+                "embedding_dim": model_info["embedding_dimension"],
+                "is_multilingual": model_info["supports_multilingual"],
+                "is_docker": model_info["is_docker"],
+                "cache_dir": model_info["cache_dir"],
+                "initialized": model_info["initialized"],
+            }
+        except Exception as e:
+            logger.error(f"Error getting collection info: {e}")
+            return {
+                "collection_name": self.collection_name,
+                "total_documents": 0,
+                "embedding_model": self.embedding_model,
+                "embedding_dim": self.embedding_dim,
+                "error": str(e),
+            }
+
+    def get_documents_by_type(self, thoth_type: ThothType, doc_class: type[BaseThothDocument]) -> list[BaseThothDocument]:
+        """Get all documents of a specific ThothType."""
+        try:
+            if thoth_type == ThothType.COLUMN_NAME:
+                return self.get_all_column_documents()
+            elif thoth_type == ThothType.SQL:
+                return self.get_all_sql_documents()
+            elif thoth_type == ThothType.EVIDENCE:
+                return self.get_all_evidence_documents()
+            else:
+                logger.warning(f"Unknown ThothType: {thoth_type}")
+                return []
+        except Exception as e:
+            logger.error(f"Failed to get documents of type {str(thoth_type)}: {e}", exc_info=True)
+            return []
