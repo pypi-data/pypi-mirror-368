@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "$id": "https://raw.githubusercontent.com/hits-mbm-dev/kimmdy-reactions/main/src/homolysis/kimmdy-yaml-schema.json",
+  "description": "Settings for homolysis reactions",
+  "additionalProperties": false,
+  "properties": {
+    "edis": {
+      "title": "edis",
+      "deprecated": true,
+      "description": "Dissociation energies data file now lives in the kimmdy root config as `config.edissoc`"
+    },
+    "itp": {
+      "title": "itp",
+      "deprecated": true,
+      "description": "Additional itp file with bonded parameters is no longer required and directly read from the forcefield."
+    },
+    "dt_distances": {
+      "title": "dt_distances",
+      "type": "number",
+      "description": "Stepsize in ps for reading distances from the plumed distances.dat file. 0 Means use every frame in the file.",
+      "pytype": "float",
+      "minimum": 0,
+      "default": 0
+    },
+    "b0_overwrite": {
+      "title": "b0_overwrite",
+      "type": "number",
+      "description": "Global equilibrium bond length used as an offset for calculating bond forces.",
+      "pytype": "float",
+      "minimum": 0,
+      "default": 0
+    },
+    "f0_overwrite": {
+      "title": "f0_overwrite",
+      "type": "number",
+      "description": "Global equilibrium bond force used as an offset for calculating bond forces.",
+      "pytype": "float",
+      "minimum": 0,
+      "default": 0
+    },
+    "recompute_bondstats": {
+      "title": "recompute_bondstats",
+      "type": "boolean",
+      "description": "Recompute bondstats (mean distance and force) even if a .kimmdy.bondstats cache file is found.",
+      "pytype": "bool",
+      "default": false
+    },
+    "kmc": {
+      "title": "kmc",
+      "description": "KMC algorithm for this reaction.",
+      "type": "string",
+      "pytype": "str",
+      "enum": ["rfkmc", "frm", "extrande", "extrande_mod", "multi_rfkmc"],
+      "default": "rfkmc"
+    },
+    "check_bound": {
+      "type": "boolean",
+      "pytype": "bool",
+      "description": "Check the topology for bonds between plumed atom pairs and only attempt to break them if they are actually bonded.",
+      "default": true
+    },
+    "use_morse": {
+      "type": "boolean",
+      "pytype": "bool",
+      "description": "Calculate transition rates using a morse potential (the default). If set to `false`, a harmonic potential is used instead.",
+      "default": true
+    },
+    "arrhenius_equation": {
+      "title": "arrhenius_equation",
+      "type": "object",
+      "description": "For setting values in the arrhenius equation",
+      "properties": {
+        "frequency_factor": {
+          "type": "number",
+          "description": "Frequency factor",
+          "pytype": "float",
+          "minimum": 0,
+          "default": 0.288
+        },
+        "temperature": {
+          "type": "number",
+          "description": "Temperature",
+          "pytype": "float",
+          "minimum": 0,
+          "default": 300
+        }
+      },
+      "required": [ "frequency_factor", "temperature" ],
+      "additionalProperties": false
+    }
+  },
+  "required": [ "edis" ]
+}
+
