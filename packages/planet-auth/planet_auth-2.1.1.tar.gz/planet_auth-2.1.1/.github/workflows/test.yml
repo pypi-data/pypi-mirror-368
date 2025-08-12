@@ -1,0 +1,180 @@
+name: Tests
+
+permissions:
+  actions: read
+  contents: read
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+env:
+  PYTHON_VERSION: "3.13"
+
+jobs:
+  black_formatting:
+    name: Black Format Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Prepare common Python build environment
+        uses: ./.github/actions/python-build-env-setup
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: 'Nox: Python Black'
+        run: |
+          nox -s black_lint
+
+  pytest_all:
+    name: PyTest with Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Prepare common Python build environment
+        uses: ./.github/actions/python-build-env-setup
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: "Nox: Pytest ${{ matrix.python-version }}"
+        run: |
+          nox -s pytest-${{ matrix.python-version }}
+
+  semgrep_src:
+    name: Semgrep Security Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Prepare common Python build environment
+        uses: ./.github/actions/python-build-env-setup
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: 'Nox: Semgrep - src'
+        run: |
+          nox -s semgrep_src
+
+  mypy_all:
+    name: MyPy - All
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Prepare common Python build environment
+        uses: ./.github/actions/python-build-env-setup
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: "Nox: MyPy"
+        run: |
+          nox -s mypy
+
+  pyflakes_src:
+    name: Pyflakes - src
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Prepare common Python build environment
+        uses: ./.github/actions/python-build-env-setup
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: "Nox: Pyflakes - src"
+        run: |
+          nox -s pyflakes_src
+
+  pyflakes_examples:
+    name: Pyflakes - examples
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Prepare common Python build environment
+        uses: ./.github/actions/python-build-env-setup
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: "Nox: Pyflakes - examples"
+        run: |
+          nox -s pyflakes_examples
+
+  pyflakes_test:
+    name: Pyflakes - tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Prepare common Python build environment
+        uses: ./.github/actions/python-build-env-setup
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: "Nox: Pyflakes - tests"
+        run: |
+          nox -s pyflakes_tests
+
+  pylint_src:
+    name: Pylint - src
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Prepare common Python build environment
+        uses: ./.github/actions/python-build-env-setup
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: "Nox: Pylint - src"
+        run: |
+          nox -s pylint_src
+
+  pylint_examples:
+    name: Pylint - examples
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Prepare common Python build environment
+        uses: ./.github/actions/python-build-env-setup
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: "Nox: Pylint - examples"
+        run: |
+          nox -s pylint_examples
+
+  pylint_test:
+    name: Pylint - tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Prepare common Python build environment
+        uses: ./.github/actions/python-build-env-setup
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: "Nox: Pylint - tests"
+        run: |
+          nox -s pylint_tests
+
+  mkdocs_check:
+    # FIXME: Since there is no difference between "build" and "check" for the docs,
+    #        this is redundant with the release workflow.  Still, we want to provide
+    #        the feedback about bad docs in the "test" workflow, upstream of release.
+    name: MkDocs - check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Prepare common Python build environment
+        uses: ./.github/actions/python-build-env-setup
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: 'Nox: MKDocs Build'
+        run: |
+          nox -s mkdocs_build
+          # Not checking the links in the pipeline right now.
+          # This is throwing some false positives on intra-md links
+          # that build OK, and would also be caught by our mkdocs
+          # strict mode setting.
+          # nox -s mkdocs_checklinks
