@@ -1,0 +1,66 @@
+[build-system]
+requires = [
+    "setuptools>=42",
+    "wheel"
+]
+build-backend = "setuptools.build_meta"
+
+[dependency-groups]
+test = ["pytest", "coverage"]
+
+[tool.bandit]
+skips = ["B101"]
+
+[tool.black]
+line-length = 120
+
+[tool.flake8]
+extend-ignore = ["E203", "E501", "E704", "W503"]
+max-line-length = 120
+
+[tool.isort]
+profile = "black"
+src_paths = ["examples", "src", "tests"]
+
+[tool.mypy]
+disable_error_code = ["no-untyped-call"]
+
+[[tool.mypy.overrides]]
+module = "senzing.szengineflags.*"
+ignore_missing_imports = "true"
+warn_unused_ignores = "false"
+
+[[tool.mypy.overrides]]
+module = "pytest_schema.*"
+ignore_missing_imports = "true"
+
+[[tool.mypy.overrides]]
+module = ["grpc", "senzing_grpc", "insecure_channel"]
+follow_untyped_imports = true
+
+[tool.pylint]
+load-plugins = [
+    "pylint_per_file_ignores",
+]
+disable = [
+    "duplicate-code",
+    "line-too-long",
+    "missing-module-docstring",
+    "too-many-arguments",
+    "too-many-positional-arguments",
+    "too-many-public-methods",
+    "wrong-import-order"
+]
+ignore = [
+    "__init__.py",
+    "docs/source/conf.py",
+]
+notes = [
+    "FIXME"
+]
+# NOTE - Ignore invalid-name only in examples for simplified code without pylint complaining variables in global scope
+#        aren't uppercase.
+# NOTE - Paths are regular expressions
+per-file-ignores = """
+    /examples/:invalid-name
+"""
