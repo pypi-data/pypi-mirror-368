@@ -1,0 +1,490 @@
+Metadata-Version: 2.3
+Name: llmprogram
+Version: 0.1.2
+Summary: A Python package for creating and running LLM programs.
+License: MIT
+Author: Dipankar Sarkar
+Author-email: me@dipankar.name
+Requires-Python: >=3.9
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Requires-Dist: aiosqlite (>=0.21.0,<0.22.0)
+Requires-Dist: duckdb (>=0.9.0,<0.10.0)
+Requires-Dist: fastapi (>=0.104.0,<0.105.0)
+Requires-Dist: jinja2 (>=3.1.6,<4.0.0)
+Requires-Dist: jsonschema (>=4.25.0,<5.0.0)
+Requires-Dist: openai (>=1.99.7,<2.0.0)
+Requires-Dist: pydantic (>=2.0.0,<3.0.0)
+Requires-Dist: pyyaml (>=6.0.2,<7.0.0)
+Requires-Dist: redis (>=6.4.0,<7.0.0)
+Requires-Dist: uvicorn (>=0.23.0,<0.24.0)
+Description-Content-Type: text/markdown
+
+# LLM Program
+
+`llmprogram` is a Python package that provides a structured and powerful way to create and run programs that use Large Language Models (LLMs). It uses a YAML-based configuration to define the behavior of your LLM programs, making them easy to create, manage, and share.
+
+## How is `llmprogram` different?
+
+There are many libraries and frameworks available for working with LLMs. Here’s what makes `llmprogram` different:
+
+*   **Focus on Programmatic LLM-Chains:** `llmprogram` is designed to create self-contained, reusable "programs" that can be chained together to build more complex applications. The YAML-based configuration makes it easy to define and version these programs.
+*   **Data Quality and Validation:** The built-in input and output validation using JSON schemas ensures that your programs are robust and that the data flowing through them is correct. This is crucial for building reliable LLM-powered applications.
+*   **Dataset Generation as a First-Class Citizen:** `llmprogram` is designed with the entire lifecycle of an LLM application in mind, from development to production and fine-tuning. The automatic logging to a SQLite database makes it incredibly easy to create high-quality datasets for fine-tuning your own models.
+*   **Simplicity and Intuitiveness:** The YAML configuration is easy to read and write, and the Python API is simple and intuitive. This makes it easy to get started and to build complex applications without a steep learning curve.
+
+## Features
+
+*   **YAML-based Configuration:** Define your LLM programs using simple and intuitive YAML files.
+*   **Input/Output Validation:** Use JSON schemas to validate the inputs and outputs of your programs, ensuring data integrity.
+*   **Jinja2 Templating:** Use the power of Jinja2 templates to create dynamic prompts for your LLMs.
+*   **Caching:** Built-in support for Redis caching to save time and reduce costs.
+*   **Execution Logging:** Automatically log program executions to a SQLite database for analysis and debugging.
+*   **Streaming:** Support for streaming responses from the LLM.
+*   **Extensible with Tools:** Extend the functionality of your programs by adding custom tools (functions) that the LLM can call.
+*   **Batch Processing:** Process multiple inputs in parallel for improved performance.
+*   **CLI for Dataset Generation:** A command-line interface to generate instruction datasets for LLM fine-tuning from your logged data.
+*   **Web Service:** Expose your programs as REST API endpoints with automatic OpenAPI documentation.
+*   **Analytics:** Comprehensive analytics tracking with DuckDB for token usage, LLM calls, program usage, and timing metrics.
+*   **AI-Assisted YAML Generation:** Generate LLM program YAML files automatically based on natural language descriptions.
+
+## Getting Started
+
+### Installation
+
+```bash
+pip install llmprogram
+```
+
+### Usage
+
+1.  **Set your OpenAI API Key:**
+
+    ```bash
+    export OPENAI_API_KEY='your-api-key'
+    ```
+
+2.  **Create a program YAML file:**
+
+    Create a file named `sentiment_analysis.yaml`:
+
+    ```yaml
+    name: sentiment_analysis
+    description: Analyzes the sentiment of a given text.
+    version: 1.0.0
+
+    model:
+      provider: openai
+      name: gpt-4.1-mini
+      temperature: 0.5
+      max_tokens: 100
+      response_format: json_object
+
+    system_prompt: |
+      You are a sentiment analysis expert. Analyze the sentiment of the given text and return a JSON response with the following format:
+      - sentiment (string): "positive", "negative", or "neutral"
+      - score (number): A score from -1 (most negative) to 1 (most positive)
+
+    input_schema:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          description: The text to analyze.
+
+    output_schema:
+      type: object
+      required:
+        - sentiment
+        - score
+      properties:
+        sentiment:
+          type: string
+          enum: ["positive", "negative", "neutral"]
+        score:
+          type: number
+          minimum: -1
+          maximum: 1
+
+    template: |
+      Analyze the following text:
+      {{text}}
+    ```
+
+3.  **Run the program using the CLI:**
+
+    ```bash
+    # Using a JSON input file
+    llmprogram run sentiment_analysis.yaml --inputs sentiment_inputs.json
+    
+    # Using inline JSON
+    llmprogram run sentiment_analysis.yaml --input-json '{"text": "I love this product!"}'
+    ```
+
+    Or create a file named `run_sentiment_analysis.py`:
+
+    ```python
+    import asyncio
+    from llmprogram import LLMProgram
+
+    async def main():
+        program = LLMProgram('sentiment_analysis.yaml')
+        result = await program(text='I love this new product! It is amazing.')
+        print(result)
+
+    if __name__ == '__main__':
+        asyncio.run(main())
+    ```
+
+    Run the script:
+
+    ```bash
+    python run_sentiment_analysis.py
+    ```
+
+## Configuration
+
+The behavior of each LLM program is defined in a YAML file. Here are the key sections:
+
+*   `name`, `description`, `version`: Basic metadata for your program.
+*   `model`: Defines the LLM provider, model name, and other parameters like `temperature` and `max_tokens`.
+*   `system_prompt`: The instructions that are given to the LLM to guide its behavior.
+*   `input_schema`: A JSON schema that defines the expected input for the program. The program will validate the input against this schema before execution.
+*   `output_schema`: A JSON schema that defines the expected output from the LLM. The program will validate the LLM's output against this schema.
+*   `template`: A Jinja2 template that is used to generate the prompt that is sent to the LLM. The template is rendered with the input variables.
+
+## Using with other OpenAI-compatible endpoints
+
+You can use `llmprogram` with any OpenAI-compatible endpoint, such as [Ollama](https://ollama.ai/). To do this, you can pass the `api_key` and `base_url` to the `LLMProgram` constructor:
+
+```python
+program = LLMProgram(
+    'your_program.yaml',
+    api_key='your-api-key',  # optional, defaults to OPENAI_API_KEY env var
+    base_url='http://localhost:11434/v1'  # example for Ollama
+)
+```
+
+## Caching
+
+`llmprogram` supports caching of LLM responses to Redis to improve performance and reduce costs. To enable caching, you need to have a Redis server running.
+
+By default, caching is enabled. You can disable it or configure the Redis connection and cache TTL (time-to-live) when you create an `LLMProgram` instance:
+
+```python
+program = LLMProgram(
+    'your_program.yaml',
+    enable_cache=True,
+    redis_url="redis://localhost:6379",
+    cache_ttl=3600  # in seconds
+)
+```
+
+## Logging and Dataset Generation
+
+`llmprogram` automatically logs every execution of a program to a SQLite database. The database file is created in the same directory as the program YAML file, with a `.db` extension.
+
+This logging feature is not just for debugging; it's also a powerful tool for creating high-quality datasets for fine-tuning your own LLMs. Each record in the log contains:
+
+*   `function_input`: The input given to the program.
+*   `function_output`: The output received from the LLM.
+*   `llm_input`: The prompt sent to the LLM.
+*   `llm_output`: The raw response from the LLM.
+
+### Generating a Dataset
+
+You can use the built-in CLI to generate an instruction dataset from the logged data. The dataset is created in JSONL format, which is commonly used for fine-tuning.
+
+```bash
+llmprogram generate-dataset /path/to/your_program.db /path/to/your_dataset.jsonl
+```
+
+Each line in the output file will be a JSON object with the following keys:
+
+*   `instruction`: The system prompt and the user prompt, combined to form the instruction for the LLM.
+*   `output`: The output from the LLM.
+
+## Command-Line Interface (CLI)
+
+`llmprogram` comes with a command-line interface for common tasks.
+
+### `run`
+
+Run an LLM program with inputs from command line or files.
+
+**Usage:**
+
+```bash
+# First, set your OpenAI API key
+export OPENAI_API_KEY='your-api-key'
+
+# Run with inputs from a JSON file
+llmprogram run program.yaml --inputs inputs.json
+
+# Run with inputs from command line
+llmprogram run program.yaml --input-json '{"text": "I love this product!"}'
+
+# Run with inputs from stdin
+echo '{"text": "I love this product!"}' | llmprogram run program.yaml
+
+# Run with streaming output
+llmprogram run program.yaml --inputs inputs.json --stream
+
+# Save output to a file
+llmprogram run program.yaml --inputs inputs.json --output result.json
+```
+
+**Arguments:**
+
+*   `program_path`: The path to the program YAML file.
+*   `--inputs`, `-i`: Path to JSON/YAML file containing inputs.
+*   `--input-json`: JSON string of inputs.
+*   `--output`, `-o`: Path to output file (default: stdout).
+*   `--stream`, `-s`: Stream the response.
+
+### `generate-yaml`
+
+Generate an LLM program YAML file based on a description using an AI assistant.
+
+**Usage:**
+
+```bash
+# Generate a YAML program with a simple description
+llmprogram generate-yaml "Create a program that analyzes the sentiment of text" --output sentiment_analyzer.yaml
+
+# Generate a YAML program with examples
+llmprogram generate-yaml "Create a program that extracts key information from customer reviews" \
+  --example-input "The battery life on this phone is amazing! It lasts all day." \
+  --example-output '{"product_quality": "positive", "battery": "positive", "durability": "neutral"}' \
+  --output review_analyzer.yaml
+
+# Generate a YAML program and output to stdout
+llmprogram generate-yaml "Create a program that summarizes long texts"
+```
+
+**Arguments:**
+
+*   `description`: A detailed description of what the LLM program should do.
+*   `--example-input`: Example of the input the program will receive.
+*   `--example-output`: Example of the output the program should generate.
+*   `--output`, `-o`: Path to output YAML file (default: stdout).
+*   `--api-key`: OpenAI API key (optional, defaults to OPENAI_API_KEY env var).
+
+### `analytics`
+
+Show analytics data collected from LLM program executions.
+
+**Usage:**
+
+```bash
+# Show all analytics data
+llmprogram analytics
+
+# Show analytics for a specific program
+llmprogram analytics --program sentiment_analysis
+
+# Show analytics for a specific model
+llmprogram analytics --model gpt-4
+
+# Use a custom analytics database path
+llmprogram analytics --db-path /path/to/custom/analytics.duckdb
+```
+
+**Arguments:**
+
+*   `--db-path`: Path to the analytics database (default: llmprogram_analytics.duckdb).
+*   `--program`: Filter by program name.
+*   `--model`: Filter by model name.
+
+### `generate-dataset`
+
+Generate an instruction dataset for LLM fine-tuning from a SQLite log file.
+
+**Usage:**
+
+```bash
+llmprogram generate-dataset <database_path> <output_path>
+```
+
+**Arguments:**
+
+*   `database_path`: The path to the SQLite database file.
+*   `output_path`: The path to write the generated dataset to.
+
+## Web Service
+
+`llmprogram` includes a built-in web service that exposes your LLM programs as REST API endpoints with automatic OpenAPI documentation.
+
+### Running the Web Service
+
+To run the web service, use the `llmprogram-web` command:
+
+```bash
+# Run the web service with default settings (examples directory, localhost:8000)
+llmprogram-web
+
+# Run the web service with custom directory
+llmprogram-web --directory /path/to/your/programs
+
+# Run the web service on a different host/port
+llmprogram-web --host 0.0.0.0 --port 8080
+
+# Run with auto-reload for development
+llmprogram-web --reload
+
+# Use a custom analytics database path
+llmprogram-web --analytics-db /path/to/custom/analytics.duckdb
+```
+
+### API Endpoints
+
+The web service automatically generates REST endpoints for each YAML file in your programs directory:
+
+*   `GET /` - Root endpoint with API information
+*   `GET /programs` - List all available programs
+*   `GET /programs/{program_name}` - Get detailed information about a specific program
+*   `POST /programs/{program_name}/run` - Run a specific program
+*   `GET /analytics/llm-calls` - Get LLM call statistics
+*   `GET /analytics/program-usage` - Get program usage statistics
+*   `GET /analytics/token-usage` - Get token usage statistics
+
+For each program, the service generates:
+1. A POST endpoint at `/programs/{program_name}/run`
+2. Automatic request/response validation based on the program's input/output schemas
+3. Full OpenAPI documentation at `/docs` and `/redoc`
+4. OpenAPI specification at `/openapi.json`
+
+### Analytics Endpoints
+
+The web service includes comprehensive analytics endpoints:
+
+*   `GET /analytics/llm-calls` - Get LLM call statistics including call count, token usage, execution time, cache hits, and unique users
+*   `GET /analytics/program-usage` - Get program usage statistics including usage count, successful/failed calls, execution time, and unique users
+*   `GET /analytics/token-usage` - Get token usage statistics including prompt/completion tokens, total tokens, estimated cost, and unique users
+
+All analytics endpoints support filtering by program name, model name, and date range.
+
+### Example Usage
+
+After starting the web service, you can interact with it using curl or any HTTP client:
+
+```bash
+# List available programs
+curl http://localhost:8000/programs
+
+# Get information about a specific program
+curl http://localhost:8000/programs/sentiment_analysis
+
+# Run a program
+curl -X POST http://localhost:8000/programs/sentiment_analysis/run \
+  -H "Content-Type: application/json" \
+  -d '{"inputs": {"text": "I love this product!"}}'
+
+# Get LLM call statistics
+curl http://localhost:8000/analytics/llm-calls
+
+# Get program usage statistics for a specific program
+curl "http://localhost:8000/analytics/program-usage?program_name=sentiment_analysis"
+
+# Get token usage statistics with filtering
+curl "http://localhost:8000/analytics/token-usage?program_name=sentiment_analysis&model_name=gpt-4"
+```
+
+### OpenAPI Documentation
+
+The web service automatically generates comprehensive OpenAPI documentation:
+* Interactive API documentation: http://localhost:8000/docs
+* ReDoc documentation: http://localhost:8000/redoc
+* Raw OpenAPI JSON specification: http://localhost:8000/openapi.json
+
+The generated OpenAPI specification includes:
+* Endpoint definitions for each program
+* Request/response schemas based on your program's input/output schemas
+* Example requests and responses
+* Detailed descriptions from your program's metadata
+* Analytics endpoints with filter parameters
+
+## Examples
+
+You can find more examples in the `examples` directory:
+
+*   **Sentiment Analysis:** A simple program to analyze the sentiment of a piece of text. (`examples/sentiment_analysis.yaml`)
+
+To run the examples:
+
+1.  Navigate to the `examples` directory.
+2.  Run the corresponding `run_*.py` script, or use the CLI:
+
+    ```bash
+    # Using the CLI with a JSON input file
+    poetry run llmprogram run sentiment_analysis.yaml --inputs sentiment_inputs.json
+    
+    # Using the CLI with inline JSON
+    poetry run llmprogram run sentiment_analysis.yaml --input-json '{"text": "I love this product!"}'
+    
+    # Using the CLI with batch processing
+    poetry run llmprogram run sentiment_analysis.yaml --inputs sentiment_batch_inputs.json
+    
+    # Using the CLI with streaming
+    poetry run llmprogram run sentiment_analysis.yaml --inputs sentiment_inputs.json --stream
+    
+    # Using the CLI and saving output to a file
+    poetry run llmprogram run sentiment_analysis.yaml --inputs sentiment_inputs.json --output result.json
+    
+    # View analytics data
+    poetry run llmprogram analytics
+    
+    # View analytics for a specific program
+    poetry run llmprogram analytics --program sentiment_analysis
+    
+    # Generate a new YAML program
+    poetry run llmprogram generate-yaml "Create a program that classifies email priority" \
+      --example-input "Subject: Urgent meeting tomorrow. Body: Please prepare the Q3 report." \
+      --example-output '{"priority": "high", "category": "work", "response_required": true}' \
+      --output email_classifier.yaml
+    ```
+
+3.  Or run the web service:
+
+    ```bash
+    # Run the web service
+    poetry run llmprogram-web --directory examples
+    
+    # Then interact with it using curl or any HTTP client
+    curl -X POST http://localhost:8000/programs/sentiment_analysis/run \
+      -H "Content-Type: application/json" \
+      -d '{"inputs": {"text": "I love this product!"}}'
+      
+    # View analytics via the web API
+    curl http://localhost:8000/analytics/llm-calls
+    curl http://localhost:8000/analytics/program-usage
+    curl http://localhost:8000/analytics/token-usage
+    ```
+
+Other examples:
+
+*   **Code Generator:** A program that generates Python code from a natural language description. (`examples/code_generator.yaml`)
+*   **Email Generator:** A program that generates a professional email based on a few inputs. (`examples/email_generator.yaml`)
+
+To run the examples, navigate to the `examples` directory and run the corresponding `run_*.py` script or use the CLI as shown above.
+
+## Development
+
+To run the tests for this package, you will need to install `pytest`:
+
+```bash
+pip install pytest
+```
+
+Then, you can run the tests from the root directory of the project:
+
+```bash
+pytest
+```
