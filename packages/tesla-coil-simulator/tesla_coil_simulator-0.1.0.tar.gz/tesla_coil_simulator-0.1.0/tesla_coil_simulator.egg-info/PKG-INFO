@@ -1,0 +1,145 @@
+Metadata-Version: 2.4
+Name: tesla-coil-simulator
+Version: 0.1.0
+Summary: Physics simulator for DRSSTC (Dual Resonant Solid State Tesla Coils) with coupled RLC circuit analysis
+Home-page: https://github.com/TeslaCoilResearch/tesla-coil-simulator
+Author: Ricky Ding
+Author-email: e0134117@u.nus.edu
+License: MIT
+Keywords: tesla coil,DRSSTC,resonant circuit,RLC simulator,high voltage physics,electrical engineering,physics simulation,coupled resonators
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Intended Audience :: Science/Research
+Classifier: Intended Audience :: Education
+Classifier: Topic :: Scientific/Engineering :: Physics
+Classifier: Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Requires-Dist: matplotlib
+Requires-Dist: numpy
+Requires-Dist: scipy
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: keywords
+Dynamic: license
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+
+## Intro
+
+- Simulates the physics of DRSSTC (Dual Resonant Solid State Tesla Coil), a coupled series RLC resonator system
+
+## Showcase (code below)
+
+```bash
+primary: R: 100 mΩ, L: 6 uH, C: 50 nF, f0: 291 kHz, Q: 110 
+secondary: R: 500 Ω, L: 50 mH, C: 6 pF, f0: 291 kHz, Q: 183 
+coupling (k): 0.1
+resonant poles: ['277 kHz', '306 kHz']
+```
+
+- **Note:** the simulation below doesn't consider `over current protection`, but it can be easily added by modifying the code blow.
+
+<img src="https://raw.githubusercontent.com/TeslaCoilResearch/tesla-coil-simulator/main/test/primary_current_feedback_square_Uin.png" style="max-width: 500px">
+
+![](https://raw.githubusercontent.com/TeslaCoilResearch/tesla-coil-simulator/main/test/max_voltage_vs_driving_freq.png)
+
+![](https://raw.githubusercontent.com/TeslaCoilResearch/tesla-coil-simulator/main/test/max_voltage_vs_coupling.png)
+
+## Usage
+
+```bash
+pip install tesla-coil-simulator
+```
+
+```py
+from typing import Dict
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+from tesla_coil_simulator.DRSSTC import RLC, find_resonant_poles, simulate_coupled_RLC
+from tesla_coil_simulator.utils import format_num
+
+
+def fixed_freq_square_Uin(f, amp):
+    def fixed_freq_square_Uin(t, sol_t):
+        return amp * np.sign(np.sin(2 * np.pi * f * t))
+
+    return fixed_freq_square_Uin
+
+
+def primary_current_feedback_square_Uin(amp):
+    def primary_current_feedback_square_Uin(t, sol_t):
+        Vx, Ix, Vy, Iy = sol_t
+        if t == 0:
+            return amp  # kickstart!
+        return amp * np.sign(Ix)  # following primary current Ix
+
+    return primary_current_feedback_square_Uin
+
+
+def max_voltage_vs_driving_freq(x: RLC, y: RLC, k, time, f_list_dic: Dict, amp):
+    for key, f_list in f_list_dic.items():
+        Vy_max, Vy_idx = [], 2
+        for f in f_list:
+            Uin = fixed_freq_square_Uin(f, amp)
+            sol = simulate_coupled_RLC(x, y, k, time, Uin, plot=False)
+            Vy_max.append(np.max(sol.y[Vy_idx]))
+        if len(f_list) < 10:
+            plt.scatter(f_list, Vy_max, s=20, label=key)
+        else:
+            plt.plot(f_list, Vy_max, label=key)
+    plt.legend()
+    plt.title("max secondary voltage VS driving freq")
+    plt.savefig("max_voltage_vs_driving_freq")
+    plt.close()
+
+
+def max_voltage_vs_coupling(x: RLC, y: RLC, k_list, time, amp):
+    Vy_max, Vy_idx = [], 2
+    for k in k_list:
+        Uin = primary_current_feedback_square_Uin(amp)
+        sol = simulate_coupled_RLC(x, y, k, time, Uin, plot=False)
+        Vy_max.append(np.max(sol.y[Vy_idx]))
+    plt.plot(k_list, Vy_max)
+    plt.title("max secondary voltage VS coupling coefficient")
+    plt.savefig("max_voltage_vs_coupling")
+    plt.close()
+
+
+x = RLC(R=0.1, L=6e-6, C=50e-9)
+y = RLC(R=500, L=50e-3, C=6e-12)
+k = 0.1  # coupling coefficient
+amp = 300  # amplitude of driving voltage Uin (V)
+f_poles = find_resonant_poles(x, y, k)
+info = f"""
+primary: {x}
+secondary: {y}
+coupling (k): {k}
+resonant poles: {[f"{format_num(f)}Hz" for f in f_poles]}
+"""
+print(info)
+
+time = np.linspace(0, 200e-6, 1000)
+
+Uin = fixed_freq_square_Uin(250e3, amp)
+simulate_coupled_RLC(x, y, k, time, Uin, plot=True)
+
+Uin = primary_current_feedback_square_Uin(amp)
+simulate_coupled_RLC(x, y, k, time, Uin, plot=True)
+
+f_list_dic = dict(freq=np.linspace(200e3, 400e3, 100).tolist(), f_poles=f_poles)
+max_voltage_vs_driving_freq(x, y, k, time, f_list_dic, amp)
+
+k_list = np.logspace(np.log10(0.005), np.log10(0.2), 100)
+max_voltage_vs_coupling(x, y, k_list, time, amp)
+
+```
