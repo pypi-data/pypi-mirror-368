@@ -1,0 +1,88 @@
+[project]
+name = "byterat"
+requires-python=">=3.8"
+readme = "README.md"
+authors = [
+  { name = "Jayant Tandon", email = "jayant.tandon@byterat.io" }
+]
+description = "Python library to export data from and interact with the Byterat Platform [DEPRECATED]"
+license = { file = "LICENSE" }
+dependencies = [
+  "pandas",
+  "gql[aiohttp,requests]",
+  "asyncio",
+]
+keywords = ["byterat", "battery"]
+classifiers = [
+  # How mature is this project? Common values are
+  #   3 - Alpha
+  #   4 - Beta
+  #   5 - Production/Stable
+  "Development Status :: 7 - Inactive",
+
+  # Indicate who your project is intended for
+  # "Intended Audience :: Developers",
+  # "Topic :: Software Development :: Build Tools",
+
+  # Specify the Python versions you support here.
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+dynamic = ["version"]
+
+[project.urls]
+Platform = "https://app.byterat.io"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q"
+testpaths = [
+    "tests",
+]
+
+[tool.hatch.version]
+path = "src/byterat/__about__.py"
+
+[tool.hatch.envs.default]
+type = "conda"
+command = "micromamba"
+
+[tool.hatch.envs.types]
+type = "conda"
+command = "micromamba"
+
+extra-dependencies = [
+  "mypy>=1.0.0",
+]
+
+[tool.hatch.envs.types.scripts]
+check = "mypy --install-types --non-interactive {args:src/byterat tests}"
+
+[tool.coverage.run]
+source_pkgs = ["byterat", "tests"]
+branch = true
+parallel = true
+omit = [
+  "src/byterat/__about__.py",
+]
+
+[tool.coverage.paths]
+lib = ["src/byterat", "*/byterat-library/src/byterat"]
+tests = ["tests", "*/byterat-library/tests"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
