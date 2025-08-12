@@ -1,0 +1,82 @@
+name: Integration Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+defaults:
+  run:
+    shell: bash -el {0}
+
+jobs:
+  dirac-integration-tests:
+    name: DIRAC Integration tests
+    if: github.repository == 'DIRACGrid/diracx'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        dirac-branch:
+          - integration
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Build wheels
+        run: |
+          pip install build
+          for pkg_dir in $PWD/diracx-* .; do
+            echo "Building $pkg_dir"
+            python -m build --outdir "${GITHUB_WORKSPACE}/dist" $pkg_dir
+          done
+      - name: Clone DIRAC
+        run: |
+          pip install typer pyyaml gitpython packaging
+          git clone https://github.com/DIRACGrid/DIRAC.git -b "${{ matrix.dirac-branch }}" /tmp/DIRACRepo
+          echo "Current revision: $(git -C /tmp/DIRACRepo rev-parse HEAD)"
+          # We need to cd in the directory for the integration_tests.py to work
+      - name: Prepare environment
+        run: cd /tmp/DIRACRepo && ./integration_tests.py prepare-environment "TEST_DIRACX=Yes"  --diracx-dist-dir "${GITHUB_WORKSPACE}/dist"
+      - name: Install server
+        run:  cd /tmp/DIRACRepo && ./integration_tests.py install-server
+      - name: Install client
+        run: cd /tmp/DIRACRepo && ./integration_tests.py install-client
+      - name: Install pilot
+        run: cd /tmp/DIRACRepo && ./integration_tests.py install-pilot
+      - name: Server tests
+        run: cd /tmp/DIRACRepo && ./integration_tests.py test-server || touch server-tests-failed
+      - name: Client tests
+        run: cd /tmp/DIRACRepo && ./integration_tests.py test-client || touch client-tests-failed
+      - name: Pilot tests
+        run: cd /tmp/DIRACRepo && ./integration_tests.py test-pilot || touch pilot-tests-failed
+      - name: Check test status
+        run: |
+          has_error=0
+          # TODO: set has_error=1 when we are ready to really run the tests
+          if [ -f server-tests-failed ]; then has_error=1; echo "Server tests failed"; fi
+          if [ -f client-tests-failed ]; then has_error=1; echo "Client tests failed"; fi
+          if [ -f pilot-tests-failed ]; then has_error=1; echo "Pilot tests failed"; fi
+          if [ ${has_error} = 1 ]; then exit 1; fi
+      - name: diracx filtered requests logs
+        run: |
+          docker logs diracx 2>/dev/null | grep '/api/' \
+            | awk -F\" '{print $2, $3}' \
+            | awk '{print $1, $2, $4}' \
+            | sort | uniq -c | sort
+      - name: diracx error logs
+        if: ${{ failure() }}
+        run: |
+          mkdir -p /tmp/service-logs
+          docker logs diracx 2>&1 | tee /tmp/service-logs/diracx.log
+          cd /tmp/DIRACRepo
+          ./integration_tests.py logs --no-follow --lines 1000 2>&1 | tee /tmp/service-logs/dirac.log
+      - uses: actions/upload-artifact@v4
+        if: ${{ failure() }}
+        with:
+          name: service-logs-${{ github.job }}
+          path: /tmp/service-logs/

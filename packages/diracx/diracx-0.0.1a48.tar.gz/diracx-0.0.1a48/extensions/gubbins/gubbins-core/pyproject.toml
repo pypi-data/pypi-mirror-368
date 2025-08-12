@@ -1,0 +1,57 @@
+[project]
+name = "gubbins-core"
+description = "Common code used by all Gubbins packages"
+readme = "README.md"
+requires-python = ">=3.11"
+keywords = []
+license = { text = "GPL-3.0-only" }
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering",
+    "Topic :: System :: Distributed Computing",
+]
+dependencies = ["diracx-core"]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+testing = ["gubbins-testing", "diracx-testing"]
+
+types = [
+    "types-cachetools",
+    "types-PyYAML",
+]
+
+[project.entry-points."diracx"]
+properties_module = "gubbins.core.properties"
+config = "gubbins.core.config.schema:Config"
+extension = "gubbins"
+
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.version.raw-options]
+root = "../../.."
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/gubbins"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = [
+    "-v",
+    "--cov=gubbins.core",
+    "--cov-report=term-missing",
+    "-pgubbins.testing",
+    "-pdiracx.testing",
+    "--import-mode=importlib",
+]
+asyncio_mode = "auto"
+markers = [
+    "enabled_dependencies: List of dependencies which should be available to the FastAPI test client",
+]

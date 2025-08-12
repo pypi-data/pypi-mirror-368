@@ -1,0 +1,182 @@
+[project]
+name = "diracx"
+description = "Client installation for users of DiracX installations"
+readme = "README.md"
+requires-python = ">=3.11"
+keywords = []
+license = { text = "GPL-3.0-only" }
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering",
+    "Topic :: System :: Distributed Computing",
+]
+dependencies = [
+    "diracx-api",
+    "diracx-cli",
+    "diracx-client",
+    "diracx-core",
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+testing = ["diracx-testing"]
+
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.targets.wheel]
+bypass-selection = true
+
+[tool.ruff]
+src = ["diracx-*/src", "diracx-*/tests"]
+exclude = [
+    "diracx-client/src/diracx/client",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "B",   # flake8-bugbear
+    "I",   # isort
+    "PLE", # pylint errors
+    "D",   # pydocstyle
+    # "UP",   # pyUpgrade
+    "FLY", # flynt
+    "DTZ", # flake8-datetimez
+    "S",   # flake8-bandit
+    "N",   # pep8-naming
+]
+ignore = [
+    "B905",
+    "B008",
+    "B006",
+    "S101", # bandit: use of assert https://docs.astral.sh/ruff/rules/assert/
+    "D203",
+    "D213",
+    # TODO: Maybe enable these
+    "D100",
+    "D101",
+    "D102",
+    "D103",
+    "D104",
+    "D105",
+    "D107",
+    # TODO: These should be re-enabled after fixing
+    "D205",
+    "D401",
+    "D404",
+]
+
+[tool.ruff.lint.isort]
+required-imports = ["from __future__ import annotations"]
+
+[tool.ruff.lint.per-file-ignores]
+# Ignore Bandit security checks in the test directories
+"diracx-testing/*" = ["S"]
+"diracx-*/tests/*" = ["S"]
+
+[tool.ruff.lint.extend-per-file-ignores]
+"diracx-routers/src/diracx/routers/access_policies.py" = ["I002"]
+
+[tool.ruff.lint.flake8-bugbear]
+# Allow default arguments like, e.g., `data: List[str] = fastapi.Query(None)`.
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.Query",
+    "fastapi.Path",
+    "fastapi.Body",
+    "fastapi.Header",
+]
+
+[tool.ruff.lint.pycodestyle]
+max-line-length = 120
+
+[tool.ruff.format]
+docstring-code-format = true
+
+
+[tool.isort]
+profile = "black"
+
+
+[tool.codespell]
+skip = [
+    "diracx-client/src/diracx/client/_generated/*",
+    "diracx-[a-z]*/tests/*",
+    "diracx-testing/*",
+    "extensions/gubbins/gubbins-client/src/gubbins/client/_generated/*",
+    "extensions/gubbins/gubbins-*/tests/*",
+]
+ignore-words-list = [
+    "CheckIn",
+    "dependant",
+]
+
+
+[tool.mypy]
+files = [
+    "diracx-api/src/**/*.py",
+    "diracx-cli/src/**/*.py",
+    "diracx-client/src/**/_patch.py",
+    "diracx-core/src/**/*.py",
+    "diracx-db/src/**/*.py",
+    "diracx-logic/src/**/*.py",
+    "diracx-routers/src/**/*.py",
+]
+mypy_path = [
+    "$MYPY_CONFIG_FILE_DIR/diracx-api/src",
+    "$MYPY_CONFIG_FILE_DIR/diracx-cli/src",
+    "$MYPY_CONFIG_FILE_DIR/diracx-client/src",
+    "$MYPY_CONFIG_FILE_DIR/diracx-core/src",
+    "$MYPY_CONFIG_FILE_DIR/diracx-db/src",
+    "$MYPY_CONFIG_FILE_DIR/diracx-logic/src",
+    "$MYPY_CONFIG_FILE_DIR/diracx-routers/src",
+]
+plugins = ["sqlalchemy.ext.mypy.plugin", "pydantic.mypy"]
+allow_redefinition = true
+explicit_package_bases = true
+# disallow_untyped_defs = true
+# strict = true
+enable_error_code = ["import", "attr-defined"]
+
+[[tool.mypy.overrides]]
+module = 'DIRAC.*'
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = 'sh.*'
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "8"
+log_cli_level = "INFO"
+xfail_strict = true
+filterwarnings = ["default"]
+testpaths = [
+    "diracx-api/tests",
+    "diracx-cli/tests",
+    "diracx-client/tests",
+    "diracx-core/tests",
+    "diracx-db/tests",
+    "diracx-routers/tests",
+]
+addopts = [
+    "-v",
+    "--cov=diracx",
+    "--cov-report=term-missing",
+    "-pdiracx.testing",
+    "-pdiracx.testing.osdb",
+    "--import-mode=importlib",
+    "-ra", "--strict-config", "--strict-markers",
+]
+asyncio_mode = "auto"
+markers = [
+    "enabled_dependencies: List of dependencies which should be available to the FastAPI test client",
+]
