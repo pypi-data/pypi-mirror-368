@@ -1,0 +1,118 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gpp-client"
+description = "Gemini Program Platform client."
+readme = "README.md"
+authors = [{ name = "NOIRLab" }]
+license = { file = "LICENSE" }
+requires-python = ">=3.10.0"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Astronomy",
+]
+dependencies = [
+    "aiohttp>=3.12.13",
+    "beautifulsoup4>=4.11.0",
+    "graphql-core>=3.2.0",
+    "httpx>=0.23",
+    "pydantic>=2.0.0",
+    "toml>=0.10",
+    "typer>=0.16.0",
+    "websockets>=14.0",
+]
+version = "25.8.2"
+keywords = ["gemini", "gpp", "client", "program", "platform"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.scripts]
+gpp = "gpp_client.cli.cli:main"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = true
+docstring-code-line-length = "dynamic"
+
+[tool.ruff]
+# Ignore generated code.
+extend-exclude = ["api"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# addopts = "-r A -v -n auto --cov=src --cov-report=term --cov=tests --cov-branch"
+addopts = ["--import-mode=importlib", "-rs"]
+asyncio_default_fixture_loop_scope = "session"
+
+[tool.ariadne-codegen]
+schema_path = "schema.graphql"
+client_name = "_GPPClient"
+client_file_name = "_client"
+enable_custom_operations = true
+target_package_name = "api"
+target_package_path = "src/gpp_client"
+convert_to_snake_case = true
+plugins = [
+    "custom_plugins.AliasStrWrapperPlugin",
+    "custom_plugins.FixCustomFieldsLiteralPlugin",
+]
+queries_path = "src/queries"
+
+[tool.numpydoc_validation]
+checks = [
+    "all",  # All except the rules listed below.
+    "SA01",  # See Also section.
+    "EX01",  # Example section.
+    "SS06",  # Summary can go into second line.
+    "GL08",  # Do not require docstring.
+    "ES01",  # No extended summary required.
+    "SS05",  # pydocstyle is better at finding infinitive verb.
+]
+exclude = [
+    '^__init__$',
+    '\._[a-zA-Z_]+$',  # Private methods.
+]
+
+[dependency-groups]
+codegen = [
+    "ariadne-codegen>=0.15.0.dev1",
+]
+dev = [
+    "ariadne-codegen>=0.15.0.dev1",
+    "pytest-asyncio>=1.1.0",
+    "pytest-cov>=6.2.1",
+    "pytest-mock>=3.14.1",
+    "pytest-remotedata>=0.4.1",
+    "pytest-xdist>=3.8.0",
+    "ruff>=0.12.8",
+]
+docs = [
+    "furo>=2025.7.19",
+    "sphinx>=8.1.3",
+    "sphinx-autobuild>=2024.10.3",
+    "sphinx-copybutton>=0.5.2",
+    "sphinxcontrib-typer>=0.5.1",
+]
+schema = [
+    "aiohttp>=3.8.0",
+    "gql>=3.5.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/gemini-hlsw/gpp-client"
+Source = "https://github.com/gemini-hlsw/gpp-client"
+Issues = "https://github.com/gemini-hlsw/gpp-client/issues"
+Documentation = "https://gpp-client.readthedocs.io/en/latest/"
