@@ -1,0 +1,788 @@
+Metadata-Version: 2.4
+Name: possinote
+Version: 1.0.0
+Summary: Official Python SDK for PossiNote API
+Home-page: https://github.com/possitech/possinote-python
+Author: PossiNote Team
+Author-email: support@possitech.net
+Project-URL: Bug Reports, https://github.com/possitech/possinote-python/issues
+Project-URL: Source, https://github.com/possitech/possinote-python
+Project-URL: Documentation, https://possitech.net/api-docs
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+Requires-Dist: requests>=2.25.0
+Provides-Extra: dev
+Requires-Dist: pytest>=6.0; extra == "dev"
+Requires-Dist: pytest-cov>=2.0; extra == "dev"
+Requires-Dist: black>=21.0; extra == "dev"
+Requires-Dist: flake8>=3.8; extra == "dev"
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: project-url
+Dynamic: provides-extra
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+# Possinote Python SDK
+
+Official Python SDK for the PossiNote API - Send SMS, emails, and schedule messages with ease.
+
+## Installation
+
+### From PyPI
+
+```bash
+pip install possinote
+```
+
+### From Source
+
+```bash
+git clone https://github.com/possitech/possinote-python.git
+cd possinote-python
+pip install -e .
+```
+
+## Quick Start
+
+```python
+from possinote import Possinote
+
+# Initialize the client with your API key
+client = Possinote(api_key='your_api_key_here')
+
+# Send a single SMS
+response = client.sms.send(
+    to='+233244123456',
+    message='Hello from Possinote!',
+    sender_id='YourSenderID'
+)
+
+# Send a single email
+response = client.email.send(
+    recipient='user@example.com',
+    subject='Welcome to Possinote',
+    content='<h1>Hello!</h1><p>Welcome to our platform.</p>',
+    sender_name='Your Company'
+)
+```
+
+## API Reference
+
+### Authentication
+
+All API requests require authentication using your API key:
+
+```python
+client = Possinote(api_key='your_api_key_here')
+```
+
+### SMS Operations
+
+#### Send Single SMS
+
+```python
+response = client.sms.send(
+    to='+233244123456',
+    message='Your message here',
+    sender_id='YourSenderID'
+)
+
+# Response
+{
+    "success": True,
+    "data": {
+        "message_id": "msg_123456789",
+        "to": "+233244123456",
+        "status": "queued",
+        "cost": 1.0,
+        "created_at": "2025-08-11T11:30:00Z"
+    }
+}
+```
+
+#### Send Bulk SMS
+
+```python
+response = client.sms.send_bulk(
+    sender_id='YourSenderID',
+    messages=[
+        {'to': '+233244123456', 'message': 'Message 1'},
+        {'to': '+233244123457', 'message': 'Message 2'}
+    ]
+)
+
+# Response
+{
+    "success": True,
+    "data": {
+        "batch_id": "batch_123456789",
+        "total_messages": 2,
+        "successful": 2,
+        "failed": 0,
+        "total_cost": 2.0,
+        "messages": [
+            {"message_id": "msg_1", "to": "+233244123456", "status": "queued"},
+            {"message_id": "msg_2", "to": "+233244123457", "status": "queued"}
+        ]
+    }
+}
+```
+
+#### Schedule Single SMS
+
+```python
+response = client.sms.schedule(
+    recipient='+233244123456',
+    message='Scheduled message',
+    sender_id='YourSenderID',
+    scheduled_at='2025-08-11T12:00:00Z'
+)
+
+# Response
+{
+    "success": True,
+    "data": {
+        "id": "schedule_123456789",
+        "recipient": "+233244123456",
+        "message": "Scheduled message",
+        "scheduled_at": "2025-08-11T12:00:00Z",
+        "status": "pending",
+        "cost": "1.0"
+    }
+}
+```
+
+#### Schedule Bulk SMS
+
+```python
+response = client.sms.schedule_bulk(
+    sender_id='YourSenderID',
+    messages=[
+        {'recipient': '+233244123456', 'message': 'Scheduled message 1'},
+        {'recipient': '+233244123457', 'message': 'Scheduled message 2'}
+    ],
+    scheduled_at='2025-08-11T12:00:00Z'
+)
+
+# Response
+{
+    "success": True,
+    "data": {
+        "batch_id": "batch_123456789",
+        "scheduled_count": 2,
+        "total_cost": 2.0,
+        "scheduled_at": "2025-08-11T12:00:00Z",
+        "messages": [
+            {"id": "schedule_1", "recipient": "+233244123456", "status": "pending"},
+            {"id": "schedule_2", "recipient": "+233244123457", "status": "pending"}
+        ]
+    }
+}
+```
+
+### Email Operations
+
+#### Send Single Email
+
+```python
+response = client.email.send(
+    recipient='user@example.com',
+    subject='Welcome Email',
+    content='<h1>Welcome!</h1><p>Thank you for joining us.</p>',
+    sender_name='Your Company'
+)
+
+# Response
+{
+    "success": True,
+    "message": "Email queued for delivery",
+    "recipient": "user@example.com",
+    "message_id": "email_123456789"
+}
+```
+
+#### Send Bulk Email
+
+```python
+response = client.email.send_bulk(
+    subject='Newsletter',
+    content='<h1>Newsletter</h1><p>This is our monthly newsletter.</p>',
+    recipients=['user1@example.com', 'user2@example.com'],
+    sender_name='Your Company'
+)
+
+# Response
+{
+    "success": True,
+    "message": "Bulk emails queued for delivery",
+    "queued_count": 2,
+    "total_count": 2,
+    "batch_id": "batch_123456789",
+    "emails": [
+        {"message_id": "email_1", "recipient": "user1@example.com", "status": "queued"},
+        {"message_id": "email_2", "recipient": "user2@example.com", "status": "queued"}
+    ]
+}
+```
+
+### Scheduling Operations
+
+#### Schedule Single Email
+
+```python
+response = client.scheduling.schedule_email(
+    recipient='user@example.com',
+    subject='Scheduled Email',
+    content='<h1>Scheduled Content</h1>',
+    scheduled_at='2025-08-11T12:00:00Z',
+    sender_name='Your Company'
+)
+
+# Response
+{
+    "success": True,
+    "data": {
+        "id": "email_schedule_123456789",
+        "recipient": "user@example.com",
+        "subject": "Scheduled Email",
+        "scheduled_at": "2025-08-11T12:00:00Z",
+        "status": "pending",
+        "cost": "1.0"
+    }
+}
+```
+
+#### Schedule Bulk Individual Emails
+
+```python
+response = client.scheduling.schedule_multiple_emails([
+    {
+        'recipient': 'user1@example.com',
+        'subject': 'Personalized Email 1',
+        'content': '<h1>Hello User 1!</h1>',
+        'scheduled_at': '2025-08-11T12:00:00Z',
+        'sender_name': 'Your Company'
+    },
+    {
+        'recipient': 'user2@example.com',
+        'subject': 'Personalized Email 2',
+        'content': '<h1>Hello User 2!</h1>',
+        'scheduled_at': '2025-08-11T12:00:00Z',
+        'sender_name': 'Your Company'
+    }
+])
+
+# Response
+{
+    "success": True,
+    "data": {
+        "batch_id": "batch_123456789",
+        "total_scheduled": 2,
+        "total_cost": 2.0,
+        "scheduled_emails": [
+            {"id": "email_1", "recipient": "user1@example.com", "status": "pending"},
+            {"id": "email_2", "recipient": "user2@example.com", "status": "pending"}
+        ]
+    }
+}
+```
+
+## Framework Integration
+
+### Django Integration
+
+#### 1. Install the Package
+```bash
+pip install possinote
+```
+
+#### 2. Configure in Settings
+```python
+# settings.py
+import os
+from possinote import Possinote
+
+# Initialize the client
+POSSINOTE_CLIENT = Possinote(api_key=os.environ.get('POSSINOTE_API_KEY'))
+
+# Or use Django settings
+POSSINOTE_CLIENT = Possinote(api_key=os.environ.get('POSSINOTE_API_KEY', 'your_api_key_here'))
+```
+
+#### 3. Use in Views
+```python
+# views.py
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+import json
+from possinote.exceptions import (
+    AuthenticationError, PaymentRequiredError, 
+    RateLimitError, ValidationError, APIError
+)
+from .models import User
+from django.conf import settings
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def send_sms(request):
+    try:
+        data = json.loads(request.body)
+        response = settings.POSSINOTE_CLIENT.sms.send(
+            to=data['phone_number'],
+            message=data['message'],
+            sender_id='YourBrand'
+        )
+        
+        if response['success']:
+            return JsonResponse({
+                'message': 'SMS sent successfully',
+                'data': response['data']
+            })
+        else:
+            return JsonResponse({
+                'error': 'Failed to send SMS'
+            }, status=400)
+            
+    except AuthenticationError:
+        return JsonResponse({'error': 'Authentication failed'}, status=401)
+    except PaymentRequiredError:
+        return JsonResponse({'error': 'Insufficient credits'}, status=402)
+    except ValidationError as e:
+        return JsonResponse({'error': str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': 'An error occurred'}, status=500)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def send_bulk_sms(request):
+    try:
+        data = json.loads(request.body)
+        response = settings.POSSINOTE_CLIENT.sms.send_bulk(
+            sender_id='YourBrand',
+            messages=data['messages']  # List of {'to': phone, 'message': text}
+        )
+        
+        return JsonResponse({
+            'message': 'Bulk SMS sent',
+            'data': response['data']
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def send_email(request):
+    try:
+        data = json.loads(request.body)
+        response = settings.POSSINOTE_CLIENT.email.send(
+            recipient=data['email'],
+            subject=data['subject'],
+            content=data['content'],
+            sender_name='Your Company'
+        )
+        
+        return JsonResponse({
+            'message': 'Email sent successfully',
+            'data': response
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+```
+
+#### 4. Use in Services
+```python
+# services.py
+from django.conf import settings
+from django.template.loader import render_to_string
+from django.urls import reverse
+from .models import User, Appointment
+import logging
+
+logger = logging.getLogger(__name__)
+
+class NotificationService:
+    def __init__(self):
+        self.client = settings.POSSINOTE_CLIENT
+    
+    def send_welcome_sms(self, user: User):
+        """Send welcome SMS to new user"""
+        try:
+            response = self.client.sms.send(
+                to=user.phone_number,
+                message=f"Welcome {user.first_name}! Your account has been created successfully.",
+                sender_id='YourBrand'
+            )
+            logger.info(f"Welcome SMS sent to {user.email}: {response}")
+            return response
+        except Exception as e:
+            logger.error(f"Failed to send welcome SMS to {user.email}: {e}")
+            raise
+    
+    def send_password_reset_email(self, user: User, reset_token: str):
+        """Send password reset email"""
+        try:
+            reset_url = f"https://yourdomain.com{reverse('password_reset_confirm', kwargs={'token': reset_token})}"
+            
+            html_content = render_to_string('emails/password_reset.html', {
+                'user': user,
+                'reset_url': reset_url
+            })
+            
+            response = self.client.email.send(
+                recipient=user.email,
+                subject='Password Reset Request',
+                content=html_content,
+                sender_name='Your Company'
+            )
+            logger.info(f"Password reset email sent to {user.email}")
+            return response
+        except Exception as e:
+            logger.error(f"Failed to send password reset email to {user.email}: {e}")
+            raise
+    
+    def send_bulk_newsletter(self, users: list, newsletter_content: dict):
+        """Send bulk newsletter SMS"""
+        try:
+            messages = [
+                {
+                    'to': user.phone_number,
+                    'message': f"Newsletter: {newsletter_content['title']}"
+                }
+                for user in users
+            ]
+            
+            response = self.client.sms.send_bulk(
+                sender_id='YourBrand',
+                messages=messages
+            )
+            logger.info(f"Bulk newsletter sent to {len(users)} users")
+            return response
+        except Exception as e:
+            logger.error(f"Failed to send bulk newsletter: {e}")
+            raise
+    
+    def schedule_reminder_email(self, appointment: Appointment):
+        """Schedule appointment reminder email"""
+        try:
+            html_content = render_to_string('emails/appointment_reminder.html', {
+                'appointment': appointment,
+                'user': appointment.user
+            })
+            
+            response = self.client.scheduling.schedule_email(
+                recipient=appointment.user.email,
+                subject='Appointment Reminder',
+                content=html_content,
+                scheduled_at=appointment.datetime.isoformat(),
+                sender_name='Your Company'
+            )
+            logger.info(f"Appointment reminder scheduled for {appointment.user.email}")
+            return response
+        except Exception as e:
+            logger.error(f"Failed to schedule appointment reminder: {e}")
+            raise
+```
+
+#### 5. Use in Celery Tasks
+```python
+# tasks.py
+from celery import shared_task
+from django.conf import settings
+from .models import User, Appointment
+from .services import NotificationService
+
+@shared_task
+def send_welcome_sms_task(user_id: int):
+    """Celery task to send welcome SMS"""
+    try:
+        user = User.objects.get(id=user_id)
+        service = NotificationService()
+        service.send_welcome_sms(user)
+    except User.DoesNotExist:
+        print(f"User with id {user_id} not found")
+    except Exception as e:
+        print(f"Failed to send welcome SMS: {e}")
+
+@shared_task
+def send_password_reset_email_task(user_id: int, reset_token: str):
+    """Celery task to send password reset email"""
+    try:
+        user = User.objects.get(id=user_id)
+        service = NotificationService()
+        service.send_password_reset_email(user, reset_token)
+    except User.DoesNotExist:
+        print(f"User with id {user_id} not found")
+    except Exception as e:
+        print(f"Failed to send password reset email: {e}")
+
+@shared_task
+def send_bulk_newsletter_task(user_ids: list, newsletter_content: dict):
+    """Celery task to send bulk newsletter"""
+    try:
+        users = User.objects.filter(id__in=user_ids)
+        service = NotificationService()
+        service.send_bulk_newsletter(users, newsletter_content)
+    except Exception as e:
+        print(f"Failed to send bulk newsletter: {e}")
+
+@shared_task
+def schedule_appointment_reminder_task(appointment_id: int):
+    """Celery task to schedule appointment reminder"""
+    try:
+        appointment = Appointment.objects.get(id=appointment_id)
+        service = NotificationService()
+        service.schedule_reminder_email(appointment)
+    except Appointment.DoesNotExist:
+        print(f"Appointment with id {appointment_id} not found")
+    except Exception as e:
+        print(f"Failed to schedule appointment reminder: {e}")
+
+# Usage in views
+from .tasks import send_welcome_sms_task, send_password_reset_email_task
+
+def register_user(request):
+    # ... user registration logic ...
+    user = User.objects.create(...)
+    
+    # Send welcome SMS asynchronously
+    send_welcome_sms_task.delay(user.id)
+    
+    return JsonResponse({'message': 'User registered successfully'})
+
+def request_password_reset(request):
+    # ... password reset logic ...
+    token = generate_reset_token()
+    
+    # Send password reset email asynchronously
+    send_password_reset_email_task.delay(user.id, token)
+    
+    return JsonResponse({'message': 'Password reset email sent'})
+```
+
+#### 6. URL Configuration
+```python
+# urls.py
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('api/send-sms/', views.send_sms, name='send_sms'),
+    path('api/send-bulk-sms/', views.send_bulk_sms, name='send_bulk_sms'),
+    path('api/send-email/', views.send_email, name='send_email'),
+]
+```
+
+#### 7. Environment Configuration
+```bash
+# .env
+POSSINOTE_API_KEY=your_api_key_here
+```
+
+```python
+# settings.py
+from decouple import config
+
+POSSINOTE_CLIENT = Possinote(api_key=config('POSSINOTE_API_KEY'))
+```
+
+#### 8. Email Templates
+```html
+<!-- templates/emails/password_reset.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Password Reset</title>
+</head>
+<body>
+    <h1>Password Reset Request</h1>
+    <p>Hello {{ user.first_name }},</p>
+    <p>You requested a password reset. Click the link below to reset your password:</p>
+    <a href="{{ reset_url }}">Reset Password</a>
+    <p>This link will expire in 1 hour.</p>
+</body>
+</html>
+```
+
+```html
+<!-- templates/emails/appointment_reminder.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Appointment Reminder</title>
+</head>
+<body>
+    <h1>Appointment Reminder</h1>
+    <p>Hello {{ user.first_name }},</p>
+    <p>This is a reminder for your appointment:</p>
+    <ul>
+        <li><strong>Date:</strong> {{ appointment.datetime|date:"F d, Y" }}</li>
+        <li><strong>Time:</strong> {{ appointment.datetime|time:"g:i A" }}</li>
+        <li><strong>Location:</strong> {{ appointment.location }}</li>
+    </ul>
+</body>
+</html>
+```
+
+## Error Handling
+
+The SDK provides specific exception classes for different error types:
+
+```python
+from possinote.exceptions import (
+    PossinoteError,
+    AuthenticationError,
+    PaymentRequiredError,
+    RateLimitError,
+    ValidationError,
+    APIError
+)
+
+try:
+    response = client.sms.send(
+        to='+233244123456',
+        message='Hello',
+        sender_id='SenderID'
+    )
+except AuthenticationError as e:
+    print(f"Authentication failed: {e}")
+except PaymentRequiredError as e:
+    print(f"Payment required: {e}")
+except RateLimitError as e:
+    print(f"Rate limit exceeded: {e}")
+except ValidationError as e:
+    print(f"Validation error: {e}")
+except APIError as e:
+    print(f"API error: {e}")
+```
+
+### Error Types
+
+- `AuthenticationError` - Invalid API key (401)
+- `PaymentRequiredError` - Insufficient credits (402)
+- `RateLimitError` - Rate limit exceeded (429)
+- `ValidationError` - Invalid request data (400)
+- `APIError` - Other API errors
+
+## Configuration
+
+### Base URL
+
+The SDK uses the production API by default. For testing, you can modify the base URL:
+
+```python
+# In possinote/client.py
+BASE_URL = 'https://notifyapi.possitech.net/api/v1'
+```
+
+### Timeout Settings
+
+HTTP requests use default timeout settings. You can customize them in the client:
+
+```python
+# The SDK uses requests defaults
+# You can modify timeout settings in possinote/client.py
+```
+
+## Requirements
+
+- Python >= 3.7
+- requests library
+- typing (included in Python 3.5+)
+
+## Development
+
+### Setup Development Environment
+
+```bash
+# Clone the repository
+git clone https://github.com/possitech/possinote-python.git
+cd possinote-python
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+
+# Install in development mode
+pip install -e .
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=possinote
+
+# Run specific test file
+pytest tests/test_sms.py
+```
+
+### Code Quality
+
+```bash
+# Format code
+black possinote/
+
+# Lint code
+flake8 possinote/
+
+# Type checking
+mypy possinote/
+```
+
+### Building and Publishing
+
+```bash
+# Build package
+python setup.py sdist bdist_wheel
+
+# Test upload to TestPyPI
+twine upload --repository testpypi dist/*
+
+# Upload to PyPI
+twine upload dist/*
+```
+
+## Contributing
+
+Bug reports and pull requests are welcome on GitHub at https://github.com/possitech/possinote-python. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [code of conduct](https://github.com/possitech/possinote-python/blob/main/CODE_OF_CONDUCT.md).
+
+## License
+
+The package is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
+
+## Support
+
+For support, email support@possitech.net or visit our [documentation](https://docs.possitech.net).
+
+## Changelog
+
+### 1.0.0
+- Initial release
+- SMS sending and scheduling
+- Email sending and scheduling
+- Comprehensive error handling
+- Full API coverage
