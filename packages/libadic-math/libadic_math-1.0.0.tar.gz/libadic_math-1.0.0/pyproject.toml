@@ -1,0 +1,163 @@
+[build-system]
+requires = [
+    "setuptools>=45",
+    "wheel",
+    "cmake>=3.14",
+    "ninja; sys_platform != 'win32'",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "libadic-math"  # or another unique name
+version = "1.0.0"
+description = "High-performance p-adic arithmetic library for the Reid-Li criterion"
+readme = "README.md"
+requires-python = ">=3.7"
+license = "MIT"
+authors = [
+    {name = "libadic Contributors", email = "info@iguan.ai"},
+]
+maintainers = [
+    {name = "libadic Development Team", email = "info@iguan.ai"},
+]
+keywords = [
+    "p-adic",
+    "number theory",
+    "mathematics",
+    "riemann hypothesis",
+    "reid-li",
+    "arithmetic",
+    "gamma function",
+    "L-functions",
+    "cryptography",
+    "lattice cryptography",
+    "quantum resistant",
+    "post quantum",
+    "elliptic curves",
+    "birch swinnerton-dyer",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: C++",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "numpy>=1.19.0",
+]
+
+[project.optional-dependencies]
+crypto = [
+    # All cryptographic components included in core build
+    # This is just a marker for pip install libadic[crypto]
+]
+dev = [
+    "pytest>=6.0",
+    "pytest-cov",
+    "black",
+    "isort",
+    "mypy",
+    "flake8",
+    "twine",
+    "build",
+    "cibuildwheel",
+]
+notebooks = [
+    "jupyter",
+    "matplotlib",
+    "scipy",
+    "sympy",
+]
+docs = [
+    "sphinx>=4.0",
+    "sphinx-rtd-theme",
+    "sphinx-autodoc-typehints",
+]
+all = [
+    "jupyter",
+    "matplotlib", 
+    "scipy",
+    "sympy",
+    "sphinx>=4.0",
+    "sphinx-rtd-theme",
+]
+
+[project.urls]
+Homepage = "https://github.com/IguanAI/libadic"
+Documentation = "https://github.com/IguanAI/libadic/blob/main/README.md"
+Repository = "https://github.com/IguanAI/libadic.git"
+"Bug Tracker" = "https://github.com/IguanAI/libadic/issues"
+Changelog = "https://github.com/IguanAI/libadic/blob/main/CHANGELOG.md"
+"API Reference" = "https://github.com/IguanAI/libadic/blob/main/docs/API_REFERENCE.md"
+"Crypto API" = "https://github.com/IguanAI/libadic/blob/main/PYTHON_CRYPTO_API.md"
+"Mathematical Reference" = "https://github.com/IguanAI/libadic/blob/main/docs/MATHEMATICAL_REFERENCE.md"
+
+[tool.setuptools]
+packages = ["libadic"]
+package-dir = {"libadic" = "python/libadic"}
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --strict-markers"
+testpaths = [
+    "python/tests",
+]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+
+[tool.black]
+line-length = 88
+target-version = ['py37', 'py38', 'py39', 'py310', 'py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+    build
+  | dist
+  | extern
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 88
+skip_gitignore = true
+
+[tool.mypy]
+python_version = "3.7"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_any_unimported = false
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+check_untyped_defs = true
+
+[tool.coverage.run]
+source = ["libadic"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "setup.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
