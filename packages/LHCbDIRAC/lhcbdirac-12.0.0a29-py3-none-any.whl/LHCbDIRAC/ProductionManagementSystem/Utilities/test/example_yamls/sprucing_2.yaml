@@ -1,0 +1,70 @@
+- name: Turbo Sprucing pass (7-8 July 23 MagDown)
+  comment: 'Passthrough Sprucing for Turbo stream. 7-8 July 23 MagDown data'
+  type: Sprucing
+  wg: DPA
+  priority: 2a
+
+  input_dataset:
+    conditions_dict:
+      configName: LHCb
+      configVersion: Commissioning23
+      inFileType: RAW
+      inProPass: Real Data
+      inDataQualityFlag: OK, UNCHECKED
+      inProductionID: ALL
+      inTCKs: ALL
+    conditions_description: Beam6800GeV-VeloClosed-MagDown-Excl-UT
+    event_type: '94000000'
+
+  steps:
+  - name: Passthrough sprucing
+    processing_pass: SprucingPass23
+    visible: true
+    application:
+      name: Moore
+      version: v54r15
+    data_pkgs: []
+    options:
+      entrypoint: Hlt2Conf.Sprucing_production:pass_spruce_production
+      extra_options:
+        input_raw_format : 0.5
+        input_type : 'RAW'
+        simulation : False
+        data_type : 'Upgrade'
+        geometry_version: trunk
+        conditions_version: master
+        compression: "ZSTD:1"
+        output_type : 'ROOT'
+        input_process: "Hlt2"
+        process: "Spruce"
+    input:
+      - type: MDF
+        visible: true
+    output:
+      - type: ["SL.DST", "CHARM.DST", "B2CC.DST", "RD.DST", "BANDQ.DST", "QEE.DST", "B2OC.DST", "BNOC.DST"]
+        visible: false
+  - name: Passthrough sprucing merge
+    processing_pass: SprucingPass23_merge
+    visible: false
+    application:
+      name: LHCb
+      version: v54r14
+    data_pkgs: []
+    options:
+      entrypoint: GaudiConf.mergeDST:dst
+      extra_options:
+        input_raw_format : 0.5
+        input_type : 'ROOT'
+        simulation : False
+        data_type : 'Upgrade'
+        geometry_version: trunk
+        conditions_version: master
+        compression: "ZSTD:1"
+        output_type : 'ROOT'
+        input_process: "Hlt2"
+    input:
+      - type: ["SL.DST", "CHARM.DST", "B2CC.DST", "RD.DST", "BANDQ.DST", "QEE.DST", "B2OC.DST", "BNOC.DST"]
+        visible: false
+    output:
+      - type: ["SL.DST", "CHARM.DST", "B2CC.DST", "RD.DST", "BANDQ.DST", "QEE.DST", "B2OC.DST", "BNOC.DST"]
+        visible: true
