@@ -1,0 +1,442 @@
+# OpenShift Default Configuration
+# Default settings for OpenShift cluster deployments across all providers
+
+# Global OpenShift settings
+openshift:
+  # Default OpenShift version (use "latest" for development, explicit version for production)
+  version: "latest"
+  
+  # Version validation behavior
+  # If false (default): Fail when unsupported versions are specified
+  # If true: Auto-discover and upgrade unsupported versions to latest with warning
+  auto_discover_version: false
+  
+  # ROSA deployment method configuration
+  rosa_deployment:
+    # Method to use for ROSA cluster creation:
+    # - "cli": Use ROSA CLI commands (traditional method)  
+    # - "terraform": Use RHCS Terraform provider (better lifecycle management)
+    method: "terraform"
+    
+    # Note: When multiple OpenShift cluster types are deployed together,
+    # YamlForge automatically separates them into deployment groups to handle
+    # overlapping Terraform configurations or dependencies:
+    # - ROSA Classic clusters (separate from HCP to avoid Terraform conflicts)
+    # - ROSA HCP clusters (separate from Classic to avoid Terraform conflicts)  
+    # - HyperShift management clusters (must be deployed before hosted clusters)
+    # - HyperShift hosted clusters (require management clusters to be ready)
+    # - Day-2 operations (always deployed last, after all clusters are ready)
+  
+  # Default base networking configuration (can be overridden in input YAML)
+  default_base_networking:
+    # Standard OpenShift networking
+    service_cidr: "172.30.0.0/16"
+    pod_cidr: "10.128.0.0/14"
+    host_prefix: 23
+    
+    # Provider-specific defaults
+    rosa-classic:
+      machine_cidr: "10.0.0.0/16"
+      
+    rosa-hcp:
+      machine_cidr: "10.0.0.0/16"
+      
+    aro:
+      vnet_cidr: "10.1.0.0/16"
+      controlplane_subnet_cidr: "10.1.0.0/24"
+      worker_subnet_cidr: "10.1.1.0/24"
+      
+    openshift-dedicated:
+      machine_cidr: "10.0.0.0/16"
+      
+    self_managed:
+      machine_cidr: "10.2.0.0/16"
+
+  # Default feature settings
+  features:
+    # Security settings
+    private_cluster: false
+    fips_enabled: false
+    encryption_at_rest: true
+    
+    # High availability
+    multi_az: true
+    
+    # Auto-scaling
+    auto_scaling:
+      enabled: false
+      min_factor: 1.0    # min_replicas = replicas * min_factor
+      max_factor: 2.0    # max_replicas = replicas * max_factor
+
+  # Common addons
+  addons:
+    rosa:
+      # Available ROSA addons
+      available:
+        - "cluster-logging-operator"
+        - "aws-load-balancer-operator"
+        - "aws-ebs-csi-driver-operator"
+        - "aws-efs-csi-driver-operator"
+        - "aws-cloudwatch-agent"
+      # Default addons to install
+      default: []
+      
+    aro:
+      # ARO has fewer addon options
+      available: []
+      default: []
+
+  # Default tags/labels
+  tags:
+    Environment: "production"
+    ManagedBy: "yamlforge"
+    Platform: "openshift"
+
+# Provider-specific defaults
+rosa:
+  # AWS regions where ROSA is available
+  supported_regions:
+    - "us-east-1"
+    - "us-east-2"
+    - "us-west-1"
+    - "us-west-2"
+    - "eu-west-1"
+    - "eu-west-2"
+    - "eu-central-1"
+    - "ap-southeast-1"
+    - "ap-southeast-2"
+    - "ap-northeast-1"
+    
+  # Default machine types for ROSA
+  machine_types:
+    small: "m5.large"
+    medium: "m5.xlarge"
+    large: "m5.2xlarge"
+    xlarge: "m5.4xlarge"
+    
+  # ROSA-specific features
+  features:
+    aws_private_link: false
+    
+aro:
+  # Azure regions where ARO is available
+  supported_regions:
+    - "East US"
+    - "East US 2"
+    - "West US 2"
+    - "West Europe"
+    - "North Europe"
+    - "UK South"
+    - "Australia East"
+    
+  # Default VM sizes for ARO
+  vm_sizes:
+    controlplanes:
+      small: "Standard_D8s_v3"
+      medium: "Standard_D8s_v3"
+      large: "Standard_D16s_v3"
+      xlarge: "Standard_D32s_v3"
+    workers:
+      small: "Standard_D4s_v3"
+      medium: "Standard_D8s_v3"
+      large: "Standard_D16s_v3"
+      xlarge: "Standard_D32s_v3"
+      
+  # Default disk sizes
+  disk_sizes:
+    controlplane: 128
+    worker: 128
+
+openshift_dedicated:
+  # Dedicated can run on multiple clouds
+  supported_clouds:
+    - "aws"
+    - "azure"
+    - "gcp"
+    
+  # Support levels
+  support_levels:
+    - "standard"
+    - "premium"
+    
+  # Compliance options
+  compliance:
+    - "SOC2"
+    - "HIPAA"
+    - "PCI-DSS"
+
+self_managed:
+  # Minimum requirements for self-managed OpenShift
+  minimum_requirements:
+    controlplanes:
+      cpu_cores: 4
+      memory_gb: 16
+      disk_gb: 120
+    workers:
+      cpu_cores: 2
+      memory_gb: 8
+      disk_gb: 120
+      
+  # Supported installation methods
+  installation_methods:
+    - "upi"  # User Provisioned Infrastructure
+    - "ipi"  # Installer Provisioned Infrastructure (where supported)
+    
+  # Supported platforms
+  platforms:
+    - "aws"
+    - "azure"
+    - "gcp"
+    - "vmware"
+    - "baremetal"
+
+hypershift:
+  # HyperShift management cluster requirements
+  management_cluster:
+    minimum_workers: 3
+    minimum_size: "large"
+    
+  # Maximum hosted clusters per management cluster
+  max_hosted_clusters: 50
+  
+  # Supported hosting platforms
+  hosting_platforms:
+    - "aws"
+    - "azure"
+    - "kubevirt" 
+
+security:
+  service_accounts:
+    # Token expiration configuration
+    token_expiration:
+      default_duration: "8760h"  # 1 year default
+      # Alternative duration examples (uncomment and modify as needed):
+      # default_duration: "2160h"   # 3 months for production
+      # default_duration: "4380h"   # 6 months for development  
+      # default_duration: "720h"    # 1 month for high security environments
+    
+    # Service account naming and permissions
+    cluster_admin:
+      name: "cluster-admin"
+      description: "Full cluster administrator with all privileges"
+      cluster_role: "cluster-admin"
+      scope: "full-cluster-access"
+    
+    cluster_admin_limited:
+      name: "cluster-admin-limited" 
+      description: "Limited cluster admin for operators and Day2 operations"
+      scope: "operators,day2-operations,cluster-config"
+      security_level: "medium-privilege"
+      # Custom ClusterRole with specific permissions
+      permissions:
+        # Operator Lifecycle Manager permissions
+        - api_groups: ["operators.coreos.com"]
+          resources: ["subscriptions", "operatorgroups", "clusterserviceversions", "catalogsources", "installplans"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+        
+        # Cluster configuration permissions
+        - api_groups: ["config.openshift.io"]
+          resources: ["clusterversions", "clusteroperators", "networks", "ingresses", "oauths", "projects", "builds", "images", "schedulers"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+          
+        # Machine management for Day2 operations
+        - api_groups: ["machine.openshift.io"]
+          resources: ["machines", "machinesets", "machinehealthchecks"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+          
+        # Node management
+        - api_groups: [""]
+          resources: ["nodes", "nodes/status", "nodes/spec"]
+          verbs: ["get", "list", "update", "patch"]
+          
+        # Monitoring and observability
+        - api_groups: ["monitoring.coreos.com"]
+          resources: ["prometheuses", "alertmanagers", "servicemonitors", "prometheusrules", "thanosrulers"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+          
+        # Logging
+        - api_groups: ["logging.openshift.io"]
+          resources: ["clusterlogforwarders", "clusterloggings"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+          
+        # Storage management
+        - api_groups: ["storage.k8s.io"]
+          resources: ["storageclasses", "volumeattachments", "csidrivers", "csinodes", "csistoragecapacities"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+          
+        # Security and compliance
+        - api_groups: ["security.openshift.io"]
+          resources: ["securitycontextconstraints"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+          
+        # Service mesh
+        - api_groups: ["maistra.io", "kiali.io", "jaegertracing.io"]
+          resources: ["*"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+          
+        # GitOps and ArgoCD
+        - api_groups: ["argoproj.io"]
+          resources: ["argocds", "applications", "applicationsets", "appprojects"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+          
+        # Tekton Pipelines
+        - api_groups: ["tekton.dev"]
+          resources: ["pipelines", "pipelineruns", "tasks", "taskruns", "clustertasks", "triggers", "triggerbindings", "triggertemplates", "eventlisteners"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+          
+        # Serverless/Knative
+        - api_groups: ["serving.knative.dev", "eventing.knative.dev", "operator.knative.dev"]
+          resources: ["*"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+          
+        # Backup (OADP)
+        - api_groups: ["velero.io"]
+          resources: ["backups", "restores", "schedules", "backupstoragelocations", "volumesnapshotlocations"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+          
+        # Custom Resources and CRDs (for operators)
+        - api_groups: ["apiextensions.k8s.io"]
+          resources: ["customresourcedefinitions"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+          
+        # Cluster-scoped networking
+        - api_groups: ["networking.k8s.io"]
+          resources: ["networkpolicies", "ingressclasses"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+          
+        # OpenShift networking
+        - api_groups: ["network.openshift.io"]
+          resources: ["clusternetworks", "hostsubnets", "netnamespaces", "egressnetworkpolicies"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+          
+        # Core cluster resources (limited)
+        - api_groups: [""]
+          resources: ["namespaces", "persistentvolumes", "persistentvolumeclaims"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+          
+        # RBAC (limited to service accounts and roles, not user management)
+        - api_groups: ["rbac.authorization.k8s.io"]
+          resources: ["clusterroles", "clusterrolebindings", "roles", "rolebindings"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+          
+      # Explicitly denied permissions for security
+      denied_permissions:
+        # No access to user secrets or application data
+        - api_groups: [""]
+          resources: ["secrets"]
+          namespaces: ["default", "kube-system", "openshift-*"]
+          reason: "Prevent access to application and system secrets"
+          
+        # No user/group management
+        - api_groups: ["user.openshift.io"]
+          resources: ["users", "groups", "identities"]
+          reason: "User management reserved for full admin"
+          
+        # No OAuth configuration changes
+        - api_groups: ["oauth.openshift.io"]
+          resources: ["oauthclients", "oauthaccesstokens", "oauthauthorizetokens"]
+          reason: "OAuth management reserved for full admin"
+          
+    app_deployer:
+      name: "app-deployer"
+      description: "Application deployment with limited permissions"
+      scope: "applications,namespaces,services,deployments"
+      security_level: "low-privilege"
+      # Custom ClusterRole with application-specific permissions
+      permissions:
+        # Core application resources
+        - api_groups: [""]
+          resources: ["namespaces", "services", "endpoints", "configmaps", "secrets", "persistentvolumeclaims"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+          
+        # Application workloads
+        - api_groups: ["apps"]
+          resources: ["deployments", "replicasets", "daemonsets", "statefulsets"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+          
+        # Batch jobs
+        - api_groups: ["batch"]
+          resources: ["jobs", "cronjobs"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+          
+        # Networking for applications
+        - api_groups: ["networking.k8s.io"]
+          resources: ["ingresses", "networkpolicies"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+          
+        # OpenShift Routes
+        - api_groups: ["route.openshift.io"]
+          resources: ["routes"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+          
+        # ArgoCD Applications (not cluster config)
+        - api_groups: ["argoproj.io"]
+          resources: ["applications", "applicationsets"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+          
+        # Helm releases
+        - api_groups: ["helm.cattle.io"]
+          resources: ["helmcharts", "helmchartconfigs"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+          
+        # Service mesh application resources
+        - api_groups: ["networking.istio.io"]
+          resources: ["virtualservices", "destinationrules", "gateways", "serviceentries"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+          
+        # Autoscaling
+        - api_groups: ["autoscaling"]
+          resources: ["horizontalpodautoscalers"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+          
+        # Pod security and policies (application level)
+        - api_groups: ["policy"]
+          resources: ["poddisruptionbudgets"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+          
+        # Monitoring for applications
+        - api_groups: ["monitoring.coreos.com"]
+          resources: ["servicemonitors", "podmonitors", "prometheusrules"]
+          verbs: ["get", "list", "create", "update", "patch", "delete"]
+          
+        # Events and logs (read-only)
+        - api_groups: [""]
+          resources: ["events", "pods/log"]
+          verbs: ["get", "list"]
+          
+        # Pod management (for debugging)
+        - api_groups: [""]
+          resources: ["pods", "pods/exec", "pods/portforward"]
+          verbs: ["get", "list", "create", "delete"]
+          
+      # Explicitly denied permissions for security
+      denied_permissions:
+        # No cluster-level configuration
+        - api_groups: ["config.openshift.io"]
+          resources: ["*"]
+          reason: "Cluster configuration reserved for admin accounts"
+          
+        # No operator management
+        - api_groups: ["operators.coreos.com"]
+          resources: ["*"]
+          reason: "Operator management reserved for admin accounts"
+          
+        # No node access
+        - api_groups: [""]
+          resources: ["nodes", "nodes/*"]
+          reason: "Node management reserved for admin accounts"
+          
+        # No custom resource definitions
+        - api_groups: ["apiextensions.k8s.io"]
+          resources: ["customresourcedefinitions"]
+          reason: "CRD management reserved for admin accounts"
+          
+        # No cluster-scoped RBAC changes
+        - api_groups: ["rbac.authorization.k8s.io"]
+          resources: ["clusterroles", "clusterrolebindings"]
+          reason: "Cluster RBAC reserved for admin accounts"
+          
+        # No storage class management
+        - api_groups: ["storage.k8s.io"]
+          resources: ["storageclasses"]
+          reason: "Storage class management reserved for admin accounts" 

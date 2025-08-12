@@ -1,0 +1,133 @@
+# Generic OpenShift Cluster Size Configurations
+# Cloud-agnostic sizing for OpenShift clusters
+# Used as fallback when cloud-specific configurations are not available
+
+# Default mappings for abstract sizes
+size_mappings:
+  # Control plane defaults
+  small_controlplane: "controlplane_small"
+  medium_controlplane: "controlplane_medium" 
+  large_controlplane: "controlplane_large"
+  
+  # Worker node defaults
+  micro: "worker_micro"
+  small: "worker_small"
+  medium: "worker_medium"
+  large: "worker_large"
+  xlarge: "worker_xlarge"
+  
+  # Specialized workloads
+  compute: "compute_medium"
+  memory: "memory_medium"
+  gpu: "gpu_small"
+
+# OpenShift cluster size configurations
+cluster_sizes:
+  micro:
+    description: "Single node development cluster"
+    controlplanes: 1
+    workers: 1
+    controlplane_size: "medium"
+    worker_size: "medium"
+    use_case: "Development/Testing - single node for demos and learning"
+    minimum_requirements:
+      total_vcpus: 4
+      total_memory_gb: 16
+      total_storage_gb: 120
+    
+  small:
+    description: "Small production cluster"
+    controlplanes: 3
+    workers: 2
+    controlplane_size: "large"
+    worker_size: "large"
+    use_case: "Small production workloads"
+    minimum_requirements:
+      total_vcpus: 20
+      total_memory_gb: 80
+      total_storage_gb: 600
+    
+  medium:
+    description: "Medium production cluster"
+    controlplanes: 3
+    workers: 3
+    controlplane_size: "large"
+    worker_size: "xlarge"
+    use_case: "Standard production workloads"
+    minimum_requirements:
+      total_vcpus: 36
+      total_memory_gb: 144
+      total_storage_gb: 720
+    
+  large:
+    description: "Large production cluster"
+    controlplanes: 3
+    controlplane_count: 3
+    workers: 5
+    worker_count: 5
+    controlplane_size: "xlarge"
+    worker_size: "xlarge"
+    use_case: "Large production workloads"
+    minimum_requirements:
+      total_vcpus: 72
+      total_memory_gb: 288
+      total_storage_gb: 960
+    
+  xlarge:
+    description: "Extra large production cluster"
+    controlplanes: 3
+    workers: 8
+    controlplane_size: "xlarge"
+    worker_size: "2xlarge"
+    use_case: "Very large production workloads"
+    minimum_requirements:
+      total_vcpus: 120
+      total_memory_gb: 480
+      total_storage_gb: 1320
+
+# OpenShift-specific requirements and recommendations
+openshift_requirements:
+  minimum_controlplane_specs:
+    vcpus: 4
+    memory_gb: 16
+    storage_gb: 120
+    storage_type: "SSD recommended"
+    
+  minimum_worker_specs:
+    vcpus: 2
+    memory_gb: 8
+    storage_gb: 120
+    storage_type: "SSD recommended"
+    
+  networking:
+    service_cidr: "172.30.0.0/16"
+    pod_cidr: "10.128.0.0/14"
+    host_prefix: 23
+    
+  storage_requirements:
+    etcd_storage: "Fast SSD with low latency"
+    container_storage: "Persistent volumes for stateful workloads"
+    registry_storage: "Object storage or persistent volumes"
+    
+  recommended_practices:
+    - "Use dedicated storage for etcd"
+    - "Ensure network connectivity between all nodes"
+    - "Plan for 25% overhead on resource calculations"
+    - "Consider separate network for cluster traffic"
+    - "Implement proper backup strategy for etcd and persistent data"
+
+# Generic size translation (for providers without specific OpenShift flavors)
+generic_size_translation:
+  worker_micro: "small"
+  worker_small: "medium"
+  worker_medium: "large"
+  worker_large: "xlarge"
+  worker_xlarge: "2xlarge"
+  
+  controlplane_small: "medium"
+  controlplane_medium: "large"
+  controlplane_large: "xlarge"
+  
+  compute_medium: "large"
+  memory_medium: "large"
+  gpu_small: "large" 
