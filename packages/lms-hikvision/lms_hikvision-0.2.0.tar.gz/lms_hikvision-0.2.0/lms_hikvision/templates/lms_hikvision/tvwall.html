@@ -1,0 +1,38 @@
+{% load static %}
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="{% static 'hikvision/js/lib/h5player.min.js' %}"></script>
+
+</head>
+<body>
+<div id="play_window"></div>
+
+</body>
+</html>
+<script>
+    const url = 'rtsp://172.25.31.1:655/EUrl/e7AV0EU?traceId=6b1b3896fa9b95d7';
+    const curIndex = 1;
+    let myPlugin;
+    document.addEventListener('DOMContentLoaded', () => {
+        myPlugin = new JSPlugin({
+            szId: "play_window",
+            szBasePath: './',
+            mseWorkerEnable: true,
+            iMaxSplit: 4
+        })
+        myPlugin.JS_Play(url, {
+            playURL: url,
+            mode: 1,
+            PlayBackMode: 1,
+            keepDecoder: 0,
+            token: ""
+        }, curIndex).then(() => {
+            console.info('JS_Play success');
+        }, (err) => {
+            console.info('JS_Play failed:', err);
+        })
+    });
+</script>
