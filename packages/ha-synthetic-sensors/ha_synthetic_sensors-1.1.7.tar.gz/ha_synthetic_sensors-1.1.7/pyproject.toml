@@ -1,0 +1,199 @@
+[project]
+name = "ha-synthetic-sensors"
+version = "1.1.7"
+description = "A Home Assistant package for creating synthetic sensors from YAML configuration with mathematical formulas"
+authors = [
+    {name = "SpanPanel"}
+]
+readme = "README.md"
+requires-python = ">=3.13.2,<3.14"
+dependencies = [
+    "simpleeval>=1.0.3,<2.0.0",  # Keep our own constraint for non-HA dependency
+    "jsonschema>=4.24.0,<5.0.0",  # Keep our own constraint for non-HA dependency
+    "homeassistant>=2025.7.2,<2026.0.0",  # Required runtime dependency - brings pyyaml, voluptuous transitively
+    "aiofiles",  # For async file operations - not included with HA core
+]
+
+[project.urls]
+Homepage = "https://github.com/SpanPanel/ha-synthetic-sensors"
+Issues = "https://github.com/SpanPanel/ha-synthetic-sensors/issues"
+
+[tool.poetry]
+packages = [
+    {include = "ha_synthetic_sensors", from = "src"},
+]
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.4.1"
+pytest-asyncio = "^1.0.0"
+pytest-cov = "^6.0.0"
+bandit = "^1.8.6"
+twine = "^6.0.1"
+pre-commit = "^4.0.0"
+ruff = "^0.12.2"
+mypy = "^1.15.0"
+radon = "*"
+pylint = "*"
+vulture = "^2.12"
+types-PyYAML = "^6.0.0"
+types-jsonschema = "^4.0.0"
+types-aiofiles = "^24.1.0.20250606"
+homeassistant-stubs = "*"
+types-pytz = "^2025.2.0.20250516"
+pytz = "^2025.2"
+
+[tool.poetry.group.test.dependencies]
+# homeassistant is now in runtime dependencies, so no need here
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 128
+exclude = [
+    ".*_cache/",
+    "dist/",
+    "venv/",
+    ".venv/",
+    "scripts/",
+    "examples/",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "T20",    # flake8-print
+    "SIM",    # flake8-simplify
+    "RUF",    # ruff-specific rules
+]
+
+ignore = [
+    "E501",   # line too long - following Home Assistant's approach
+]
+
+# Exclude tests and examples from ALL linting checks (formatting still applies)
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["ALL"]
+"scripts/**/*.py" = ["ALL"]
+"examples/**/*.py" = ["ALL"]
+
+[tool.ruff.lint.isort]
+force-sort-within-sections = true
+combine-as-imports = true
+split-on-trailing-comma = false
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+exclude = [
+    "^examples/.*\\.py$",
+    "^tests/.*\\.py$",
+    "^docs/.*\\.py$",
+]
+
+[[tool.mypy.overrides]]
+module = [
+    "homeassistant.*",
+    "voluptuous.*",
+    "simpleeval.*",
+    "aiofiles.*",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "examples.*"
+ignore_errors = true
+
+[tool.coverage.run]
+source = ["src/ha_synthetic_sensors"]
+omit = [
+    "tests/*",
+    "*/tests/*",
+    "*/.venv/*",
+    "*/venv/*",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+# Disable the homeassistant plugin due to asyncio event loop issues in Python 3.13+
+addopts = "-p no:homeassistant --cov-fail-under=83"
+# Add markers for our new test types
+markers = [
+    "ha_integration: marks tests as requiring real Home Assistant (deselect with '-m \"not ha_integration\"')",
+    "performance: marks tests that measure performance characteristics (deselect with '-m \"not performance\"')"
+]
+# Filter out warnings from dependencies we can't control
+filterwarnings = [
+    "ignore:Inheritance class HomeAssistantApplication from web.Application is discouraged:DeprecationWarning:homeassistant.components.http",
+]  # pytest-asyncio will handle coroutine tests, no need to filter PytestUnhandledCoroutineWarning
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.bandit]
+exclude_dirs = ["tests"]
+
+[tool.pylint.format]
+max-line-length = 250
+
+[tool.pylint.messages_control]
+disable = [
+    "attribute-defined-outside-init",  # Common HA pattern for lazy initialization
+    "too-many-instance-attributes",    # HA entities often have many attributes
+    "too-many-arguments",             # HA constructors often need many params
+    "too-few-public-methods",         # HA entities/helpers are often simple
+    "missing-docstring",              # Not enforcing docstrings everywhere
+    "invalid-name",                   # HA uses different naming conventions
+    "broad-except",                   # Sometimes needed for robustness
+    "unused-argument",                # HA callbacks often have unused params
+    "too-many-public-methods",        # Complex classes often need many methods
+    "too-many-positional-arguments",  # HA constructors often need many params
+    "too-many-locals",                # Complex functions often need many variables
+    "import-error",                   # aiofiles import issue in pre-commit environment
+    "relative-beyond-top-level",      # Relative imports in nested packages are acceptable
+    "no-name-in-module",              # Home Assistant constants import issues
+
+]
+
+[tool.pylint.master]
+ignore-paths = [
+    "scripts",
+]
+
+[tool.vulture]
+exclude = [
+    "tests/",
+    "scripts/",
+    "examples/",
+    "docs/",
+    "*.pyc",
+    "__pycache__",
+    ".venv",
+    "venv",
+    "dist",
+    "build",
+]
+min_confidence = 80
