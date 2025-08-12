@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dumb Uploader</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous">
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+
+<body>
+    {% raw %}
+    <section id="app" class="mt-5">
+
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6 mx-auto">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="mb-0">👻 Dumb file drop</h3>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST" enctype="multipart/form-data">
+                                <div class="my-3">
+                                    <label for="f" class="form-label">Select file to upload</label>
+                                    <input type="file" class="form-control" id="f" name="f" @change="fileFieldChange">
+                                </div>
+                                <div class="d-grid gap-2 col-6 mx-auto mt-5 mb-3">
+                                    <input class="btn btn-primary" type=submit value=Upload @click.prevent="doUpload" :disabled="uploadButtonDisabled">
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-4" v-if="showProgressBar">
+                <div class="col-md-6 mx-auto">
+                    <div class="progress" role="progressbar">
+                        <div class="progress-bar" :style="{width: uploadProgress + '%'}">{{uploadProgress}}%</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="container" v-if="showMessage">
+                <div class="alert alert-info show my-3" role="alert">
+                    {{ message }}
+                </div>
+            </div>
+        </div>
+
+    </section>
+    {% endraw %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js" integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.11.0/axios.min.js" integrity="sha512-h9644v03pHqrIHThkvXhB2PJ8zf5E9IyVnrSfZg8Yj8k4RsO4zldcQc4Bi9iVLUCCsqNY0b4WXVV4UB+wbWENA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script type="importmap">
+        {
+          "imports": {
+            "vue": "https://cdnjs.cloudflare.com/ajax/libs/vue/3.5.18/vue.esm-browser.prod.min.js"
+          }
+        }
+    </script>
+    <script type="module">
+        import { createApp } from 'vue'
+
+        createApp({
+            data() {
+                return {
+                    uploadProgress: 0,
+                    uploadButtonDisabled: true,
+                    showMessage: false,
+                    showProgressBar: false,
+                    message: ""
+                }
+            },
+            methods: {
+                async doUpload() {
+                    const fileToUpload = document.getElementById('f').files[0];
+
+                    this.uploadButtonDisabled = true;
+
+                    if ((await axios.get('/file-exists', { params: { fn: fileToUpload.name } })).data.detail) {
+                        this.message = `⚠️ You already uploaded '${fileToUpload.name}'!`
+                        this.showMessage = true;
+                        return
+                    }
+
+                    this.showMessage = false;
+                    this.showProgressBar = true;
+
+                    try {
+                        await axios.post('/', { "f": fileToUpload }, { onUploadProgress: this.onUploadProgress, headers: { 'Content-Type': 'multipart/form-data' } });
+                        this.message = `✅ Successfully uploaded '${fileToUpload.name}'`;
+                    }
+                    catch (e) {
+                        console.log(e);
+                        this.message = e.message;
+                    }
+
+                    this.showMessage = true;
+                },
+                fileFieldChange(e) {
+                    if (e.target.files.length)
+                        this.uploadButtonDisabled = false;
+                },
+                onUploadProgress(e) {
+                    this.uploadProgress = Math.round((e.loaded * 100) / e.total);
+                }
+            }
+        }).mount('#app')
+    </script>
+</body>
+
+</html>
