@@ -1,0 +1,119 @@
+"""Helper functions for describing and building a CLI with command groups, which contain many subcommands."""
+
+from __future__ import annotations
+
+import inspect
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser, Namespace, _SubParsersAction
+from typing import Any, Callable
+
+from aec.util.display import OutputFormat
+
+
+class Arg:
+    def __init__(self, *args: Any, **kwargs: Any):
+        self.args = args
+        self.kwargs = kwargs
+
+
+class Cmd:
+    def __init__(
+        self,
+        call_me: Callable[..., Any],
+        args: list[Arg] | None = None,
+        name: str | None = None,
+        help: str | None = None,
+    ):
+        # dispatch() will call this function
+        self.call_me = call_me
+        # args for ArgumentParser
+        self.args = args
+        # fallback to call_me's name in kebab case
+        self.name: str = self.call_me.__name__.replace("_", "-") if name is None else name
+        # fallback to call_me's docstring for help
+        self.help = inspect.getdoc(self.call_me) if help is None else help
+
+        # check all function params have args specified
+        call_me_num_args = len(inspect.signature(self.call_me).parameters)
+        if self.args and len(self.args) != call_me_num_args:
+            raise Exception(
+                f"{self.call_me.__name__} has {call_me_num_args} args but {len(self.args)} defined for the cli"
+            )
+        elif not self.args and call_me_num_args > 0:
+            raise Exception(f"{self.call_me.__name__} has {call_me_num_args} args but none defined for the cli")
+
+
+def usage_exit(parser: ArgumentParser) -> Callable[[], None]:
+    def inner() -> None:
+        parser.print_usage()
+        parser.exit(1, f"{parser.prog}: no subcommand specified\n")
+
+    return inner
+
+
+def add_command_group(
+    parent: _SubParsersAction,
+    name: str,
+    help: str,
+    cmds: list[Cmd],
+    args_pre_processor: Callable[[Namespace], None] | None = None,
+) -> None:
+    group = parent.add_parser(name, help=help)
+    # show help if no args provided to the command group
+    group.set_defaults(call_me=usage_exit(group))
+    if args_pre_processor:
+        group.set_defaults(args_pre_processor=args_pre_processor)
+    subcommands = group.add_subparsers(title="subcommands")
+
+    for cmd in cmds:
+        parser = subcommands.add_parser(
+            cmd.name, help=cmd.help, description=cmd.help, formatter_class=ArgumentDefaultsHelpFormatter
+        )
+        parser.set_defaults(call_me=cmd.call_me)
+        if cmd.args:
+            for arg in cmd.args:
+                parser.add_argument(*arg.args, **arg.kwargs)
+
+        # add output arg to every command
+        parser.add_argument(
+            "-o", "--output", choices=OutputFormat.__members__, help="Output format", default=OutputFormat.table.value
+        )
+
+
+def dispatch(parser: ArgumentParser, args: list[str]) -> tuple[Any, OutputFormat]:
+    pargs = parser.parse_args(args)
+
+    if "args_pre_processor" in pargs:
+        pargs.args_pre_processor(pargs)
+        delattr(pargs, "args_pre_processor")
+
+    if "call_me" not in pargs:
+        parser.print_usage()
+        parser.exit(1, f"{parser.prog}: no command specified\n")
+
+    call_me = pargs.call_me
+    # remove call_me arg because the call_me function doesn't expect it
+    delattr(pargs, "call_me")
+
+    # remove output because that's injected above and the call_me function doesn't expect it
+    if "output" not in pargs:
+        # no subcommand specified
+        output_format = OutputFormat.table
+    else:
+        output_format = OutputFormat[pargs.output]
+        delattr(pargs, "output")
+
+    return (call_me(**vars(pargs)), output_format)
+
+
+def parameter_defaults(func: Callable) -> dict[str, Any]:
+    """
+    Get a function's parameter defaults.
+
+    Args:
+        func (Callable): function
+
+    Returns:
+        Dict[str, Any]: Dictionary of parameter name => default value or None
+    """
+    signature = inspect.signature(func)
+    return {k: v.default for k, v in signature.parameters.items() if v.default is not inspect.Parameter.empty}
