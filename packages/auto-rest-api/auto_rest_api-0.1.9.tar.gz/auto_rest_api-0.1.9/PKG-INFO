@@ -1,0 +1,84 @@
+Metadata-Version: 2.3
+Name: auto-rest-api
+Version: 0.1.9
+Summary: Automatically map database schemas and deploy per-table REST API endpoints.
+License: GPL-3.0-only
+Keywords: Better,HPC,automatic,rest,api
+Author: Better HPC LLC
+Requires-Python: >=3.11,<4
+Classifier: Environment :: Web Environment
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Information Technology
+Classifier: Intended Audience :: System Administrators
+Classifier: Natural Language :: English
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Topic :: Internet
+Classifier: Topic :: Internet :: WWW/HTTP
+Classifier: Topic :: Internet :: WWW/HTTP :: HTTP Servers
+Classifier: Topic :: Software Development
+Classifier: Typing :: Typed
+Requires-Dist: aiomysql (>=0.2,<1.0)
+Requires-Dist: aioodbc (>=0.5,<1.0)
+Requires-Dist: aiosqlite (>=0.20,<1.0)
+Requires-Dist: asgi-correlation-id (>=4.3.4,<5.0.0)
+Requires-Dist: asyncpg (>=0.30,<1.0)
+Requires-Dist: colorlog (>=6.9.0,<7.0.0)
+Requires-Dist: fastapi (>=0.115,<1.0)
+Requires-Dist: greenlet (>=3.1,<4.0)
+Requires-Dist: httpx (>=0.28,<1.0)
+Requires-Dist: oracledb (>=2.5,<3.0)
+Requires-Dist: pydantic (>=2.10,<3.0)
+Requires-Dist: pyyaml (>=6.0.2,<7.0.0)
+Requires-Dist: sqlalchemy (>=2.0,<3.0)
+Requires-Dist: uvicorn (>=0.34,<1.0)
+Description-Content-Type: text/markdown
+
+# Auto-REST
+
+A light-weight CLI tool for deploying dynamically generated REST APIs against relational databases.
+See the [project documentation](https://better-hpc.github.io/auto-rest/) for detailed usage instructions.
+
+## Supported Databases
+
+Auto-REST provides built-in support for the database types listed below.
+Support for additional databases can be added by installing the corresponding database drivers.
+See the official documentation for instructions.
+
+| Flag       | Default Driver               | Database Type        |
+|------------|------------------------------|----------------------|
+| `--sqlite` | `sqlite+aiosqlite`           | SQLite               |
+| `--psql`   | `postgresql+asyncpg`         | PostgreSQL           |
+| `--mysql`  | `mysql+asyncmy`              | MySQL                |
+| `--oracle` | `oracle+oracledb`            | Oracle               |
+| `--mssql`  | `mssql+aiomysql`             | Microsoft SQL Server |
+| `--driver` | Custom driver (user-defined) | Custom               |
+
+## Quickstart
+
+Install the command line utility using your favorite Python package manager.
+
+```shell
+pipx install auto-rest-api
+```
+
+Check the package installed correctly.
+
+```shell
+auto-rest --help
+```
+
+Launch an API by providing connection arguments to a database of your choice.
+
+```shell
+auto-rest \
+  --psql 
+  --db-host localhost
+  --db-port 5432
+  --db-name default
+  --db-user jsmith
+  --db-password secure123!
+```
+
+Navigate `localhost:8081/docs/` to view the OpenAPI documentation for your dynamically generated REST API!
+
