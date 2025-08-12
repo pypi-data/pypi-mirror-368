@@ -1,0 +1,102 @@
+name: Publish to TestPyPI
+
+# 🧪 TestPyPI Manual Publishing Workflow
+#
+# This workflow provides manual testing capabilities for Python packages:
+#
+# 🎯 Purpose:
+# - Test package builds before production releases
+# - Validate package metadata and dependencies
+# - Verify upload process and package installation
+# - Debug packaging issues in isolation
+#
+# 🔧 Usage Scenarios:
+# - Pre-release testing: Test packages before main release
+# - Debug builds: Investigate packaging or dependency issues
+# - Version testing: Test specific versions or git refs
+# - CI/CD validation: Verify release pipeline components
+#
+# 📋 Manual Trigger Options:
+# - Leave version empty: Use current git state (latest commit)
+# - Specify version: Checkout specific git tag (e.g., "v0.3.0")
+# - Custom refs: Test branches or specific commits
+#
+# 🛡️ TestPyPI Benefits:
+# - Safe testing environment (separate from production PyPI)
+# - Package name conflicts don't affect production
+# - Full upload/download testing without affecting users
+# - --skip-existing prevents duplicate upload errors
+#
+# 🚀 Testing Installation:
+# After successful publish, test installation:
+# pip install -i https://test.pypi.org/simple/ vibe-soren-n
+#
+# 💡 Pro Tips:
+# - TestPyPI has separate user accounts from PyPI
+# - Use trusted publishing (OIDC) for secure authentication
+# - TestPyPI packages are cleaned up regularly (not permanent)
+# - Always test critical releases here first
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build and publish (leave empty for current version)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build-and-publish:
+    name: Build and publish to TestPyPI
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: 3.13
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+
+    - name: Checkout specific version
+      # 🏷️ Optional: Switch to specific version if provided
+      # Allows testing historical releases or specific tags
+      if: ${{ github.event.inputs.version != '' }}
+      run: git checkout v${{ github.event.inputs.version }}
+
+    - name: Build package
+      # 📦 Build package for testing
+      # Uses current git state or specified version for build
+      # hatch-vcs determines version from git tags/commits
+      run: uv build
+
+    - name: Publish to TestPyPI
+      # 🧪 Upload to TestPyPI for validation
+      # Safe testing environment - won't affect production PyPI
+      # --skip-existing prevents duplicate upload errors
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        repository-url: https://test.pypi.org/legacy/
+        skip-existing: true
+
+    - name: Output TestPyPI URL
+      # 📋 Provide direct link to published package
+      # Makes it easy to verify upload and test installation
+      run: |
+        if [ -n "${{ github.event.inputs.version }}" ]; then
+          echo "📦 Package published to: https://test.pypi.org/project/vibe-soren-n/${{ github.event.inputs.version }}/"
+          echo "🔧 Test install: pip install -i https://test.pypi.org/simple/ vibe-soren-n==${{ github.event.inputs.version }}"
+        else
+          echo "📦 Package published to: https://test.pypi.org/project/vibe-soren-n/"
+          echo "🔧 Test install: pip install -i https://test.pypi.org/simple/ vibe-soren-n"
+        fi
