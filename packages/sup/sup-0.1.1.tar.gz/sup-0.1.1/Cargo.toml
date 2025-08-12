@@ -1,0 +1,29 @@
+[package]
+name = "sup"
+version = "0.1.0"
+edition = "2021"
+readme = "README.md"
+
+[lib]
+name = "sup"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.22", features = ["extension-module"] }
+# Use ripgrep's internal crates directly from submodule
+grep = { path = "ripgrep-src/crates/grep" }
+grep-searcher = { path = "ripgrep-src/crates/searcher" }
+grep-regex = { path = "ripgrep-src/crates/regex" }
+grep-matcher = { path = "ripgrep-src/crates/matcher" }
+grep-printer = { path = "ripgrep-src/crates/printer" }
+ignore = { path = "ripgrep-src/crates/ignore" }
+# For binary invocation
+walkdir = "2"
+
+# No build dependencies needed - using system commands for git/curl/tar
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
