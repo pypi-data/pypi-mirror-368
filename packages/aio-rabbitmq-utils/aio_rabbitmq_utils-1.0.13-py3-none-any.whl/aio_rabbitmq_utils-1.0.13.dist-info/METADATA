@@ -1,0 +1,126 @@
+Metadata-Version: 2.4
+Name: aio-rabbitmq-utils
+Version: 1.0.13
+Summary: A package for async communication with RabbitMQ
+Author-email: Omer Dagry <omerdagry@gmail.com>
+License: MIT License
+        
+        Copyright (c) 2024 Omer Dagry
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE.
+        
+Project-URL: Homepage, https://github.com/Omer-Dagry/RabbitMQUtils
+Project-URL: Issues, https://github.com/Omer-Dagry/RabbitMQUtils/issues
+Keywords: rabbitmq,pika,aio,async
+Classifier: Operating System :: OS Independent
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: aio-pika==9.*
+Requires-Dist: no-exception==1.*
+Dynamic: license-file
+
+# RabbitMQUtils
+
+### Example for reader
+#### Consumer
+
+```python
+from aio_rabbitmq_utils import RabbitMQConsumeInputDeviceManager, RabbitMQInputConsumeDevice
+
+
+async def example():
+    input_device_manager = RabbitMQConsumeInputDeviceManager(
+        hosts=["the", "rabbit", "hosts", ", will", "connect", "to", "only", "one"],
+        user="user",
+        password="password",
+        vhost="/",
+        prefetch_count=10,
+    )
+    await input_device_manager.connect()
+    input_device: RabbitMQInputConsumeDevice = await input_device_manager.get_device("some_queue_name")
+    await input_device.connect()
+    data, headers, transaction = await input_device.read()
+    
+    # do something
+    
+    # To ack the message (remove from queue)
+    await transaction.commit()
+    # To nack the message (re-queue the message)
+    await transaction.rollback()
+```
+#### Basic Get
+
+```python
+from aio_rabbitmq_utils import RabbitMQMultiConnectionBasicGetInputDeviceManager, RabbitMQInputBasicGetDevice
+
+
+async def example():
+    input_device_manager = RabbitMQMultiConnectionBasicGetInputDeviceManager(
+        hosts=["the", "rabbit", "hosts", ", will", "connect", "to", "only", "one"],
+        user="user",
+        password="password",
+        vhost="/",
+        max_connections=10,
+        max_channels=50,
+    )
+    await input_device_manager.connect()
+    input_device: RabbitMQInputBasicGetDevice = await input_device_manager.get_device("some_queue_name")
+    await input_device.connect()
+    data, headers, transaction = await input_device.read()
+    
+    # do something
+    
+    # To ack the message (remove from queue)
+    await transaction.commit()
+    # To nack the message (re-queue the message)
+    await transaction.rollback()
+```
+
+### Example for writer
+
+```python
+from io import BytesIO
+from aio_rabbitmq_utils import RabbitMQOutputDeviceManager, RabbitMQOutputDevice
+
+
+async def example():
+    output_device_manager = RabbitMQOutputDeviceManager(
+        hosts=["the", "rabbit", "hosts", ", will", "connect", "to", "only", "one"],
+        user="user",
+        password="password",
+        vhost="/",
+        exchange_name="",
+    )
+    await output_device_manager.connect()
+    output_device: RabbitMQOutputDevice = await output_device_manager.get_device("some_routing_key")
+    await output_device.connect()
+    success = await output_device.send(
+        BytesIO(b"Hi"),
+        {"some": "headers"},
+    )
+    if success:
+        print("Message sent")
+    else:
+        raise Exception("Failed to send the message")
+```
