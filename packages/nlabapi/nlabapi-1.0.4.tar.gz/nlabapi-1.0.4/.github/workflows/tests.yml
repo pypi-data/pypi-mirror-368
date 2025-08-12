@@ -1,0 +1,61 @@
+name: Cargo Test
+
+on:
+  push:
+    branches: [ main, develop ]
+    tags:
+      - '*'
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+  schedule:
+    - cron: "50 0 * * *"
+
+jobs:
+  linux:
+    name: linux tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install libusb-1.0-0-dev libudev-dev
+      - name: checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: static checks
+        run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: run tests
+        run: cargo test --verbose -- --nocapture
+
+  macos:
+    name: macos tests
+    runs-on: macos-latest
+
+    steps:
+      - name: install dependencies
+        run: rustup component add clippy --toolchain stable-aarch64-apple-darwin
+      - name: checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: static checks
+        run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: run tests
+        run: cargo test --verbose -- --nocapture
+
+  windows:
+    name: windows tests
+    runs-on: windows-latest
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: static checks
+        run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: run tests
+        run: cargo test --verbose -- --nocapture
