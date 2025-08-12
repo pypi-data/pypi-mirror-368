@@ -1,0 +1,125 @@
+[build-system]
+requires = [
+    "setuptools >= 64",
+    "setuptools_scm >= 7",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "prommis"
+readme = "README.md"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: End Users/Desktop",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Natural Language :: English",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: Unix",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Chemistry",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+keywords = ["IDAES", "energy systems", "chemical engineering", "process modeling"]
+dynamic = ["version"]
+dependencies = [
+    "idaes-pse >=2.8.0",
+    "pyomo >=6.7.0",
+]
+[project.optional-dependencies]
+watertap = [
+    "watertap >= 1.4.0",
+]
+flowsheet-processor = [
+    "idaes-flowsheet-processor >=0.1.dev4",
+]
+
+[tool.setuptools_scm]
+# https://setuptools-scm.readthedocs.io/en/v8.1.0/extending/
+version_scheme = "only-version"
+local_scheme = "node-and-date"
+
+[tool.pylint.main]
+py-version = "3.9"
+
+[tool.pylint."messages control"]
+disable = [
+    "E", # all errors
+    "W", # all warnings
+    "C", # all conventions
+    "R", # all refactor
+]
+# see https://pylint.readthedocs.io/en/v2.17.7/user_guide/messages/index.html
+# for a list of all messages
+enable = [
+    "import-error",
+    "unused-import",
+    "wildcard-import",
+    "wrong-import-order",
+    "wrong-import-position",
+    "ungrouped-imports",
+    "implicit-str-concat",
+    "dangerous-default-value",
+    "invalid-name",
+]
+module-naming-style = "snake_case"
+const-naming-style = "any"
+class-naming-style = "any"
+function-naming-style = "any"
+method-naming-style = "any"
+attr-naming-style = "any"
+argument-naming-style = "any"
+variable-naming-style = "any"
+class-attribute-naming-style = "any"
+inlinevar-naming-style = "any"
+
+[project.entry-points.pytest11]
+known_issues = "prommis._testing_utils.known_issues"
+
+[project.entry-points."prommis.flowsheets"]
+"UKy" = "prommis.uky.uky_flowsheet_ui"
+
+[tool.pytest.ini_options]
+addopts = """
+--pyargs prommis
+--import-mode=importlib
+-rsx
+"""
+
+[tool.isort]
+profile = "black"
+known_pyomo = "pyomo"
+known_idaes = "idaes"
+sections = "FUTURE,STDLIB,PYOMO,IDAES,THIRDPARTY,FIRSTPARTY,LOCALFOLDER"
+
+[tool.typos.files]
+extend-exclude = [
+    "*.svg",
+    "*.json",
+    "*.png",
+    "*.jpg",
+    "*.jpeg",
+    "uky_example.ipynb",
+]
+
+[tool.typos.default.extend-words]
+# Ignore IDAES
+IDAES = "IDAES"
+# ignore phase_equil
+phase_equil = "phase_equil"
+# Atomic elements
+Nd = "Nd"
+Ba = "Ba"
+
+[tool.typos.default]
+extend-ignore-re = [
+    # Jupyter notebooks: ignore hexadecimal values in "id" cell metadata field
+    '"id": "[0-9a-f]+",',
+]
