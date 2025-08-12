@@ -1,0 +1,179 @@
+Metadata-Version: 2.4
+Name: wowool-topic-identifier
+Version: 3.1.3
+Summary: Wowool NLP Toolkit Topic Identifier
+Author: Wowool
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: wowool-sdk
+Requires-Dist: rich
+Dynamic: author
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+# Identifying topics in your documents
+
+The topics app identifies topics in your documents and their relevancy.
+
+<note>Themes are pre-defined categories in which you want to categorize your documents. While [topics](https://www.wowool.com/docs/apps/topics) are extracted from the processed documents.</note>
+
+## Prerequisites
+
+The `topics.app` uses the `TopicCandidate` entity to identify potential topics. It will automatically run the built-in `topics` domain to extract these annotations and perform the topic calculus.
+
+## Options
+
+#### TopicsOptions
+
+```typescript
+interface TopicsOptions {
+    count?: number;
+    threshold?: number;
+    ignore_entities?: boolean;
+}
+```
+
+with:
+
+| Property          | Description                                                                                         |
+|-------------------|-----------------------------------------------------------------------------------------------------|
+| `count`           | Maximum number of topics in the results                                                             |
+| `threshold`       | Minimal probability, expressed as a percentage, for a topic candidate to be considered a topic      |
+| `ignore_entities` | If enabled, entities such as `Person`, `Country` and `Company` won't be considered topic candidates |
+
+## Results
+
+#### TopicsResults
+
+```typescript
+type TopicsResults = TopicsResult[];
+```
+
+#### TopicsResult
+
+```typescript
+interface TopicsResult {
+    name: string;
+    relevancy: number;
+}
+```
+
+with:
+
+| Property    | Description                                |
+|-------------|--------------------------------------------|
+| `name`      | Name of the topic                          |
+| `relevancy` | Relevancy of the topic within the document |
+
+## Examples
+
+<sample data-uuid="topics"></sample>
+
+# Identifying topics in your documents
+
+The topics app identifies topics in your documents and their relevancy.
+
+<note>Themes are pre-defined categories in which you want to categorize your documents. While [topics](https://www.wowool.com/docs/apps/topics) are extracted from the processed documents.</note>
+
+## Prerequisites
+
+The `topics.app` uses the `TopicCandidate` entity to identify potential topics. It will automatically run the built-in `topics` domain to extract these annotations and perform the topic calculus.
+
+## Options
+
+#### TopicsOptions
+
+```typescript
+interface TopicsOptions {
+    count?: number;
+    threshold?: number;
+    ignore_entities?: boolean;
+}
+```
+
+with:
+
+| Property          | Description                                                                                         |
+|-------------------|-----------------------------------------------------------------------------------------------------|
+| `count`           | Maximum number of topics in the results                                                             |
+| `threshold`       | Minimal probability, expressed as a percentage, for a topic candidate to be considered a topic      |
+| `ignore_entities` | If enabled, entities such as `Person`, `Country` and `Company` won't be considered topic candidates |
+
+## Results
+
+#### TopicsResults
+
+```typescript
+type TopicsResults = TopicsResult[];
+```
+
+#### TopicsResult
+
+```typescript
+interface TopicsResult {
+    name: string;
+    relevancy: number;
+}
+```
+
+with:
+
+| Property    | Description                                |
+|-------------|--------------------------------------------|
+| `name`      | Name of the topic                          |
+| `relevancy` | Relevancy of the topic within the document |
+
+# API
+
+## Examples
+
+### Using the pipeline
+
+This script demonstrates how to use the wowool.sdk's Pipeline class to identify topics in an English text.
+
+```python
+from wowool.sdk import Pipeline
+
+pipeline = Pipeline("english,topics.app")
+doc = pipeline("Gas supplies to Europe wounded soldiers inside Azovstal steel mill")
+print(doc.topics)
+
+```
+
+### Using the Topics Identifier object
+
+This script uses the wowool SDK to identify topics in an English sentence, specifying the number of topics to return.
+
+```python
+from wowool.sdk import Pipeline
+from wowool.topic_identifier import TopicIdentifier
+
+english = Pipeline("english")
+number_of_topics = 5
+topic_it = TopicIdentifier(language="english", count=number_of_topics)
+# display the results of every file, by iterating over every file.
+document = topic_it(english("This is the effect of the green house gases"))
+for topic in document.topics:
+    print(f" - {topic}")
+
+```
+
+
+
+## License
+
+In both cases you will need to acquirer a license file at https://www.wowool.com
+
+### Non-Commercial
+
+    This library is licensed under the GNU AGPLv3 for non-commercial use.  
+    For commercial use, a separate license must be purchased.  
+
+### Commercial license Terms
+
+    1. Grants the right to use this library in proprietary software.  
+    2. Requires a valid license key  
+    3. Redistribution in SaaS requires a commercial license.  

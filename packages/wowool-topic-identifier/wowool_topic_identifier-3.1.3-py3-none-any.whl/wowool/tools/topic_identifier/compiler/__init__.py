@@ -1,0 +1,1 @@
+from wowool.topic_identifier.compiler import compile_model
