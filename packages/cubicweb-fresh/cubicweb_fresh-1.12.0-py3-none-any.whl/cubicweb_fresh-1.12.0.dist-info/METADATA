@@ -1,0 +1,108 @@
+Metadata-Version: 2.4
+Name: cubicweb-fresh
+Version: 1.12.0
+Summary: expense tracking application built on the CubicWeb framework
+Home-page: http://www.cubicweb.org/project/cubicweb-fresh
+Author: Logilab
+Author-email: contact@logilab.fr
+License: LGPL
+Classifier: Environment :: Web Environment
+Classifier: Framework :: CubicWeb
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: JavaScript
+Requires-Dist: cubicweb[s3]<6.0.0,>=5.0.0
+Requires-Dist: cubicweb-api<0.18.0,>=0.17.1
+Requires-Dist: cubicweb-expense<2.0.0,>=1.1.0
+Requires-Dist: cubicweb-workcase<2.0.0,>=1.0.0
+Requires-Dist: cubicweb-searchui<2.0.0,>=1.1.0
+Requires-Dist: cubicweb-prometheus<1.0.0,>=0.6.0
+Requires-Dist: cubicweb-signedrequest<4.0.0,>=3.3.1
+Requires-Dist: cubicweb-sentry<2.0.0,>=1.1.0
+Requires-Dist: cubicweb-card<3.0.0,>=2.1.0
+Requires-Dist: cubicweb-oauth2<2.0.0,>=1.2.1
+Requires-Dist: cubicweb-web<2.0.0,>=1.6.1
+Requires-Dist: reportlab<3.7.0,>=3.6.0
+Requires-Dist: cwclientlib<2.0.0,>=1.6.0
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: home-page
+Dynamic: license
+Dynamic: requires-dist
+Dynamic: summary
+
+Expense tracking application built on the CubicWeb framework.
+=============================================================
+
+Developping with docker
+=======================
+
+Assuming you have a postgresql running on your machine where you can connect
+with peer authentication, run "make dev" it will spawn an interactive shell
+inside a docker container with the code mounted in develop mode. It mean you
+can edit the code locally and run it in the container.
+
+Some useful commands:
+
+- ``cubicweb-ctl db-create -a fresh`` will create and initialize the database
+
+- ``cubicweb-ctl pyramid -D -l info fresh`` will start the instance on
+  http://localhost:8080
+
+
+Deploying on kubernetes
+=======================
+
+The file `deployment.yaml` contains several containers split in several
+deployments:
+
+- `nginx` to serve static files directly
+
+- `fresh` to run the application (and compile the latest translation)
+
+- an *initContainers* `upgrade` before `fresh` that upgrade the database schema
+  if there is a new `fresh` version.
+
+- `fresh-scheduler` to have the scheduler running.
+
+
+To create the initial database from an existing empty database::
+
+   kubectl run -it fresh-dbcreate \
+      --env CW_DB_HOST=db \
+      --env CW_DB_USER=user \
+      --env CW_DB_PASSWORD=pass \
+      --env CW_DB_NAME=fresh \
+      --image=hub.extranet.logilab.fr/logilab/fresh --command -- \
+      cubicweb-ctl db-create --automatic --create-db=n fresh
+   kubectl delete deployment fresh-dbcreate
+
+
+Then generate a secret named "fresh" from where environment variables are set::
+
+   kubectl create secret generic fresh-env \
+      --from-literal CW_DB_HOST=db
+      --from-literal CW_DB_USER=user \
+      --from-literal CW_DB_PASSWORD=pass \
+      --from-literal CW_DB_NAME=fresh \
+      --from-literal CW_BASE_URL=https://fresh.example.com
+
+
+You need to mount a cwclientlib configuration file to make
+CWClientLibDataFeedParser. If you don't use this feature, just create an empty
+file.
+
+Create a file named cwclientlibrc and run::
+
+   kubectl create secret generic fresh-cwclientlibrc --from-file=./cwclientlibrc
+
+
+Create a persistent volume for bfss data::
+
+   kubectl apply -f deploy/pvc.yaml
+
+
+Then deploy fresh with::
+
+   kubectl apply -f deploy/deployment.yaml
