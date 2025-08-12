@@ -1,0 +1,90 @@
+[tool.poetry]
+name = "skapp"
+version = "0.1.47"
+description = ""
+authors = ["Darwin Monroy <contact@darwinmonroy.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+PyYAML = "^6.0"
+pydantic = "^1.9.0"
+parameterize = "^0.2"
+Jinja2 = "^3.1.1"
+typer = "^0.4.1"
+docker = "^6.1.3"
+dockerfile-parse = "^2.0.1"
+python-on-whales = "^0.65.0"
+kubernetes = "<30"
+requests = "<2.32"
+
+python-dotenv = "^1.0.1"
+rich = "^13.9.4"
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+isort = "^5.10.1"
+black = "^22.1.0"
+pre-commit = "^2.17.0"
+pytest-cov = "^3.0.0"
+pytest-watch = "^4.2.0"
+
+[[tool.poetry.source]]
+name = "gitlab"
+url = "https://gitlab.com/api/v4/projects/62321835/packages/pypi"
+priority = "supplemental"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+skapp = "skapp.cli:app"
+
+[tool.black]
+line-length = 88
+target_version = ['py310']
+include = '\.pyi?$'
+exclude = '''
+(
+  /(
+      \.eggs          # exclude a few common directories in the
+    | \.git           # root of the project
+    | \.pytest_cache
+    | \.mypy_cache
+    | \.venv
+    | venv
+    | _build
+    | build
+    | dist
+    | pynguin.egg-info
+  )/
+)
+'''
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --cov"
+testpaths = [
+    "tests",
+]
+
+markers = [
+  "unit: Unit tests",
+  "integration: Intragration tests",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["skapp", "tests"]
+
+
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "def __repr__",
+  "def __str__",
+  "raise AssertionError",
+  "raise NotImplementedError",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+  "if typing.TYPE_CHECKING:"
+]
