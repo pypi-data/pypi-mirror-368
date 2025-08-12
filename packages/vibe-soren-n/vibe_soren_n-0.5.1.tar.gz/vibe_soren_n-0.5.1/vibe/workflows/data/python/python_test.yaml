@@ -1,0 +1,21 @@
+name: python_test
+description: "Run Python tests with pytest"
+triggers:
+  - "run.*tests"
+  - "test.*code"
+  - "pytest"
+  - "check.*tests"
+  - "verify.*tests"
+  - "validate.*code"
+steps:
+  - "Run tests: `uv run pytest -q --maxfail=1` (or `python -m pytest -q --maxfail=1` if uv isn’t available)"
+  - "If pytest isn’t installed or no tests are found, create a basic scaffold (e.g., `tests/test_basic.py`)."
+  - "Review failures, fix, and re-run until green."
+dependencies:
+  - "python_quality"
+project_types:
+  - "python"
+conditions:
+  - "file:pyproject.toml"
+  - "pattern:test_*.py"
+  - "pattern:*_test.py"

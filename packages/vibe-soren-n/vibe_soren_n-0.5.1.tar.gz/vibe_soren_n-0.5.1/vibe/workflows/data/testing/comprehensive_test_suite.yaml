@@ -1,0 +1,35 @@
+name: "Comprehensive Test Suite"
+description: "🧪 Run comprehensive test suite including unit, integration, and MCP tests"
+triggers:
+  - "run all tests"
+  - "comprehensive testing"
+  - "full test suite"
+  - "validate everything"
+  - "test all functionality"
+
+category: "testing"
+
+steps:
+  - step_text: "🧪 Run unit tests with coverage reporting"
+    command: "uv run pytest tests/ -q --maxfail=1 --cov=vibe --cov-report=term --cov-report=html"
+    working_dir: "."
+
+  - step_text: "🔌 Test MCP workflow execution and session management"
+    command: "uv run python test_mcp.py"
+    working_dir: "."
+
+  - step_text: "📋 Validate all workflow YAML files for quality and syntax"
+    command: "uv run pytest tests/test_workflow_yaml_quality.py -q --maxfail=1"
+    working_dir: "."
+
+  - step_text: "🖥️ Test MCP server functionality and integration"
+    command: "cd mcp-server && npm test --silent"
+    working_dir: "."
+
+  - step_text: "⚡ Test CLI commands and workflow guidance (sample output)"
+    command: "uv run vibe guide \"run quality checks\" | head -20"
+    working_dir: "."
+
+  - step_text: "🔄 Run end-to-end integration test"
+    command: "uv run vibe guide \"analyze project structure\" | head -20"
+    working_dir: "."

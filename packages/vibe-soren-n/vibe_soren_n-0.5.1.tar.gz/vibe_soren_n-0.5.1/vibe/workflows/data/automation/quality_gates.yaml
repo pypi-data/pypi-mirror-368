@@ -1,0 +1,35 @@
+name: "Automation and Quality Gates"
+description: "⚡ Setup and validate automation for continuous quality improvement"
+triggers:
+  - "setup automation"
+  - "configure quality gates"
+  - "setup pre-commit"
+  - "automate quality checks"
+  - "continuous quality"
+
+category: "automation"
+
+steps:
+  - step_text: "📦 Ensure pre-commit is installed and configured"
+    command: "uv run pre-commit --version || uv add --dev pre-commit"
+    working_dir: "."
+
+  - step_text: "🔧 Install and configure pre-commit hooks"
+    command: "uv run pre-commit install --install-hooks"
+    working_dir: "."
+
+  - step_text: "✅ Test pre-commit hooks on all files"
+    command: "uv run pre-commit run --all-files"
+    working_dir: "."
+
+  - step_text: "🔗 Ensure git hooks are properly integrated"
+    command: "ls -la .git/hooks/ | grep pre-commit || echo 'Setting up hooks...'"
+    working_dir: "."
+
+  - step_text: "🎯 Test that quality checks run automatically"
+    command: "uv run ruff check . && uv run mypy . && uv run pytest tests/ -q"
+    working_dir: "."
+
+  - step_text: "🤖 Validate MCP workflow automation"
+    command: "cd mcp-server && npm test && echo 'MCP automation validated'"
+    working_dir: "."

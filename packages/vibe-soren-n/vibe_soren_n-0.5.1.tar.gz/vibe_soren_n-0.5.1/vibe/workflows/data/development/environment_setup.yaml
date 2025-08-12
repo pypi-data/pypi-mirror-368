@@ -1,0 +1,37 @@
+name: "Development Environment Setup"
+description: "🔧 Complete development environment setup with quality tools"
+triggers:
+  - "setup development environment"
+  - "setup dev env"
+  - "install development tools"
+  - "setup pre-commit"
+  - "configure quality tools"
+
+category: "development"
+
+steps:
+  - step_text: "📦 Install all development dependencies including quality tools"
+    command: "uv sync --dev"
+    working_dir: "."
+
+  - step_text: "🔧 Install pre-commit hooks for automated quality checks"
+    command: "uv run pre-commit install"
+    working_dir: "."
+
+  - step_text: "✅ Run quality checks to ensure everything is working"
+    command: "uv run pre-commit run --all-files"
+    working_dir: "."
+
+  - step_text: "🧪 Test the workflow system to ensure it's functioning"
+    command: "uv run pytest tests/ -q --maxfail=1"
+    working_dir: "."
+
+  - step_text: "🔌 Test MCP workflow functionality"
+    command: "uv run python test_mcp.py"
+    working_dir: "."
+
+  - step_text: "🤖 **Set up VS Code Agent Mode Integration** - Configure VS Code for full agent mode capabilities"
+    command: "echo 'Add to VS Code settings.json: {\"chat.agent.enabled\": true, \"chat.mcp.enabled\": true}'"
+
+  - step_text: "📋 **Verify MCP Extension** - Ensure Vibe MCP extension is available for VS Code agent mode"
+    command: "ls -la mcp-server/ && echo 'MCP server ready for VS Code integration'"
