@@ -1,0 +1,415 @@
+Metadata-Version: 2.4
+Name: stum-ai-gateway
+Version: 0.1.9
+Summary: NatBus-to-LLM agent gateway (contract-validated, iterative planning)
+Project-URL: Homepage, https://servicepod.net
+Project-URL: Source, https://servicepod.net
+Project-URL: Issues, https://servicepod.net
+Author-email: Servicepod <admin@servicepod.net>
+License: MIT License
+        
+        Copyright (c) 2025 Servicepod
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the “Software”), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in
+        all copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+        THE SOFTWARE.
+License-File: LICENSE
+Keywords: agent,gateway,jetstream,llm,nats
+Requires-Python: >=3.11
+Requires-Dist: jsonschema>=4.23
+Requires-Dist: natbus>=0.1.17
+Requires-Dist: nats-py>=2.11.0
+Provides-Extra: dev
+Requires-Dist: pytest-asyncio>=1.1.0; extra == 'dev'
+Requires-Dist: pytest>=8.4.1; extra == 'dev'
+Description-Content-Type: text/markdown
+
+# AI Gateway
+• Interface-only LLM: the agent receives an injected async callback (prompt: str, system: Optional[str]) -> Awaitable[str]; no LLM SDKs bundled
+• Command mapping: CommandRegistry maps human commands to request/response subjects; easily extended per service
+• Routing: human commands → LLM JSON plan → service request; service response → optional LLM post-process → human reply subject
+• Correlation: preserves the inbound x-correlation-id across all downstream requests and final replies
+• Compression: outbound uses gzip when enabled; content-encoding: gzip header set; inbound ReceivedMessage auto-decompresses
+• Streams: optionally create a single stream (stream_create=True) and subscribe to human_command_subject plus mapped response subjects
+• Payloads: JSON via BusMessage.from_json; binary via from_bytes
+• Handlers: receive ReceivedMessage with ack(), nak(), term() for JetStream flow control
+• Durables: PUSH subscribers set durable="name" and optional queue group for load-balanced workers
+
+## Install Requirements
+```shell
+python3.11 -m pip install -r requirements.txt -v
+```
+
+## Build
+```shell
+./build.sh
+```
+
+
+AI Gateway
+Interface-only bridge between NatBus and an external LLM.
+Maps human commands to service request/response subjects, asks an LLM to produce a JSON “plan”, publishes requests, and routes responses back to the human reply subject.
+No LLM SDKs bundled; you inject an async callback.
+
+Features
+• LLM injection via async callback (prompt: str, system: Optional[str]) -> Awaitable[str]
+• Command registry for easy, extensible mapping of human commands → NatBus subjects
+• Correlation propagation using inbound x-correlation-id (or auto-generated UUID)
+• Optional LLM post-processing of service responses per-command or globally
+• Gzip compression for outbound messages with transparent inbound decompression
+• Supports PUSH consumers for human commands and service responses
+
+Install
+Use the vendored NatBus wheel and install the gateway.
+
+```bash
+
+from your repo root
+mkdir -p vendor
+cp /mnt/nas_share/python_package_repository/natbus/natsbus-0.1.16-py3-none-any.whl vendor/
+pip install --no-index --find-links=vendor natbus==0.1.16
+pip install -e .
+```
+
+pyproject.toml dependency form (already configured):
+
+```toml
+dependencies = [
+"natbus @ file:vendor/natsbus-0.1.16-py3-none-any.whl",
+]
+```
+
+Concepts
+Human command envelope (JSON on human_command_subject):
+
+```json
+{"cmd":"<string>","args":{"...": "..."},"reply_subject":"<subject optional>"}
+```
+
+LLM plan schema (LLM must output a single JSON object):
+
+```json
+{
+"action": "send_request",
+"subject": "<service.request.subject>",
+"payload": { "service": "specific", "fields": "..." },
+"await_response": true,
+"response_subject": "<service.response.subject>" // optional; overrides mapping default
+}
+```
+
+Service response envelope (typical):
+
+```json
+{ "ok": true, "data": { "...": "..." }, "meta": { "..." : "..." } }
+```
+
+Human reply envelope (published to reply_subject):
+
+```json
+{ "correlation_id": "<id>", "command": "<cmd>", "data": { "...": "..." } }
+```
+
+Quick Start
+1) Provide an LLM callback
+```python
+from typing import Optional
+
+async def llm_call(prompt: str, system: Optional[str]) -> str:
+# Must return a single JSON object string following the LLM plan schema
+# Example: route "show active trades" to forex service
+return (
+'{"action":"send_request","subject":"forex.trades.list.req","payload":{},"await_response":true,'
+'"response_subject":"forex.trades.list.resp"}'
+)
+```
+
+2) Register command mappings
+```python
+from ai_gateway import CommandRegistry, CommandMapping
+
+registry = CommandRegistry()
+
+registry.register(CommandMapping(
+command="show active trades",
+request_subject="forex.trades.list.req",
+response_subject="forex.trades.list.resp",
+llm_instructions="Use an empty payload; await_response true.",
+llm_postprocess=True, # optional: run LLM to summarize service response
+))
+
+registry.register(CommandMapping(
+command="get account info",
+request_subject="forex.account.info.req",
+response_subject="forex.account.info.resp",
+))
+```
+
+3) Configure and run the agent
+```python
+import asyncio
+from typing import Optional
+from natbus.config import NatsConfig
+from natbus.client import NatsBus
+from ai_gateway import LlmNatbusAgent, LlmAgentConfig
+
+CFG = NatsConfig(
+server="nats-nats-jetstream:4222",
+username="nats-user",
+password="changeme",
+name="ai-gateway",
+stream_create=True,
+stream_name="AI_STREAM",
+stream_subjects=("ai.human.commands","ai.human.replies","forex.trades.list.req","forex.trades.list.resp"),
+queue_group="ai-gateway",
+)
+
+async def main():
+bus = NatsBus(CFG)
+await bus.connect()
+agent = LlmNatbusAgent(
+bus=bus,
+llm_call=llm_call,
+registry=registry,
+cfg=LlmAgentConfig(
+human_command_subject="ai.human.commands",
+default_reply_subject="ai.human.replies",
+compress_outbound=True,
+pending_timeout_seconds=180,
+),
+)
+await agent.start()
+# keep running
+while True:
+await asyncio.sleep(60)
+
+if name == "main":
+asyncio.run(main())
+```
+
+4) Publish a human command (e.g., from UI/controller)
+```python
+await bus.publish_json(
+subject="ai.human.commands",
+obj={"cmd": "show active trades", "args": {}, "reply_subject": "ai.human.replies"},
+sender="ui",
+)
+```
+
+Command Mapping Structure
+CommandMapping fields:
+
+• command: canonical human command string (lowercased for lookup)
+• request_subject: NatBus subject to publish the service request
+• response_subject: subject on which the service posts responses (optional)
+• llm_instructions: extra prompt hints for command-specific nuances (optional)
+• llm_postprocess: run LLM on service response before replying (optional)
+
+CommandRegistry responsibilities:
+
+• register(mapping): adds/overwrites a mapping keyed by command
+• get(command): returns the CommandMapping for a human command
+• all_response_subjects(): returns the set of response subjects for auto-subscription
+
+Extending mappings:
+
+```python
+
+Add a new command → subject pair
+registry.register(CommandMapping(
+command="get forex quote",
+request_subject="forex.quote.req",
+response_subject="forex.quote.resp",
+llm_instructions="Payload must include symbol (e.g. EUR/USD). await_response true.",
+))
+```
+
+LLM Integration Contract
+The agent sends a prompt that includes:
+
+• System prompt (schema and output constraints)
+• Context with command, args, default request_subject, and default response_subject
+• Any llm_instructions from the mapping
+
+Your callback must:
+
+• Return a single JSON document (no markdown, no commentary)
+• Include required keys: action, subject, payload, await_response
+• Optionally include response_subject (overrides mapping)
+
+Retries:
+
+• The agent retries invalid outputs up to llm_max_retries with a short JSON-only reminder
+• After retries, the agent publishes an error to the requester’s reply subject
+
+Routing and Correlation
+• Inbound x-correlation-id is reused for all downstream messages and final replies
+• If missing, the agent generates a UUID and uses it consistently in request headers and the reply body and headers
+• The agent subscribes to all configured response subjects and matches responses by correlation ID
+
+Compression
+Outbound (agent → bus):
+
+• Controlled by LlmAgentConfig.compress_outbound
+• When enabled, JSON payloads are gzip-compressed and marked with content-encoding: gzip
+
+Inbound (bus → agent):
+
+• ReceivedMessage auto-decompresses if content-encoding: gzip
+• Your handlers and tests can read .as_json() or .as_text() regardless of compression
+
+Subscriptions
+• Human commands: PUSH consumer on human_command_subject with a durable
+• Service responses: PUSH consumers per response subject derived from the registry and extra_response_subjects
+
+Durables and queue groups:
+
+• Use a durable name to preserve delivery cursor and acks across restarts
+• Use a queue group to load-balance multiple agent replicas
+
+Error Paths
+Unknown command:
+
+```json
+{ "error": "unknown_command", "cmd": "<user text>" }
+```
+
+Invalid LLM output after retries:
+
+```json
+{ "error": "invalid_llm_output", "detail": "<reason>" }
+```
+
+No response subject configured while await_response is true:
+
+```json
+{ "error": "no_response_subject_configured" }
+```
+
+Unsupported plan action:
+
+```json
+{ "error": "unsupported_action", "action": "<value>" }
+```
+
+Configuration Reference
+LlmAgentConfig most relevant fields:
+
+• human_command_subject: subject to receive human commands
+• default_reply_subject: fallback reply subject if requester did not specify one
+• compress_outbound: gzip-compress outbound messages when true
+• llm_max_retries: retry count for invalid LLM outputs
+• llm_system_prompt: schema and constraints for planning calls
+• llm_postprocess_system_prompt: schema for post-processing {result: ...}
+• pending_timeout_seconds: TTL for awaiting responses
+• extra_response_subjects: additional subjects to subscribe to
+
+Example: Multi-service Registry
+```python
+registry = CommandRegistry()
+
+Forex
+registry.register(CommandMapping(
+command="show active trades",
+request_subject="forex.trades.list.req",
+response_subject="forex.trades.list.resp",
+llm_instructions="Empty payload; await_response true.",
+llm_postprocess=True,
+))
+registry.register(CommandMapping(
+command="get forex quote",
+request_subject="forex.quote.req",
+response_subject="forex.quote.resp",
+llm_instructions="Require args.symbol like 'EUR/USD'.",
+))
+
+Accounts
+registry.register(CommandMapping(
+command="get account info",
+request_subject="acct.info.req",
+response_subject="acct.info.resp",
+))
+
+Orders
+registry.register(CommandMapping(
+command="place order",
+request_subject="orders.place.req",
+response_subject="orders.place.resp",
+llm_instructions="Payload must include side, symbol, qty, type.",
+))
+```
+
+Testing
+Unit tests use a FakeBus and stubbed llm_call.
+Tests cover compressed/uncompressed flows, correlation propagation, retries, unknown command, and non-JSON passthrough.
+
+Run tests:
+
+```bash
+pytest -q
+```
+
+Key fixtures in tests/conftest.py:
+
+• bus – fake NatBus
+• make_cfg – builds LlmAgentConfig with overrides
+• make_agent – starts LlmNatbusAgent with provided registry and callback
+• decode_bus_json – decompresses and decodes BusMessage bodies for assertions
+
+Build and Distribute
+Version is controlled in pyproject.toml (project.version).
+Build artifacts:
+
+```bash
+python -m pip install --upgrade build
+python -m build
+ls dist/
+```
+
+Optional NAS copy (example shown in build.sh):
+
+```bash
+cp dist/ai_gateway-<ver>-py3-none-any.whl /mnt/nas_share/python_package_repository/ai_gateway/
+```
+
+Notes for Service Authors
+Subject naming:
+
+• Requests: <service>.<resource>.<action>.req
+• Responses: <service>.<resource>.<action>.resp
+
+Correlation:
+
+• Echo inbound x-correlation-id on all responses
+• Respond on the subject specified by the plan or the documented default
+
+Payloads:
+
+• JSON only for requests and responses to maximize compatibility with the LLM plan schema
+• For large payloads, gzip; the gateway handles decompression automatically
+
+Minimal API Surface (import points)
+```python
+from ai_gateway import (
+LlmAgentConfig,
+CommandRegistry,
+CommandMapping,
+LlmNatbusAgent, # requires injected llm_call
+)
+```
+
+This is sufficient to register commands, run the agent, and integrate your external LLM.
