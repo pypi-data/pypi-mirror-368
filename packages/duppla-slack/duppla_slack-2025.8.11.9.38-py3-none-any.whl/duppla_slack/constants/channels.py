@@ -1,0 +1,6 @@
+AIRFLOW_CHANNEL = "C04AEFT1V9R"
+"""#airflow"""
+RANDOM_CHANNEL = "C038LG9Q5GX"
+"""#random"""
+GENERAL_CHANNEL = "C03914DQE7M"
+"""#general"""
