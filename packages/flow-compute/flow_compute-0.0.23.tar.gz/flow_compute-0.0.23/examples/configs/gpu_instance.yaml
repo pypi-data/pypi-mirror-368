@@ -1,0 +1,62 @@
+# Full GPU instance configuration example
+#
+# This example shows a complete single-node GPU configuration with:
+# - GPU compute resources
+# - Storage volumes for data and checkpoints
+# - Environment variables
+# - Lifecycle management settings
+#
+# Prerequisites:
+# - Flow SDK installed and configured (`flow init`)
+# - Python environment with your training script (or modify command)
+#
+# How to run:
+#   flow run examples/configs/gpu_instance.yaml
+#
+# Expected behavior:
+# - Creates an 8x H100 80GB GPU instance
+# - Mounts two storage volumes (100GB data, 50GB checkpoints)
+# - Runs the command script (customize for your workload)
+# - Automatically terminates after completion (set a time limit if desired)
+#
+# Configuration notes:
+# - instance_type: 8x H100 80GB GPUs
+# - max_price_per_hour: $10/hour budget limit
+# - volumes: Persistent storage that survives instance termination
+
+name: gpu-instance-example
+unique_name: true  # Appends random suffix to avoid name conflicts
+# Default to a single A100 for affordability; adjust as needed
+instance_type: a100
+# Optional cost control: set a realistic cap for your provider/region
+max_price_per_hour: 20.0
+
+# Command to run
+command: |
+  echo "GPU instance started successfully"
+  nvidia-smi
+  echo "Running on $(hostname)"
+  echo "Date: $(date)"
+  
+  # Your training or processing code here
+  python train.py || echo "No train.py found - add your code here"
+
+# Environment variables (example)
+env:
+  TF_CPP_MIN_LOG_LEVEL: "2"
+
+# Storage volumes
+volumes:
+  - name: training-data
+    size_gb: 100
+    mount_path: /volumes/training-data
+  - name: model-checkpoints
+    size_gb: 50
+    mount_path: /volumes/model-checkpoints
+
+# SSH keys (optional - uses project defaults if not specified)
+# ssh_keys:
+#   - my-key-name
+
+# Lifecycle management: enforce TTL to avoid surprise costs
+max_run_time_hours: 6.0

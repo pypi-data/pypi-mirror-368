@@ -1,0 +1,1718 @@
+> """Mithril Provider implementation."""
+  
+> import logging
+> import time
+> import uuid
+> from datetime import datetime, timezone
+> from pathlib import Path
+> from typing import Any, Dict, Iterator, List, Optional
+  
+> from requests.exceptions import HTTPError
+  
+> from flow.config import Config, MithrilConfig
+> from flow.constants import DEFAULT_REGION, DISK_INTERFACE_BLOCK
+> from flow.errors import ResourceNotFoundError, TaskNotFoundError
+> from flow.interfaces import IHttpClient, IProvider
+> from flow.io.http import HttpClientPool
+> from flow.models import (
+>     AvailableInstance,
+>     Instance,
+>     InstanceStatus,
+>     Task,
+>     TaskConfig,
+>     TaskStatus,
+>     User,
+>     Volume,
+> )
+  
+> from .adapter import MithrilAdapter
+> from .auction_finder import AuctionCriteria, AuctionFinder
+> from .bid_builder import BidBuilder
+> from .bid_manager import BidManager
+> from .error_handler import handle_mithril_errors, validate_response
+> from .errors import (
+>     MithrilBidError,
+>     MithrilError,
+>     MithrilInstanceError,
+>     MithrilResourceNotFoundError,
+> )
+> from .models import Auction, MithrilBid, MithrilInstance, MithrilVolume
+> from .project_resolver import ProjectResolver
+> from .ssh_key_manager import SSHKeyManager
+> from .startup_scripts import MithrilStartupScriptBuilder
+  
+> logger = logging.getLogger(__name__)
+  
+  
+> class MithrilProvider(IProvider):
+>     """Mithril implementation of compute and storage providers."""
+  
+>     def __init__(
+>         self,
+>         config: Config,
+>         http_client: IHttpClient,
+>         startup_script_builder: Optional[MithrilStartupScriptBuilder] = None,
+>     ):
+>         """Initialize Mithril provider.
+  
+>         Args:
+>             config: SDK configuration
+>             http_client: HTTP client for API requests
+>             startup_script_builder: Builder for startup scripts
+>         """
+>         if config.provider != "mithril":
+!             raise ValueError(f"MithrilProvider requires 'mithril' provider, got: {config.provider}")
+  
+>         self.config = config
+>         self.mithril_config = MithrilConfig.from_dict(config.provider_config)
+>         self.auth_token = config.auth_token
+  
+>         self.http = http_client
+>         self.startup_builder = startup_script_builder or MithrilStartupScriptBuilder()
+  
+          # Initialize clean components
+>         self.project_resolver = ProjectResolver(http_client)
+>         self.auction_finder = AuctionFinder(http_client)
+>         self.bid_manager = BidManager(http_client)
+  
+          # Resolve and cache project ID if needed
+>         self._project_id: Optional[str] = None
+          
+          # User cache: stores (user, timestamp) tuples
+>         self._user_cache: Dict[str, tuple[User, float]] = {}
+>         self._user_cache_ttl = 3600  # 1 hour TTL
+>         if self.mithril_config.project:
+>             try:
+>                 self._project_id = self.project_resolver.resolve(self.mithril_config.project)
+!                 self.ssh_key_manager = SSHKeyManager(http_client, self._project_id)
+>             except Exception as e:
+>                 logger.warning(f"Failed to resolve project on init: {e}")
+>                 self.ssh_key_manager = SSHKeyManager(http_client)
+!         else:
+!             self.ssh_key_manager = SSHKeyManager(http_client)
+  
+>     @classmethod
+>     def from_config(cls, config: Config) -> "MithrilProvider":
+>         """Create Mithril provider from config using connection pooling.
+  
+>         Args:
+>             config: SDK configuration
+  
+>         Returns:
+>             Initialized Mithril provider
+>         """
+!         api_url = config.provider_config.get("api_url", "https://api.mithril.ai")
+  
+          # Get pooled HTTP client
+!         http_client = HttpClientPool.get_client(
+!             base_url=api_url,
+!             headers=config.get_headers()
+!         )
+  
+!         return cls(
+!             config=config,
+!             http_client=http_client
+!         )
+  
+      # ============ IComputeProvider Implementation ============
+  
+>     @handle_mithril_errors("Find instances")
+>     def find_instances(
+>         self,
+>         requirements: Dict[str, Any],
+>         limit: int = 10,
+>     ) -> List[AvailableInstance]:
+>         """Find available instances matching requirements.
+  
+>         Args:
+>             requirements: Dict with keys like instance_type, region, min_gpu_count
+>             limit: Maximum number of instances to return
+  
+>         Returns:
+>             List of available instances
+>         """
+          # Extract requirements
+!         instance_type = requirements.get("instance_type")
+!         region = requirements.get("region")
+!         min_gpu_count = requirements.get("min_gpu_count")
+!         max_price = requirements.get("max_price")
+  
+          # Resolve instance type if needed
+!         if instance_type and not instance_type.startswith("it_"):
+!             instance_type = self._resolve_instance_type(instance_type)
+  
+          # Build query parameters
+!         params = {"limit": str(limit)}
+!         if instance_type:
+!             params["instance_type"] = instance_type
+!         if region:
+!             params["region"] = region
+!         if min_gpu_count:
+!             params["min_gpu_count"] = str(min_gpu_count)
+!         if max_price:
+!             params["max_price"] = str(max_price)
+  
+          # Get auctions - API returns list directly
+!         auctions = self.http.request(
+!             method="GET",
+!             url="/v2/spot/availability",
+!             params=params,
+!         )
+  
+          # Convert auctions to AvailableInstance objects
+!         available_instances = []
+!         for auction_data in auctions:
+!             available_instance = self._convert_auction_to_available_instance(auction_data)
+!             if available_instance:
+!                 available_instances.append(available_instance)
+  
+!         return available_instances
+  
+>     def find_optimal_auction(
+>         self,
+>         config: TaskConfig,
+>         use_catalog: bool = True,
+>     ) -> Optional[Auction]:
+>         """Find the best auction for the given task configuration.
+  
+>         This method uses the AuctionFinder to search both API and local catalog
+>         for auctions that match the requirements, then selects the optimal one
+>         based on price and availability.
+  
+>         Args:
+>             config: Task configuration with requirements
+>             use_catalog: Whether to include local catalog in search
+  
+>         Returns:
+>             Best matching Auction or None if no matches found
+>         """
+          # Build criteria from config
+!         criteria = AuctionCriteria(
+!             gpu_type=config.instance_type,
+!             num_gpus=config.num_instances,
+!             region=config.region,
+!             max_price_per_hour=config.max_price_per_hour,
+!             instance_type=config.instance_type,
+!         )
+  
+          # Fetch all matching auctions
+!         auctions = self.auction_finder.fetch_auctions(
+!             from_api=True,
+!             from_catalog=use_catalog,
+!             criteria=criteria,
+!         )
+  
+!         if not auctions:
+!             logger.warning("No available instances found matching criteria")
+!             return None
+  
+          # Find matching auctions
+!         matching = self.auction_finder.find_matching_auctions(auctions, criteria)
+  
+!         if not matching:
+!             logger.warning(f"No instances match all criteria (found {len(auctions)} total available)")
+!             return None
+  
+          # Sort by price (lowest first) and availability (highest first)
+!         sorted_auctions = sorted(
+!             matching,
+!             key=lambda a: (
+!                 a.price_per_hour or float('inf'),
+!                 -(a.available_gpus or 0),
+!             )
+!         )
+  
+!         best = sorted_auctions[0]
+!         logger.info(
+!             f"Found optimal auction: {best.auction_id} "
+!             f"({best.gpu_type} @ ${best.price_per_hour}/hr)"
+!         )
+  
+!         return best
+  
+>     def prepare_task_config(self, config: TaskConfig) -> TaskConfig:
+>         """Prepare task configuration with Mithril-specific defaults.
+  
+>         Sets default SSH keys and region if not provided by the user.
+  
+>         Args:
+>             config: The user-provided task configuration
+  
+>         Returns:
+>             Updated task configuration with Mithril defaults applied
+>         """
+          # Make a copy to avoid modifying the original
+!         prepared = config.model_copy()
+  
+          # Set SSH keys from provider config if not specified
+!         if not prepared.ssh_keys and self.config.provider_config.get("ssh_keys"):
+!             prepared.ssh_keys = self.config.provider_config["ssh_keys"]
+  
+          # Set region from provider config if not specified
+!         if not prepared.region and self.config.provider_config.get("region"):
+!             prepared.region = self.config.provider_config["region"]
+  
+!         return prepared
+  
+>     @handle_mithril_errors("Submit task")
+>     def submit_task(
+>         self,
+>         instance_id: str,
+>         config: TaskConfig,
+>         volume_ids: Optional[List[str]] = None,
+>         allow_partial_fulfillment: bool = False,
+>         chunk_size: Optional[int] = None,
+>     ) -> Task:
+>         """Submit task to instance and return Task object.
+  
+>         Args:
+>             instance_id: ID of the instance (allocation ID mapped to auction ID internally)
+>             config: Task configuration
+>             volume_ids: Optional list of volume IDs to attach
+>             allow_partial_fulfillment: Whether to allow partial instance allocation
+>             chunk_size: Size of chunks for partial fulfillment
+  
+>         Returns:
+>             Task object with full details
+>         """
+          # Determine if this is a spot or on-demand request
+!         auction_id = None
+!         instance_type_id = None
+  
+          # Check if this is an auction ID (starts with "auc_" or "auc-")
+!         if instance_id and (instance_id.startswith("auc_") or instance_id.startswith("auc-")):
+              # This is an auction ID for spot instances
+!             auction_id = instance_id
+              # We still need instance type for the API
+!             if config.instance_type:
+                  # Check if it's already an instance type ID (starts with "it_")
+!                 if config.instance_type.startswith("it_"):
+!                     instance_type_id = config.instance_type
+!                 else:
+!                     instance_type_id = self._resolve_instance_type(config.instance_type)
+!         else:
+              # This is an on-demand request with instance type
+!             instance_type_id = self._resolve_instance_type(instance_id or config.instance_type)
+  
+          # Get project ID
+!         project_id = self._get_project_id()
+  
+          # Build startup script
+!         startup_script = self.startup_builder.build(config)
+  
+          # Prepare volume attachments
+!         volume_attachments = self._prepare_volume_attachments(volume_ids, config)
+  
+          # Ensure SSH keys
+!         ssh_keys = self._get_ssh_keys(config)
+  
+          # Determine region
+!         region = config.region or self.mithril_config.region or "us-central1-b"
+  
+          # Build bid specification using clean builder
+!         bid_spec = BidBuilder.build_specification(
+!             config=config,
+!             project_id=project_id,
+!             region=region,
+!             auction_id=auction_id,
+!             instance_type_id=instance_type_id,
+!             ssh_keys=ssh_keys,
+!             startup_script=startup_script,
+!             volume_attachments=volume_attachments,
+!         )
+  
+          # Submit the bid
+!         response = self.http.request(
+!             method="POST",
+!             url="/v2/spot/bids",
+!             json=bid_spec.to_api_payload(),
+!         )
+  
+          # Extract bid ID from response
+!         try:
+!             bid_id = self._extract_bid_id(response)
+!         except Exception as e:
+!             raise MithrilBidError(f"Failed to create bid for task '{config.name}': {e}") from e
+  
+!         logger.info(
+!             f"Created bid {bid_id} for task '{config.name}' "
+!             f"({'spot' if auction_id else 'on-demand'})"
+!         )
+  
+          # Build initial Task object
+!         initial_bid_data = {
+!             "fid": bid_id,
+!             "task_name": config.name,
+!             "status": "pending",
+!             "created_at": datetime.now(timezone.utc).isoformat(),
+!             "instance_type": config.instance_type or instance_id,
+!             "num_instances": config.num_instances,
+!             "region": region,
+!             "price_per_hour": f"${config.max_price_per_hour:.2f}" if config.max_price_per_hour else "$0",
+!             "instances": [],
+!         }
+  
+!         return self._build_task_from_bid(initial_bid_data, config)
+  
+>     @handle_mithril_errors("Get task")
+>     def get_task(self, task_id: str) -> Task:
+>         """Get full Task object with all details.
+  
+>         Args:
+>             task_id: ID of the task (internally a 'bid' in Mithril API)
+  
+>         Returns:
+>             Task object with current information
+>         """
+          # Mithril doesn't support individual bid GET, so we list and filter
+!         project_id = self._get_project_id()
+!         response = self.http.request(
+!             method="GET",
+!             url="/v2/spot/bids",
+!             params={"project": project_id}
+!         )
+  
+          # Response might be a list directly or have 'data' key with list of bids
+!         if isinstance(response, list):
+!             bids = response
+!         else:
+!             bids = response.get("data", [])
+  
+          # Find our bid
+!         bid = next((b for b in bids if b.get("fid") == task_id), None)
+!         if not bid:
+!             raise TaskNotFoundError(f"Task {task_id} not found")
+  
+          # Build and return Task object
+!         return self._build_task_from_bid(bid)
+  
+>     @handle_mithril_errors("Get task status")
+>     def get_task_status(self, task_id: str) -> TaskStatus:
+>         """Get current status of a task.
+  
+>         Args:
+>             task_id: ID of the task (internally a 'bid' in Mithril API)
+  
+>         Returns:
+>             Current task status
+>         """
+          # Mithril doesn't support individual bid GET, so we list and filter
+!         project_id = self._get_project_id()
+!         response = self.http.request(
+!             method="GET",
+!             url="/v2/spot/bids",
+!             params={"project": project_id}
+!         )
+  
+          # Response might be a list directly or have 'data' key with list of bids
+!         if isinstance(response, list):
+!             bids = response
+!         else:
+!             bids = response.get("data", [])
+  
+          # Find our bid
+!         bid = next((b for b in bids if b.get("fid") == task_id), None)
+!         if not bid:
+!             raise TaskNotFoundError(f"Task {task_id} not found")
+  
+          # Get status from bid
+!         mithril_status = bid.get("status", "Pending")
+!         return self._map_mithril_status_to_enum(mithril_status)
+  
+>     def stop_task(self, task_id: str) -> bool:
+>         """Stop a running task.
+  
+>         Args:
+>             task_id: ID of the task to stop
+  
+>         Returns:
+>             True if successful
+>         """
+!         try:
+              # Use v2 endpoint for cancellation (DELETE method)
+!             self.http.request(
+!                 method="DELETE",
+!                 url=f"/v2/spot/bids/{task_id}",
+!             )
+!             return True
+!         except Exception as e:
+!             logger.error(f"Failed to stop task {task_id}: {e}")
+!             return False
+  
+>     def cancel_task(self, task_id: str) -> bool:
+>         """Cancel a running task.
+  
+>         Deprecated: Use stop_task instead.
+  
+>         Args:
+>             task_id: ID of the task to cancel
+  
+>         Returns:
+>             True if successful
+>         """
+!         return self.stop_task(task_id)
+  
+>     def terminate_task(self, task_id: str) -> bool:
+>         """Terminate a running task.
+  
+>         Alias for stop_task to match expected interface.
+  
+>         Args:
+>             task_id: ID of the task to terminate
+  
+>         Returns:
+>             True if successful
+>         """
+!         return self.stop_task(task_id)
+  
+>     def get_logs(self, task_id: str, tail: int = 100) -> str:
+>         """Get logs for a task.
+  
+>         Alias for get_task_logs to match expected interface.
+  
+>         Args:
+>             task_id: ID of the task
+>             tail: Number of lines to return
+  
+>         Returns:
+>             Log content as string
+>         """
+!         return self.get_task_logs(task_id, tail=tail)
+  
+>     @handle_mithril_errors("Get user")
+>     def get_user(self, user_id: str) -> User:
+>         """Fetch user information from Mithril profile API.
+          
+>         Args:
+>             user_id: User ID like 'user_kfV4CCaapLiqCNlv'
+              
+>         Returns:
+>             User object with username and email
+              
+>         Raises:
+>             ResourceNotFoundError: If user not found
+>             APIError: If API request fails
+>         """
+          # Check cache
+>         if cached := self._user_cache.get(user_id):
+!             user, timestamp = cached
+!             if time.time() - timestamp < self._user_cache_ttl:
+!                 return user
+!             del self._user_cache[user_id]
+          
+          # Make API call to profile endpoint
+>         try:
+>             response = self.http.request(
+>                 method="GET",
+>                 url=f"/v2/users/{user_id}"
+>             )
+              
+              # Extract user data
+>             user_data = response.get("data", {})
+>             user = User(
+>                 user_id=user_id,
+>                 username=user_data.get("username", "unknown"),
+>                 email=user_data.get("email", "unknown@example.com")
+>             )
+              
+              # Cache the result
+>             self._user_cache[user_id] = (user, time.time())
+>             return user
+              
+!         except HTTPError as e:
+!             if e.response.status_code == 404:
+!                 raise ResourceNotFoundError(f"User {user_id} not found")
+!             raise
+  
+>     def get_task_instances(self, task_id: str) -> List[Instance]:
+>         """Get all instances for a task with full details including IPs.
+          
+>         Args:
+>             task_id: Task ID (bid FID)
+              
+>         Returns:
+>             List of Instance objects with IP addresses populated
+              
+>         Raises:
+>             TaskNotFoundError: If task doesn't exist
+>             APIError: If API request fails
+>         """
+          # First get the bid to have context
+!         bid = self._get_bid(task_id)
+          
+!         instances = []
+!         instance_ids = bid.get("instances", [])
+          
+!         for instance_id in instance_ids:
+!             if isinstance(instance_id, str):
+                  # Need to fetch full instance details
+!                 try:
+!                     instance_data = self._get_instance(instance_id)
+!                     instance = MithrilAdapter.mithril_instance_to_instance(
+!                         MithrilInstance(**instance_data),
+!                         MithrilBid(**bid)
+!                     )
+!                     instances.append(instance)
+!                 except Exception as e:
+!                     logger.warning(f"Failed to fetch instance {instance_id}: {e}")
+                      # Create partial instance with just ID
+!                     instances.append(Instance(
+!                         instance_id=instance_id,
+!                         task_id=task_id,
+!                         status=InstanceStatus.PENDING,
+!                         created_at=datetime.now(timezone.utc)
+!                     ))
+!             elif isinstance(instance_id, dict):
+                  # Already have instance data
+!                 try:
+!                     instance = MithrilAdapter.mithril_instance_to_instance(
+!                         MithrilInstance(**instance_id),
+!                         MithrilBid(**bid)
+!                     )
+!                     instances.append(instance)
+!                 except Exception as e:
+!                     logger.warning(f"Failed to parse instance data: {e}")
+          
+!         return instances
+  
+>     def _get_instance(self, instance_id: str) -> dict:
+>         """Get detailed instance information from API."""
+!         response = self.http.request(
+!             method="GET",
+!             url="/v2/spot/instances",
+!             params={"id": instance_id}
+!         )
+          
+!         instances = response.get("data", [])
+!         if not instances:
+!             raise ResourceNotFoundError(f"Instance {instance_id} not found")
+              
+!         return instances[0]
+  
+>     def _get_bid(self, task_id: str) -> dict:
+>         """Get bid information for a task."""
+!         project_id = self._get_project_id()
+!         response = self.http.request(
+!             method="GET",
+!             url="/v2/spot/bids",
+!             params={"id": task_id, "project": project_id}
+!         )
+          
+!         bids = response.get("data", [])
+!         if not bids:
+!             raise TaskNotFoundError(f"Task {task_id} not found")
+              
+!         return bids[0]
+  
+>     @handle_mithril_errors("get task logs")
+>     def get_task_logs(
+>         self,
+>         task_id: str,
+>         tail: int = 100,
+>         log_type: str = "stdout",
+>     ) -> str:
+>         """Retrieve last N lines of task logs via SSH.
+  
+>         Since Mithril API doesn't provide log endpoints, we retrieve logs
+>         directly from instances via SSH, similar to how SLURM works.
+  
+>         Args:
+>             task_id: ID of the task
+>             tail: Number of lines to return
+>             log_type: Type of logs (stdout, stderr, or both)
+  
+>         Returns:
+>             Log content as string
+>         """
+!         import subprocess
+  
+          # Get task details
+!         bid = self._get_bid(task_id)
+!         instances = bid.get("instances", [])
+  
+          # Check if task is still pending
+!         if not instances or bid.get("status") == "pending":
+!             return "Task pending - no logs available yet"
+  
+          # Get logs from first instance via SSH
+!         instance = instances[0]
+          
+          # Handle string instance ID
+!         if isinstance(instance, str):
+!             instance_data = self._fetch_instance_details(instance)
+!             if not instance_data:
+!                 return "Instance details not available"
+              # Try ssh_destination first, then public_ip
+!             ssh_destination = instance_data.get("ssh_destination")
+!             if ssh_destination:
+!                 ssh_host, ssh_port = self._parse_ssh_destination(ssh_destination)
+!             else:
+                  # Fallback to public_ip
+!                 public_ip = instance_data.get("public_ip")
+!                 ssh_host = public_ip
+!                 ssh_port = 22
+!         else:
+              # Use correct field name, but also support legacy public_ip
+!             ssh_destination = instance.get("ssh_destination")
+!             if ssh_destination:
+!                 ssh_host, ssh_port = self._parse_ssh_destination(ssh_destination)
+!             else:
+                  # Fallback to legacy public_ip field for backwards compatibility
+!                 public_ip = instance.get("public_ip")
+!                 if public_ip:
+!                     ssh_host = public_ip
+!                     ssh_port = 22
+!                 else:
+!                     ssh_host = None
+!                     ssh_port = 22
+          
+!         if not ssh_host:
+!             return "Instance not accessible - no public IP available"
+  
+          # Determine log file based on type
+          # For now, use the legacy log file until we update the startup script
+!         log_file = "/var/log/mithril/startup.log"
+  
+          # SSH command with proper options
+!         ssh_cmd = [
+!             "ssh",
+!             "-o", "StrictHostKeyChecking=no",
+!             "-o", "ConnectTimeout=10",
+!             "-o", "UserKnownHostsFile=/dev/null",
+!             "-o", "LogLevel=ERROR",
+!             f"ubuntu@{ssh_host}",
+!             f"tail -n {tail} {log_file} 2>/dev/null || echo 'No logs available yet'"
+!         ]
+  
+!         try:
+              # Execute SSH command
+!             result = subprocess.run(
+!                 ssh_cmd,
+!                 capture_output=True,
+!                 text=True,
+!                 timeout=30
+!             )
+  
+!             if result.returncode != 0:
+                  # SSH failed - provide helpful error
+!                 if "Connection refused" in result.stderr:
+!                     return "Instance is starting - logs not available yet"
+!                 elif "Connection timed out" in result.stderr:
+!                     return "Instance not reachable - check security groups"
+!                 elif "Permission denied" in result.stderr:
+!                     return "SSH access denied - check SSH keys"
+!                 else:
+!                     logger.error(f"SSH failed for task {task_id}: {result.stderr}")
+!                     return "Error retrieving logs: SSH connection failed"
+  
+              # Return the logs
+!             return result.stdout.strip() if result.stdout else "No logs available"
+  
+!         except subprocess.TimeoutExpired:
+!             return "Error: SSH connection timed out"
+!         except Exception as e:
+!             logger.error(f"Failed to get logs for task {task_id}: {e}")
+!             return f"Error retrieving logs: {str(e)}"
+  
+>     @handle_mithril_errors("stream task logs")
+>     def stream_task_logs(
+>         self,
+>         task_id: str,
+>         log_type: str = "stdout",
+>     ) -> Iterator[str]:
+>         """Stream task logs in real-time.
+  
+>         Note: Real-time streaming requires paramiko or asyncssh.
+>         This implementation polls for new content periodically.
+  
+>         Args:
+>             task_id: ID of the task
+>             log_type: Type of logs (stdout or stderr)
+  
+>         Yields:
+>             Log lines as they become available
+>         """
+!         import subprocess
+!         import time
+  
+          # Get task to verify it exists and get instance info
+!         project_id = self._get_project_id()
+!         response = self.http.request(
+!             method="GET",
+!             url="/v2/spot/bids",
+!             params={"id": task_id, "project": project_id}
+!         )
+  
+!         bids = response.get("data", [])
+!         if not bids:
+!             yield f"Error: Task {task_id} not found"
+!             return
+  
+!         bid = bids[0]
+!         instances = bid.get("instances", [])
+  
+!         if not instances:
+!             yield "Task pending - waiting for instance..."
+              # Poll until instance is available
+!             while not instances:
+!                 time.sleep(5)
+!                 response = self.http.request(
+!                     method="GET",
+!                     url="/v2/spot/bids",
+!                     params={"id": task_id, "project": project_id}
+!                 )
+!                 bids = response.get("data", [])
+!                 if bids:
+!                     bid = bids[0]
+!                     instances = bid.get("instances", [])
+  
+!         instance = instances[0]
+          
+          # Handle string instance ID
+!         if isinstance(instance, str):
+!             instance_data = self._fetch_instance_details(instance)
+!             if not instance_data:
+!                 yield "Instance details not available"
+!                 return
+              # Try ssh_destination first, then public_ip
+!             ssh_destination = instance_data.get("ssh_destination")
+!             if ssh_destination:
+!                 ssh_host, _ = self._parse_ssh_destination(ssh_destination)
+!             else:
+                  # Fallback to public_ip
+!                 ssh_host = instance_data.get("public_ip")
+!         else:
+              # Use correct field name, but also support legacy public_ip
+!             ssh_destination = instance.get("ssh_destination")
+!             if ssh_destination:
+!                 ssh_host, _ = self._parse_ssh_destination(ssh_destination)
+!             else:
+                  # Fallback to legacy public_ip field for backwards compatibility
+!                 public_ip = instance.get("public_ip")
+!                 ssh_host = public_ip if public_ip else None
+          
+!         if not ssh_host:
+!             yield "Instance not accessible - no SSH destination"
+!             return
+  
+          # For now, poll for new content every few seconds
+          # Real streaming would use paramiko with tail -f
+!         log_file = "/var/log/mithril/startup.log"
+!         last_size = 0
+  
+!         while True:
+!             try:
+                  # Get current file size
+!                 size_cmd = [
+!                     "ssh", "-o", "StrictHostKeyChecking=no",
+!                     "-o", "ConnectTimeout=5",
+!                     "-o", "UserKnownHostsFile=/dev/null",
+!                     "-o", "LogLevel=ERROR",
+!                     f"ubuntu@{ssh_host}",
+!                     f"stat -c %s {log_file} 2>/dev/null || echo 0"
+!                 ]
+  
+!                 size_result = subprocess.run(size_cmd, capture_output=True, text=True)
+!                 if size_result.returncode == 0:
+!                     try:
+!                         current_size = int(size_result.stdout.strip())
+!                     except ValueError:
+!                         current_size = 0
+  
+                      # If file has grown, get new content
+!                     if current_size > last_size:
+                          # Get new content from last position
+!                         content_cmd = [
+!                             "ssh", "-o", "StrictHostKeyChecking=no",
+!                             "-o", "ConnectTimeout=5",
+!                             "-o", "UserKnownHostsFile=/dev/null",
+!                             "-o", "LogLevel=ERROR",
+!                             f"ubuntu@{ssh_host}",
+!                             f"tail -c +{last_size + 1} {log_file} 2>/dev/null"
+!                         ]
+  
+!                         content_result = subprocess.run(content_cmd, capture_output=True, text=True)
+!                         if content_result.returncode == 0 and content_result.stdout:
+                              # Yield each new line
+!                             for line in content_result.stdout.splitlines():
+!                                 yield line
+  
+!                         last_size = current_size
+  
+                  # Check if task is complete
+!                 task = self.get_task(task_id)
+!                 if task.status in [TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.CANCELLED]:
+                      # Get any final logs
+!                     final_logs = self.get_task_logs(task_id, tail=50)
+!                     for line in final_logs.splitlines()[-10:]:
+!                         yield line
+!                     break
+  
+                  # Wait before next poll
+!                 time.sleep(2)
+  
+!             except KeyboardInterrupt:
+!                 yield "\nLog streaming interrupted"
+!                 break
+!             except Exception as e:
+!                 yield f"Error streaming logs: {str(e)}"
+!                 break
+  
+>     def list_tasks(
+>         self,
+>         status: Optional[TaskStatus] = None,
+>         limit: int = 100,
+>     ) -> List[Task]:
+>         """List tasks with optional status filter.
+  
+>         Args:
+>             status: Filter by status
+>             limit: Maximum number of tasks to return
+  
+>         Returns:
+>             List of Task objects
+>         """
+!         project_id = self._get_project_id()
+!         params = {"project": project_id, "limit": str(limit)}
+!         if status:
+              # Convert enum to string for API
+!             params["status"] = status.value if isinstance(status, TaskStatus) else status
+  
+          # Get bids - API returns {"data": [...], "next_cursor": ...}
+!         response = self.http.request(
+!             method="GET",
+!             url="/v2/spot/bids",
+!             params=params,
+!         )
+!         bids = response.get("data", [])
+  
+          # Convert to Task objects
+!         tasks = []
+!         for bid in bids:
+!             task = self._build_task_from_bid(bid)
+!             tasks.append(task)
+  
+!         return tasks
+  
+      # ============ IStorageProvider Implementation ============
+  
+>     def _get_project_id(self) -> str:
+>         """Get resolved project ID with proper error handling.
+  
+>         Returns:
+>             Project ID
+  
+>         Raises:
+>             MithrilError: If project cannot be resolved
+>         """
+!         if self._project_id:
+!             return self._project_id
+  
+!         if not self.mithril_config.project:
+!             raise MithrilError("Project is required but not configured")
+  
+          # Try to resolve
+!         try:
+!             self._project_id = self.project_resolver.resolve(self.mithril_config.project)
+!             return self._project_id
+!         except Exception as e:
+!             raise MithrilError(f"Failed to resolve project '{self.mithril_config.project}': {e}") from e
+  
+>     def _resolve_instance_type(self, instance_spec: str) -> str:
+>         """Resolve instance type specification to ID.
+  
+>         Args:
+>             instance_spec: Instance type name or UUID
+  
+>         Returns:
+>             Instance type ID
+  
+>         Raises:
+>             MithrilInstanceError: If instance type cannot be resolved
+>         """
+!         if not instance_spec:
+!             raise MithrilInstanceError("Instance type specification is required")
+  
+!         if instance_spec.startswith("it_"):
+!             return instance_spec
+  
+!         try:
+!             return self._resolve_instance_type_simple(instance_spec)
+!         except ValueError as e:
+!             raise MithrilInstanceError(str(e)) from e
+  
+>     def _prepare_volume_attachments(
+>         self,
+>         volume_ids: Optional[List[str]],
+>         config: TaskConfig
+>     ) -> List[Dict[str, Any]]:
+>         """Prepare volume attachment specifications.
+  
+>         Args:
+>             volume_ids: Optional list of volume IDs
+>             config: Task configuration for mount paths
+  
+>         Returns:
+>             List of volume attachment dicts
+>         """
+!         if not volume_ids:
+!             return []
+  
+!         attachments = []
+!         for i, volume_id in enumerate(volume_ids):
+              # Get mount path from config or use default
+!             if i < len(config.volumes) and config.volumes[i].mount_path:
+!                 mount_path = config.volumes[i].mount_path
+!             else:
+!                 mount_path = f"/data{i}"
+  
+!             attachments.append(
+!                 BidBuilder.format_volume_attachment(
+!                     volume_id=volume_id,
+!                     mount_path=mount_path,
+!                     mode="rw"
+!                 )
+!             )
+  
+!         return attachments
+  
+>     def _get_ssh_keys(self, config: TaskConfig) -> List[str]:
+>         """Get SSH keys for the task.
+  
+>         Args:
+>             config: Task configuration
+  
+>         Returns:
+>             List of SSH key IDs
+>         """
+          # Priority: task config > provider config > existing keys
+!         requested_keys = config.ssh_keys or self.mithril_config.ssh_keys
+!         return self.ssh_key_manager.ensure_keys(requested_keys)
+  
+>     def _extract_bid_id(self, response: Any) -> str:
+>         """Extract bid ID from API response.
+  
+>         Args:
+>             response: API response
+  
+>         Returns:
+>             Bid ID
+  
+>         Raises:
+>             MithrilBidError: If bid ID cannot be extracted
+>         """
+!         if isinstance(response, dict):
+!             bid_id = response.get("fid") or response.get("bid_id")
+!             if bid_id:
+!                 return bid_id
+!             raise MithrilBidError(f"No bid ID in response: {response}")
+  
+          # Fallback for non-dict responses
+!         bid_id = str(response)
+!         if not bid_id:
+!             raise MithrilBidError(f"Invalid bid response: {response}")
+  
+!         return bid_id
+  
+>     @handle_mithril_errors("Create volume")
+>     def create_volume(
+>         self,
+>         size_gb: int,
+>         name: Optional[str] = None,
+>     ) -> Volume:
+>         """Create a new storage volume.
+  
+>         Args:
+>             size_gb: Size of the volume in GB
+>             name: Optional name for the volume
+  
+>         Returns:
+>             Created Volume object
+>         """
+          # Get resolved project ID
+!         project_id = self._get_project_id()
+  
+!         volume_payload = {
+!             "size_gb": size_gb,
+!             "name": name or f"flow-volume-{int(time.time() * 1000)}-{uuid.uuid4().hex[:6]}",
+!             "project": project_id,  # API expects 'project', not 'project_id'
+!             "disk_interface": DISK_INTERFACE_BLOCK,
+!             "region": self.mithril_config.region or DEFAULT_REGION,
+!         }
+  
+!         response = self.http.request(
+!             method="POST",
+!             url="/v2/volumes",
+!             json=volume_payload,
+!         )
+  
+          # Validate response
+!         response = validate_response(response, ["fid"])
+  
+          # Create Mithril volume model from API response
+!         mithril_volume = MithrilVolume(
+!             fid=response["fid"],
+!             name=response.get("name", volume_payload["name"]),
+!             size_gb=size_gb,
+!             region=response.get("region", self.mithril_config.region or "us-central1-b"),
+!             status=response.get("status", "available"),  # Add required status field
+!             created_at=response.get("created_at", datetime.now(timezone.utc).isoformat()),
+!             attached_to=response.get("attached_to", []),
+!             mount_path=response.get("mount_path"),
+!         )
+  
+          # Use adapter to convert to domain model
+!         return MithrilAdapter.mithril_volume_to_volume(mithril_volume)
+  
+>     @handle_mithril_errors("Delete volume")
+>     def delete_volume(self, volume_id: str) -> bool:
+>         """Delete a volume.
+  
+>         Volume deletion is synchronous and may take 30-60 seconds while
+>         the API unmounts and deallocates storage.
+  
+>         Args:
+>             volume_id: ID of the volume to delete
+  
+>         Returns:
+>             True if successful
+  
+>         Raises:
+>             MithrilVolumeError: If deletion fails
+>         """
+          # Use context manager for timeout adjustment
+!         from contextlib import contextmanager
+  
+!         import httpx
+  
+!         @contextmanager
+!         def extended_timeout(client, timeout_seconds: float):
+!             """Temporarily extend HTTP client timeout."""
+!             original = client.timeout
+!             client.timeout = httpx.Timeout(timeout_seconds)
+!             try:
+!                 yield
+!             finally:
+!                 client.timeout = original
+  
+!         with extended_timeout(self.http.client, 120.0):
+!             self.http.request(
+!                 method="DELETE",
+!                 url=f"/v2/volumes/{volume_id}",
+!             )
+  
+!         return True
+  
+>     def list_volumes(self, limit: int = 100) -> List[Volume]:
+>         """List all volumes.
+  
+>         Args:
+>             limit: Maximum number of volumes to return
+  
+>         Returns:
+>             List of Volume objects
+>         """
+!         project_id = self._get_project_id()
+!         response = self.http.request(
+!             method="GET",
+!             url="/v2/volumes",
+!             params={"project": project_id, "limit": str(limit)},
+!         )
+          # Handle both list and wrapped response formats
+!         volumes_data = response if isinstance(response, list) else response.get("data", response.get("volumes", []))
+  
+!         volumes = []
+!         for vol_data in volumes_data:
+              # Create Mithril volume model from API response
+!             mithril_volume = MithrilVolume(
+!                 fid=vol_data.get("fid"),
+!                 name=vol_data.get("name"),
+!                 size_gb=vol_data.get("size_gb", 0),
+!                 region=vol_data.get("region", "us-central1-b"),
+!                 status=vol_data.get("status", "available"),  # Add required status field
+!                 created_at=vol_data.get("created_at", datetime.now(timezone.utc).isoformat()),
+!                 attached_to=vol_data.get("attached_to", []),
+!                 mount_path=vol_data.get("mount_path"),
+!             )
+  
+              # Use adapter to convert to domain model
+!             volume = MithrilAdapter.mithril_volume_to_volume(mithril_volume)
+!             volumes.append(volume)
+  
+!         return volumes
+  
+>     def upload_file(
+>         self,
+>         volume_id: str,
+>         local_path: Path,
+>         remote_path: Optional[str] = None,
+>     ) -> bool:
+>         """Upload file to volume.
+  
+>         Args:
+>             volume_id: ID of the volume
+>             local_path: Local file path
+>             remote_path: Remote path in volume
+  
+>         Returns:
+>             True if successful
+>         """
+!         try:
+              # Read file content
+!             with open(local_path, "rb") as f:
+!                 content = f.read()
+  
+              # Upload via API
+!             upload_payload = {
+!                 "volume_id": volume_id,
+!                 "path": remote_path or local_path.name,
+!                 "content": content.decode("utf-8") if content else "",
+!             }
+  
+!             self.http.request(
+!                 method="POST",
+!                 url=f"/volumes/{volume_id}/upload",
+!                 json=upload_payload,
+!             )
+!             return True
+!         except Exception as e:
+!             logger.error(f"Failed to upload file to volume {volume_id}: {e}")
+!             return False
+  
+>     def upload_directory(
+>         self,
+>         volume_id: str,
+>         local_path: Path,
+>         remote_path: Optional[str] = None,
+>     ) -> bool:
+>         """Upload directory to volume.
+  
+>         Args:
+>             volume_id: ID of the volume
+>             local_path: Local directory path
+>             remote_path: Remote path in volume
+  
+>         Returns:
+>             True if successful
+>         """
+!         try:
+              # For now, upload files one by one
+              # Bulk upload optimization is available through the S3 client's
+              # multipart upload feature for files larger than 5MB
+!             success = True
+!             for file_path in local_path.rglob("*"):
+!                 if file_path.is_file():
+!                     relative_path = file_path.relative_to(local_path)
+!                     remote_file_path = (
+!                         f"{remote_path}/{relative_path}"
+!                         if remote_path
+!                         else str(relative_path)
+!                     )
+!                     if not self.upload_file(volume_id, file_path, remote_file_path):
+!                         success = False
+!             return success
+!         except Exception as e:
+!             logger.error(f"Failed to upload directory to volume {volume_id}: {e}")
+!             return False
+  
+>     def download_file(
+>         self,
+>         volume_id: str,
+>         remote_path: str,
+>         local_path: Path,
+>     ) -> bool:
+>         """Download file from volume.
+  
+>         Args:
+>             volume_id: ID of the volume
+>             remote_path: Remote file path in volume
+>             local_path: Local destination path
+  
+>         Returns:
+>             True if successful
+>         """
+!         try:
+!             response = self.http.request(
+!                 method="GET",
+!                 url=f"/volumes/{volume_id}/download",
+!                 params={"path": remote_path},
+!             )
+  
+              # Write content to file
+!             content = response.get("content", "")
+!             local_path.parent.mkdir(parents=True, exist_ok=True)
+!             with open(local_path, "w") as f:
+!                 f.write(content)
+  
+!             return True
+!         except Exception as e:
+!             logger.error(f"Failed to download file from volume {volume_id}: {e}")
+!             return False
+  
+>     def download_directory(
+>         self,
+>         volume_id: str,
+>         remote_path: str,
+>         local_path: Path,
+>     ) -> bool:
+>         """Download directory from volume.
+  
+>         Args:
+>             volume_id: ID of the volume
+>             remote_path: Remote directory path in volume
+>             local_path: Local destination path
+  
+>         Returns:
+>             True if successful
+>         """
+!         try:
+              # List files in directory
+!             response = self.http.request(
+!                 method="GET",
+!                 url=f"/volumes/{volume_id}/list",
+!                 params={"path": remote_path},
+!             )
+  
+!             files = response.get("files", [])
+!             success = True
+  
+!             for file_info in files:
+!                 remote_file_path = file_info.get("path")
+!                 if remote_file_path:
+                      # Calculate local path
+!                     relative_path = remote_file_path.replace(remote_path, "").lstrip("/")
+!                     local_file_path = local_path / relative_path
+  
+!                     if not self.download_file(
+!                         volume_id, remote_file_path, local_file_path
+!                     ):
+!                         success = False
+  
+!             return success
+!         except Exception as e:
+!             logger.error(f"Failed to download directory from volume {volume_id}: {e}")
+!             return False
+  
+>     def is_volume_id(self, identifier: str) -> bool:
+>         """Check if identifier is a volume ID (vs a volume name).
+  
+>         Mithril volume IDs start with 'vol_' prefix.
+  
+>         Args:
+>             identifier: String that might be a volume ID or name
+  
+>         Returns:
+>             True if this is a volume ID, False if it's a name
+>         """
+!         return identifier.startswith("vol_")
+  
+>     def get_capabilities(self) -> "ProviderCapabilities":
+>         """Get Mithril provider capabilities.
+  
+>         Returns:
+>             ProviderCapabilities describing Mithril features
+>         """
+!         from ..base import PricingModel, ProviderCapabilities
+  
+!         return ProviderCapabilities(
+              # Compute capabilities
+!             supports_spot_instances=True,
+!             supports_on_demand=True,
+!             supports_multi_node=True,
+!             supports_auto_terminate=True,
+  
+              # Storage capabilities
+!             supports_attached_storage=True,
+!             supports_shared_storage=False,
+!             storage_types=["volume"],
+  
+              # Access and security
+!             requires_ssh_keys=True,
+!             supports_console_access=False,
+  
+              # Pricing and allocation
+!             pricing_model=PricingModel.MARKET,
+!             supports_reservations=False,
+  
+              # Regional capabilities
+!             supported_regions=[
+!                 "us-central-1", "us-central-2", "us-central-3",
+!                 "us-east-1", "us-east-2", "us-east-3",
+!                 "us-south-1", "us-south-2", "us-south-3",
+!                 "us-west-1", "us-west-2", "us-west-3",
+!                 "australia-1", "europe-1", "asia-1"
+!             ],
+!             cross_region_networking=False,
+  
+              # Resource limits
+!             max_instances_per_task=256,
+!             max_storage_per_instance_gb=10000,
+  
+              # Advanced features
+!             supports_custom_images=True,
+!             supports_gpu_passthrough=True,
+!             supports_live_migration=False,
+!         )
+  
+      # ============ Additional Mithril API Methods ============
+  
+>     def get_projects(self) -> List[Dict[str, Any]]:
+>         """Get all projects accessible to the user.
+  
+>         Returns:
+>             List of project dictionaries
+>         """
+!         response = self.http.request(
+!             method="GET",
+!             url="/v2/projects",
+!         )
+!         return response  # API returns list directly
+  
+>     def get_instance_types(self, region: Optional[str] = None) -> List[Dict[str, Any]]:
+>         """Get available instance types.
+  
+>         Args:
+>             region: Optional region filter
+  
+>         Returns:
+>             List of instance type dictionaries
+>         """
+!         params = {}
+!         if region:
+!             params["region"] = region
+  
+!         response = self.http.request(
+!             method="GET",
+!             url="/v2/instance-types",
+!             params=params,
+!         )
+!         return response  # API returns list directly
+  
+>     def get_ssh_keys(self) -> List[Dict[str, Any]]:
+>         """Get user's SSH keys.
+  
+>         Returns:
+>             List of SSH key dictionaries
+>         """
+!         keys = self.ssh_key_manager.list_keys()
+!         return [
+!             {
+!                 "fid": key.fid,
+!                 "name": key.name,
+!                 "public_key": key.public_key,
+!                 "created_at": key.created_at.isoformat() if key.created_at else None,
+!             }
+!             for key in keys
+!         ]
+  
+>     def create_ssh_key(self, name: str, public_key: str) -> Dict[str, Any]:
+>         """Create a new SSH key.
+  
+>         Args:
+>             name: Key name
+>             public_key: SSH public key content
+  
+>         Returns:
+>             Created SSH key info
+>         """
+!         key_id = self.ssh_key_manager.create_key(name, public_key)
+!         return {"fid": key_id, "name": name}
+  
+>     def delete_ssh_key(self, key_id: str) -> bool:
+>         """Delete an SSH key.
+  
+>         Args:
+>             key_id: SSH key ID
+  
+>         Returns:
+>             True if successful
+>         """
+!         return self.ssh_key_manager.delete_key(key_id)
+  
+      # ============ Helper Methods ============
+  
+>     def _build_task_from_bid(self, bid_data: Dict[str, Any], config: Optional[TaskConfig] = None) -> Task:
+>         """Build a Task object from Mithril bid data.
+  
+>         Args:
+>             bid_data: Raw bid data from Mithril API
+>             config: Optional original task configuration
+  
+>         Returns:
+>             Task object with all available information
+>         """
+          # Extract basic info
+!         task_id = bid_data.get("fid", "")
+!         name = bid_data.get("name", config.name if config else "Unnamed Task")
+!         status = self._map_mithril_status_to_enum(bid_data.get("status", "pending"))
+  
+          # Parse timestamps
+!         created_at = datetime.fromisoformat(bid_data["created_at"].replace("Z", "+00:00")) if bid_data.get("created_at") else datetime.now(timezone.utc)
+!         started_at = datetime.fromisoformat(bid_data["started_at"].replace("Z", "+00:00")) if bid_data.get("started_at") else None
+!         completed_at = datetime.fromisoformat(bid_data["completed_at"].replace("Z", "+00:00")) if bid_data.get("completed_at") else None
+  
+          # Extract resource info
+!         instance_type_id = bid_data.get("instance_type", "")
+  
+          # Try to resolve instance type ID to human-readable name
+!         if instance_type_id:
+!             instance_type = self._get_instance_type_name(instance_type_id)
+!         else:
+!             instance_type = config.instance_type if config else "unknown"
+  
+!         num_instances = bid_data.get("instance_quantity", bid_data.get("num_instances", config.num_instances if config else 1))
+!         region = bid_data.get("region", config.region if config else self.mithril_config.region or "unknown")
+  
+          # Parse cost info
+!         price_str = bid_data.get("price_per_hour", bid_data.get("last_instance_price", "$0"))
+!         if isinstance(price_str, str) and not price_str.startswith("$"):
+!             cost_per_hour = f"${float(price_str) / 100:.2f}"  # Convert cents to dollars
+!         else:
+!             cost_per_hour = price_str if isinstance(price_str, str) else f"${price_str}"
+  
+          # Calculate total cost if running/completed
+!         total_cost = None
+!         if started_at and (completed_at or status == TaskStatus.RUNNING):
+!             duration_hours = ((completed_at or datetime.now(timezone.utc)) - started_at).total_seconds() / 3600
+!             cost_value = float(cost_per_hour.strip("$"))
+!             total_cost = f"${duration_hours * cost_value * num_instances:.2f}"
+  
+          # Extract SSH info from instances
+!         ssh_host = None
+!         ssh_port = 22
+!         ssh_command = None
+!         instances = bid_data.get("instances", [])
+          
+!         if instances and isinstance(instances, list) and instances[0]:
+!             first_instance = instances[0]
+              
+              # Handle both string (instance ID) and dict (full instance data) cases
+!             if isinstance(first_instance, str):
+                  # Fetch instance details when we only have ID
+!                 instance_data = self._fetch_instance_details(first_instance)
+!                 if instance_data:
+!                     ssh_host, ssh_port = self._parse_ssh_destination(
+!                         instance_data.get("ssh_destination")
+!                     )
+              
+!             elif isinstance(first_instance, dict):
+                  # Use correct field name from API spec
+!                 ssh_destination = first_instance.get("ssh_destination")
+!                 if ssh_destination:
+!                     ssh_host, ssh_port = self._parse_ssh_destination(ssh_destination)
+              
+              # Build SSH command if we have host
+!             if ssh_host:
+!                 ssh_command = f"ssh -p {ssh_port} ubuntu@{ssh_host}"
+  
+          # Build Task object
+!         task = Task(
+!             task_id=task_id,
+!             name=name,
+!             status=status,
+!             config=config,
+!             created_at=created_at,
+!             started_at=started_at,
+!             completed_at=completed_at,
+!             instance_type=instance_type,
+!             num_instances=num_instances,
+!             region=region,
+!             cost_per_hour=cost_per_hour,
+!             total_cost=total_cost,
+!             ssh_host=ssh_host,
+!             ssh_port=ssh_port,
+!             ssh_command=ssh_command,
+!             instances=[inst.get("fid", "") if isinstance(inst, dict) else str(inst) for inst in instances],
+!             message=bid_data.get("message"),
+!         )
+  
+          # Attach provider reference for method calls
+!         task._provider = self
+  
+!         return task
+  
+>     def _map_mithril_status(self, mithril_status: str) -> str:
+>         """Map Mithril status to a string status.
+  
+>         Args:
+>             mithril_status: Status string from Mithril API
+  
+>         Returns:
+>             Mapped status string
+>         """
+!         return self._map_mithril_status_to_enum(mithril_status).value
+  
+>     def _map_mithril_status_to_enum(self, mithril_status: str) -> TaskStatus:
+>         """Map Mithril status to TaskStatus enum.
+  
+>         Args:
+>             mithril_status: Status string from Mithril API
+  
+>         Returns:
+>             Corresponding TaskStatus enum value
+>         """
+!         status_map = {
+!             "pending": TaskStatus.PENDING,
+!             "provisioning": TaskStatus.PENDING,  # Still waiting for allocation
+!             "allocated": TaskStatus.RUNNING,  # Mithril uses "Allocated" for running instances
+!             "running": TaskStatus.RUNNING,
+!             "completed": TaskStatus.COMPLETED,
+!             "failed": TaskStatus.FAILED,
+!             "cancelled": TaskStatus.CANCELLED,
+!             "terminated": TaskStatus.CANCELLED,
+!         }
+!         return status_map.get(mithril_status.lower(), TaskStatus.PENDING)
+  
+>     def _convert_auction_to_available_instance(self, auction_data: Dict[str, Any]) -> Optional[AvailableInstance]:
+>         """Convert Mithril auction data to AvailableInstance.
+  
+>         Args:
+>             auction_data: Raw auction data from Mithril API
+  
+>         Returns:
+>             AvailableInstance object or None if conversion fails
+>         """
+!         try:
+              # Parse price - Mithril returns "last_instance_price" as dollar string
+!             price_str = auction_data.get("last_instance_price", auction_data.get("price", "$0"))
+!             if isinstance(price_str, str) and price_str.startswith("$"):
+!                 price_per_hour = float(price_str.strip("$"))
+!             else:
+                  # Assume cents if no dollar sign
+!                 price_per_hour = float(price_str) / 100.0
+  
+              # Get instance type ID from the auction data
+!             instance_type_id = auction_data.get("instance_type", auction_data.get("instance_type_id", ""))
+  
+              # Try to get human-readable name
+!             instance_type_name = self._get_instance_type_name(instance_type_id)
+  
+              # Create AvailableInstance from auction data
+!             return AvailableInstance(
+!                 allocation_id=auction_data.get("fid", auction_data.get("auction_id", "")),
+!                 instance_type=instance_type_name,
+!                 region=auction_data.get("region", ""),
+!                 price_per_hour=price_per_hour,
+!                 gpu_type=auction_data.get("gpu_type"),
+!                 gpu_count=auction_data.get("gpu_count") or auction_data.get("num_gpus"),
+!                 cpu_count=auction_data.get("cpu_count"),
+!                 memory_gb=auction_data.get("memory_gb"),
+!                 available_quantity=auction_data.get("available_gpus") or auction_data.get("inventory_quantity"),
+!                 status=auction_data.get("status"),
+!                 expires_at=datetime.fromisoformat(auction_data["expires_at"]) if auction_data.get("expires_at") else None,
+!                 internode_interconnect=auction_data.get("internode_interconnect"),
+!                 intranode_interconnect=auction_data.get("intranode_interconnect"),
+!             )
+!         except Exception as e:
+!             logger.warning(f"Failed to convert auction data: {e}")
+!             return None
+  
+>     def _resolve_instance_type_simple(self, instance_type: str) -> str:
+>         """Simple instance type resolution using a direct mapping.
+  
+>         Args:
+>             instance_type: User-friendly instance type name
+  
+>         Returns:
+>             Mithril instance type FID
+  
+>         Raises:
+>             ValueError: If instance type is unknown
+>         """
+          # Exact matching only - no case normalization
+!         normalized = instance_type.strip()
+          
+          # Private mapping - implementation detail
+          # These FIDs are from the actual Mithril API as of 2025-07-02
+!         _instance_mappings = {
+              # User-friendly names -> Mithril instance FIDs
+!             "a100": "it_MsIRhxj3ccyVWGfP",              # Default to 1x
+!             "a100-80gb.sxm.1x": "it_MsIRhxj3ccyVWGfP",
+!             "1xa100": "it_MsIRhxj3ccyVWGfP",
+!             "2xa100": "it_5M6aGxGovNeX5ltT",
+!             "a100-80gb.sxm.2x": "it_5M6aGxGovNeX5ltT",
+!             "4xa100": "it_fK7Cx6TVhOK5ZfXT",
+!             "a100-80gb.sxm.4x": "it_fK7Cx6TVhOK5ZfXT",
+!             "8xa100": "it_J7OyNf9idfImLIFo",
+!             "a100-80gb.sxm.8x": "it_J7OyNf9idfImLIFo",
+!             "h100": "it_5ECSoHQjLBzrp5YM",              # Default H100
+!             "8xh100": "it_5ECSoHQjLBzrp5YM",
+!             "h100-80gb.sxm.8x": "it_5ECSoHQjLBzrp5YM",
+              # Note: h100-80gb.pcie.1x uses different FID
+!             "h100-80gb.pcie.1x": "it_XqgKWbhZ5gznAYsG",
+!         }
+  
+!         instance_id = _instance_mappings.get(normalized)
+!         if not instance_id:
+!             available = list(_instance_mappings.keys())
+!             raise ValueError(
+!                 f"Unknown instance type: {instance_type}. "
+!                 f"Available: {', '.join(sorted(available))}"
+!             )
+  
+!         return instance_id
+  
+>     def _get_instance_type_name(self, instance_id: str) -> str:
+>         """Get human-readable name for instance type ID.
+  
+>         Args:
+>             instance_id: Mithril instance type FID
+  
+>         Returns:
+>             Human-readable name or the ID if not found
+>         """
+          # Create reverse mapping
+!         _reverse_mappings = {
+!             "it_MsIRhxj3ccyVWGfP": "a100-80gb.sxm.1x",
+!             "it_5M6aGxGovNeX5ltT": "a100-80gb.sxm.2x",
+!             "it_fK7Cx6TVhOK5ZfXT": "a100-80gb.sxm.4x",
+!             "it_J7OyNf9idfImLIFo": "a100-80gb.sxm.8x",
+!             "it_5ECSoHQjLBzrp5YM": "h100-80gb.sxm.8x",
+!             "it_XqgKWbhZ5gznAYsG": "h100-80gb.pcie.1x",
+!         }
+  
+!         return _reverse_mappings.get(instance_id, instance_id)
+  
+>     def _fetch_instance_details(self, instance_id: str) -> Optional[Dict[str, Any]]:
+>         """Fetch instance details from API.
+          
+>         Args:
+>             instance_id: Mithril instance ID (e.g., 'ins_...')
+              
+>         Returns:
+>             Instance data dictionary or None if not found
+>         """
+!         try:
+!             project_id = self._get_project_id()
+!             response = self.http.request(
+!                 method="GET",
+!                 url="/v2/instances",
+!                 params={"id": instance_id, "project": project_id}
+!             )
+!             instances = response.get("data", [])
+!             return instances[0] if instances else None
+!         except Exception as e:
+!             logger.warning(f"Failed to fetch instance {instance_id}: {e}")
+!             return None
+  
+>     def _parse_ssh_destination(self, ssh_destination: Optional[str]) -> tuple[Optional[str], int]:
+>         """Parse ssh_destination field into host and port.
+          
+>         Args:
+>             ssh_destination: SSH destination string (e.g., "host:port" or "host")
+              
+>         Returns:
+>             Tuple of (host, port) where port defaults to 22
+>         """
+!         if not ssh_destination:
+!             return None, 22
+          
+          # ssh_destination might be "host:port" or just "host"
+!         parts = ssh_destination.split(":")
+!         host = parts[0]
+!         port = int(parts[1]) if len(parts) > 1 else 22
+!         return host, port
+  
+>     def close(self):
+>         """Clean up resources."""
+!         self.http.close()
