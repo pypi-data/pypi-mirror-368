@@ -1,0 +1,1 @@
+from .propriedades import *
