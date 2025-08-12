@@ -1,0 +1,91 @@
+.. _4.0.0:
+
+4.0.0 (2023-05-09)
+==================
+
+The main idea behind this major release is to transform the CubicWeb library
+into a headless framework with a convenient API so that every projects can build
+its own frontend with the technologies of his choice.
+This is why we decided to remove html generation from CubicWeb. But rest assured,
+the html views are still provided by the :code:`cubicweb-web` cube and a CubicWeb 3.x
+project won't have to rewrite its whole frontend code. However, they are now
+considered legacy and they will receive minimal maintenance.
+
+In order for developpers to build their applications, we are in the process of
+building Typescript toolings to ease the creation of web frontends.
+
+You can follow :ref:`this guide <migration-to-v4>` to migrate from CubicWeb 3.38
+to CubicWeb 4.0.
+
+Apart from the extraction of the :code:`cubicweb.web` module here are some other major
+changes which landed in this release:
+
+- a new :code:`cubicweb-ctl config` command to show the actual configuration of an instance
+- :code:`/<eid>` and :code:`/<entity type>/<eid>` routes can return either HTML or RDF depending on the value of the HTTP :code:`Accept` header. These routes are enabled by default but you can be disabled by editing your :code:`pyramid.ini`.
+- in RQL satements, :code:`NOW` and :code:`TODAY` are now evaluated differently depending on the entity type they represent (:code:`Datetime`, :code:`TZDateTime` or :code:`Date`), leading to more predictible behaviour
+
+Breaking changes
+----------------
+
+- remove all :code:`cubicweb_web` retrocompatibility
+- content_negociation: use :code:`cubicweb.include` to include or not rdf/html views
+- autotest: move :code:`AutoPopulateTest` and :code:`AutomaticWebTest` to :code:`cubicweb_web.devtools.testlib`
+- bwcompat: move :code:`cubicweb.pyramid.bwcompat` to :code:`cubicweb_web.bwcompat`
+- move :code:`cubicweb.ext.rest` to :code:`cubicweb_web.ext.rest`
+- move :code:`cubicweb.predicates.paginated_rset` to :code:`cubicweb_web`
+- move :code:`cubicweb.pyramid.url_redirections` to :code:`cubicweb_web`
+- move :code:`CubicWebPyramidRequest` to :code:`cubicweb_web`
+- move :code:`has_cw_permission` pyramid predicates to :code:`cubicweb_web`
+- move :code:`ResultSet.limited_rql` to :code:`cubicweb_web.views.navigation.limited_rql`
+- move :code:`cubicweb.server.utils.HTMLHead` and :code:`cubicweb.server.utils.HTMLStream` to :code:`cubicweb_web.utils`
+- move :code:`cubicweb/pyramid/test/test_hooks.py` to :code:`cubicweb_web`
+- move :code:`test_sanitized_html` to :code:`cubicweb_web`
+- move back :code:`WebCreateHandler` from :code:`cubicweb_web` to :code:`cubicweb`
+- pyramid.ini: remove :code:`cubicweb.pyramid.defaults` and add specific option for auth and session (see :ref:`Migration guide <migration-to-v4-pyramid>`)
+- pyramid: include :code:`cubicweb.pyramid.core` after :code:`cubicweb.include` from pyramid.ini
+- config: :code:`BaseApptestConfiguration` now inherits from :code:`AllInOneConfiguration`) (https://forge.extranet.logilab.fr/cubicweb/cubicweb/-/issues/659)
+- config: merge :code:`ApptestConfiguration` into :code:`BaseApptestConfiguration`,
+  merge :code:`devtools.TestServerConfiguration` into :code:`devtools.apptest_config.BaseApptestConfiguration`,
+  merge :code:`server.serverconfig.ServerConfiguration` into :code:`cwconfig.CubicWebConfiguration`,
+  drop :code:`devtools.RealDatabaseConfiguration` class (https://forge.extranet.logilab.fr/cubicweb/cubicweb/-/issues/659)
+- services: remove :code:`CubicWebRequestBase` from :code:`repo_gc_stats`
+- testlib: move web related method from :code:`devtools.testlib.CubicWebTC` to :code:`cubicweb_web` (https://forge.extranet.logilab.fr/cubicweb/cubicweb/-/issues/688)
+- remove all CSRF and login related code from :code:`cubicweb.pyramid.test` classes
+- remove :code:`WebConfiguration` from CubicWeb
+- rename :code:`cubicweb-ctl pyramid` command to :code:`cubicweb-ctl start`
+
+🎉 New features
+---------------
+
+- don't depend on :code:`cubicweb_web` by default anymore
+- add a new cubicweb command `cubicweb-ctl config` to show the actual configuration of an instance
+- pyramid.ini: update the pyramid.ini template to list all possible options (https://forge.extranet.logilab.fr/cubicweb/cubicweb/-/issues/724)
+- rest_api: add a basic html view for entities (https://forge.extranet.logilab.fr/cubicweb/cubicweb/-/issues/717)
+- rest_api: allow to enable or disable content negociation with pyramid.ini (https://forge.extranet.logilab.fr/cubicweb/cubicweb/-/issues/717)
+- content_negociation: allow to disable default rdf / html routes (https://forge.extranet.logilab.fr/cubicweb/cubicweb/-/issues/717)
+- store: define a new prepare_update_entity method for MassiveStore (https://forge.extranet.logilab.fr/cubicweb/cubicweb/-/issues/678)
+- rest_api: add routes to download IDownloadable entity with `<eid>/download` and `<etype>/<identifier>/download`
+
+
+👷 Bug fixes
+------------
+
+- cwconfig: use :code:`importlib_metadata` instead of :code:`pkg_ressources` to parse cubes :code:`entry_points`
+- devtools: pyramid test app use https, so we need a base url with https
+- hooks: notification objects are not in the "views" registry anymore
+- massive_store: reset :code:`self._initialized` when we drop :code:`cwmassive_initialized`
+- pyramid: allows to use :code:`None` for :code:`timeout`, :code:`max_age` and :code:`reissue_time` options
+- rset: handle :code:`rset.possible_actions` call when we have no actions registered (https://forge.extranet.logilab.fr/cubicweb/cubicweb/-/issues/693)
+- sobjects/notifications: keep :code:`RecipientsFinder` class and subclass in the :code:`components` registry for retrocompatibility
+- remove unsage usage of eval and use regular module imports instead
+- fix some deprecation warnings emitted by yams
+- use :code:`threading.active_count()` instead of deprecated :code:`threading.activeCount()`
+
+🤷 Various changes
+------------------
+
+- activate :code:`pyramid.debug_routematch` pyramid option during testing
+- documentation: add a warning regarding cubicweb_web at the beginning of pages about web frontend development
+- documentation: add `-j auto` option to speed up compilation
+- python 3.10: parameter codeset of :code:`cubicweb.cwgettext` is deprecated
+- yams.reader 0.48: argument :code:`remove_unused_rtypes` of callable load has been renamed and is deprecated, use keyword argument :code:`remove_unused_relation_types` instead

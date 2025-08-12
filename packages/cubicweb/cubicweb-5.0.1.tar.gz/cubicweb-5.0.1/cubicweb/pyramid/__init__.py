@@ -1,0 +1,292 @@
+# copyright 2017-2025 LOGILAB S.A. (Paris, FRANCE), all rights reserved.
+# copyright 2014-2016 UNLISH S.A.S. (Montpellier, FRANCE), all rights reserved.
+#
+# contact https://www.logilab.fr/ -- mailto:contact@logilab.fr
+#
+# This file is part of CubicWeb.
+#
+# CubicWeb is free software: you can redistribute it and/or modify it under the
+# terms of the GNU Lesser General Public License as published by the Free
+# Software Foundation, either version 2.1 of the License, or (at your option)
+# any later version.
+#
+# CubicWeb is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+# details.
+#
+# You should have received a copy of the GNU Lesser General Public License along
+# with CubicWeb.  If not, see <https://www.gnu.org/licenses/>.
+
+"""Pyramid interface to CubicWeb"""
+
+import atexit
+import logging
+import os
+import sys
+from configparser import ConfigParser
+from urllib.parse import urlparse
+
+import wsgicors
+from pyramid.config import Configurator
+from pyramid.exceptions import ConfigurationError
+from pyramid.settings import asbool, aslist
+
+from cubicweb.cwconfig import CubicWebConfiguration as cwcfg
+from cubicweb.pyramid.csrf import CWCookieCSRFStoragePolicy
+
+
+def set_csrf_storage_policy(config, base_url) -> None:
+    # don't inline it, so it can be easily monkeypatched
+    # see https://forge.extranet.logilab.fr/cubicweb/cubicweb/-/issues/1080
+    config.set_csrf_storage_policy(
+        CWCookieCSRFStoragePolicy(path=urlparse(base_url).path)
+    )
+
+
+def config_from_cwconfig(cwconfig, settings=None, debugtoolbar=False):
+    """Return a Pyramid Configurator instance built from a CubicWeb config and
+    Pyramid-specific configuration files (pyramid.ini).
+
+    :param cwconfig: A CubicWeb configuration
+    :returns: A Pyramid config object
+    """
+    settings = dict(settings) if settings else {}
+    settings.update(settings_from_cwconfig(cwconfig, debugtoolbar=debugtoolbar))
+    config = Configurator(settings=settings)
+    config.registry["cubicweb.config"] = cwconfig
+    config.include("cubicweb.pyramid")
+
+    if debugtoolbar:
+        config.include("pyramid_debugtoolbar")
+
+    return config
+
+
+def settings_from_cwconfig(cwconfig, debugtoolbar=False) -> dict:
+    """
+    Extract settings from pyramid.ini and pyramid-debug.ini (if in debug)
+
+    Can be used to configure middleware WSGI with settings from pyramid.ini files
+
+    :param cwconfig: A CubicWeb configuration
+    :returns: A settings dictionnary
+    """
+    settings_filenames = [os.path.join(cwconfig.apphome, "pyramid.ini")]
+    settings = {}
+    if cwconfig.debugmode:
+        settings_filenames.insert(
+            0, os.path.join(cwconfig.apphome, "pyramid-debug.ini")
+        )
+
+        settings.update(
+            {
+                "pyramid.debug_authorization": True,
+                "pyramid.debug_notfound": True,
+                "pyramid.debug_routematch": True,
+                "pyramid.reload_templates": True,
+            }
+        )
+
+        if debugtoolbar:
+            settings["debugtoolbar.includes"] = ["cubicweb.pyramid.debugtoolbar_panels"]
+
+    for fname in settings_filenames:
+        if os.path.exists(fname):
+            cp = ConfigParser()
+            cp.read(fname)
+            settings.update(cp.items("main"))
+            break
+
+    return settings
+
+
+def wsgi_application_from_cwconfig(
+    cwconfig,
+    debugtoolbar=False,
+):
+    """Build a WSGI application from a cubicweb configuration
+
+    :param cwconfig: A CubicWeb configuration
+    :param profile: Enable profiling. See :ref:`profiling`.
+    :param profile_output: Profiling output filename. See :ref:`profiling`.
+    :param profile_dump_every: Profiling number of requests before dumping the
+                               stats. See :ref:`profiling`.
+    :param debugtoolbar: Activate pyramid debugtoolbar when True.
+
+    :returns: A fully operationnal WSGI application
+    """
+    config = config_from_cwconfig(cwconfig, debugtoolbar=debugtoolbar)
+
+    if debugtoolbar:
+        try:
+            from cubicweb.pyramid.debug_source_code import (
+                debug_display_source_code,
+                DEBUG_DISPLAY_SOURCE_CODE_PATH,
+            )
+        except ImportError as e:
+            logging.exception(
+                "Error: you tried to activate the debug toolbar but you have missing "
+                "dependencies: %s" % e
+            )
+
+            sys.exit(1)
+        else:
+            config.add_route(
+                "debug_display_source_code", DEBUG_DISPLAY_SOURCE_CODE_PATH
+            )
+            config.add_view(
+                debug_display_source_code, route_name="debug_display_source_code"
+            )
+
+    app = config.make_wsgi_app()
+    app = wsgicors.CORS(
+        app,
+        origin=" ".join(cwconfig["access-control-allow-origin"]),
+        headers=", ".join(cwconfig["access-control-allow-headers"]),
+        expose_headers=", ".join(cwconfig["access-control-expose-headers"]),
+        methods=", ".join(cwconfig["access-control-allow-methods"]),
+        maxage=str(cwconfig["access-control-max-age"]),
+        credentials="true",
+    )
+    return app
+
+
+def wsgi_application(instance_name=None, debug=None):
+    """Build a WSGI application from a cubicweb instance name
+
+    :param instance_name: Name of the cubicweb instance (optional). If not
+                          provided, :envvar:`CW_INSTANCE` must exists.
+    :param debug: Enable/disable the debug mode. If defined to True or False,
+                  overrides :envvar:`CW_DEBUG`.
+
+    The following environment variables are used if they exist:
+
+    .. envvar:: CW_INSTANCE
+
+        A CubicWeb instance name.
+
+    .. envvar:: CW_DEBUG
+
+        If defined, the debugmode is enabled.
+
+    The function can be used as an entry-point for third-party wsgi containers.
+    Below is a sample uswgi configuration file:
+
+    .. code-block:: ini
+
+        [uwsgi]
+        http = 127.0.1.1:8080
+        env = CW_INSTANCE=myinstance
+        env = CW_DEBUG=1
+        module = cubicweb.pyramid:wsgi_application()
+        virtualenv = /home/user/.virtualenvs/myvirtualenv
+        processes = 1
+        threads = 8
+        stats = 127.0.0.1:9191
+        plugins = http,python
+
+    """
+    if instance_name is None:
+        instance_name = os.environ["CW_INSTANCE"]
+    if debug is None:
+        debug = "CW_DEBUG" in os.environ
+
+    cwconfig = cwcfg.config_for(instance_name, debugmode=debug)
+
+    return wsgi_application_from_cwconfig(cwconfig)
+
+
+def pyramid_app(global_config, **settings):
+    """Return a Pyramid WSGI application bound to a CubicWeb repository."""
+    config = Configurator(settings=settings)
+    config.include("cubicweb.pyramid")
+    return config.make_wsgi_app()
+
+
+def includeme(config) -> None:
+    """Set-up a CubicWeb instance.
+
+    The CubicWeb instance can be set in several ways:
+
+    -   Provide an already loaded CubicWeb repository in the registry:
+
+        .. code-block:: python
+
+            config.registry['cubicweb.repository'] = your_repo_instance
+
+    -   Provide an already loaded CubicWeb config instance in the registry:
+
+        .. code-block:: python
+
+            config.registry['cubicweb.config'] = your_config_instance
+
+    -   Provide an instance name in the pyramid settings with
+        :confval:`cubicweb.instance`.
+
+    A CubicWeb repository is instantiated and attached in
+    'cubicweb.repository' registry key if not already present.
+
+    The CubicWeb instance registry is attached in 'cubicweb.registry' registry
+    key.
+    """
+    cwconfig = config.registry.get("cubicweb.config")
+    repo = config.registry.get("cubicweb.repository")
+
+    if repo is not None:
+        if cwconfig is None:
+            config.registry["cubicweb.config"] = cwconfig = repo.config
+        elif cwconfig is not repo.config:
+            raise ConfigurationError(
+                'CubicWeb config instance (found in "cubicweb.config" '
+                "registry key) mismatches with that of the repository "
+                '(registry["cubicweb.repository"])'
+            )
+
+    if cwconfig is None:
+        debugmode = asbool(config.registry.settings.get("cubicweb.debug", False))
+        cwconfig = cwcfg.config_for(
+            config.registry.settings["cubicweb.instance"], debugmode=debugmode
+        )
+        config.registry["cubicweb.config"] = cwconfig
+
+    if repo is None:
+        repo = config.registry["cubicweb.repository"] = cwconfig.repository()
+    config.registry["cubicweb.registry"] = repo.vreg
+
+    base_url = cwconfig["base-url"]
+    assert base_url is not None, (
+        "base-url isn't properly set, it can be an issue in CubicWeb source code or in your configuration."
+        "In normal case, 'base-url' is defined by cwconfig.repository()."
+    )
+    if cwconfig["receives-base-url-path"]:
+        config.route_prefix = urlparse(base_url).path
+
+    if cwconfig.mode != "test":
+
+        @atexit.register
+        def shutdown_repo():
+            if repo.shutting_down:
+                return
+            repo.shutdown
+
+    config.include("cubicweb.pyramid.predicates")
+
+    cubicweb_includes = aslist(config.registry.settings.get("cubicweb.includes", []))
+    if (
+        "cubicweb.pyramid.rest_api.include_html" in cubicweb_includes
+        or "cubicweb.pyramid.rest_api.include_rdf" in cubicweb_includes
+    ):
+        config.include("cubicweb.pyramid.rest_api")
+
+    for name in cubicweb_includes:
+        config.include(name)
+
+    config.include("cubicweb.pyramid.core")
+
+    config.set_default_csrf_options(
+        require_csrf=asbool(
+            config.registry.settings.get("cubicweb.pyramid.enable_csrf", "yes")
+        )
+    )
+    set_csrf_storage_policy(config, base_url)

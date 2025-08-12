@@ -1,0 +1,300 @@
+3.38.20 (2025-01-22)
+====================
+👷 Bug fixes
+-----------
+
+- drop_cube: add missing args in cmd_drop_cube command, allowing to drop a cube even if its a dependency (https://forge.extranet.logilab.fr/cubicweb/cubicweb/-/issues/774)
+
+3.38.19 (2024-11-12)
+====================
+👷 Bug fixes
+-----------
+
+- i18n: parameter codeset is deprecated and removed in python 3.10
+
+3.38.18 (2024-10-11)
+====================
+
+Fix :code:`cubicweb-ctl start <instance>` introduced in version 3.38.17
+to replace :code:`cubicweb-ctl pyramid <instance>` (removed in CubicWeb 4)
+
+3.38.17 (2024-10-11)
+====================
+
+- Python: set 3.9 as the minimum
+- Upgrade some dependencies
+- Add compatibility with CubicWeb 4 to simplify upgrade
+  - For some Python imports, there are aliases
+    to imitate CubicWeb 4 and cube web 1.3
+  - add a method to :code:`InstanceCommand` to have a connexion
+
+3.38.16 (2024-04-03)
+====================
+
+👷 Bug fixes
+------------
+
+- install lxml[html_clean] >= 5.2.0, and fix CLEANER instanciation
+
+3.38.15 (2024-03-20)
+====================
+
+👷 Bug fixes
+------------
+
+- session: using unsafe_cnx_context_manager invoke a recursive auth loop
+
+3.38.14 (2024-02-07)
+====================
+
+👷 Bug fix
+----------
+
+auth: add an authentication ticket mechanism to ensure cookies invalidation
+
+🤖 Continuous integration
+-------------------------
+
+- skeleton: add --diff option to black job
+- skeleton: add --show-source option to flake8 command
+
+🤷 Various changes
+------------------
+
+- fix: pin sphinx dependencies versions to be able to build with sphinx 4
+
+3.38.13 (2023-12-21)
+====================
+
+👷 Bug fix
+----------
+
+import load_module_from_name directly from logilab.common.modutils
+
+📝 Documentation
+----------------
+
+pyramid.sessions: instructions for using redis for the session are incorrect
+
+3.38.12 (2023-10-31)
+====================
+
+👷 Bug fix
+----------
+
+modify the csrf_token on disconnection
+
+📝 Documentation
+----------------
+
+improve book/devrepo/migration
+
+3.38.11 (2023-10-19)
+====================
+
+👷 Bug fixes
+------------
+
+- debugtoolbar: in some case some controllers' options don't have a default value
+- session: in test mode during commit, be sure to execute all postcommit
+
+3.38.10 (2023-07-10)
+====================
+
+👷 Bug fixes
+------------
+
+- migration: allow to drop a cube even if it's a dependency (https://forge.extranet.logilab.fr/cubicweb/cubicweb/-/issues/774)
+
+3.38.9 (2023-06-07)
+===================
+
+👷 Bug fixes
+------------
+
+- pyramid: allows to use None for timeout, max_age and reissue_time options
+
+3.38.8 (2023-03-24)
+===================
+
+👷 Bug fixes
+------------
+
+- testlib: define properly a generate_tzdatetime method with timezone (https://forge.extranet.logilab.fr/cubicweb/cubicweb/-/issues/716)
+
+🤖 Continuous integration
+-------------------------
+
+- avoid launching duplicated migractions tests
+- clean CI of unused jobs
+- disable can-i-merge
+- don't wait for tests to start QA jobs
+- smoke_test: add timeout to request to avoid hanging up for too long
+- smoke_test: handle ConnectionError situation
+- test-cube-skeleton: ensure we use the same python version for smoke test than py3-* tests
+
+3.38.7 (2023-03-07)
+===================
+
+👷 Bug fixes
+------------
+
+- rdf: https instead of http for schema.org
+- sphinx-theme 1.0 breaks doc build
+- make sure we only install yapps2-logilab by updating depencies
+- tried to format a string while missing one formatting argument
+
+3.38.6 (2023-02-13)
+===================
+
+👷 Bug fixes
+------------
+
+- hooks: notification things are no more in "views" registry
+
+3.38.5 (2023-01-31)
+===================
+
+👷 Bug fixes
+------------
+
+- remove deprecated import to cubicweb.web
+
+3.38.4 (2023-01-17)
+===================
+
+🎉 New features
+---------------
+
+- skeleton: remove format=pylint option from tox because it's better without it
+
+3.38.3 (2023-01-12)
+===================
+
+👷 Bug fixes
+------------
+
+- avoid risking new cubes to install pre-release version of black
+- formrenderers: use UStringIO instead of list to keep the same api as self.w (https://forge.extranet.logilab.fr/cubicweb/cubicweb/-/issues/597)
+- schema_exporters: Add missing description field for relations (e.g `in_state`) to schema exporter
+
+🤷 Various changes
+------------------
+
+- changelog/3.38: add instruction on how to use 3.38/cubicweb_web_imports.py
+
+3.38.2 (2023-01-03)
+===================
+
+👷 Bug fixes
+------------
+
+- sobjects/notifications: keep RecipientsFinder class and subclass in the components registry for retrocompatibility
+
+3.38.1 (2022-12-05)
+===================
+
+🎉 New features
+---------------
+
+- schema: Export relations options on the schema (merge from 3.37)
+
+👷 Bug fixes
+------------
+
+- schema_exporters: Add missing description field for relations (e.g `in_state`) to schema exporter (merge from 3.37)
+
+3.38.0 (2022-11-22)
+===================
+
+This is the last major release of the 3.* before the 4 branch.
+
+In this release the whole cubicweb.web module and the cubicweb/view.py file
+have been extracted in the cubicweb_web cube which is a dependency of cubicweb
+now. Automatic backward compatibility is provided by imports so your projects
+should work with this new version without modifications.
+
+A script to help migrating to this version is available in this repository in the 3.38 folder
+https://forge.extranet.logilab.fr/cubicweb/cw_versions_migration_tools
+This script will change all the imports to match the news one for CubicWeb
+3.38 and the cube cubicweb_web. **It will not change your dependencies in your
+setup.py or __pkginfo__.py**, you have to do this yourself.
+
+Its usage, once the dependencies has been installed (only RedBaron), is the following::
+
+    python 3.38/cubicweb_web_imports.py <path to my project>
+
+It will hopefully save you quite some time.
+
+🎉 New features
+---------------
+
+- the cubicweb_web cube is now a dependency of cubicweb
+- add adapter_regid as parameter on add_entity_to_graph (#535)
+- add relation constraints to schema export
+- cubicweb.web extraction: change all import of cubicweb.web to cubicweb_web
+- cubicweb.web removal: add deprecation warning in view module
+- cubicweb.web removal: add generic deprecation warning in all web modules
+- cwctl: don't check if we need to upgrade anything when running cwctl versions (https://forge.extranet.logilab.fr/cubicweb/cubicweb/-/issues/563)
+- doc: clarify when `rich` had been removed
+- export relation options in schema options key
+- pkg: upgrade version of waitress to 2.1.1 or more, for security reason. (https://forge.extranet.logilab.fr/cubicweb/cubicweb/-/issues/543)
+- rdf: use entity.absolute_url instead of cwuri in RDF adapters (#534)
+- redirection: pyramid redirection now keep parameters by default (https://forge.extranet.logilab.fr/cubicweb/cubicweb/-/issues/566)
+- rql: Add "IRQLInterface" adapter to force defining a rql interface which is available on RQL projection varaibles
+- rql: Add entities function and attribute from RQL queries
+- serverctl: add a command to list all unused indexes
+- test/content-negociation: display rdf body on failing tests for easier debugging
+- test: use testing.cubicweb instead of testing.fr in test (https://forge.extranet.logilab.fr/cubicweb/cubicweb/-/issues/374)
+  *BREAKING CHANGE*: use testing.cubicweb instead of testing.fr in test
+
+👷 Bug fixes
+------------
+
+- add retrocompatibility for anonymized_request that is now in cubicweb_web
+- base64.decodestring is deprecated and has been removed
+- cubicweb_web/deprecations: increase warning stack level to show correct line
+- cubicweb_web: change magic modules imports to uses cubicweb_web
+- cwconfig: Ensure the cube web is available with cubicweb-ctl commands
+- CWRelation.rtype api is different from CWRelation.relation_type api
+- ensure that the "web" cube is in the list of cubes dependencies
+- hook: Search the notification view from the good registry
+- htmlwidgets: BoxLink rendering is broken
+- make i18ncube load web cube's appobjects
+- mod: Load sobjects.notification and sobjects.supervising even if no cubicweb_web
+- notification: Make NotificationView inherits from AppObject
+- pyramid: adapt TestApp.post_json method to CSRF
+- pyramid: adapt TestApp.put_json method to CSRF
+- pyramid: try to get "/login" if "/" is forbidden
+- req: add missing set_log_methods on CubicWebRequestBase
+- schema_exporters: handle symmetrical relation in schema export. (https://forge.extranet.logilab.fr/cubicweb/cubicweb/-/issues/568)
+- supervising: Adapt SupervisingView for the NotificationView API
+- supervising: Uses the NotificationView for the supervising instead of component
+- test-instance-creation: cubicweb now needs the web cube to be installed
+
+🤖 Continuous integration
+-------------------------
+
+Most python test have been splitted to speed up the CI speed.
+
+- .gitlab-ci.yml: refactoring py3 tests declaration using a base template
+- add check-dependencies-resolution job
+- add mypy job
+- add safety job
+- add twine-check job
+- fix: "base" in py3-server-base clashed with "py3-base", use "core" instead
+- fix: py3-auto-test-views jobs wrongly launched py3-server-bases tests
+- migrate to v2 of templates
+- move to bullseye and pg13
+- split py3-misc into several different tests
+- split py3-server into several different tests
+- test-instance-creation: pip --use-feature=in-tree-build is deprecated, remove it
+- use .retry base template in (nearly) all jobs
+
+🤷 Various changes
+------------------
+
+- [cubicweb 3.38] RequestSessionBase is deprecated, use RequestSessionAndConnectionBase instead
+- remove mailing-list from "how to contribute" since it's no more used (https://forge.extranet.logilab.fr/cubicweb/cubicweb/-/issues/395)
+- supervising: Refactor to not using self.w from NotificationView
+- Unknown config option: log_print

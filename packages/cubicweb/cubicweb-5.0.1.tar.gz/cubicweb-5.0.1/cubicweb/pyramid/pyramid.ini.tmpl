@@ -1,0 +1,41 @@
+[main]
+# How to use cubicweb.includes?
+# This part allow to enable/disable some comportment included in CW.
+# Sessions:
+#   Uncomment "cubicweb.pyramid.session" if you want to use in base CubicWeb Session. You shouldn't
+#   use this kind of sessions in production, use pyramid_session_redis instead
+# Content negotiation:
+#   By default, you have content negociation pyramid views  included
+#   for all entities (if and only if the user have the read permission on these
+#   entities); which mean you can request all entities with different content type
+#   to have them in several RDF serialization and also in a simple HTML view.
+#   If you use cubicweb_web, you may want to disable html default views,
+#   since cubicweb_web provides better ones.
+#   To disable html default views, comment "cubicweb.pyramid.rest_api.include_html". To
+#   disable RDF default views, comment "cubicweb.pyramid.rest_api.include_rdf".
+
+cubicweb.includes =
+  # Warning: Everything added here will be added before every includeme of every cubes.
+  cubicweb.pyramid.auth
+  cubicweb.pyramid.default_session
+  # cubicweb.pyramid.session
+  # Add views to generate one html page per entity
+  cubicweb.pyramid.rest_api.include_html
+  # Add views to generate one RDF graph per entity
+  cubicweb.pyramid.rest_api.include_rdf
+  # Add views to download entities adaptable to IDownloadable
+  cubicweb.pyramid.rest_api.include_download
+
+# session
+cubicweb.session.secret = %(secret_1)s
+
+# CSRF default protection on pyramid views
+# put it at "no" if you don't want do protect by
+# default all pyramid views against CSRF attack
+cubicweb.pyramid.enable_csrf = yes
+
+# authentication
+cubicweb.auth.authtkt.session.secret = %(secret_2)s
+cubicweb.auth.authtkt.persistent.secret = %(secret_3)s
+cubicweb.auth.authtkt.session.secure = no
+cubicweb.auth.authtkt.persistent.secure = no

@@ -1,0 +1,74 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cubicweb"
+version = "5.0.1"
+description = "a repository of entities / relations for knowledge management"
+readme = {file = "README.rst", content-type = "text/x-rst"}
+license = {text = "GNU Lesser General Public License v2 or later (LGPLv2+)"}
+requires-python = ">=3.11"
+authors = [
+    {name="Logilab", email="contact@logilab.fr"},
+]
+classifiers = [
+    "Environment :: Web Environment",
+    "Framework :: CubicWeb",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: JavaScript",
+]
+dependencies = [
+    "cachetools >= 5.5.1",
+    "filelock >= 3.17.0",
+    "logilab-common >= 2.1.0, < 3.0.0",
+    "logilab-database >= 2.0.0, < 3.0.0",
+    "logilab-mtconverter >= 1.0.0, < 2.0.0",
+    "lxml >= 5.2.0, < 6.0.0",
+    "lxml_html_clean >= 0.4.1",
+    "Markdown >= 3.7",
+    "passlib >= 1.7.4",
+    "pyramid >= 1.10.8, < 2.0.0",
+    "pyramid_multiauth < 1.0.0",  # to remove with Pyramid 2
+    "pytz",
+    "rdflib >= 7.1.3",
+    "repoze.lru",
+    "rql >= 1.0.2, < 2.0.0",
+    "waitress >= 3.0.2, < 4.0.0",
+    "wsgicors >= 0.7.0",
+    "yams >= 2.0.0",
+]
+
+[project.scripts]
+cubicweb-ctl = "cubicweb.cwctl:run"
+
+[project.entry-points."paste.app_factory"]
+pyramid_main = "cubicweb.pyramid:pyramid_app"
+
+[project.optional-dependencies]
+captcha = ["Pillow >= 11.1.0"]
+crypto = ["pycryptodomex >= 3.21.0"]
+ext = ["docutils >= 0.21.2"]
+ical = ["vobject >= 0.9.9"]
+postgresql = ["psycopg2-binary >= 2.9.10"]
+s3 = ["minio >= 7.2.15"]
+
+[project.urls]
+Documentation = "https://cubicweb.readthedocs.io/"
+Issues = "https://forge.extranet.logilab.fr/cubicweb/cubicweb/-/issues"
+Repository = "https://forge.extranet.logilab.fr/cubicweb/cubicweb"
+Website = "https://www.cubicweb.org"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["cubicweb*"]
+namespaces = false
+
+[tool.setuptools.package-data]
+"cubicweb.pyramid" = ["development.ini.tmpl"]
+"cubicweb.web.views" = ["*.pt"]

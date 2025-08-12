@@ -1,0 +1,131 @@
+.. _migration-to-v4:
+
+Migrating to v4
+===============
+
+Prerequisite
+------------
+You have read the :ref:`ChangeLog of CubicWeb 4 <4.0.0>`.
+
+You already upgraded your CubicWeb application to CubicWeb 3.38,
+which means you may or not have changed all your import from
+:code:`cubicweb.web` to :code:`cubicweb_web` and installed :code:`cubicweb-web`
+package, according to 3.38 changelog.
+In this version we removed import proxying to :code:`cubicweb_web`.
+This means that you can no longer import :code:`cubicweb.web`.
+As described in 3.38 changelog, there is a script here
+https://forge.extranet.logilab.fr/cubicweb/cw_versions_migration_tools
+made to ease this migration.
+
+
+Breaking changes and how to keep your application working
+---------------------------------------------------------
+
+- :code:`AutomaticWebTest`, :code:`how_many_dict` and :code:`AutoPopulateTest` have been moved
+  from :code:`cubicweb.devtools.testlib` to :code:`cubicweb_web.devtools.testlib`.
+- :code:`cubicweb.pyramid.bwcompat` module have been moved to :code:`cubicweb_web`.
+- :code:`cubicweb.sobjects.notification.RecipientFinder` is no more a :code:`component`,
+  but a :code:`service`. Thus, this class and all its potential children are now in
+  :code:`services` registry instead of :code:`components` registry.
+- Configuration classes have been simplified:
+    - :code:`cubicweb.server.serverconfig.ServerConfiguration` have been merged into
+      :code:`cubicweb.cw_config.CubicWebConfiguration`, you have to use this one instead
+      of :code:`ServerConfiguration`
+    - all methods and options from :code:`cubicweb.devtools.TestServerConfiguration`,
+      and :code:`cubicweb.devtools.apptest_config.BaseApptestConfiguration`
+      are now in the class :code:`cubicweb.devtools.apptest_config.ApptestConfiguration`
+    - CubicWeb configuration classes no longer include anything related to the
+      :code:`cubicweb_web` package.
+- All methods, attributes and properties related to CubicWeb-Web in :code:`cubicweb.devtools.testlib.CubicWebTC`
+  class have been moved into the class :code:`cubicweb_web.devtools.testlib.WebCWTC`,
+  which is now the base class for all CubicWeb-Web related tests (if you need
+  Pyramid and CubicWeb-Web, you'll have to use :code:`cubicweb_web.devtools.testlib.PyramidWebCWTC`).
+- :code:`cubicweb.devtools.fake.FakeRequest` have been moved to
+  :code:`cubicweb_web.devtools.testlib`.
+- :code:`cubicweb.ext.rest` have been moved to :code:`cubicweb_web.ext.rest`, thus
+  :code:`cubicweb.devtools.apptest_config.ApptestConfiguration` no longer initialize rest components.
+- :code:`cubicweb.predicates.paginated_rset` have been moved to :code:`cubicweb_web.predicates.paginated_rset`.
+- :code:`cubicweb.pyramid.url_redirections` have been moved to :code:`cubicweb_web.pyramid.url_redirection`,
+  thus, :code:`add_redirection_rule` pyramid directive is no longer usable without :code:`cubicweb_web`.
+- :code:`cubicweb.utils.HTMLHead` and :code:`cubicweb.utils.HTMLStream` have been
+  moved to :code:`cubicweb_web.utils`.
+- :code:`has_cw_permission` pyramid view and route predicates are now in :code:`cubicweb_web.pyramid.predicates`
+- :code:`cubicweb.rset.limited_rql` :code:`ResultSet` method is now a function which can be called from
+  :code:`cubicweb_web.views.navigation.limited_rql` and :code:`_limit_offset_rql` :code:`ResultSet` method
+  is now a function which can be called from :code:`cubicweb_web.views.navigation._limit_offset_rql`.
+- :code:`cubicweb.web.webconfig.WebConfiguration` have been moved to :code:`cubicweb_web.webconfig`.
+- :code:`cubicweb.devtools.RealDatabaseConfiguration` have been removed. You can redo
+  it yourself by heriting from :code:`cubicweb.devtools.apptest_config.ApptestConfiguration`
+  and adding the following class attributes: :code:`skip_db_create_and_restore = True`
+  and :code:`read_instance_schema = True`.
+- by default, there is no more session added to the pyramid request. Thus,
+  you cannot access :code:`request.session` anymore if you don't use
+  `pyramid_session_redis <https://github.com/jvanasco/pyramid_session_redis>`_
+  or if you don't include :code:`cubicweb.pyramid.session` in pyramid.ini (see below).
+- :code:`cubicweb.pyramid.auth` is no longer included by default in pyramid config,
+  you will need to add it manually in pyramid.ini (see below)
+- Since :code:`cubicweb.pyramid.session` and :code:`cubicweb.pyramid.auth` are now included
+  only in pyramid.ini, you may need to add them manually in your test, in :code:`settings`
+  class attribute of :code:`cubicweb_web.devtools.testlib.PyramidWebCWTC`. For instance:
+  :code:`settings = {"cubicweb.includes": ["cubicweb.pyramid.auth", "cubicweb.pyramid.session"]}`.
+- Now, all modules in the :code:`cubicweb.includes` directives in the pyramid.ini file are
+  included before all cubes' :code:`include` directives.
+
+.. _migration-to-v4-pyramid:
+
+Pyramid configuration file: :code:`pyramid.ini`
+-----------------------------------------------
+
+- :code:`cubicweb.defaults` option has been removed from explicit inclusions.
+  Previously, :code:`cubicweb.defaults` added 3 modules:
+  :code:`cubicweb.pyramid.login`,
+  :code:`cubicweb.pyramid.auth`
+  and :code:`cubicweb.pyramid.session`.
+  :code:`cubicweb.pyramid.login` is now in CubicWeb-Web;
+  :code:`cubicweb.pyramid.auth` and :code:`cubicweb.pyramid.session`
+  need to be included in :code:`cubicweb.includes` directive
+  (see `pyramid file template <https://forge.extranet.logilab.fr/cubicweb/cubicweb/-/blob/branch/4.x/cubicweb/pyramid/pyramid.ini.tmpl>`_).
+  By default, :code:`cubicweb.pyramid.session` is commented,
+  thus there is no infinite CWSession objects created in your database
+  if you forget to use an other session storage in production.
+  This also means you can no longer use :code:`request.session`.
+- Two other module are included by default in pyramid.ini when you create your
+  instance: :code:`cubicweb.pyramid.rest_api.include_html` and
+  :code:`cubicweb.pyramid.rest_api.include_rdf`.
+  They add respectively default RDF views
+  and default HTML views in order to describe entities.
+- If you create a new instance, you will have a better pyramid.ini from
+  our new upgraded template. In order to migrate an old instance, you may
+  want to take a look at the template
+  `here <https://forge.extranet.logilab.fr/cubicweb/cubicweb/-/blob/branch/default/cubicweb/pyramid/pyramid.ini.tmpl>`_
+- As before, all directive in pyramid.ini can be added in tests using :code:`settings`
+  class attribute of :code:`cubicweb_web.devtools.testlib.PyramidWebCWTC`. For instance:
+  :code:`settings = {"cubicweb.includes": ["cubicweb.pyramid.auth", "cubicweb.pyramid.session"]}`.
+
+Content negociation
+-------------------
+CubicWeb 4 keep by default a mecanism allowing to have entities description
+in html or in RDF. They can be disabled or enabled in :code:`pyramid.ini` configuration
+file.
+
+CubicWebRequest
+---------------
+There is no longer CubicWebRequest inside Pyramid Request (except if you add
+:code:`cubicweb-web` cube). However, there is still a cubicweb connection accessible
+by :code:`request.cw_cnx`, which can be used for many purpose, for instance execute RQL
+queries.
+
+Translations
+------------
+
+A lot of translations were generated for `cubicweb.web` views and components. These
+translations had been moved to :code:`cubicweb-web` cube, and its generations too.
+In order to still have it, you will need to add a :code:`cubicweb.i18ncube` entrypoint to your package:
+
+.. code-block:: python
+
+    "cubicweb.i18ncube": [
+        "<your cube name>=cubicweb_web.i18n:WebI18nCubeMessageExtractor",
+    ]
+
+With :code:`<your cube name>` being the name of your cube.
