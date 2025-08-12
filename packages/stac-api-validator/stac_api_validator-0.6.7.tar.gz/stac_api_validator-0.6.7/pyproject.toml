@@ -1,0 +1,100 @@
+[tool.poetry]
+name = "stac-api-validator"
+version = "0.6.7"
+description = "STAC API Validator"
+authors = ["Phil Varner <phil@philvarner.com>"]
+license = "Apache-2.0"
+readme = "README.md"
+homepage = "https://github.com/stac-utils/stac-api-validator"
+repository = "https://github.com/stac-utils/stac-api-validator"
+documentation = "https://stac-api-validator.readthedocs.io"
+classifiers = ["Development Status :: 4 - Beta"]
+requires-poetry = ">=2.0"
+
+[tool.poetry.urls]
+Changelog = "https://github.com/stac-utils/stac-api-validator/releases"
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.14"
+click = ">=8.0.2"
+certifi = ">=2025.7.14,<2026.0.0"
+pystac-client = ">=0.8.6,<0.10.0"
+requests = "^2.32.4"
+pystac = { extras = ["orjson"], version = "^1.13.0" }
+jsonschema = "^4.25.0"
+PyYAML = "^6.0.2"
+Shapely = ">=2.1.1"
+more_itertools = ">=10.7.0,<11.0"
+stac-check = "^1.11.1"
+stac-validator = "^3.10.1"
+deepdiff = ">=8.5.0,<9.0.0"
+
+[tool.poetry.group.dev.dependencies]
+Pygments = ">=2.19.2"
+black = ">=25.1.0"
+coverage = { extras = ["toml"], version = ">=7.9.2" }
+darglint = ">=1.8.1"
+flake8 = ">=7.3.0"
+flake8-bugbear = ">=24.12.12"
+flake8-docstrings = ">=1.7.0"
+flake8-rst-docstrings = ">=0.3.1"
+furo = ">=2025.7.19"
+isort = ">=6.0.1"
+mypy = ">=1.17.0"
+pep8-naming = ">=0.15.1"
+pre-commit = ">=4.2.0"
+pre-commit-hooks = ">=5.0.0"
+pytest = ">=8.4.1"
+pyupgrade = ">=3.20.0"
+safety = ">=3.6.0"
+sphinx = ">=8.2.3"
+sphinx-autobuild = ">=2024.10.3"
+sphinx-click = ">=6.0.0"
+typeguard = ">=4.4.4"
+xdoctest = { extras = ["colors"], version = ">=1.2.0" }
+myst-parser = { version = ">=4.0.1" }
+
+[tool.poetry.requires-plugins]
+poetry-plugin-export = ">=1.9" # needed for nox-poetry with poetry 2
+
+[tool.poetry.scripts]
+stac-api-validator = "stac_api_validator.__main__:main"
+
+[tool.coverage.paths]
+source = ["src", "*/site-packages"]
+tests = ["tests", "*/tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["stac_api_validator", "tests"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 10     # todo: get back to 85
+
+[tool.isort]
+profile = "black"
+force_single_line = true
+lines_after_imports = 2
+
+[tool.mypy]
+strict = true
+warn_unreachable = true
+pretty = true
+show_column_numbers = true
+show_error_codes = true
+show_error_context = true
+#ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "shapely.geometry",
+    "stac_check.lint",
+    "stac_validator.stac_validator",
+    "deepdiff",
+]
+ignore_missing_imports = true
+
+[build-system]
+requires = ["poetry-core>=2.0.0"]
+build-backend = "poetry.core.masonry.api"
