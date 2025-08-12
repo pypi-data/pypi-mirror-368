@@ -1,0 +1,14 @@
+MAPPING_INDEX_NAMES = {
+    'KOSPI Index': 'KOSPI',
+    'KOSPI2 Index': 'KOSPI 200',
+    'KOSDAQ Index': 'KOSDAQ',
+    'SPX Index': 'S&P 500',
+    'MXKR Index': 'MSCI KR',
+    'M1KR Index': 'MSCI KR (USD)',
+    'CCMP Index': 'NASDAQ',
+    'NDX Index': 'NASDAQ 100'
+}
+
+COLUMNS_DEFAULT_BENCHMARK_ORDERS = list(MAPPING_INDEX_NAMES.keys())
+
+DEFAULT_ANNUAL_TRADING_DAYS = 252
