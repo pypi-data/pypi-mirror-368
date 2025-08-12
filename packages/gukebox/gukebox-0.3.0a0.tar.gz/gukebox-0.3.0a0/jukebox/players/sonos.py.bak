@@ -1,0 +1,135 @@
+import logging
+import os
+
+from soco import SoCo
+
+#from .player import Player
+
+level = logging.INFO
+LOGGER = logging.getLogger("jukebox")
+LOGGER.setLevel(level)
+console_handler = logging.StreamHandler()
+console_handler.setLevel(level)
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s\t - %(message)s")
+console_handler.setFormatter(formatter)
+LOGGER.addHandler(console_handler)
+
+
+#class SonosPlayer(Player):
+#    def __init__(self, host: Union[str, None] = None, **kwargs):
+#        if host is None:
+#            host = os.environ.get("SONOS_HOST", None)
+#        if host is None:
+#            raise ValueError("Host must be provided, either as an argument or in the SONOS_HOST environment variable.")
+#        self.speaker = SoCo(host)
+#        LOGGER.info(
+#            f"Found `{self.speaker.player_name}` with software version: {self.speaker.get_speaker_info().get('software_version', None)}"
+#        )
+#        self.sharelink = ShareLinkPlugin(self.speaker)
+#
+#    def play(self, uri: str, shuffle: bool):
+#        LOGGER.info(f"Playing `{uri}` on the player `{self.speaker.player_name}`")
+#        self.sharelink.soco.clear_queue()
+#        _ = self.sharelink.add_share_link_to_queue(uri, position=1)
+#        if shuffle:
+#            self.sharelink.soco.play_mode = "SHUFFLE_NOREPEAT"
+#        else:
+#            self.sharelink.soco.play_mode = "NORMAL"
+#        self.sharelink.soco.play_from_queue(index=0, start=True)
+#
+#    def pause(self):
+#        LOGGER.info(f"Pausing player `{self.speaker.player_name}`")
+#        self.speaker.pause()
+#
+#    def resume(self):
+#        LOGGER.info(f"Resuming player `{self.speaker.player_name}`")
+#        self.speaker.play()
+#
+#    def stop(self):
+#        LOGGER.info(f"Stopping player `{self.speaker.player_name}` and clearing its queue")
+#        self.speaker.clear_queue()
+
+import socket
+import time
+import urllib.parse
+from http.server import SimpleHTTPRequestHandler
+from random import shuffle
+from socketserver import TCPServer
+from threading import Thread
+
+MUSIC_DIRECTORY="/Users/theophile/Developer/Théophile/jukebox/library/UnknownAlbum"
+
+class Handler(SimpleHTTPRequestHandler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=MUSIC_DIRECTORY, **kwargs)
+
+
+class HttpServer(Thread):
+    """A simple HTTP Server in its own thread"""
+
+    def __init__(self, port):
+        super().__init__()
+        self.daemon = True
+        handler = Handler
+        self.httpd = TCPServer(("", port), handler)
+
+    def run(self):
+        """Start the server"""
+        LOGGER.info("Start HTTP server")
+        self.httpd.serve_forever()
+
+    def stop(self):
+        """Stop the server"""
+        LOGGER.info("Stop HTTP server")
+        self.httpd.socket.close()
+
+
+def add_random_file_from_present_folder(machine_ip, port, zone):
+    music_files = []
+    LOGGER.info("Looking for music files")
+    for file_ in os.listdir(MUSIC_DIRECTORY):
+        if file_.endswith('.mp3'):
+            music_files.append(file_)#os.path.relpath(os.path.join(MUSIC_DIRECTORY, file_)))c
+            LOGGER.info(f"Found: {music_files[-1]}")
+
+
+    LOGGER.info("Clearing queue")
+    zone.clear_queue()
+
+    shuffle(music_files)
+    for file_ in music_files:
+        netpath = f"http://{machine_ip}:{port}/{urllib.parse.quote(file_)}"
+        LOGGER.info(f"Adding to queue: {netpath}")
+        _ = zone.add_uri_to_queue(netpath)
+
+    LOGGER.info(f"Playing first file: {music_files[0]}")
+    zone.play_from_queue(index=0, start=True)
+
+
+
+def detect_ip_address():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))
+    ip_address = s.getsockname()[0]
+    s.close()
+    return ip_address
+
+def main():
+    zone = SoCo("192.168.1.19")
+
+    ip = detect_ip_address()
+    port = 8080
+
+    server = HttpServer(port)
+    server.start()
+
+    try:
+        add_random_file_from_present_folder(ip, port, zone)
+        time.sleep(10**8)
+    except KeyboardInterrupt:
+        server.stop()
+
+
+
+if __name__ == "__main__":
+    main()
