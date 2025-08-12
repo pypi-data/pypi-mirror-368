@@ -1,0 +1,147 @@
+{% extends "django_pev/base.html" %}
+{% block content %}
+    {% load humanize %}
+    <div class="row">
+        <div class="card mb-4 mt-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="card-title mb-0">Explain Query</h4>
+                        This page helps find the slowest queries of a page and explains it using an embedded version of <a href="https://explain.dalibo.com">Postgres Explain Visualizer 2 (by dalibo)</a>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between mt-4">
+                    <form action="/django-pev/explain" method="get" id="explain-form">
+                        {% csrf_token %}
+                        <label for="id_url" class="form-label"> <b>Page url </b></label>
+                        <div class="input-group mb-2">
+                            <select class="form-select fw-bold" name="http_method" id="id_http_method" style="max-width: 120px;">
+                                <option value="GET" {% if http_method == "GET" %}selected{% endif %}>GET</option>
+                                <option value="POST" {% if http_method == "POST" %}selected{% endif %}>POST</option>
+                                <option value="PATCH" {% if http_method == "PATCH" %}selected{% endif %}>PATCH</option>
+                                <option value="PUT" {% if http_method == "PUT" %}selected{% endif %}>PUT</option>
+                                <option value="DELETE" {% if http_method == "DELETE" %}selected{% endif %}>DELETE</option>
+                            </select>
+                            <input type="text"  class="form-control" name="url" value="{{url}}" required="true" id="id_url" placeholder="/dashboard/">
+                        </div>
+                        <div id="helpBlock" class="form-text mb-2">
+                            The url should not include the protocol or the base url. For example (/dashboard/) .
+                        </div>
+                        {% if error %}
+                        <div class="alert alert-danger mt-2" role="alert">
+                            {{ error }}
+                        </div>
+                        {% endif %}
+                        <label for="id_body" class="form-label"><b>Request Body (for POST, PATCH, PUT, DELETE)</b></label>
+                        <textarea class="form-control mb-2" name="body" id="id_body" rows="3" placeholder="JSON data">{{ body }}</textarea>
+                        <input class="btn btn-primary" type="submit" value="Submit" />
+                    </form>
+                </div>
+
+                {% if explain and explain.queries %}
+
+                    <div class="card p-4 mt-1">
+                        <h5> Slowest Query {{ slowest.duration|floatformat:4 }}s
+                        </h5>
+                        <form action="{% url 'django_pev:explain-visualize' %}" method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="explainset_id" value="{{explain.id}}" />
+                            <input type="hidden" name="query_index" value="{{slowest.index}}" />
+                            <input name="analyze" class="btn btn-primary" type="submit" value="Analyze">
+                            <input name="explain" class="btn btn-primary" type="submit" value="Explain" />
+                        </form>
+                        <div>
+                            <code><pre>{{ slowest.sql }}</pre></code>
+                        </div>
+                    </div>
+
+                   {% if nplusones %}
+                        <div class="card p-4 mt-4">
+                            <h5 style="color: red;"> N+1 Queries 😠</h5>
+                            <ol>
+                                {% for query, query_count in nplusones.items %}
+                                    <li>
+                                        <span class="badge bg-primary rounded-pill">{{ query_count}} times</span> <code> {{ query.sql | truncatechars:200 }} </code>
+                                        <form action="{% url 'django_pev:explain-visualize' %}" method="post">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="explainset_id" value="{{explain.id}}" />
+                                            <input type="hidden" name="query_index" value="{{query.index}}" />
+                                            <input name="analyze" class="btn btn-primary btn-sm" type="submit" value="Analyze">
+                                            <input name="explain" class="btn btn-primary btn-sm" type="submit" value="Explain" />
+                                            <button class="btn btn-secondary btn-sm" type="button" data-coreui-toggle="collapse" data-coreui-target="#nplusone{{query.index}}-tb" aria-expanded="false">
+                                                Show Traceback
+                                            </button>
+                                        </form>
+                                        <div class="collapse" id="nplusone{{query.index}}-tb">
+                                            <div class="card card-body">
+                                                <code><pre>{{ query.stack_trace }}</pre></code>
+                                            </div>
+                                        </div>
+                                    </li>
+                                {% endfor %}
+                            </ol>
+                        </div>
+                    {% endif %}
+
+                    <div class="mt-4">
+                        <h5> All Queries {{explain.queries | length}}</h5>
+                        <ol>
+                            {% for query in explain.queries %}
+
+                                <li>
+                                    {{ query.duration | floatformat:4}}s
+                                    <code>{{ query.sql | truncatechars:100 }}</code>
+
+                                    <p class="d-inline-flex gap-1">
+
+                                        <form action="{% url 'django_pev:explain-visualize' %}" method="post">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="explainset_id" value="{{explain.id}}" />
+                                            <input type="hidden" name="query_index"   value="{{query.index}}" />
+                                            <input name="analyze" class="btn btn-primary" type="submit" value="Analyze">
+                                            <input name="explain" class="btn btn-primary" type="submit" value="Explain" />
+                                            <button class="btn btn-secondary" type="button" data-coreui-toggle="collapse" data-coreui-target="#query{{query.index}}-sql" aria-expanded="false" aria-controls="collapseExample">
+                                                Show Query
+                                            </button>
+                                            <button class="btn btn-secondary" type="button" data-coreui-toggle="collapse" data-coreui-target="#query{{query.index}}-tb" aria-expanded="false" aria-controls="collapseExample">
+                                                Show Traceback
+                                            </button>
+                                        </form>
+
+                                    </p>
+
+                                    <div class="collapse" id="query{{query.index}}-sql">
+                                        <div class="card card-body">
+                                            <code><pre>{{ query.sql }}
+                                                </pre>
+                                            </code>
+                                        </div>
+                                    </div>
+                                    <div class="collapse" id="query{{query.index}}-tb">
+                                        <div class="card card-body">
+                                            <code><pre>{{ query.stack_trace}}
+                                                </pre>
+                                            </code>
+                                        </div>
+                                    </div>
+                                </li>
+
+                            {% endfor %}
+                        </ol>
+                    </div>
+
+                {% elif explain %}
+                    <div class="mt-4">
+                        <h5> No queries executed (probably a redirect.)</h5>
+                    </div>
+                {% endif %}
+
+            </div>
+
+
+
+            <div class="card-footer">
+            </div>
+        </div>
+    </div>
+{% endblock %}
