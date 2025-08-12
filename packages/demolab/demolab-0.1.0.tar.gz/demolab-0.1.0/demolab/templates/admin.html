@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ config.TITLE_PREFIX }}Admin Panel</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+</head>
+<body>
+    <div class="admin-container">
+        <h1>Admin Panel</h1>
+        
+        <div class="tabs">
+            <button class="tablinks active" onclick="openTab(event, 'UserLab')">My Labs</button>
+            <button class="tablinks" onclick="openTab(event, 'AllLabs')">All Labs</button>
+        </div>
+
+        <div id="UserLab" class="tabcontent active">
+            <h2>My Lab Links</h2>
+            <table class="lab-table">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Lab URL</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user, data in users.items() if user == current_user %}
+                    <tr>
+                        <td>{{ user }}</td>
+                        <td>{{ data.workspaceUrl }}</td>
+                        <td><button class="btn-open" onclick="window.open('{{ data.workspaceUrl }}')">Open</button></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div id="AllLabs" class="tabcontent">
+            <h2>All User Labs</h2>
+            <table class="lab-table">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Lab URL</th>
+                        <th>Created Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user, data in users.items() %}
+                    <tr>
+                        <td>{{ user }}</td>
+                        <td>{{ data.workspaceUrl }}</td>
+                        <td>{{ data.createdDate }}</td>
+                        <td><button class="btn-open" onclick="window.open('{{ data.workspaceUrl }}')">Open</button></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tabcontent");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].className = tabcontent[i].className.replace(" active", "");
+            }
+            tablinks = document.getElementsByClassName("tablinks");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+            document.getElementById(tabName).className += " active";
+            evt.currentTarget.className += " active";
+        }
+    </script>
+</body>
+</html>
