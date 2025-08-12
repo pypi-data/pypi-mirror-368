@@ -1,0 +1,192 @@
+#!python
+'''
+Basepair CLI, wraps the Python API
+
+[2015] - [2019] Basepair INC
+All Rights Reserved.
+
+NOTICE: All information contained herein is, and remains
+the property of Basepair INC and its suppliers,
+if any. The intellectual and technical concepts contained
+herein are proprietary to Basepair INC
+and its suppliers and may be covered by U.S. and Foreign Patents,
+patents in process, and are protected by trade secret or copyright law.
+Dissemination of this information or reproduction of this material
+is strictly forbidden unless prior written permission is obtained
+from Basepair INC.
+'''
+
+from __future__ import print_function
+
+import argparse
+import json
+import sys
+
+# App imports
+import basepair
+from bin.datatypes import Analysis, File, Genome, Module, Project, Pipeline, Sample
+from bin.common_parser import validate_conf
+
+sys.path.insert(0, '/home/ec2-user/basepair')
+
+def main():
+  '''Main method'''
+  args = read_args()
+  conf = None
+  if args.config:
+    try:
+      with open(args.config, 'r', encoding='utf-8') as config_file:
+        conf = json.load(config_file)
+    except FileNotFoundError:
+      sys.exit('ERROR: Missing config file at {}.'.format(args.config))
+
+  bp_api = basepair.connect(
+    conf=conf,
+    scratch=args.scratch,
+    use_cache=args.use_cache,
+    user_cache_for_host_conf=args.keep_cloud_service_conf,
+    verbose=args.verbose
+  )
+
+  if args.action_type == 'download-log':
+    method_name = 'download_log_analysis'
+  else:
+    method_name = '{}_{}'.format(args.action_type, args.datatype)
+  datatype_handler = {
+    'analysis': Analysis,
+    'file': File,
+    'genome': Genome,
+    'module': Module,
+    'pipeline': Pipeline,
+    'project': Project,
+    'sample': Sample
+  }
+  try:
+    method = getattr(datatype_handler[args.datatype], method_name)
+  except:
+    sys.exit('ERROR: Something went wrong! Please try again')
+  if callable(method):
+    method(bp_api, args)
+
+def read_args():
+  '''Read args'''
+  parser = argparse.ArgumentParser(
+    description='Basepair CLI, API version {}'.format(basepair.__version__),
+    formatter_class=argparse.RawDescriptionHelpFormatter
+  )
+
+  datatype_p = parser.add_subparsers(
+    dest='datatype',
+    help='Basepair datatype - analysis, file, genome, module, project, pipeline, sample'
+  )
+  datatype_p.required = True
+
+  # analysis parser
+  analysis_p = datatype_p.add_parser(
+    'analysis',
+    help='analysis create, analysis update, etc.'
+  )
+  analysis_action_sp = analysis_p.add_subparsers(
+    dest='action_type',
+    help='Type of action to perform on datatype.'
+  )
+
+  Analysis.analysis_action_parser(analysis_action_sp)
+
+  # file parser
+  file_p = datatype_p.add_parser(
+    'file',
+    help='file download, etc.'
+  )
+  file_action_sp = file_p.add_subparsers(
+    dest='action_type',
+    help='Type of action to perform on datatype.'
+  )
+
+  File.file_action_parser(file_action_sp)
+
+  # genome parser
+  genome_p = datatype_p.add_parser(
+    'genome',
+    help='genome get, genome list etc.'
+  )
+  genome_action_sp = genome_p.add_subparsers(
+    dest='action_type',
+    help='Type of action to perform on datatype.'
+  )
+
+  Genome.genome_action_parser(genome_action_sp)
+
+  # module parser
+  module_p = datatype_p.add_parser(
+    'module',
+    help='module create, module update, etc.'
+  )
+  module_action_sp = module_p.add_subparsers(
+    dest='action_type',
+    help='Type of action to perform on datatype.'
+  )
+
+  Module.module_action_parser(module_action_sp)
+
+  # pipeline parser
+  pipeline_p = datatype_p.add_parser(
+    'pipeline',
+    help='pipeline create, pipeline update, etc.'
+  )
+  pipeline_action_sp = pipeline_p.add_subparsers(
+    dest='action_type',
+    help='Type of action to perform on datatype.'
+  )
+
+  Pipeline.pipeline_action_parser(pipeline_action_sp)
+
+  # project parser
+  project_p = datatype_p.add_parser(
+    'project',
+    help='project create, project update, etc.'
+  )
+  project_action_sp = project_p.add_subparsers(
+    dest='action_type',
+    help='Type of action to perform on datatype.'
+  )
+
+  Project.project_action_parser(project_action_sp)
+
+  # sample parser
+  sample_p = datatype_p.add_parser(
+    'sample',
+    help='sample create, sample update, etc.'
+  )
+  sample_action_sp = sample_p.add_subparsers(
+    dest='action_type',
+    help='Type of action to perform on datatype.'
+  )
+
+  Sample.sample_action_parser(sample_action_sp)
+
+  parser.set_defaults(params=[],)
+  args = parser.parse_args()
+
+  validate_conf(args)
+
+  # if neither set, be verbose
+  if not args.verbose and not args.quiet:
+    args.verbose = True
+
+  if hasattr(args, 'key') and hasattr(args, 'val'):
+    msg = None
+    if args.key and not args.val:
+      msg = 'val required for key'
+    elif args.val and not args.key:
+      msg = 'key required for val'
+    elif args.key and args.val and len(args.key) != len(args.val):
+      msg = 'number of key and val are not equal'
+
+    if msg:  # stop execution if key/val error
+      sys.exit(msg)
+
+  return args
+
+if __name__ == '__main__':
+  main()
