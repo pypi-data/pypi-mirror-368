@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans 
+                           http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/context 
+                           http://www.springframework.org/schema/context/spring-context.xsd
+                           http://www.springframework.org/schema/tx 
+                           http://www.springframework.org/schema/tx/spring-tx.xsd
+                           http://www.springframework.org/schema/mvc 
+                           http://www.springframework.org/schema/mvc/spring-mvc.xsd
+                           http://www.springframework.org/schema/jdbc 
+                           http://www.springframework.org/schema/jdbc/spring-jdbc.xsd">
+
+    <!-- Enable annotation-driven configuration -->
+    <context:annotation-config />
+    <context:component-scan base-package="com.example.app" />
+    
+    <!-- Enable Spring MVC -->
+    <mvc:annotation-driven/>
+
+    <!-- JSP View Resolver -->
+    <bean id="jspViewResolver" class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="viewClass" value="org.springframework.web.servlet.view.JstlView" />
+        <property name="prefix" value="/WEB-INF/jsp/" />
+        <property name="suffix" value=".jsp" />
+    </bean>
+
+    <!-- Transaction Management -->
+    <tx:annotation-driven />
+    <bean id="transactionManager" class="org.springframework.orm.jpa.JpaTransactionManager">
+        <property name="entityManagerFactory" ref="entityManagerFactory" />
+        <property name="dataSource" ref="dataSource"/>
+    </bean>
+
+    <!-- Development Profile Configuration -->
+    <beans profile="default,dev">
+        <jdbc:embedded-database id="dataSource" type="H2"/>        
+        
+        <bean id="entityManagerFactory" class="org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean">
+            <property name="dataSource" ref="dataSource"/>
+            <property name="packagesToScan" value="com.example.app.model"/>
+            <property name="jpaVendorAdapter">
+                <bean class="org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter"/>
+            </property>
+            <property name="jpaProperties">
+                <props>
+                    <prop key="hibernate.dialect">org.hibernate.dialect.H2Dialect</prop>
+                    <prop key="hibernate.hbm2ddl.auto">create-drop</prop>
+                    <prop key="hibernate.show_sql">true</prop>
+                    <prop key="hibernate.format_sql">true</prop>
+                </props>
+            </property>
+        </bean>
+    </beans>
+
+    <!-- Production Profile Configuration -->
+    <beans profile="prod">
+        <bean class="java.net.URI" id="dbUrl">
+            <constructor-arg value="#{systemEnvironment['DATABASE_URL']}"/>
+        </bean>
+
+        <bean id="dataSource" class="org.apache.commons.dbcp2.BasicDataSource" destroy-method="close">
+            <property name="url" value="#{ 'jdbc:postgresql://' + @dbUrl.getHost() + ':' + @dbUrl.getPort() + @dbUrl.getPath() }"/>
+            <property name="username" value="#{ @dbUrl.getUserInfo().split(':')[0] }"/>
+            <property name="password" value="#{ @dbUrl.getUserInfo().split(':')[1] }"/>
+            <property name="driverClassName" value="org.postgresql.Driver"/>
+            <property name="initialSize" value="5"/>
+            <property name="maxTotal" value="20"/>
+            <property name="maxIdle" value="10"/>
+            <property name="minIdle" value="5"/>
+            <property name="testOnBorrow" value="true"/>
+            <property name="validationQuery" value="SELECT 1"/>
+        </bean>
+        
+        <bean id="entityManagerFactory" class="org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean">
+            <property name="dataSource" ref="dataSource"/>
+            <property name="packagesToScan" value="com.example.app.model"/>
+            <property name="jpaVendorAdapter">
+                <bean class="org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter"/>
+            </property>
+            <property name="jpaProperties">
+                <props>
+                    <prop key="hibernate.dialect">org.hibernate.dialect.PostgreSQLDialect</prop>
+                    <prop key="hibernate.hbm2ddl.auto">validate</prop>
+                    <prop key="hibernate.show_sql">false</prop>
+                    <prop key="hibernate.cache.use_second_level_cache">true</prop>
+                    <prop key="hibernate.cache.region.factory_class">org.hibernate.cache.ehcache.EhCacheRegionFactory</prop>
+                </props>
+            </property>
+        </bean>
+    </beans>
+
+    <!-- Sample Service Beans -->
+    <bean id="messageService" class="com.example.app.service.MessageServiceImpl">
+        <property name="greeting" value="Hello from Spring XML Configuration!" />
+    </bean>
+
+    <bean id="userService" class="com.example.app.service.UserServiceImpl">
+        <constructor-arg ref="userRepository"/>
+    </bean>
+
+    <!-- Cache Manager -->
+    <bean id="cacheManager" class="org.springframework.cache.ehcache.EhCacheManagerFactoryBean">
+        <property name="configLocation" value="classpath:ehcache.xml"/>
+        <property name="shared" value="true"/>
+    </bean>
+
+</beans>

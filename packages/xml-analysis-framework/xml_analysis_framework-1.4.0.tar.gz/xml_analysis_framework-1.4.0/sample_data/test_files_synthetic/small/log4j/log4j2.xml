@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN" monitorInterval="30" shutdownHook="disable">
+    
+    <Properties>
+        <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n</Property>
+        <Property name="LOG_DIR">/var/log/myapp</Property>
+    </Properties>
+    
+    <Appenders>
+        <!-- Console Appender -->
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <ThresholdFilter level="INFO" onMatch="ACCEPT" onMismatch="DENY"/>
+        </Console>
+        
+        <!-- File Appender -->
+        <File name="FileAppender" fileName="${LOG_DIR}/application.log">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+        </File>
+        
+        <!-- Rolling File Appender -->
+        <RollingFile name="RollingFileAppender" 
+                     fileName="${LOG_DIR}/app-rolling.log"
+                     filePattern="${LOG_DIR}/app-rolling-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy/>
+                <SizeBasedTriggeringPolicy size="100MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="10"/>
+        </RollingFile>
+        
+        <!-- Async Appender for Performance -->
+        <AsyncAppender name="AsyncFileAppender" bufferSize="512">
+            <AppenderRef ref="RollingFileAppender"/>
+            <includeLocation>false</includeLocation>
+        </AsyncAppender>
+        
+        <!-- Socket Appender (potential security concern) -->
+        <Socket name="SocketAppender" host="log-server.example.com" port="9999">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+        </Socket>
+        
+        <!-- SMTP Appender for Errors -->
+        <SMTP name="SMTPAppender" 
+              subject="Application Error - ${hostName}"
+              to="alerts@example.com"
+              from="noreply@example.com"
+              smtpHost="smtp.example.com"
+              smtpPort="587"
+              smtpUsername="alerts@example.com"
+              smtpPassword="smtp_password"
+              bufferSize="50">
+            <ThresholdFilter level="ERROR" onMatch="ACCEPT" onMismatch="DENY"/>
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+        </SMTP>
+        
+    </Appenders>
+    
+    <Loggers>
+        <!-- Async Logger for Performance -->
+        <AsyncLogger name="com.example.performance" level="INFO" additivity="false">
+            <AppenderRef ref="AsyncFileAppender"/>
+        </AsyncLogger>
+        
+        <!-- Package-specific Loggers -->
+        <Logger name="com.example.security" level="DEBUG" additivity="false">
+            <AppenderRef ref="FileAppender"/>
+            <AppenderRef ref="Console"/>
+        </Logger>
+        
+        <Logger name="com.example.database" level="WARN" additivity="true">
+            <AppenderRef ref="RollingFileAppender"/>
+        </Logger>
+        
+        <!-- Third-party Library Loggers -->
+        <Logger name="org.springframework" level="INFO" additivity="false">
+            <AppenderRef ref="FileAppender"/>
+        </Logger>
+        
+        <Logger name="org.hibernate" level="WARN" additivity="false">
+            <AppenderRef ref="FileAppender"/>
+        </Logger>
+        
+        <!-- Root Logger -->
+        <Root level="INFO">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="AsyncFileAppender"/>
+            <AppenderRef ref="SMTPAppender"/>
+        </Root>
+        
+    </Loggers>
+    
+</Configuration>

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC
+        "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+        "http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+
+<hibernate-mapping package="com.example.model" schema="inventory">
+    
+    <class name="Product" table="products" lazy="true">
+        
+        <!-- Composite ID example -->
+        <composite-id name="id" class="ProductId">
+            <key-property name="categoryCode" column="category_code" type="string" length="10"/>
+            <key-property name="productCode" column="product_code" type="string" length="20"/>
+        </composite-id>
+        
+        <property name="name" column="product_name" type="string" 
+                  length="100" not-null="true"/>
+        <property name="description" column="description" type="text"/>
+        <property name="price" column="unit_price" type="big_decimal" 
+                  precision="10" scale="2" not-null="true"/>
+        <property name="costPrice" column="cost_price" type="big_decimal" 
+                  precision="10" scale="2"/>
+        <property name="quantityInStock" column="qty_in_stock" type="int" 
+                  not-null="true"/>
+        <property name="reorderLevel" column="reorder_level" type="int"/>
+        <property name="discontinued" column="is_discontinued" type="boolean"/>
+        <property name="weight" column="weight" type="double"/>
+        <property name="dimensions" column="dimensions" type="string" length="50"/>
+        
+        <!-- Many-to-one relationship -->
+        <many-to-one name="category" class="Category" column="category_id" 
+                     not-null="true" lazy="proxy"/>
+        <many-to-one name="supplier" class="Supplier" column="supplier_id" 
+                     lazy="proxy"/>
+        
+        <!-- Map collection example -->
+        <map name="attributes" table="product_attributes" 
+             cascade="all-delete-orphan" lazy="true">
+            <key column="product_id"/>
+            <map-key column="attribute_name" type="string" length="50"/>
+            <element column="attribute_value" type="string" length="200"/>
+        </map>
+        
+        <!-- Set collection with components -->
+        <set name="reviews" table="product_reviews" cascade="all" lazy="true">
+            <key column="product_id"/>
+            <composite-element class="ProductReview">
+                <property name="rating" column="rating" type="int"/>
+                <property name="comment" column="comment" type="text"/>
+                <property name="reviewDate" column="review_date" type="timestamp"/>
+                <property name="reviewerName" column="reviewer_name" type="string" length="100"/>
+            </composite-element>
+        </set>
+        
+        <!-- Many-to-many relationship -->
+        <set name="relatedProducts" table="related_products" lazy="true">
+            <key column="product_id"/>
+            <many-to-many class="Product" column="related_product_id"/>
+        </set>
+        
+    </class>
+    
+    <!-- Union subclass example -->
+    <union-subclass name="DigitalProduct" extends="Product" table="digital_products">
+        <property name="downloadUrl" column="download_url" type="string" length="500"/>
+        <property name="fileSize" column="file_size" type="long"/>
+        <property name="format" column="file_format" type="string" length="20"/>
+        <property name="licenseType" column="license_type" type="string" length="50"/>
+    </union-subclass>
+    
+    <!-- Named queries -->
+    <query name="findActiveProducts">
+        <![CDATA[
+            FROM Product p WHERE p.discontinued = false 
+            AND p.quantityInStock > 0 
+            ORDER BY p.name
+        ]]>
+    </query>
+    
+    <query name="findProductsByCategory">
+        <![CDATA[
+            FROM Product p WHERE p.category.id = :categoryId 
+            AND p.discontinued = false
+        ]]>
+    </query>
+    
+</hibernate-mapping>

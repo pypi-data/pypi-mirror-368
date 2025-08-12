@@ -1,0 +1,409 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PMML version="4.4" 
+      xmlns="http://www.dmg.org/PMML-4_4" 
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.dmg.org/PMML-4_4 http://www.dmg.org/pmml/v4-4/pmml-4-4.xsd">
+
+  <Header copyright="Example Analytics Corp" description="Customer Credit Risk Assessment Model">
+    <Extension name="user" value="data.scientist@example.com" extender="Example Analytics"/>
+    <Application name="CreditRisk Analytics Platform" version="2.1.3"/>
+    <Annotation>
+      This PMML model predicts credit risk for loan applications based on customer
+      demographics, financial history, and behavioral patterns. The model uses a
+      gradient boosting ensemble approach for high accuracy prediction.
+    </Annotation>
+    <Timestamp>2025-07-23T10:30:00</Timestamp>
+  </Header>
+
+  <!-- Data Dictionary -->
+  <DataDictionary numberOfFields="12">
+    
+    <DataField name="age" optype="continuous" dataType="double">
+      <Interval closure="closedClosed" leftMargin="18" rightMargin="90"/>
+    </DataField>
+    
+    <DataField name="income" optype="continuous" dataType="double">
+      <Interval closure="closedClosed" leftMargin="0" rightMargin="500000"/>
+    </DataField>
+    
+    <DataField name="debt_to_income_ratio" optype="continuous" dataType="double">
+      <Interval closure="closedClosed" leftMargin="0" rightMargin="1"/>
+    </DataField>
+    
+    <DataField name="credit_score" optype="continuous" dataType="integer">
+      <Interval closure="closedClosed" leftMargin="300" rightMargin="850"/>
+    </DataField>
+    
+    <DataField name="employment_length" optype="continuous" dataType="double">
+      <Interval closure="closedClosed" leftMargin="0" rightMargin="40"/>
+    </DataField>
+    
+    <DataField name="home_ownership" optype="categorical" dataType="string">
+      <Value value="RENT"/>
+      <Value value="OWN"/>
+      <Value value="MORTGAGE"/>
+      <Value value="OTHER"/>
+    </DataField>
+    
+    <DataField name="loan_purpose" optype="categorical" dataType="string">
+      <Value value="debt_consolidation"/>
+      <Value value="credit_card"/>
+      <Value value="home_improvement"/>
+      <Value value="major_purchase"/>
+      <Value value="medical"/>
+      <Value value="car"/>
+      <Value value="vacation"/>
+      <Value value="moving"/>
+      <Value value="wedding"/>
+      <Value value="other"/>
+    </DataField>
+    
+    <DataField name="loan_amount" optype="continuous" dataType="double">
+      <Interval closure="closedClosed" leftMargin="1000" rightMargin="40000"/>
+    </DataField>
+    
+    <DataField name="loan_term" optype="ordinal" dataType="integer">
+      <Value value="36"/>
+      <Value value="60"/>
+    </DataField>
+    
+    <DataField name="number_of_credit_lines" optype="continuous" dataType="integer">
+      <Interval closure="closedClosed" leftMargin="0" rightMargin="50"/>
+    </DataField>
+    
+    <DataField name="recent_credit_inquiries" optype="continuous" dataType="integer">
+      <Interval closure="closedClosed" leftMargin="0" rightMargin="20"/>
+    </DataField>
+    
+    <DataField name="credit_risk" optype="categorical" dataType="string">
+      <Value value="LOW"/>
+      <Value value="MEDIUM"/>
+      <Value value="HIGH"/>
+    </DataField>
+    
+  </DataDictionary>
+
+  <!-- Tree Model -->
+  <TreeModel modelName="CreditRiskDecisionTree" 
+             functionName="classification" 
+             algorithmName="C4.5" 
+             splitCharacteristic="binarySplit">
+    
+    <MiningSchema>
+      <MiningField name="age" usageType="active"/>
+      <MiningField name="income" usageType="active"/>
+      <MiningField name="debt_to_income_ratio" usageType="active"/>
+      <MiningField name="credit_score" usageType="active"/>
+      <MiningField name="employment_length" usageType="active"/>
+      <MiningField name="home_ownership" usageType="active"/>
+      <MiningField name="loan_purpose" usageType="active"/>
+      <MiningField name="loan_amount" usageType="active"/>
+      <MiningField name="loan_term" usageType="active"/>
+      <MiningField name="number_of_credit_lines" usageType="active"/>
+      <MiningField name="recent_credit_inquiries" usageType="active"/>
+      <MiningField name="credit_risk" usageType="predicted"/>
+    </MiningSchema>
+
+    <Output>
+      <OutputField name="predicted_credit_risk" 
+                   optype="categorical" 
+                   dataType="string" 
+                   feature="predictedValue"/>
+      <OutputField name="probability_LOW" 
+                   optype="continuous" 
+                   dataType="double" 
+                   feature="probability" 
+                   value="LOW"/>
+      <OutputField name="probability_MEDIUM" 
+                   optype="continuous" 
+                   dataType="double" 
+                   feature="probability" 
+                   value="MEDIUM"/>
+      <OutputField name="probability_HIGH" 
+                   optype="continuous" 
+                   dataType="double" 
+                   feature="probability" 
+                   value="HIGH"/>
+    </Output>
+
+    <LocalTransformations>
+      <DerivedField name="log_income" optype="continuous" dataType="double">
+        <Apply function="ln">
+          <FieldRef field="income"/>
+        </Apply>
+      </DerivedField>
+      
+      <DerivedField name="credit_utilization" optype="continuous" dataType="double">
+        <Apply function="/">
+          <FieldRef field="loan_amount"/>
+          <FieldRef field="income"/>
+        </Apply>
+      </DerivedField>
+    </LocalTransformations>
+
+    <!-- Decision Tree Structure -->
+    <Node id="1" score="MEDIUM" recordCount="10000">
+      <True/>
+      <ScoreDistribution value="LOW" recordCount="3500" confidence="0.35"/>
+      <ScoreDistribution value="MEDIUM" recordCount="4200" confidence="0.42"/>
+      <ScoreDistribution value="HIGH" recordCount="2300" confidence="0.23"/>
+      
+      <!-- First Split: Credit Score -->
+      <Node id="2" score="HIGH" recordCount="3200">
+        <SimplePredicate field="credit_score" operator="lessThan" value="650"/>
+        <ScoreDistribution value="LOW" recordCount="200" confidence="0.0625"/>
+        <ScoreDistribution value="MEDIUM" recordCount="1200" confidence="0.375"/>
+        <ScoreDistribution value="HIGH" recordCount="1800" confidence="0.5625"/>
+        
+        <!-- High Risk Branch - Debt to Income Ratio -->
+        <Node id="3" score="HIGH" recordCount="1800">
+          <SimplePredicate field="debt_to_income_ratio" operator="greaterThan" value="0.4"/>
+          <ScoreDistribution value="LOW" recordCount="50" confidence="0.028"/>
+          <ScoreDistribution value="MEDIUM" recordCount="350" confidence="0.194"/>
+          <ScoreDistribution value="HIGH" recordCount="1400" confidence="0.778"/>
+          
+          <Node id="4" score="HIGH" recordCount="1200">
+            <SimplePredicate field="recent_credit_inquiries" operator="greaterThan" value="3"/>
+            <ScoreDistribution value="LOW" recordCount="20" confidence="0.017"/>
+            <ScoreDistribution value="MEDIUM" recordCount="180" confidence="0.15"/>
+            <ScoreDistribution value="HIGH" recordCount="1000" confidence="0.833"/>
+          </Node>
+          
+          <Node id="5" score="MEDIUM" recordCount="600">
+            <SimplePredicate field="recent_credit_inquiries" operator="lessOrEqual" value="3"/>
+            <ScoreDistribution value="LOW" recordCount="30" confidence="0.05"/>
+            <ScoreDistribution value="MEDIUM" recordCount="170" confidence="0.283"/>
+            <ScoreDistribution value="HIGH" recordCount="400" confidence="0.667"/>
+          </Node>
+        </Node>
+        
+        <!-- Medium Risk Branch -->
+        <Node id="6" score="MEDIUM" recordCount="1400">
+          <SimplePredicate field="debt_to_income_ratio" operator="lessOrEqual" value="0.4"/>
+          <ScoreDistribution value="LOW" recordCount="150" confidence="0.107"/>
+          <ScoreDistribution value="MEDIUM" recordCount="850" confidence="0.607"/>
+          <ScoreDistribution value="HIGH" recordCount="400" confidence="0.286"/>
+          
+          <Node id="7" score="MEDIUM" recordCount="900">
+            <SimplePredicate field="employment_length" operator="greaterThan" value="2"/>
+            <ScoreDistribution value="LOW" recordCount="120" confidence="0.133"/>
+            <ScoreDistribution value="MEDIUM" recordCount="580" confidence="0.644"/>
+            <ScoreDistribution value="HIGH" recordCount="200" confidence="0.222"/>
+          </Node>
+          
+          <Node id="8" score="HIGH" recordCount="500">
+            <SimplePredicate field="employment_length" operator="lessOrEqual" value="2"/>
+            <ScoreDistribution value="LOW" recordCount="30" confidence="0.06"/>
+            <ScoreDistribution value="MEDIUM" recordCount="270" confidence="0.54"/>
+            <ScoreDistribution value="HIGH" recordCount="200" confidence="0.4"/>
+          </Node>
+        </Node>
+      </Node>
+      
+      <!-- Good Credit Score Branch -->
+      <Node id="9" score="LOW" recordCount="6800">
+        <SimplePredicate field="credit_score" operator="greaterOrEqual" value="650"/>
+        <ScoreDistribution value="LOW" recordCount="3300" confidence="0.485"/>
+        <ScoreDistribution value="MEDIUM" recordCount="3000" confidence="0.441"/>
+        <ScoreDistribution value="HIGH" recordCount="500" confidence="0.074"/>
+        
+        <!-- Income-based splits -->
+        <Node id="10" score="LOW" recordCount="4200">
+          <SimplePredicate field="income" operator="greaterThan" value="50000"/>
+          <ScoreDistribution value="LOW" recordCount="2600" confidence="0.619"/>
+          <ScoreDistribution value="MEDIUM" recordCount="1400" confidence="0.333"/>
+          <ScoreDistribution value="HIGH" recordCount="200" confidence="0.048"/>
+          
+          <Node id="11" score="LOW" recordCount="2800">
+            <SimplePredicate field="debt_to_income_ratio" operator="lessThan" value="0.3"/>
+            <ScoreDistribution value="LOW" recordCount="2100" confidence="0.75"/>
+            <ScoreDistribution value="MEDIUM" recordCount="600" confidence="0.214"/>
+            <ScoreDistribution value="HIGH" recordCount="100" confidence="0.036"/>
+          </Node>
+          
+          <Node id="12" score="MEDIUM" recordCount="1400">
+            <SimplePredicate field="debt_to_income_ratio" operator="greaterOrEqual" value="0.3"/>
+            <ScoreDistribution value="LOW" recordCount="500" confidence="0.357"/>
+            <ScoreDistribution value="MEDIUM" recordCount="800" confidence="0.571"/>
+            <ScoreDistribution value="HIGH" recordCount="100" confidence="0.071"/>
+          </Node>
+        </Node>
+        
+        <Node id="13" score="MEDIUM" recordCount="2600">
+          <SimplePredicate field="income" operator="lessOrEqual" value="50000"/>
+          <ScoreDistribution value="LOW" recordCount="700" confidence="0.269"/>
+          <ScoreDistribution value="MEDIUM" recordCount="1600" confidence="0.615"/>
+          <ScoreDistribution value="HIGH" recordCount="300" confidence="0.115"/>
+          
+          <!-- Home ownership influence -->
+          <Node id="14" score="MEDIUM" recordCount="1800">
+            <CompoundPredicate booleanOperator="or">
+              <SimplePredicate field="home_ownership" operator="equal" value="OWN"/>
+              <SimplePredicate field="home_ownership" operator="equal" value="MORTGAGE"/>
+            </CompoundPredicate>
+            <ScoreDistribution value="LOW" recordCount="600" confidence="0.333"/>
+            <ScoreDistribution value="MEDIUM" recordCount="1000" confidence="0.556"/>
+            <ScoreDistribution value="HIGH" recordCount="200" confidence="0.111"/>
+          </Node>
+          
+          <Node id="15" score="MEDIUM" recordCount="800">
+            <SimplePredicate field="home_ownership" operator="equal" value="RENT"/>
+            <ScoreDistribution value="LOW" recordCount="100" confidence="0.125"/>
+            <ScoreDistribution value="MEDIUM" recordCount="600" confidence="0.75"/>
+            <ScoreDistribution value="HIGH" recordCount="100" confidence="0.125"/>
+          </Node>
+        </Node>
+      </Node>
+    </Node>
+  </TreeModel>
+
+  <!-- Regression Model for Risk Score -->
+  <RegressionModel modelName="CreditRiskScore" 
+                   functionName="regression" 
+                   algorithmName="linearRegression" 
+                   targetFieldName="risk_score">
+    
+    <MiningSchema>
+      <MiningField name="age" usageType="active"/>
+      <MiningField name="income" usageType="active"/>
+      <MiningField name="debt_to_income_ratio" usageType="active"/>
+      <MiningField name="credit_score" usageType="active"/>
+      <MiningField name="employment_length" usageType="active"/>
+      <MiningField name="loan_amount" usageType="active"/>
+      <MiningField name="number_of_credit_lines" usageType="active"/>
+      <MiningField name="recent_credit_inquiries" usageType="active"/>
+      <MiningField name="risk_score" usageType="predicted"/>
+    </MiningSchema>
+
+    <Output>
+      <OutputField name="predicted_risk_score" 
+                   optype="continuous" 
+                   dataType="double" 
+                   feature="predictedValue"/>
+    </Output>
+
+    <RegressionTable intercept="85.5">
+      <NumericPredictor name="age" exponent="1" coefficient="-0.15"/>
+      <NumericPredictor name="income" exponent="1" coefficient="-0.00008"/>
+      <NumericPredictor name="debt_to_income_ratio" exponent="1" coefficient="45.2"/>
+      <NumericPredictor name="credit_score" exponent="1" coefficient="-0.12"/>
+      <NumericPredictor name="employment_length" exponent="1" coefficient="-0.8"/>
+      <NumericPredictor name="loan_amount" exponent="1" coefficient="0.0003"/>
+      <NumericPredictor name="number_of_credit_lines" exponent="1" coefficient="0.5"/>
+      <NumericPredictor name="recent_credit_inquiries" exponent="1" coefficient="2.1"/>
+    </RegressionTable>
+  </RegressionModel>
+
+  <!-- Model Verification -->
+  <ModelVerification recordCount="1000" fieldCount="12">
+    <VerificationFields>
+      <VerificationField field="age" column="col1"/>
+      <VerificationField field="income" column="col2"/>
+      <VerificationField field="debt_to_income_ratio" column="col3"/>
+      <VerificationField field="credit_score" column="col4"/>
+      <VerificationField field="employment_length" column="col5"/>
+      <VerificationField field="home_ownership" column="col6"/>
+      <VerificationField field="loan_purpose" column="col7"/>
+      <VerificationField field="loan_amount" column="col8"/>
+      <VerificationField field="loan_term" column="col9"/>
+      <VerificationField field="number_of_credit_lines" column="col10"/>
+      <VerificationField field="recent_credit_inquiries" column="col11"/>
+      <VerificationField field="predicted_credit_risk" column="col12"/>
+    </VerificationFields>
+    
+    <InlineTable>
+      <row>
+        <col1>35</col1>
+        <col2>65000</col2>
+        <col3>0.25</col3>
+        <col4>720</col4>
+        <col5>5</col5>
+        <col6>OWN</col6>
+        <col7>debt_consolidation</col7>
+        <col8>15000</col8>
+        <col9>36</col9>
+        <col10>8</col10>
+        <col11>1</col11>
+        <col12>LOW</col12>
+      </row>
+      <row>
+        <col1>28</col1>
+        <col2>45000</col2>
+        <col3>0.45</col3>
+        <col4>580</col4>
+        <col5>2</col5>
+        <col6>RENT</col6>
+        <col7>credit_card</col7>
+        <col8>8000</col8>
+        <col9>36</col9>
+        <col10>12</col10>
+        <col11>5</col11>
+        <col12>HIGH</col12>
+      </row>
+      <row>
+        <col1>42</col1>
+        <col2>85000</col2>
+        <col3>0.35</col3>
+        <col4>680</col4>
+        <col5>8</col5>
+        <col6>MORTGAGE</col6>
+        <col7>home_improvement</col7>
+        <col8>25000</col8>
+        <col9>60</col9>
+        <col10>6</col10>
+        <col11>2</col11>
+        <col12>MEDIUM</col12>
+      </row>
+    </InlineTable>
+  </ModelVerification>
+
+  <!-- Model Statistics -->
+  <ModelStats>
+    <UnivariateStats field="age">
+      <Counts totalFreq="10000" missingFreq="0" invalidFreq="0"/>
+      <NumericInfo minimum="18" maximum="85" mean="38.5" standardDeviation="12.8"/>
+      <Quantile quantileLimit="0.25" quantileValue="29"/>
+      <Quantile quantileLimit="0.5" quantileValue="37"/>
+      <Quantile quantileLimit="0.75" quantileValue="47"/>
+    </UnivariateStats>
+    
+    <UnivariateStats field="income">
+      <Counts totalFreq="10000" missingFreq="0" invalidFreq="0"/>
+      <NumericInfo minimum="15000" maximum="250000" mean="62500" standardDeviation="28750"/>
+    </UnivariateStats>
+    
+    <UnivariateStats field="credit_score">
+      <Counts totalFreq="10000" missingFreq="0" invalidFreq="0"/>
+      <NumericInfo minimum="350" maximum="825" mean="670" standardDeviation="85"/>
+    </UnivariateStats>
+  </ModelStats>
+
+  <!-- Model Explanation -->
+  <ModelExplanation>
+    <PredictiveModelQuality targetField="credit_risk" dataName="validation" dataUsage="test">
+      <ConfusionMatrix>
+        <ClassLabels>
+          <Array n="3" type="string">LOW MEDIUM HIGH</Array>
+        </ClassLabels>
+        <Matrix>
+          <Array n="3" type="int">820 45 15</Array>
+          <Array n="3" type="int">35 750 65</Array>
+          <Array n="3" type="int">10 55 205</Array>
+        </Matrix>
+      </ConfusionMatrix>
+      <LiftData targetFieldValue="HIGH" targetFieldDisplayValue="High Risk">
+        <ModelLiftGraph>
+          <LiftGraph>
+            <XCoordinates>
+              <Array n="11" type="real">0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0</Array>
+            </XCoordinates>
+            <YCoordinates>
+              <Array n="11" type="real">0.0 0.35 0.58 0.72 0.81 0.87 0.91 0.94 0.96 0.98 1.0</Array>
+            </YCoordinates>
+          </LiftGraph>
+        </ModelLiftGraph>
+      </LiftData>
+    </PredictiveModelQuality>
+  </ModelExplanation>
+
+</PMML>

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivysettings>
+    
+    <settings defaultResolver="main-chain" 
+              defaultConflictManager="latest-revision"
+              validate="true"
+              checkExactRevision="false"/>
+    
+    <resolvers>
+        <!-- Main resolver chain -->
+        <chain name="main-chain" returnFirst="true">
+            <!-- Local repository first -->
+            <filesystem name="local-repo">
+                <ivy pattern="${ivy.settings.dir}/repository/[organisation]/[module]/ivy-[revision].xml"/>
+                <artifact pattern="${ivy.settings.dir}/repository/[organisation]/[module]/[artifact]-[revision].[ext]"/>
+            </filesystem>
+            
+            <!-- Corporate Maven repository -->
+            <ibiblio name="corporate-maven" 
+                     m2compatible="true" 
+                     root="https://nexus.company.com/repository/maven-public/"
+                     checkmodified="true"/>
+            
+            <!-- Maven Central -->
+            <ibiblio name="maven-central" 
+                     m2compatible="true" 
+                     root="https://repo1.maven.org/maven2/"
+                     checkmodified="false"/>
+            
+            <!-- Apache Snapshot Repository -->
+            <ibiblio name="apache-snapshots"
+                     m2compatible="true"
+                     root="https://repository.apache.org/snapshots/"
+                     changingPattern=".*SNAPSHOT"
+                     checkmodified="true"/>
+            
+            <!-- Insecure HTTP repository (security risk) -->
+            <ibiblio name="insecure-repo"
+                     m2compatible="true"
+                     root="http://insecure-repo.example.com/maven2/"
+                     checkmodified="false"/>
+        </chain>
+        
+        <!-- Shared resolver for internal modules -->
+        <filesystem name="shared-repo">
+            <ivy pattern="${shared.repo.dir}/[organisation]/[module]/ivy-[revision].xml"/>
+            <artifact pattern="${shared.repo.dir}/[organisation]/[module]/[artifact]-[revision].[ext]"/>
+        </filesystem>
+        
+        <!-- URL resolver for specific artifacts -->
+        <url name="external-artifacts">
+            <ivy pattern="https://external.example.com/ivy/[organisation]/[module]/[revision]/ivy.xml"/>
+            <artifact pattern="https://external.example.com/artifacts/[organisation]/[module]/[revision]/[artifact].[ext]"/>
+        </url>
+    </resolvers>
+    
+    <modules>
+        <!-- Internal modules use shared repository -->
+        <module organisation="com.company.*" name="*" resolver="shared-repo"/>
+        
+        <!-- External dependencies use main chain -->
+        <module organisation="*" name="*" resolver="main-chain"/>
+        
+        <!-- Specific conflict management for problematic libraries -->
+        <module organisation="commons-logging" name="*" 
+                conflict-manager="strict" 
+                resolver="maven-central"/>
+    </modules>
+    
+    <caches>
+        <cache name="default-cache" 
+               basedir="${ivy.cache.dir}" 
+               useOrigin="true"
+               lockStrategy="artifact-lock"/>
+    </caches>
+    
+    <conflict-managers>
+        <latest-revision name="latest-revision"/>
+        <all name="strict"/>
+    </conflict-managers>
+    
+</ivysettings>

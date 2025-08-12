@@ -1,0 +1,114 @@
+{
+  "doc_type": "pipeline",
+  "version": "3",
+  "json_schema": "http://api.elyra.org/schemas/pipeline/pipeline-flow-v3-schema.json",
+  "id": "xml-analysis-pipeline",
+  "primary_pipeline": "primary",
+  "app_data": {
+    "ui_data": {
+      "comments": []
+    },
+    "version": 8,
+    "runtime_type": "LOCAL",
+    "properties": {
+      "name": "xml-analysis-pipeline",
+      "runtime": "LOCAL"
+    }
+  },
+  "pipelines": [
+    {
+      "id": "primary",
+      "app_data": {
+        "ui_data": {
+          "comments": []
+        }
+      },
+      "nodes": [
+        {
+          "id": "data-ingestion",
+          "type": "execution_node",
+          "op": "execute-notebook-node",
+          "app_data": {
+            "component_parameters": {
+              "notebook": "03_pipeline_data_ingestion.ipynb",
+              "cpu": 1,
+              "memory": 2,
+              "outputs": ["pipeline_outputs/document_analyses.json", "pipeline_outputs/vector_ready_chunks.json"],
+              "dependencies": ["xml-analysis-framework", "pandas"],
+              "include_subdirectories": false
+            },
+            "label": "Data Ingestion",
+            "ui_data": {
+              "label": "Data Ingestion",
+              "image": "/static/elyra/notebook.svg",
+              "x_pos": 100,
+              "y_pos": 100,
+              "description": "Analyze XML documents and prepare for pipeline processing"
+            }
+          }
+        },
+        {
+          "id": "vector-population",
+          "type": "execution_node", 
+          "op": "execute-notebook-node",
+          "app_data": {
+            "component_parameters": {
+              "notebook": "04_pipeline_vector_population.ipynb",
+              "cpu": 2,
+              "memory": 4,
+              "inputs": ["pipeline_outputs/vector_ready_chunks.json"],
+              "outputs": ["vector_db/", "pipeline_outputs/enriched_chunks_with_vectors.json"],
+              "dependencies": ["lancedb", "sentence-transformers", "pyarrow", "pandas"],
+              "include_subdirectories": false
+            },
+            "label": "Vector Population",
+            "ui_data": {
+              "label": "Vector Population", 
+              "image": "/static/elyra/notebook.svg",
+              "x_pos": 300,
+              "y_pos": 100,
+              "description": "Create embeddings and populate vector database"
+            }
+          }
+        },
+        {
+          "id": "graph-rag",
+          "type": "execution_node",
+          "op": "execute-notebook-node", 
+          "app_data": {
+            "component_parameters": {
+              "notebook": "05_pipeline_graph_rag.ipynb",
+              "cpu": 2,
+              "memory": 4,
+              "inputs": ["pipeline_outputs/graph_data.json", "vector_db/"],
+              "outputs": ["pipeline_outputs/pipeline_final_summary.json", "pipeline_outputs/rag_test_results.json"],
+              "dependencies": ["pymgclient", "lancedb", "sentence-transformers", "pandas"],
+              "include_subdirectories": false
+            },
+            "label": "Graph & RAG",
+            "ui_data": {
+              "label": "Graph & RAG",
+              "image": "/static/elyra/notebook.svg", 
+              "x_pos": 500,
+              "y_pos": 100,
+              "description": "Build knowledge graph and create RAG system"
+            }
+          }
+        }
+      ],
+      "links": [
+        {
+          "id": "link1",
+          "source_node_id": "data-ingestion",
+          "target_node_id": "vector-population"
+        },
+        {
+          "id": "link2", 
+          "source_node_id": "vector-population",
+          "target_node_id": "graph-rag"
+        }
+      ]
+    }
+  ],
+  "schemas": []
+}

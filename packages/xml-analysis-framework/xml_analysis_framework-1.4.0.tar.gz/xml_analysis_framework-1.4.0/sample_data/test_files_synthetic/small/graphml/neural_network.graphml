@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns
+         http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  
+  <!-- Neural network attribute keys -->
+  <key id="layer" for="node" attr.name="layer" attr.type="string">
+    <desc>Neural network layer type</desc>
+  </key>
+  <key id="activation" for="node" attr.name="activation" attr.type="string">
+    <default>relu</default>
+    <desc>Activation function</desc>
+  </key>
+  <key id="neurons" for="node" attr.name="neurons" attr.type="int">
+    <desc>Number of neurons in layer</desc>
+  </key>
+  <key id="x" for="node" attr.name="x" attr.type="double">
+    <desc>X coordinate for visualization</desc>
+  </key>
+  <key id="y" for="node" attr.name="y" attr.type="double">
+    <desc>Y coordinate for visualization</desc>
+  </key>
+  
+  <!-- Edge attributes -->
+  <key id="weight_matrix" for="edge" attr.name="weight_matrix" attr.type="string">
+    <desc>Weight matrix identifier</desc>
+  </key>
+  <key id="connection_type" for="edge" attr.name="connection_type" attr.type="string">
+    <default>dense</default>
+    <desc>Type of neural connection</desc>
+  </key>
+  <key id="dropout" for="edge" attr.name="dropout" attr.type="double">
+    <default>0.0</default>
+    <desc>Dropout rate</desc>
+  </key>
+  
+  <!-- Neural network architecture graph -->
+  <graph id="neural_network_model" edgedefault="directed">
+    
+    <!-- Input layer -->
+    <node id="input_layer">
+      <data key="layer">input</data>
+      <data key="activation">linear</data>
+      <data key="neurons">784</data>
+      <data key="x">0.0</data>
+      <data key="y">0.0</data>
+    </node>
+    
+    <!-- First hidden layer -->
+    <node id="hidden1">
+      <data key="layer">dense</data>
+      <data key="activation">relu</data>
+      <data key="neurons">128</data>
+      <data key="x">1.0</data>
+      <data key="y">0.0</data>
+    </node>
+    
+    <!-- Dropout layer -->
+    <node id="dropout1">
+      <data key="layer">dropout</data>
+      <data key="activation">linear</data>
+      <data key="neurons">128</data>
+      <data key="x">1.5</data>
+      <data key="y">0.0</data>
+    </node>
+    
+    <!-- Second hidden layer -->
+    <node id="hidden2">
+      <data key="layer">dense</data>
+      <data key="activation">relu</data>
+      <data key="neurons">64</data>
+      <data key="x">2.0</data>
+      <data key="y">0.0</data>
+    </node>
+    
+    <!-- Batch normalization -->
+    <node id="batchnorm1">
+      <data key="layer">batch_normalization</data>
+      <data key="activation">linear</data>
+      <data key="neurons">64</data>
+      <data key="x">2.5</data>
+      <data key="y">0.0</data>
+    </node>
+    
+    <!-- Output layer -->
+    <node id="output_layer">
+      <data key="layer">dense</data>
+      <data key="activation">softmax</data>
+      <data key="neurons">10</data>
+      <data key="x">3.0</data>
+      <data key="y">0.0</data>
+    </node>
+    
+    <!-- Connections between layers -->
+    <edge id="conn1" source="input_layer" target="hidden1">
+      <data key="weight_matrix">W1</data>
+      <data key="connection_type">dense</data>
+      <data key="dropout">0.0</data>
+    </edge>
+    
+    <edge id="conn2" source="hidden1" target="dropout1">
+      <data key="weight_matrix">identity</data>
+      <data key="connection_type">passthrough</data>
+      <data key="dropout">0.2</data>
+    </edge>
+    
+    <edge id="conn3" source="dropout1" target="hidden2">
+      <data key="weight_matrix">W2</data>
+      <data key="connection_type">dense</data>
+      <data key="dropout">0.0</data>
+    </edge>
+    
+    <edge id="conn4" source="hidden2" target="batchnorm1">
+      <data key="weight_matrix">identity</data>
+      <data key="connection_type">normalization</data>
+      <data key="dropout">0.0</data>
+    </edge>
+    
+    <edge id="conn5" source="batchnorm1" target="output_layer">
+      <data key="weight_matrix">W3</data>
+      <data key="connection_type">dense</data>
+      <data key="dropout">0.0</data>
+    </edge>
+    
+    <!-- Skip connection (residual) -->
+    <edge id="skip1" source="hidden1" target="output_layer">
+      <data key="weight_matrix">W_skip</data>
+      <data key="connection_type">skip</data>
+      <data key="dropout">0.1</data>
+    </edge>
+    
+  </graph>
+</graphml>

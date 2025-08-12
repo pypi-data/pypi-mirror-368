@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts-config PUBLIC
+    "-//Apache Software Foundation//DTD Struts Configuration 1.3//EN"
+    "http://jakarta.apache.org/struts/dtds/struts-config_1_3.dtd">
+
+<struts-config>
+    <!-- Multiple Data Sources for Enterprise Application -->
+    <data-sources>
+        <!-- Primary Database -->
+        <data-source key="primary" type="org.apache.commons.dbcp.BasicDataSource">
+            <set-property property="driverClassName" value="oracle.jdbc.driver.OracleDriver"/>
+            <set-property property="url" value="jdbc:oracle:thin:@localhost:1521:ENTERPRISE"/>
+            <set-property property="username" value="enterprise_user"/>
+            <set-property property="password" value="encrypted_password"/>
+            <set-property property="maxActive" value="50"/>
+            <set-property property="maxIdle" value="10"/>
+            <set-property property="minIdle" value="5"/>
+            <set-property property="testOnBorrow" value="true"/>
+            <set-property property="validationQuery" value="SELECT 1 FROM DUAL"/>
+        </data-source>
+        
+        <!-- Reporting Database -->
+        <data-source key="reporting" type="org.apache.commons.dbcp.BasicDataSource">
+            <set-property property="driverClassName" value="com.microsoft.sqlserver.jdbc.SQLServerDriver"/>
+            <set-property property="url" value="jdbc:sqlserver://reportserver:1433;databaseName=Reports"/>
+            <set-property property="username" value="report_user"/>
+            <set-property property="password" value="report_pass"/>
+            <set-property property="maxActive" value="20"/>
+            <set-property property="maxIdle" value="5"/>
+        </data-source>
+    </data-sources>
+
+    <!-- Comprehensive Form Bean Definitions -->
+    <form-beans>
+        <!-- User Management Forms -->
+        <form-bean name="userRegistrationForm" type="com.enterprise.forms.UserRegistrationForm"/>
+        <form-bean name="userProfileForm" type="com.enterprise.forms.UserProfileForm"/>
+        <form-bean name="loginForm" type="com.enterprise.forms.LoginForm"/>
+        
+        <!-- Product Management Forms -->
+        <form-bean name="productForm" type="com.enterprise.forms.ProductForm"/>
+        <form-bean name="categoryForm" type="com.enterprise.forms.CategoryForm"/>
+        
+        <!-- Order Management Forms -->
+        <form-bean name="orderForm" type="com.enterprise.forms.OrderForm"/>
+        <form-bean name="paymentForm" type="com.enterprise.forms.PaymentForm"/>
+        
+        <!-- Dynamic Forms for Configuration -->
+        <form-bean name="searchForm" type="org.apache.struts.action.DynaActionForm">
+            <form-property name="searchTerm" type="java.lang.String"/>
+            <form-property name="category" type="java.lang.String"/>
+            <form-property name="priceMin" type="java.lang.Double" initial="0.0"/>
+            <form-property name="priceMax" type="java.lang.Double" initial="999999.0"/>
+            <form-property name="sortBy" type="java.lang.String" initial="name"/>
+            <form-property name="sortOrder" type="java.lang.String" initial="ASC"/>
+            <form-property name="pageSize" type="java.lang.Integer" initial="20"/>
+        </form-bean>
+        
+        <form-bean name="reportForm" type="org.apache.struts.action.DynaActionForm">
+            <form-property name="reportType" type="java.lang.String"/>
+            <form-property name="startDate" type="java.util.Date"/>
+            <form-property name="endDate" type="java.util.Date"/>
+            <form-property name="format" type="java.lang.String" initial="PDF"/>
+            <form-property name="includeDetails" type="java.lang.Boolean" initial="true"/>
+        </form-bean>
+    </form-beans>
+
+    <!-- Global Forward Definitions -->
+    <global-forwards>
+        <!-- Main Navigation -->
+        <forward name="home" path="/pages/dashboard.jsp"/>
+        <forward name="login" path="/pages/login.jsp"/>
+        <forward name="logout" path="/pages/logout.jsp"/>
+        <forward name="unauthorized" path="/pages/error/unauthorized.jsp" redirect="true"/>
+        <forward name="sessionTimeout" path="/pages/error/timeout.jsp" redirect="true"/>
+        
+        <!-- Error Pages -->
+        <forward name="systemError" path="/pages/error/system.jsp"/>
+        <forward name="notFound" path="/pages/error/404.jsp"/>
+        <forward name="forbidden" path="/pages/error/403.jsp"/>
+        
+        <!-- Secure Pages -->
+        <forward name="adminPanel" path="https://secure.enterprise.com/admin/" redirect="true"/>
+        <forward name="userProfile" path="/secure/profile.jsp"/>
+    </global-forwards>
+
+    <!-- Comprehensive Action Mappings -->
+    <action-mappings>
+        <!-- Authentication Actions -->
+        <action path="/login"
+                type="com.enterprise.actions.LoginAction"
+                name="loginForm"
+                scope="request"
+                validate="true"
+                input="/pages/login.jsp">
+            <forward name="success" path="/pages/dashboard.jsp"/>
+            <forward name="failure" path="/pages/login.jsp"/>
+            <forward name="changePassword" path="/pages/changePassword.jsp"/>
+            <exception key="auth.locked" 
+                      type="com.enterprise.exceptions.AccountLockedException" 
+                      path="/pages/accountLocked.jsp"/>
+            <exception key="auth.expired" 
+                      type="com.enterprise.exceptions.PasswordExpiredException" 
+                      path="/pages/changePassword.jsp"/>
+        </action>
+
+        <action path="/logout"
+                type="com.enterprise.actions.LogoutAction">
+            <forward name="success" path="login"/>
+        </action>
+
+        <!-- User Management Actions -->
+        <action path="/registerUser"
+                type="com.enterprise.actions.UserRegistrationAction"
+                name="userRegistrationForm"
+                scope="request"
+                validate="true"
+                input="/pages/registration.jsp">
+            <forward name="success" path="/pages/registrationSuccess.jsp"/>
+            <forward name="duplicate" path="/pages/registration.jsp"/>
+            <forward name="emailConfirmation" path="/pages/confirmEmail.jsp"/>
+        </action>
+
+        <action path="/updateProfile"
+                type="com.enterprise.actions.UpdateProfileAction"
+                name="userProfileForm"
+                scope="session"
+                validate="true"
+                input="/pages/profile.jsp">
+            <forward name="success" path="/pages/profile.jsp"/>
+            <forward name="error" path="/pages/profile.jsp"/>
+        </action>
+
+        <!-- Product Management Actions -->
+        <action path="/searchProducts"
+                type="com.enterprise.actions.ProductSearchAction"
+                name="searchForm"
+                scope="request"
+                validate="false">
+            <forward name="success" path="/pages/productList.jsp"/>
+            <forward name="noResults" path="/pages/noProducts.jsp"/>
+        </action>
+
+        <action path="/addProduct"
+                type="com.enterprise.actions.AddProductAction"
+                name="productForm"
+                scope="request"
+                validate="true"
+                input="/pages/addProduct.jsp"
+                attribute="product">
+            <forward name="success" path="/listProducts.do" redirect="true"/>
+            <forward name="failure" path="/pages/addProduct.jsp"/>
+            <forward name="unauthorized" path="forbidden"/>
+        </action>
+
+        <action path="/updateProduct"
+                type="com.enterprise.actions.UpdateProductAction"
+                name="productForm"
+                scope="request"
+                validate="true"
+                input="/pages/editProduct.jsp">
+            <forward name="success" path="/pages/productDetails.jsp"/>
+            <forward name="concurrency" path="/pages/editProduct.jsp"/>
+        </action>
+
+        <action path="/deleteProduct"
+                type="com.enterprise.actions.DeleteProductAction"
+                parameter="method">
+            <forward name="success" path="/listProducts.do" redirect="true"/>
+            <forward name="references" path="/pages/cannotDelete.jsp"/>
+            <forward name="unauthorized" path="forbidden"/>
+        </action>
+
+        <!-- Order Management Actions -->
+        <action path="/createOrder"
+                type="com.enterprise.actions.CreateOrderAction"
+                name="orderForm"
+                scope="session"
+                validate="true"
+                input="/pages/checkout.jsp">
+            <forward name="success" path="/pages/orderConfirmation.jsp"/>
+            <forward name="inventory" path="/pages/outOfStock.jsp"/>
+            <forward name="payment" path="/processPayment.do"/>
+        </action>
+
+        <action path="/processPayment"
+                type="com.enterprise.actions.PaymentAction"
+                name="paymentForm"
+                scope="request"
+                validate="true"
+                input="/pages/payment.jsp">
+            <forward name="success" path="/pages/paymentSuccess.jsp"/>
+            <forward name="declined" path="/pages/paymentDeclined.jsp"/>
+            <forward name="fraud" path="/pages/fraudAlert.jsp"/>
+        </action>
+
+        <!-- Reporting Actions -->
+        <action path="/generateReport"
+                type="com.enterprise.actions.ReportGenerationAction"
+                name="reportForm"
+                scope="request"
+                validate="true"
+                input="/pages/reports.jsp">
+            <forward name="success" path="/pages/reportViewer.jsp"/>
+            <forward name="download" path="/downloadReport.do"/>
+            <forward name="processing" path="/pages/reportProcessing.jsp"/>
+        </action>
+
+        <!-- Administrative Actions -->
+        <action path="/adminUserList"
+                type="com.enterprise.actions.AdminUserListAction"
+                scope="request">
+            <forward name="success" path="/admin/userList.jsp"/>
+            <forward name="unauthorized" path="forbidden"/>
+        </action>
+
+        <action path="/systemHealth"
+                type="com.enterprise.actions.SystemHealthAction">
+            <forward name="success" path="/admin/systemHealth.jsp"/>
+            <forward name="critical" path="/admin/systemAlert.jsp"/>
+        </action>
+    </action-mappings>
+
+    <!-- Global Exception Definitions -->
+    <global-exceptions>
+        <!-- Database Exceptions -->
+        <exception key="error.database.connection"
+                   type="java.sql.SQLException"
+                   path="/pages/error/database.jsp"
+                   scope="request"/>
+        <exception key="error.database.timeout"
+                   type="java.sql.SQLTimeoutException"
+                   path="/pages/error/timeout.jsp"/>
+        
+        <!-- Security Exceptions -->
+        <exception key="error.security.access"
+                   type="com.enterprise.exceptions.AccessDeniedException"
+                   path="forbidden"/>
+        <exception key="error.security.session"
+                   type="com.enterprise.exceptions.SessionExpiredException"
+                   path="sessionTimeout"/>
+        
+        <!-- Business Logic Exceptions -->
+        <exception key="error.business.validation"
+                   type="com.enterprise.exceptions.ValidationException"
+                   path="/pages/error/validation.jsp"/>
+        <exception key="error.business.inventory"
+                   type="com.enterprise.exceptions.InsufficientInventoryException"
+                   path="/pages/error/inventory.jsp"/>
+        
+        <!-- System Exceptions -->
+        <exception key="error.system.general"
+                   type="java.lang.Exception"
+                   path="systemError"/>
+        <exception key="error.system.integration"
+                   type="com.enterprise.exceptions.IntegrationException"
+                   path="/pages/error/integration.jsp"/>
+    </global-exceptions>
+
+    <!-- Controller Configuration -->
+    <controller bufferSize="8192"
+                contentType="text/html;charset=UTF-8"
+                debug="0"
+                inputForward="false"
+                locale="true"
+                maxFileSize="100M"
+                multipartClass="org.apache.struts.upload.CommonsMultipartRequestHandler"
+                nocache="true"
+                processorClass="com.enterprise.struts.EnterpriseRequestProcessor"
+                tempDir="/tmp/uploads"/>
+
+    <!-- Message Resources for Internationalization -->
+    <message-resources parameter="com.enterprise.resources.ApplicationResources"/>
+    <message-resources parameter="com.enterprise.resources.ErrorResources" 
+                       key="errors"/>
+    <message-resources parameter="com.enterprise.resources.ValidationResources" 
+                       key="validation"/>
+    <message-resources parameter="com.enterprise.resources.AdminResources" 
+                       key="admin"/>
+
+    <!-- Enterprise Plugin Configuration -->
+    <plug-in className="org.apache.struts.validator.ValidatorPlugIn">
+        <set-property property="pathnames" 
+                      value="/WEB-INF/validator-rules.xml,/WEB-INF/validation.xml,/WEB-INF/validation-custom.xml"/>
+        <set-property property="stopOnFirstError" value="false"/>
+    </plug-in>
+
+    <plug-in className="org.apache.struts.tiles.TilesPlugin">
+        <set-property property="definitions-config" 
+                      value="/WEB-INF/tiles-defs.xml,/WEB-INF/tiles-admin.xml"/>
+        <set-property property="moduleAware" value="true"/>
+        <set-property property="definitions-parser-validate" value="true"/>
+    </plug-in>
+
+    <plug-in className="com.enterprise.struts.SecurityPlugIn">
+        <set-property property="securityConfig" value="/WEB-INF/security-config.xml"/>
+        <set-property property="enableCSRFProtection" value="true"/>
+        <set-property property="enableXSSProtection" value="true"/>
+        <set-property property="sessionTimeout" value="30"/>
+    </plug-in>
+
+    <plug-in className="com.enterprise.struts.AuditPlugIn">
+        <set-property property="auditLevel" value="INFO"/>
+        <set-property property="auditActions" value="true"/>
+        <set-property property="auditDatabase" value="primary"/>
+    </plug-in>
+
+    <plug-in className="com.enterprise.struts.CachePlugIn">
+        <set-property property="cacheProvider" value="ehcache"/>
+        <set-property property="configFile" value="/WEB-INF/cache-config.xml"/>
+        <set-property property="enableMethodLevelCache" value="true"/>
+    </plug-in>
+</struts-config>

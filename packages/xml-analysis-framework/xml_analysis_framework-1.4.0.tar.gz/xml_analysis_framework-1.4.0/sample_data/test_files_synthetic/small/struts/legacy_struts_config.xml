@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts-config PUBLIC
+    "-//Apache Software Foundation//DTD Struts Configuration 1.1//EN"
+    "http://jakarta.apache.org/struts/dtds/struts-config_1_1.dtd">
+
+<struts-config>
+    <!-- Legacy Struts 1.1 Configuration -->
+    
+    <!-- Simple Data Source -->
+    <data-sources>
+        <data-source key="default" type="org.apache.struts.util.GenericDataSource">
+            <set-property property="driverClass" value="org.postgresql.Driver"/>
+            <set-property property="url" value="jdbc:postgresql://localhost:5432/legacy_app"/>
+            <set-property property="user" value="legacy_user"/>
+            <set-property property="password" value="legacy_pass"/>
+            <set-property property="maxCount" value="10"/>
+            <set-property property="minCount" value="2"/>
+        </data-source>
+    </data-sources>
+
+    <!-- Basic Form Beans -->
+    <form-beans>
+        <form-bean name="employeeForm" type="com.legacy.forms.EmployeeForm"/>
+        <form-bean name="departmentForm" type="com.legacy.forms.DepartmentForm"/>
+        <form-bean name="searchForm" type="com.legacy.forms.SearchForm"/>
+    </form-beans>
+
+    <!-- Simple Global Forwards -->
+    <global-forwards>
+        <forward name="welcome" path="/welcome.do"/>
+        <forward name="logon" path="/logon.jsp"/>
+        <forward name="success" path="/pages/success.jsp"/>
+        <forward name="failure" path="/pages/failure.jsp"/>
+    </global-forwards>
+
+    <!-- Basic Action Mappings -->
+    <action-mappings>
+        <action path="/welcome"
+                forward="/pages/welcome.jsp"/>
+
+        <action path="/logon"
+                type="com.legacy.actions.LogonAction"
+                name="logonForm"
+                scope="request"
+                input="/logon.jsp">
+            <forward name="success" path="/pages/main.jsp"/>
+            <forward name="failure" path="/logon.jsp"/>
+        </action>
+
+        <action path="/addEmployee"
+                type="com.legacy.actions.AddEmployeeAction"
+                name="employeeForm"
+                scope="request"
+                validate="false"
+                input="/pages/addEmployee.jsp">
+            <forward name="success" path="/listEmployees.do"/>
+            <forward name="failure" path="/pages/addEmployee.jsp"/>
+        </action>
+
+        <action path="/listEmployees"
+                type="com.legacy.actions.ListEmployeesAction">
+            <forward name="success" path="/pages/employeeList.jsp"/>
+        </action>
+
+        <action path="/editEmployee"
+                type="com.legacy.actions.EditEmployeeAction"
+                name="employeeForm"
+                scope="request"
+                parameter="id">
+            <forward name="success" path="/pages/editEmployee.jsp"/>
+            <forward name="notfound" path="/listEmployees.do"/>
+        </action>
+
+        <action path="/deleteEmployee"
+                type="com.legacy.actions.DeleteEmployeeAction"
+                parameter="id">
+            <forward name="success" path="/listEmployees.do"/>
+            <forward name="error" path="/pages/error.jsp"/>
+        </action>
+
+        <!-- Department Management -->
+        <action path="/listDepartments"
+                type="com.legacy.actions.ListDepartmentsAction">
+            <forward name="success" path="/pages/departmentList.jsp"/>
+        </action>
+
+        <action path="/addDepartment"
+                type="com.legacy.actions.AddDepartmentAction"
+                name="departmentForm"
+                scope="request"
+                input="/pages/addDepartment.jsp">
+            <forward name="success" path="/listDepartments.do"/>
+            <forward name="failure" path="/pages/addDepartment.jsp"/>
+        </action>
+
+        <!-- Search Functionality -->
+        <action path="/search"
+                type="com.legacy.actions.SearchAction"
+                name="searchForm"
+                scope="request">
+            <forward name="results" path="/pages/searchResults.jsp"/>
+            <forward name="empty" path="/pages/noResults.jsp"/>
+        </action>
+    </action-mappings>
+
+    <!-- Controller Configuration -->
+    <controller processorClass="org.apache.struts.action.RequestProcessor"
+                bufferSize="4096"
+                contentType="text/html"
+                debug="2"
+                inputForward="true"
+                locale="false"
+                maxFileSize="2M"
+                multipartClass="org.apache.struts.upload.DiskMultipartRequestHandler"
+                nocache="false"
+                tempDir="/var/tmp"/>
+
+    <!-- Message Resources -->
+    <message-resources parameter="ApplicationResources"/>
+
+    <!-- Basic Plugin Configuration -->
+    <plug-in className="org.apache.struts.validator.ValidatorPlugIn">
+        <set-property property="pathnames" 
+                      value="/WEB-INF/validator-rules.xml,/WEB-INF/validation.xml"/>
+    </plug-in>
+</struts-config>

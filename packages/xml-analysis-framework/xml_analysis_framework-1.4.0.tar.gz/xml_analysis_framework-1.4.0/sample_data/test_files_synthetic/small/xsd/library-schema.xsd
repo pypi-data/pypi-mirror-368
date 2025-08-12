@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://example.com/library/schema"
+           xmlns:tns="http://example.com/library/schema"
+           xmlns:addr="http://example.com/address/schema"
+           elementFormDefault="qualified"
+           attributeFormDefault="unqualified"
+           version="1.0">
+
+  <xs:annotation>
+    <xs:documentation>
+      Library Management System XML Schema
+      This schema defines the structure for library catalog data,
+      including books, authors, borrowers, and lending transactions.
+    </xs:documentation>
+  </xs:annotation>
+
+  <!-- Import external schema for address types -->
+  <xs:import namespace="http://example.com/address/schema" 
+             schemaLocation="address-schema.xsd"/>
+
+  <!-- Simple type definitions -->
+  <xs:simpleType name="ISBNType">
+    <xs:annotation>
+      <xs:documentation>ISBN number with format validation</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[0-9]{3}-[0-9]{1}-[0-9]{3}-[0-9]{5}-[0-9]{1}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="BookStatusType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="available"/>
+      <xs:enumeration value="checked-out"/>
+      <xs:enumeration value="reserved"/>
+      <xs:enumeration value="maintenance"/>
+      <xs:enumeration value="lost"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="GenreType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="fiction"/>
+      <xs:enumeration value="non-fiction"/>
+      <xs:enumeration value="science"/>
+      <xs:enumeration value="technology"/>
+      <xs:enumeration value="history"/>
+      <xs:enumeration value="biography"/>
+      <xs:enumeration value="children"/>
+      <xs:enumeration value="reference"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="MembershipLevelType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="basic"/>
+      <xs:enumeration value="premium"/>
+      <xs:enumeration value="student"/>
+      <xs:enumeration value="faculty"/>
+      <xs:enumeration value="staff"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="PositiveDecimalType">
+    <xs:restriction base="xs:decimal">
+      <xs:minInclusive value="0.01"/>
+      <xs:fractionDigits value="2"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Complex type definitions -->
+  <xs:complexType name="PersonType" abstract="true">
+    <xs:annotation>
+      <xs:documentation>Base type for all person-related entities</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="firstName" type="xs:string"/>
+      <xs:element name="lastName" type="xs:string"/>
+      <xs:element name="middleName" type="xs:string" minOccurs="0"/>
+      <xs:element name="dateOfBirth" type="xs:date" minOccurs="0"/>
+      <xs:element name="email" type="xs:string" minOccurs="0"/>
+      <xs:element name="phone" type="xs:string" minOccurs="0"/>
+      <xs:element name="address" type="addr:AddressType" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="AuthorType">
+    <xs:complexContent>
+      <xs:extension base="tns:PersonType">
+        <xs:sequence>
+          <xs:element name="biography" type="xs:string" minOccurs="0"/>
+          <xs:element name="website" type="xs:anyURI" minOccurs="0"/>
+          <xs:element name="nationality" type="xs:string" minOccurs="0"/>
+          <xs:element name="awards" minOccurs="0">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="award" maxOccurs="unbounded">
+                  <xs:complexType>
+                    <xs:simpleContent>
+                      <xs:extension base="xs:string">
+                        <xs:attribute name="year" type="xs:gYear"/>
+                      </xs:extension>
+                    </xs:simpleContent>
+                  </xs:complexType>
+                </xs:element>
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="BorrowerType">
+    <xs:complexContent>
+      <xs:extension base="tns:PersonType">
+        <xs:sequence>
+          <xs:element name="membershipLevel" type="tns:MembershipLevelType"/>
+          <xs:element name="membershipExpiry" type="xs:date"/>
+          <xs:element name="borrowingHistory" minOccurs="0">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="transaction" type="tns:LendingTransactionType" 
+                           minOccurs="0" maxOccurs="unbounded"/>
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+        </xs:sequence>
+        <xs:attribute name="libraryCardNumber" type="xs:string" use="required"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="BookType">
+    <xs:sequence>
+      <xs:element name="title" type="xs:string"/>
+      <xs:element name="subtitle" type="xs:string" minOccurs="0"/>
+      <xs:element name="authors">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="author" maxOccurs="unbounded">
+              <xs:complexType>
+                <xs:choice>
+                  <xs:element name="authorRef" type="xs:IDREF"/>
+                  <xs:element name="authorInfo" type="tns:AuthorType"/>
+                </xs:choice>
+                <xs:attribute name="role" type="xs:string" default="author"/>
+              </xs:complexType>
+            </xs:element>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="isbn" type="tns:ISBNType"/>
+      <xs:element name="publisher" type="xs:string"/>
+      <xs:element name="publicationDate" type="xs:date"/>
+      <xs:element name="edition" type="xs:positiveInteger" default="1"/>
+      <xs:element name="pageCount" type="xs:positiveInteger"/>
+      <xs:element name="genre" type="tns:GenreType"/>
+      <xs:element name="language" type="xs:language" default="en"/>
+      <xs:element name="description" type="xs:string" minOccurs="0"/>
+      <xs:element name="keywords" minOccurs="0">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="keyword" type="xs:string" maxOccurs="unbounded"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="price" type="tns:PositiveDecimalType" minOccurs="0"/>
+      <xs:element name="copies" minOccurs="0">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="copy" maxOccurs="unbounded">
+              <xs:complexType>
+                <xs:sequence>
+                  <xs:element name="copyId" type="xs:string"/>
+                  <xs:element name="status" type="tns:BookStatusType"/>
+                  <xs:element name="location" type="xs:string"/>
+                  <xs:element name="condition" type="xs:string" minOccurs="0"/>
+                  <xs:element name="notes" type="xs:string" minOccurs="0"/>
+                </xs:sequence>
+                <xs:attribute name="barcode" type="xs:string"/>
+              </xs:complexType>
+            </xs:element>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID" use="required"/>
+    <xs:attribute name="catalogNumber" type="xs:string"/>
+  </xs:complexType>
+
+  <xs:complexType name="LendingTransactionType">
+    <xs:sequence>
+      <xs:element name="bookRef" type="xs:IDREF"/>
+      <xs:element name="copyId" type="xs:string"/>
+      <xs:element name="borrowerRef" type="xs:IDREF"/>
+      <xs:element name="checkoutDate" type="xs:date"/>
+      <xs:element name="dueDate" type="xs:date"/>
+      <xs:element name="returnDate" type="xs:date" minOccurs="0"/>
+      <xs:element name="renewalCount" type="xs:nonNegativeInteger" default="0"/>
+      <xs:element name="fines" minOccurs="0">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="fine" maxOccurs="unbounded">
+              <xs:complexType>
+                <xs:sequence>
+                  <xs:element name="amount" type="tns:PositiveDecimalType"/>
+                  <xs:element name="reason" type="xs:string"/>
+                  <xs:element name="dateAssessed" type="xs:date"/>
+                  <xs:element name="datePaid" type="xs:date" minOccurs="0"/>
+                </xs:sequence>
+              </xs:complexType>
+            </xs:element>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="notes" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="transactionId" type="xs:ID" use="required"/>
+  </xs:complexType>
+
+  <!-- Root element definitions -->
+  <xs:element name="library">
+    <xs:annotation>
+      <xs:documentation>Root element for library catalog data</xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="metadata">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="libraryName" type="xs:string"/>
+              <xs:element name="address" type="addr:AddressType"/>
+              <xs:element name="phone" type="xs:string"/>
+              <xs:element name="website" type="xs:anyURI" minOccurs="0"/>
+              <xs:element name="catalogVersion" type="xs:string"/>
+              <xs:element name="lastUpdated" type="xs:dateTime"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="authors" minOccurs="0">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="author" type="tns:AuthorType" maxOccurs="unbounded"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="books" minOccurs="0">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="book" type="tns:BookType" maxOccurs="unbounded"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="borrowers" minOccurs="0">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="borrower" type="tns:BorrowerType" maxOccurs="unbounded"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="transactions" minOccurs="0">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="transaction" type="tns:LendingTransactionType" 
+                         maxOccurs="unbounded"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+      <xs:attribute name="schemaVersion" type="xs:string" fixed="1.0"/>
+    </xs:complexType>
+    
+    <!-- Key and keyref constraints for referential integrity -->
+    <xs:key name="authorKey">
+      <xs:selector xpath="tns:authors/tns:author"/>
+      <xs:field xpath="@id"/>
+    </xs:key>
+    <xs:key name="bookKey">
+      <xs:selector xpath="tns:books/tns:book"/>
+      <xs:field xpath="@id"/>
+    </xs:key>
+    <xs:key name="borrowerKey">
+      <xs:selector xpath="tns:borrowers/tns:borrower"/>
+      <xs:field xpath="@id"/>
+    </xs:key>
+    <xs:key name="transactionKey">
+      <xs:selector xpath="tns:transactions/tns:transaction"/>
+      <xs:field xpath="@transactionId"/>
+    </xs:key>
+    
+    <xs:keyref name="authorRef" refer="tns:authorKey">
+      <xs:selector xpath="tns:books/tns:book/tns:authors/tns:author/tns:authorRef"/>
+      <xs:field xpath="."/>
+    </xs:keyref>
+    <xs:keyref name="bookRef" refer="tns:bookKey">
+      <xs:selector xpath="tns:transactions/tns:transaction/tns:bookRef"/>
+      <xs:field xpath="."/>
+    </xs:keyref>
+    <xs:keyref name="borrowerRef" refer="tns:borrowerKey">
+      <xs:selector xpath="tns:transactions/tns:transaction/tns:borrowerRef"/>
+      <xs:field xpath="."/>
+    </xs:keyref>
+  </xs:element>
+
+  <!-- Additional utility elements -->
+  <xs:element name="book" type="tns:BookType"/>
+  <xs:element name="author" type="tns:AuthorType"/>
+  <xs:element name="borrower" type="tns:BorrowerType"/>
+  <xs:element name="transaction" type="tns:LendingTransactionType"/>
+
+</xs:schema>

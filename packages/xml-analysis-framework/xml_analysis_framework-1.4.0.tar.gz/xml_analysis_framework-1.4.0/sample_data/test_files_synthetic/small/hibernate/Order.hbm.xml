@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC
+        "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+        "http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+
+<hibernate-mapping package="com.example.model">
+    
+    <class name="Order" table="orders" dynamic-insert="true" dynamic-update="true">
+        
+        <id name="id" column="order_id" type="string" length="36">
+            <generator class="uuid"/>
+        </id>
+        
+        <property name="orderNumber" column="order_number" type="string" 
+                  length="20" not-null="true" unique="true"/>
+        <property name="orderDate" column="order_date" type="timestamp" 
+                  not-null="true"/>
+        <property name="shippedDate" column="shipped_date" type="timestamp"/>
+        <property name="totalAmount" column="total_amount" type="big_decimal" 
+                  precision="12" scale="2" not-null="true"/>
+        <property name="status" column="status" type="string" length="20" 
+                  not-null="true"/>
+        <property name="customerNotes" column="customer_notes" type="text"/>
+        
+        <!-- Many-to-one relationship -->
+        <many-to-one name="customer" class="User" column="customer_id" 
+                     not-null="true" foreign-key="fk_order_customer"/>
+        
+        <!-- One-to-many relationship with cascade -->
+        <list name="orderItems" table="order_items" cascade="all-delete-orphan">
+            <key column="order_id"/>
+            <list-index column="item_sequence"/>
+            <one-to-many class="OrderItem"/>
+        </list>
+        
+        <!-- Many-to-one relationship to shipping address -->
+        <many-to-one name="shippingAddress" class="Address" 
+                     column="shipping_address_id" cascade="save-update"/>
+        
+    </class>
+    
+    <!-- Joined subclass example -->
+    <joined-subclass name="PriorityOrder" extends="Order" table="priority_orders">
+        <key column="order_id"/>
+        <property name="priorityLevel" column="priority_level" type="int"/>
+        <property name="expediteFee" column="expedite_fee" type="big_decimal" 
+                  precision="8" scale="2"/>
+    </joined-subclass>
+    
+</hibernate-mapping>

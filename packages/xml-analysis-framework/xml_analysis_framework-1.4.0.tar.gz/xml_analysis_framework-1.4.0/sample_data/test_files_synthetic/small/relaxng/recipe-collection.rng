@@ -1,0 +1,644 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns="http://relaxng.org/ns/structure/1.0"
+         xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0"
+         datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+  <a:documentation>
+    RelaxNG Schema for Recipe Collection XML Format
+    
+    This schema defines the structure for a recipe collection document
+    including recipes, ingredients, instructions, nutritional information,
+    and metadata.
+    
+    Version: 1.0
+    Author: Recipe Schema Working Group
+    Last Updated: July 23, 2025
+  </a:documentation>
+
+  <!-- Root element -->
+  <start>
+    <element name="recipeCollection">
+      <a:documentation>Root element containing a collection of recipes</a:documentation>
+      <ref name="recipeCollectionContent"/>
+    </element>
+  </start>
+
+  <!-- Recipe Collection Content -->
+  <define name="recipeCollectionContent">
+    <attribute name="version">
+      <value>1.0</value>
+    </attribute>
+    <optional>
+      <attribute name="xmlns">
+        <value>http://www.example.com/recipes/1.0</value>
+      </attribute>
+    </optional>
+    
+    <!-- Metadata -->
+    <element name="metadata">
+      <ref name="metadataContent"/>
+    </element>
+    
+    <!-- Recipe categories (optional) -->
+    <optional>
+      <element name="categories">
+        <oneOrMore>
+          <element name="category">
+            <attribute name="id">
+              <data type="ID"/>
+            </attribute>
+            <attribute name="name">
+              <data type="string"/>
+            </attribute>
+            <optional>
+              <attribute name="description">
+                <data type="string"/>
+              </attribute>
+            </optional>
+            <text/>
+          </element>
+        </oneOrMore>
+      </element>
+    </optional>
+    
+    <!-- Recipes -->
+    <element name="recipes">
+      <oneOrMore>
+        <element name="recipe">
+          <ref name="recipeContent"/>
+        </element>
+      </oneOrMore>
+    </element>
+  </define>
+
+  <!-- Metadata Content -->
+  <define name="metadataContent">
+    <element name="title">
+      <text/>
+    </element>
+    
+    <optional>
+      <element name="description">
+        <text/>
+      </element>
+    </optional>
+    
+    <element name="author">
+      <ref name="personContent"/>
+    </element>
+    
+    <optional>
+      <element name="contributors">
+        <oneOrMore>
+          <element name="contributor">
+            <ref name="personContent"/>
+          </element>
+        </oneOrMore>
+      </element>
+    </optional>
+    
+    <element name="created">
+      <data type="date"/>
+    </element>
+    
+    <optional>
+      <element name="lastModified">
+        <data type="dateTime"/>
+      </element>
+    </optional>
+    
+    <optional>
+      <element name="language">
+        <data type="language"/>
+      </element>
+    </optional>
+    
+    <optional>
+      <element name="tags">
+        <oneOrMore>
+          <element name="tag">
+            <text/>
+          </element>
+        </oneOrMore>
+      </element>
+    </optional>
+  </define>
+
+  <!-- Person Content -->
+  <define name="personContent">
+    <element name="name">
+      <text/>
+    </element>
+    
+    <optional>
+      <element name="email">
+        <data type="string">
+          <param name="pattern">[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}</param>
+        </data>
+      </element>
+    </optional>
+    
+    <optional>
+      <element name="website">
+        <data type="anyURI"/>
+      </element>
+    </optional>
+    
+    <optional>
+      <element name="bio">
+        <text/>
+      </element>
+    </optional>
+  </define>
+
+  <!-- Recipe Content -->
+  <define name="recipeContent">
+    <attribute name="id">
+      <data type="ID"/>
+    </attribute>
+    
+    <optional>
+      <attribute name="categoryRef">
+        <data type="IDREF"/>
+      </attribute>
+    </optional>
+    
+    <!-- Basic recipe information -->
+    <element name="title">
+      <text/>
+    </element>
+    
+    <optional>
+      <element name="subtitle">
+        <text/>
+      </element>
+    </optional>
+    
+    <element name="description">
+      <text/>
+    </element>
+    
+    <optional>
+      <element name="cuisine">
+        <choice>
+          <value>italian</value>
+          <value>french</value>
+          <value>asian</value>
+          <value>mexican</value>
+          <value>indian</value>
+          <value>mediterranean</value>
+          <value>american</value>
+          <value>other</value>
+        </choice>
+      </element>
+    </optional>
+    
+    <element name="difficulty">
+      <choice>
+        <value>easy</value>
+        <value>medium</value>
+        <value>hard</value>
+        <value>expert</value>
+      </choice>
+    </element>
+    
+    <!-- Timing information -->
+    <element name="timing">
+      <optional>
+        <element name="prepTime">
+          <data type="duration"/>
+        </element>
+      </optional>
+      
+      <optional>
+        <element name="cookTime">
+          <data type="duration"/>
+        </element>
+      </optional>
+      
+      <element name="totalTime">
+        <data type="duration"/>
+      </element>
+      
+      <optional>
+        <element name="chillTime">
+          <data type="duration"/>
+        </element>
+      </optional>
+      
+      <optional>
+        <element name="marinateTime">
+          <data type="duration"/>
+        </element>
+      </optional>
+    </element>
+    
+    <!-- Serving information -->
+    <element name="servings">
+      <attribute name="min">
+        <data type="positiveInteger"/>
+      </attribute>
+      
+      <optional>
+        <attribute name="max">
+          <data type="positiveInteger"/>
+        </attribute>
+      </optional>
+      
+      <optional>
+        <attribute name="unit">
+          <choice>
+            <value>servings</value>
+            <value>portions</value>
+            <value>pieces</value>
+            <value>slices</value>
+          </choice>
+        </attribute>
+      </optional>
+      
+      <text/>
+    </element>
+    
+    <!-- Ingredients -->
+    <element name="ingredients">
+      <oneOrMore>
+        <choice>
+          <element name="ingredient">
+            <ref name="ingredientContent"/>
+          </element>
+          <element name="ingredientGroup">
+            <attribute name="name">
+              <text/>
+            </attribute>
+            <oneOrMore>
+              <element name="ingredient">
+                <ref name="ingredientContent"/>
+              </element>
+            </oneOrMore>
+          </element>
+        </choice>
+      </oneOrMore>
+    </element>
+    
+    <!-- Equipment (optional) -->
+    <optional>
+      <element name="equipment">
+        <oneOrMore>
+          <element name="item">
+            <attribute name="name">
+              <text/>
+            </attribute>
+            <optional>
+              <attribute name="essential">
+                <data type="boolean"/>
+              </attribute>
+            </optional>
+            <optional>
+              <text/>
+            </optional>
+          </element>
+        </oneOrMore>
+      </element>
+    </optional>
+    
+    <!-- Instructions -->
+    <element name="instructions">
+      <oneOrMore>
+        <choice>
+          <element name="step">
+            <ref name="stepContent"/>
+          </element>
+          <element name="stepGroup">
+            <attribute name="name">
+              <text/>
+            </attribute>
+            <oneOrMore>
+              <element name="step">
+                <ref name="stepContent"/>
+              </element>
+            </oneOrMore>
+          </element>
+        </choice>
+      </oneOrMore>
+    </element>
+    
+    <!-- Nutritional information (optional) -->
+    <optional>
+      <element name="nutrition">
+        <ref name="nutritionContent"/>
+      </element>
+    </optional>
+    
+    <!-- Notes and tips (optional) -->
+    <optional>
+      <element name="notes">
+        <oneOrMore>
+          <element name="note">
+            <optional>
+              <attribute name="type">
+                <choice>
+                  <value>tip</value>
+                  <value>warning</value>
+                  <value>substitution</value>
+                  <value>storage</value>
+                  <value>variation</value>
+                </choice>
+              </attribute>
+            </optional>
+            <text/>
+          </element>
+        </oneOrMore>
+      </element>
+    </optional>
+    
+    <!-- Recipe metadata -->
+    <optional>
+      <element name="recipeMetadata">
+        <optional>
+          <element name="created">
+            <data type="date"/>
+          </element>
+        </optional>
+        
+        <optional>
+          <element name="lastModified">
+            <data type="dateTime"/>
+          </element>
+        </optional>
+        
+        <optional>
+          <element name="rating">
+            <data type="decimal">
+              <param name="minInclusive">0</param>
+              <param name="maxInclusive">5</param>
+            </data>
+          </element>
+        </optional>
+        
+        <optional>
+          <element name="reviews">
+            <data type="nonNegativeInteger"/>
+          </element>
+        </optional>
+        
+        <optional>
+          <element name="source">
+            <optional>
+              <attribute name="type">
+                <choice>
+                  <value>original</value>
+                  <value>adapted</value>
+                  <value>inspired</value>
+                </choice>
+              </attribute>
+            </optional>
+            <text/>
+          </element>
+        </optional>
+      </element>
+    </optional>
+  </define>
+
+  <!-- Ingredient Content -->
+  <define name="ingredientContent">
+    <optional>
+      <attribute name="id">
+        <data type="ID"/>
+      </attribute>
+    </optional>
+    
+    <optional>
+      <attribute name="optional">
+        <data type="boolean"/>
+      </attribute>
+    </optional>
+    
+    <element name="quantity">
+      <optional>
+        <attribute name="min">
+          <data type="decimal"/>
+        </attribute>
+      </optional>
+      
+      <optional>
+        <attribute name="max">
+          <data type="decimal"/>
+        </attribute>
+      </optional>
+      
+      <data type="string"/>
+    </element>
+    
+    <optional>
+      <element name="unit">
+        <choice>
+          <!-- Volume units -->
+          <value>cup</value>
+          <value>cups</value>
+          <value>tablespoon</value>
+          <value>tablespoons</value>
+          <value>teaspoon</value>
+          <value>teaspoons</value>
+          <value>liter</value>
+          <value>liters</value>
+          <value>milliliter</value>
+          <value>milliliters</value>
+          <value>fluid ounce</value>
+          <value>fluid ounces</value>
+          <!-- Weight units -->
+          <value>pound</value>
+          <value>pounds</value>
+          <value>ounce</value>
+          <value>ounces</value>
+          <value>gram</value>
+          <value>grams</value>
+          <value>kilogram</value>
+          <value>kilograms</value>
+          <!-- Count units -->
+          <value>piece</value>
+          <value>pieces</value>
+          <value>slice</value>
+          <value>slices</value>
+          <value>clove</value>
+          <value>cloves</value>
+          <!-- Other -->
+          <value>pinch</value>
+          <value>dash</value>
+          <value>to taste</value>
+        </choice>
+      </element>
+    </optional>
+    
+    <element name="name">
+      <text/>
+    </element>
+    
+    <optional>
+      <element name="preparation">
+        <text/>
+      </element>
+    </optional>
+    
+    <optional>
+      <element name="substitutions">
+        <oneOrMore>
+          <element name="substitution">
+            <text/>
+          </element>
+        </oneOrMore>
+      </element>
+    </optional>
+  </define>
+
+  <!-- Step Content -->
+  <define name="stepContent">
+    <attribute name="number">
+      <data type="positiveInteger"/>
+    </attribute>
+    
+    <optional>
+      <attribute name="time">
+        <data type="duration"/>
+      </attribute>
+    </optional>
+    
+    <optional>
+      <attribute name="temperature">
+        <data type="string"/>
+      </attribute>
+    </optional>
+    
+    <interleave>
+      <element name="description">
+        <text/>
+      </element>
+      
+      <optional>
+        <element name="tip">
+          <text/>
+        </element>
+      </optional>
+      
+      <optional>
+        <element name="warning">
+          <text/>
+        </element>
+      </optional>
+    </interleave>
+  </define>
+
+  <!-- Nutrition Content -->
+  <define name="nutritionContent">
+    <optional>
+      <attribute name="per">
+        <choice>
+          <value>serving</value>
+          <value>100g</value>
+          <value>recipe</value>
+        </choice>
+      </attribute>
+    </optional>
+    
+    <optional>
+      <element name="calories">
+        <data type="nonNegativeInteger"/>
+      </element>
+    </optional>
+    
+    <optional>
+      <element name="fat">
+        <attribute name="unit">
+          <value>g</value>
+        </attribute>
+        <data type="decimal"/>
+      </element>
+    </optional>
+    
+    <optional>
+      <element name="saturatedFat">
+        <attribute name="unit">
+          <value>g</value>
+        </attribute>
+        <data type="decimal"/>
+      </element>
+    </optional>
+    
+    <optional>
+      <element name="cholesterol">
+        <attribute name="unit">
+          <value>mg</value>
+        </attribute>
+        <data type="decimal"/>
+      </element>
+    </optional>
+    
+    <optional>
+      <element name="sodium">
+        <attribute name="unit">
+          <value>mg</value>
+        </attribute>
+        <data type="decimal"/>
+      </element>
+    </optional>
+    
+    <optional>
+      <element name="carbohydrates">
+        <attribute name="unit">
+          <value>g</value>
+        </attribute>
+        <data type="decimal"/>
+      </element>
+    </optional>
+    
+    <optional>
+      <element name="fiber">
+        <attribute name="unit">
+          <value>g</value>
+        </attribute>
+        <data type="decimal"/>
+      </element>
+    </optional>
+    
+    <optional>
+      <element name="sugar">
+        <attribute name="unit">
+          <value>g</value>
+        </attribute>
+        <data type="decimal"/>
+      </element>
+    </optional>
+    
+    <optional>
+      <element name="protein">
+        <attribute name="unit">
+          <value>g</value>
+        </attribute>
+        <data type="decimal"/>
+      </element>
+    </optional>
+    
+    <optional>
+      <element name="vitamins">
+        <oneOrMore>
+          <element name="vitamin">
+            <attribute name="name">
+              <text/>
+            </attribute>
+            <attribute name="amount">
+              <data type="decimal"/>
+            </attribute>
+            <attribute name="unit">
+              <text/>
+            </attribute>
+            <optional>
+              <attribute name="dailyValue">
+                <data type="decimal"/>
+              </attribute>
+            </optional>
+          </element>
+        </oneOrMore>
+      </element>
+    </optional>
+  </define>
+
+</grammar>

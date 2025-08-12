@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<application xmlns="http://wadl.dev.java.net/2009/02">
+    <doc title="Simple REST API">
+        A basic REST API for managing books in a library system.
+        This API demonstrates common CRUD operations.
+    </doc>
+
+    <resources base="https://api.library.com/v1">
+        <resource path="books">
+            <doc>Collection of books in the library</doc>
+            
+            <method name="GET" id="getBooks">
+                <doc>Retrieve all books</doc>
+                <request>
+                    <param name="limit" style="query" type="xsd:int" default="10">
+                        <doc>Maximum number of books to return</doc>
+                    </param>
+                    <param name="offset" style="query" type="xsd:int" default="0">
+                        <doc>Number of books to skip</doc>
+                    </param>
+                    <param name="category" style="query" type="xsd:string">
+                        <doc>Filter books by category</doc>
+                    </param>
+                </request>
+                <response status="200">
+                    <doc>Successful response with book list</doc>
+                    <representation mediaType="application/json">
+                        <doc>JSON array of book objects</doc>
+                    </representation>
+                    <representation mediaType="application/xml">
+                        <doc>XML list of books</doc>
+                    </representation>
+                </response>
+                <response status="400">
+                    <doc>Bad request - invalid parameters</doc>
+                    <representation mediaType="application/json">
+                        <doc>Error message in JSON format</doc>
+                    </representation>
+                </response>
+            </method>
+            
+            <method name="POST" id="createBook">
+                <doc>Create a new book</doc>
+                <request>
+                    <param name="Authorization" style="header" type="xsd:string" required="true">
+                        <doc>Bearer token for authentication</doc>
+                    </param>
+                    <representation mediaType="application/json">
+                        <doc>Book data in JSON format</doc>
+                    </representation>
+                    <representation mediaType="application/xml">
+                        <doc>Book data in XML format</doc>
+                    </representation>
+                </request>
+                <response status="201">
+                    <doc>Book created successfully</doc>
+                    <representation mediaType="application/json">
+                        <doc>Created book object</doc>
+                    </representation>
+                </response>
+                <response status="400">
+                    <doc>Bad request - invalid book data</doc>
+                </response>
+                <response status="401">
+                    <doc>Unauthorized - invalid or missing token</doc>
+                </response>
+            </method>
+            
+            <resource path="{bookId}">
+                <doc>Individual book resource</doc>
+                <param name="bookId" style="template" type="xsd:string" required="true">
+                    <doc>Unique identifier for the book</doc>
+                </param>
+                
+                <method name="GET" id="getBook">
+                    <doc>Retrieve a specific book</doc>
+                    <response status="200">
+                        <representation mediaType="application/json">
+                            <doc>Book object in JSON format</doc>
+                        </representation>
+                        <representation mediaType="application/xml">
+                            <doc>Book object in XML format</doc>
+                        </representation>
+                    </response>
+                    <response status="404">
+                        <doc>Book not found</doc>
+                        <representation mediaType="application/json">
+                            <doc>Error message</doc>
+                        </representation>
+                    </response>
+                </method>
+                
+                <method name="PUT" id="updateBook">
+                    <doc>Update an existing book</doc>
+                    <request>
+                        <param name="Authorization" style="header" type="xsd:string" required="true">
+                            <doc>Bearer token for authentication</doc>
+                        </param>
+                        <representation mediaType="application/json">
+                            <doc>Updated book data</doc>
+                        </representation>
+                    </request>
+                    <response status="200">
+                        <doc>Book updated successfully</doc>
+                        <representation mediaType="application/json">
+                            <doc>Updated book object</doc>
+                        </representation>
+                    </response>
+                    <response status="404">
+                        <doc>Book not found</doc>
+                    </response>
+                    <response status="401">
+                        <doc>Unauthorized</doc>
+                    </response>
+                </method>
+                
+                <method name="DELETE" id="deleteBook">
+                    <doc>Delete a book</doc>
+                    <request>
+                        <param name="Authorization" style="header" type="xsd:string" required="true">
+                            <doc>Bearer token for authentication</doc>
+                        </param>
+                    </request>
+                    <response status="204">
+                        <doc>Book deleted successfully</doc>
+                    </response>
+                    <response status="404">
+                        <doc>Book not found</doc>
+                    </response>
+                    <response status="401">
+                        <doc>Unauthorized</doc>
+                    </response>
+                </method>
+            </resource>
+        </resource>
+        
+        <resource path="authors">
+            <doc>Collection of authors</doc>
+            
+            <method name="GET" id="getAuthors">
+                <doc>Retrieve all authors</doc>
+                <request>
+                    <param name="search" style="query" type="xsd:string">
+                        <doc>Search authors by name</doc>
+                    </param>
+                </request>
+                <response status="200">
+                    <representation mediaType="application/json">
+                        <doc>JSON array of author objects</doc>
+                    </representation>
+                </response>
+            </method>
+        </resource>
+    </resources>
+</application>

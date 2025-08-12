@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts-config PUBLIC
+    "-//Apache Software Foundation//DTD Struts Configuration 1.3//EN"
+    "http://struts.apache.org/dtds/struts-config_1_3.dtd">
+
+<struts-config>
+    <!-- Data Sources -->
+    <data-sources>
+        <data-source key="default" type="org.apache.commons.dbcp.BasicDataSource">
+            <set-property property="driverClassName" value="com.mysql.jdbc.Driver"/>
+            <set-property property="url" value="jdbc:mysql://localhost:3306/bookstore"/>
+            <set-property property="username" value="bookuser"/>
+            <set-property property="password" value="bookpass"/>
+            <set-property property="maxActive" value="20"/>
+            <set-property property="maxIdle" value="5"/>
+        </data-source>
+    </data-sources>
+
+    <!-- Form Bean Definitions -->
+    <form-beans>
+        <form-bean name="loginForm" type="com.bookstore.forms.LoginForm"/>
+        <form-bean name="bookForm" type="com.bookstore.forms.BookForm"/>
+        <form-bean name="userForm" type="org.apache.struts.action.DynaActionForm">
+            <form-property name="username" type="java.lang.String"/>
+            <form-property name="email" type="java.lang.String"/>
+            <form-property name="age" type="java.lang.Integer" initial="0"/>
+        </form-bean>
+    </form-beans>
+
+    <!-- Global Forward Definitions -->
+    <global-forwards>
+        <forward name="home" path="/pages/home.jsp"/>
+        <forward name="login" path="/pages/login.jsp"/>
+        <forward name="error" path="/pages/error.jsp"/>
+        <forward name="unauthorized" path="/pages/unauthorized.jsp" redirect="true"/>
+    </global-forwards>
+
+    <!-- Action Mapping Definitions -->
+    <action-mappings>
+        <action path="/login"
+                type="com.bookstore.actions.LoginAction"
+                name="loginForm"
+                scope="request"
+                validate="true"
+                input="/pages/login.jsp">
+            <forward name="success" path="/pages/welcome.jsp"/>
+            <forward name="failure" path="/pages/login.jsp"/>
+            <exception key="login.error" 
+                      type="com.bookstore.exceptions.LoginException" 
+                      path="/pages/login.jsp"/>
+        </action>
+
+        <action path="/logout"
+                type="com.bookstore.actions.LogoutAction">
+            <forward name="success" path="home"/>
+        </action>
+
+        <action path="/addBook"
+                type="com.bookstore.actions.AddBookAction"
+                name="bookForm"
+                scope="request"
+                validate="true"
+                input="/pages/addBook.jsp">
+            <forward name="success" path="/pages/bookList.jsp"/>
+            <forward name="failure" path="/pages/addBook.jsp"/>
+        </action>
+
+        <action path="/listBooks"
+                type="com.bookstore.actions.ListBooksAction">
+            <forward name="success" path="/pages/bookList.jsp"/>
+        </action>
+
+        <action path="/deleteBook"
+                type="com.bookstore.actions.DeleteBookAction"
+                parameter="method">
+            <forward name="success" path="/listBooks.do" redirect="true"/>
+            <forward name="error" path="error"/>
+        </action>
+    </action-mappings>
+
+    <!-- Global Exception Definitions -->
+    <global-exceptions>
+        <exception key="global.error.database"
+                   type="java.sql.SQLException"
+                   path="/pages/databaseError.jsp"/>
+        <exception key="global.error.system"
+                   type="java.lang.Exception"
+                   path="error"/>
+    </global-exceptions>
+
+    <!-- Controller Configuration -->
+    <controller bufferSize="4096"
+                contentType="text/html;charset=UTF-8"
+                debug="1"
+                inputForward="false"
+                locale="true"
+                maxFileSize="250M"
+                multipartClass="org.apache.struts.upload.CommonsMultipartRequestHandler"
+                nocache="true"
+                processorClass="org.apache.struts.action.RequestProcessor"
+                tempDir="/tmp"/>
+
+    <!-- Message Resources -->
+    <message-resources parameter="com.bookstore.resources.ApplicationResources"/>
+    <message-resources parameter="com.bookstore.resources.ErrorResources" 
+                       key="errors"/>
+
+    <!-- Plugin Definitions -->
+    <plug-in className="org.apache.struts.validator.ValidatorPlugIn">
+        <set-property property="pathnames" 
+                      value="/WEB-INF/validator-rules.xml,/WEB-INF/validation.xml"/>
+    </plug-in>
+
+    <plug-in className="org.apache.struts.tiles.TilesPlugin">
+        <set-property property="definitions-config" 
+                      value="/WEB-INF/tiles-defs.xml"/>
+        <set-property property="moduleAware" value="true"/>
+    </plug-in>
+</struts-config>

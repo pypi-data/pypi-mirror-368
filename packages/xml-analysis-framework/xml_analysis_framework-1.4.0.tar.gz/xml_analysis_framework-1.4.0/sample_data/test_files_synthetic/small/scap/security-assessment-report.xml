@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<arf:asset-report-collection xmlns:arf="http://scap.nist.gov/schema/asset-reporting-format/1.1"
+                             xmlns:core="http://scap.nist.gov/schema/reporting-core/1.1"
+                             xmlns:ai="http://scap.nist.gov/schema/asset-identification/1.1"
+                             xmlns:xccdf="http://checklists.nist.gov/xccdf/1.2"
+                             xmlns:oval="http://oval.mitre.org/XMLSchema/oval-results-5"
+                             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                             xsi:schemaLocation="http://scap.nist.gov/schema/asset-reporting-format/1.1 asset-reporting-format_1.1.0.xsd">
+
+  <core:relationships>
+    <core:relationship type="arfVocabularyRelationship" subject="collection">
+      <core:ref>scap_content</core:ref>
+    </core:relationship>
+    <core:relationship type="createdBy" subject="collection">
+      <core:ref>report_provider</core:ref>
+    </core:relationship>
+  </core:relationships>
+
+  <arf:reports>
+    <!-- XCCDF Test Result Report -->
+    <arf:report id="xccdf-report">
+      <arf:content>
+        <xccdf:TestResult xmlns:xccdf="http://checklists.nist.gov/xccdf/1.2" 
+                          id="xccdf_sample.scanner_testresult_sample-baseline"
+                          start-time="2025-07-23T10:00:00"
+                          end-time="2025-07-23T10:45:00"
+                          test-system="Sample Security Scanner v2.1"
+                          version="1.2">
+          
+          <xccdf:benchmark href="#scap_sample_benchmark" id="sample-security-baseline"/>
+          
+          <xccdf:title>SCAP Security Assessment Results</xccdf:title>
+          
+          <xccdf:identity authenticated="true" privileged="false">scanner-service</xccdf:identity>
+          
+          <xccdf:target>server01.example.com</xccdf:target>
+          <xccdf:target-address>192.168.1.10</xccdf:target-address>
+          <xccdf:target-facts>
+            <xccdf:fact name="urn:scap:fact:asset:identifier:hostname" type="string">server01.example.com</xccdf:fact>
+            <xccdf:fact name="urn:scap:fact:asset:identifier:ipv4" type="string">192.168.1.10</xccdf:fact>
+            <xccdf:fact name="urn:scap:fact:asset:environmental_information:operating_system" type="string">Red Hat Enterprise Linux Server 8.4</xccdf:fact>
+            <xccdf:fact name="urn:scap:fact:asset:environmental_information:kernel_version" type="string">4.18.0-305.el8.x86_64</xccdf:fact>
+            <xccdf:fact name="urn:scap:fact:asset:environmental_information:architecture" type="string">x86_64</xccdf:fact>
+          </xccdf:target-facts>
+          
+          <xccdf:platform idref="cpe:/o:redhat:enterprise_linux:8"/>
+          
+          <!-- Rule Results -->
+          <xccdf:rule-result idref="xccdf_sample_rule_account_disable_post_pw_expiration" time="2025-07-23T10:05:00" severity="medium" weight="10.0">
+            <xccdf:result>pass</xccdf:result>
+            <xccdf:instance context="undefined">1</xccdf:instance>
+            <xccdf:ident system="http://cce.mitre.org">CCE-80954-8</xccdf:ident>
+            <xccdf:fix system="urn:xccdf:fix:script:sh">
+              useradd -D -f 35
+            </xccdf:fix>
+            <xccdf:check system="http://oval.mitre.org/XMLSchema/oval-definitions-5">
+              <xccdf:check-content-ref href="#oval_sample_def_account_disable_post_pw_expiration" name="oval:sample:def:1001"/>
+            </xccdf:check>
+            <xccdf:message severity="info">Account lockout after password expiration is properly configured</xccdf:message>
+          </xccdf:rule-result>
+          
+          <xccdf:rule-result idref="xccdf_sample_rule_accounts_password_minlen_login_defs" time="2025-07-23T10:07:30" severity="medium" weight="10.0">
+            <xccdf:result>fail</xccdf:result>
+            <xccdf:instance context="undefined">1</xccdf:instance>
+            <xccdf:ident system="http://cce.mitre.org">CCE-80652-8</xccdf:ident>
+            <xccdf:fix system="urn:xccdf:fix:script:sh">
+              sed -i 's/^PASS_MIN_LEN.*/PASS_MIN_LEN\t8/' /etc/login.defs
+            </xccdf:fix>
+            <xccdf:check system="http://oval.mitre.org/XMLSchema/oval-definitions-5">
+              <xccdf:check-content-ref href="#oval_sample_def_password_minlen" name="oval:sample:def:1002"/>
+            </xccdf:check>
+            <xccdf:message severity="error">Minimum password length is set to 6, should be at least 8</xccdf:message>
+          </xccdf:rule-result>
+          
+          <xccdf:rule-result idref="xccdf_sample_rule_service_sshd_enabled" time="2025-07-23T10:10:15" severity="high" weight="10.0">
+            <xccdf:result>pass</xccdf:result>
+            <xccdf:instance context="undefined">1</xccdf:instance>
+            <xccdf:ident system="http://cce.mitre.org">CCE-80775-7</xccdf:ident>
+            <xccdf:check system="http://oval.mitre.org/XMLSchema/oval-definitions-5">
+              <xccdf:check-content-ref href="#oval_sample_def_service_sshd_enabled" name="oval:sample:def:1003"/>
+            </xccdf:check>
+            <xccdf:message severity="info">SSH service is enabled and running</xccdf:message>
+          </xccdf:rule-result>
+          
+          <xccdf:rule-result idref="xccdf_sample_rule_file_permissions_etc_passwd" time="2025-07-23T10:12:45" severity="high" weight="10.0">
+            <xccdf:result>notapplicable</xccdf:result>
+            <xccdf:instance context="undefined">1</xccdf:instance>
+            <xccdf:ident system="http://cce.mitre.org">CCE-26887-8</xccdf:ident>
+            <xccdf:check system="http://oval.mitre.org/XMLSchema/oval-definitions-5">
+              <xccdf:check-content-ref href="#oval_sample_def_file_permissions_etc_passwd" name="oval:sample:def:1004"/>
+            </xccdf:check>
+            <xccdf:message severity="info">Rule not applicable to this system configuration</xccdf:message>
+          </xccdf:rule-result>
+          
+          <xccdf:rule-result idref="xccdf_sample_rule_firewall_enabled" time="2025-07-23T10:15:20" severity="high" weight="10.0">
+            <xccdf:result>unknown</xccdf:result>
+            <xccdf:instance context="undefined">1</xccdf:instance>
+            <xccdf:ident system="http://cce.mitre.org">CCE-80990-2</xccdf:ident>
+            <xccdf:check system="http://oval.mitre.org/XMLSchema/oval-definitions-5">
+              <xccdf:check-content-ref href="#oval_sample_def_firewall_enabled" name="oval:sample:def:1005"/>
+            </xccdf:check>
+            <xccdf:message severity="warning">Could not determine firewall status - manual verification required</xccdf:message>
+          </xccdf:rule-result>
+          
+          <!-- Score Information -->
+          <xccdf:score system="urn:xccdf:scoring:default" maximum="100.0">75.0</xccdf:score>
+          <xccdf:score system="urn:xccdf:scoring:flat" maximum="5.0">3.0</xccdf:score>
+          
+        </xccdf:TestResult>
+      </arf:content>
+    </arf:report>
+
+    <!-- OVAL Results Report -->
+    <arf:report id="oval-report">
+      <arf:content>
+        <oval:oval_results xmlns:oval="http://oval.mitre.org/XMLSchema/oval-results-5"
+                          xmlns:oval-def="http://oval.mitre.org/XMLSchema/oval-definitions-5"
+                          xmlns:oval-sys="http://oval.mitre.org/XMLSchema/oval-system-characteristics-5"
+                          xmlns:oval-res="http://oval.mitre.org/XMLSchema/oval-results-5">
+          
+          <oval:generator>
+            <oval:product_name>Sample OVAL Scanner</oval:product_name>
+            <oval:product_version>2.1.0</oval:product_version>
+            <oval:schema_version>5.11.1</oval:schema_version>
+            <oval:timestamp>2025-07-23T10:45:00</oval:timestamp>
+          </oval:generator>
+          
+          <oval:definitions>
+            <oval-def:definition class="compliance" id="oval:sample:def:1002" version="1">
+              <oval-def:metadata>
+                <oval-def:title>Password minimum length check</oval-def:title>
+                <oval-def:description>Verify that minimum password length is set appropriately</oval-def:description>
+              </oval-def:metadata>
+              <oval-def:criteria>
+                <oval-def:criterion test_ref="oval:sample:tst:1002"/>
+              </oval-def:criteria>
+            </oval-def:definition>
+          </oval:definitions>
+          
+          <oval:tests>
+            <oval-sys:textfilecontent54_test xmlns="http://oval.mitre.org/XMLSchema/oval-definitions-5#independent"
+                                           id="oval:sample:tst:1002" version="1"
+                                           check_existence="all_exist" check="all">
+              <oval-sys:object object_ref="oval:sample:obj:1002"/>
+              <oval-sys:state state_ref="oval:sample:ste:1002"/>
+            </oval-sys:textfilecontent54_test>
+          </oval:tests>
+          
+          <oval:objects>
+            <oval-sys:textfilecontent54_object xmlns="http://oval.mitre.org/XMLSchema/oval-definitions-5#independent"
+                                              id="oval:sample:obj:1002" version="1">
+              <oval-sys:filepath>/etc/login.defs</oval-sys:filepath>
+              <oval-sys:pattern operation="pattern match">^PASS_MIN_LEN\s+(\d+)</oval-sys:pattern>
+              <oval-sys:instance datatype="int">1</oval-sys:instance>
+            </oval-sys:textfilecontent54_object>
+          </oval:objects>
+          
+          <oval:states>
+            <oval-sys:textfilecontent54_state xmlns="http://oval.mitre.org/XMLSchema/oval-definitions-5#independent"
+                                             id="oval:sample:ste:1002" version="1">
+              <oval-sys:subexpression datatype="int" operation="greater than or equal">8</oval-sys:subexpression>
+            </oval-sys:textfilecontent54_state>
+          </oval:states>
+          
+          <oval:system_characteristics>
+            <oval:generator>
+              <oval:product_name>Sample OVAL Scanner</oval:product_name>
+              <oval:product_version>2.1.0</oval:product_version>
+              <oval:schema_version>5.11.1</oval:schema_version>
+              <oval:timestamp>2025-07-23T10:45:00</oval:timestamp>
+            </oval:generator>
+            
+            <oval:system_info>
+              <oval:os_name>Red Hat Enterprise Linux Server</oval:os_name>
+              <oval:os_version>8.4</oval:os_version>
+              <oval:architecture>x86_64</oval:architecture>
+              <oval:primary_host_name>server01.example.com</oval:primary_host_name>
+              <oval:interfaces>
+                <oval:interface>
+                  <oval:interface_name>eth0</oval:interface_name>
+                  <oval:ip_address>192.168.1.10</oval:ip_address>
+                  <oval:mac_address>00:50:56:a1:b2:c3</oval:mac_address>
+                </oval:interface>
+              </oval:interfaces>
+            </oval:system_info>
+            
+            <oval:collected_objects>
+              <oval:object id="oval:sample:obj:1002" version="1" flag="complete"/>
+            </oval:collected_objects>
+            
+            <oval:system_data>
+              <oval-sys:textfilecontent_item xmlns="http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#independent"
+                                           id="1" status="exists">
+                <oval-sys:filepath>/etc/login.defs</oval-sys:filepath>
+                <oval-sys:pattern>^PASS_MIN_LEN\s+(\d+)</oval-sys:pattern>
+                <oval-sys:instance datatype="int">1</oval-sys:instance>
+                <oval-sys:text>PASS_MIN_LEN		6</oval-sys:text>
+                <oval-sys:subexpression datatype="int">6</oval-sys:subexpression>
+              </oval-sys:textfilecontent_item>
+            </oval:system_data>
+          </oval:system_characteristics>
+          
+          <oval:results>
+            <oval:system system_ref="server01.example.com">
+              <oval:definitions>
+                <oval:definition definition_id="oval:sample:def:1002" version="1" class="compliance" result="false"/>
+              </oval:definitions>
+              
+              <oval:tests>
+                <oval:test test_id="oval:sample:tst:1002" version="1" check_existence="all_exist" check="all" result="false"/>
+              </oval:tests>
+              
+              <oval:collected_objects>
+                <oval:object object_id="oval:sample:obj:1002" version="1" flag="complete"/>
+              </oval:collected_objects>
+              
+              <oval:system_data>
+                <oval:system_data_ref item_ref="1"/>
+              </oval:system_data>
+            </oval:system>
+          </oval:results>
+          
+        </oval:oval_results>
+      </arf:content>
+    </arf:report>
+  </arf:reports>
+
+  <!-- Remote Resources -->
+  <arf:remote-resources>
+    <arf:resource id="scap_content">
+      <core:title>Sample Security Baseline Content</core:title>
+      <core:description>SCAP content package for baseline security assessment</core:description>
+      <arf:resource-locator>https://example.com/scap/sample-baseline-content.xml</arf:resource-locator>
+    </arf:resource>
+    
+    <arf:resource id="report_provider">
+      <core:title>Sample Security Scanner</core:title>
+      <core:description>Automated security assessment tool</core:description>
+      <arf:resource-locator>https://example.com/scanner</arf:resource-locator>
+    </arf:resource>
+  </arf:remote-resources>
+
+  <!-- Asset Information -->
+  <arf:assets>
+    <arf:asset id="asset-server01">
+      <ai:computing-device>
+        <ai:hostname>server01.example.com</ai:hostname>
+        <ai:fqdn>server01.example.com</ai:fqdn>
+        <ai:connections>
+          <ai:connection>
+            <ai:ip-address>
+              <ai:ip-v4>192.168.1.10</ai:ip-v4>
+            </ai:ip-address>
+            <ai:mac-address>00:50:56:a1:b2:c3</ai:mac-address>
+            <ai:subnet>
+              <ai:ip-netmask>255.255.255.0</ai:ip-netmask>
+            </ai:subnet>
+          </ai:connection>
+        </ai:connections>
+        <ai:motherboard>
+          <ai:bios>
+            <ai:bios-vendor>Phoenix Technologies Ltd.</ai:bios-vendor>
+            <ai:bios-version>6.00</ai:bios-version>
+            <ai:bios-release-date>2020-04-15</ai:bios-release-date>
+          </ai:bios>
+          <ai:processor>
+            <ai:cpu-model>Intel(R) Xeon(R) CPU E5-2690 v4</ai:cpu-model>
+            <ai:cpu-speed unit="MHz">2600</ai:cpu-speed>
+            <ai:cpu-count>2</ai:cpu-count>
+          </ai:processor>
+        </ai:motherboard>
+        <ai:memory>
+          <ai:memory-size unit="GB">16</ai:memory-size>
+        </ai:memory>
+      </ai:computing-device>
+    </arf:asset>
+  </arf:assets>
+
+</arf:asset-report-collection>

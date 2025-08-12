@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<description xmlns="http://www.w3.org/ns/wsdl" 
+             targetNamespace="http://example.com/hotel/reservation/wsdl"
+             xmlns:tns="http://example.com/hotel/reservation/wsdl"
+             xmlns:rns="http://example.com/hotel/reservation/schema"
+             xmlns:wsoap="http://www.w3.org/ns/wsdl/soap"
+             xmlns:soap="http://www.w3.org/2003/05/soap-envelope">
+
+  <documentation>
+    Hotel Reservation Service WSDL 2.0 Definition
+    This service provides hotel room reservation functionality
+    including checking availability and making reservations.
+  </documentation>
+
+  <!-- Type definitions -->
+  <types>
+    <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" 
+               targetNamespace="http://example.com/hotel/reservation/schema"
+               elementFormDefault="qualified">
+      
+      <!-- Request message types -->
+      <xs:element name="checkAvailabilityRequest">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="hotelId" type="xs:string"/>
+            <xs:element name="checkInDate" type="xs:date"/>
+            <xs:element name="checkOutDate" type="xs:date"/>
+            <xs:element name="roomType" type="xs:string"/>
+            <xs:element name="numberOfGuests" type="xs:int"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      
+      <xs:element name="makeReservationRequest">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="hotelId" type="xs:string"/>
+            <xs:element name="checkInDate" type="xs:date"/>
+            <xs:element name="checkOutDate" type="xs:date"/>
+            <xs:element name="roomType" type="xs:string"/>
+            <xs:element name="numberOfGuests" type="xs:int"/>
+            <xs:element name="guestInfo" type="rns:GuestInfoType"/>
+            <xs:element name="paymentInfo" type="rns:PaymentInfoType"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      
+      <!-- Response message types -->
+      <xs:element name="checkAvailabilityResponse">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="available" type="xs:boolean"/>
+            <xs:element name="roomsAvailable" type="xs:int" minOccurs="0"/>
+            <xs:element name="pricePerNight" type="xs:decimal" minOccurs="0"/>
+            <xs:element name="currency" type="xs:string" minOccurs="0"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      
+      <xs:element name="makeReservationResponse">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="reservationId" type="xs:string"/>
+            <xs:element name="confirmationNumber" type="xs:string"/>
+            <xs:element name="totalAmount" type="xs:decimal"/>
+            <xs:element name="currency" type="xs:string"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      
+      <!-- Fault message types -->
+      <xs:element name="invalidDataFault">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="errorCode" type="xs:string"/>
+            <xs:element name="errorMessage" type="xs:string"/>
+            <xs:element name="fieldName" type="xs:string" minOccurs="0"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      
+      <xs:element name="noAvailabilityFault">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="errorCode" type="xs:string"/>
+            <xs:element name="errorMessage" type="xs:string"/>
+            <xs:element name="alternativeDates" type="xs:string" minOccurs="0"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      
+      <!-- Complex types -->
+      <xs:complexType name="GuestInfoType">
+        <xs:sequence>
+          <xs:element name="firstName" type="xs:string"/>
+          <xs:element name="lastName" type="xs:string"/>
+          <xs:element name="email" type="xs:string"/>
+          <xs:element name="phone" type="xs:string"/>
+          <xs:element name="address" type="rns:AddressType"/>
+        </xs:sequence>
+      </xs:complexType>
+      
+      <xs:complexType name="AddressType">
+        <xs:sequence>
+          <xs:element name="street" type="xs:string"/>
+          <xs:element name="city" type="xs:string"/>
+          <xs:element name="state" type="xs:string"/>
+          <xs:element name="zipCode" type="xs:string"/>
+          <xs:element name="country" type="xs:string"/>
+        </xs:sequence>
+      </xs:complexType>
+      
+      <xs:complexType name="PaymentInfoType">
+        <xs:sequence>
+          <xs:element name="cardType" type="xs:string"/>
+          <xs:element name="cardNumber" type="xs:string"/>
+          <xs:element name="expiryDate" type="xs:string"/>
+          <xs:element name="cvv" type="xs:string"/>
+          <xs:element name="cardHolderName" type="xs:string"/>
+        </xs:sequence>
+      </xs:complexType>
+      
+    </xs:schema>
+  </types>
+
+  <!-- Interface definition -->
+  <interface name="HotelReservationInterface">
+    
+    <!-- Check Availability Operation -->
+    <operation name="checkAvailability" pattern="http://www.w3.org/ns/wsdl/in-out">
+      <documentation>Check room availability for specified dates and criteria</documentation>
+      <input messageLabel="In" element="rns:checkAvailabilityRequest"/>
+      <output messageLabel="Out" element="rns:checkAvailabilityResponse"/>
+      <outfault messageLabel="Out" ref="tns:InvalidDataFault"/>
+      <outfault messageLabel="Out" ref="tns:NoAvailabilityFault"/>
+    </operation>
+    
+    <!-- Make Reservation Operation -->
+    <operation name="makeReservation" pattern="http://www.w3.org/ns/wsdl/in-out">
+      <documentation>Create a new hotel reservation</documentation>
+      <input messageLabel="In" element="rns:makeReservationRequest"/>
+      <output messageLabel="Out" element="rns:makeReservationResponse"/>
+      <outfault messageLabel="Out" ref="tns:InvalidDataFault"/>
+      <outfault messageLabel="Out" ref="tns:NoAvailabilityFault"/>
+    </operation>
+    
+    <!-- Fault definitions -->
+    <fault name="InvalidDataFault" element="rns:invalidDataFault"/>
+    <fault name="NoAvailabilityFault" element="rns:noAvailabilityFault"/>
+    
+  </interface>
+
+  <!-- SOAP Binding -->
+  <binding name="HotelReservationSOAPBinding" 
+           interface="tns:HotelReservationInterface" 
+           type="http://www.w3.org/ns/wsdl/soap"
+           wsoap:protocol="http://www.w3.org/2003/05/soap/bindings/HTTP/">
+    
+    <!-- Default SOAP binding properties -->
+    <wsoap:version>1.2</wsoap:version>
+    <wsoap:transport>http://www.w3.org/2003/05/soap/bindings/HTTP/</wsoap:transport>
+    
+    <!-- Operation bindings -->
+    <operation ref="tns:checkAvailability" 
+               wsoap:mep="http://www.w3.org/2003/05/soap/mep/request-response/">
+      <wsoap:operation soapAction="http://example.com/hotel/reservation/checkAvailability"/>
+    </operation>
+    
+    <operation ref="tns:makeReservation"
+               wsoap:mep="http://www.w3.org/2003/05/soap/mep/request-response/">
+      <wsoap:operation soapAction="http://example.com/hotel/reservation/makeReservation"/>
+    </operation>
+    
+  </binding>
+
+  <!-- Service definition -->
+  <service name="HotelReservationService" interface="tns:HotelReservationInterface">
+    <documentation>Hotel Reservation Web Service</documentation>
+    <endpoint name="HotelReservationSOAPEndpoint" 
+              binding="tns:HotelReservationSOAPBinding"
+              address="http://example.com/hotel/reservation/soap"/>
+  </service>
+
+</description>

@@ -1,0 +1,559 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<application xmlns="http://wadl.dev.java.net/2009/02"
+             xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://wadl.dev.java.net/2009/02 wadl.xsd">
+
+  <doc title="E-Commerce REST API Documentation">
+    A comprehensive REST API for an e-commerce platform providing endpoints for 
+    product management, user authentication, order processing, and inventory management.
+    
+    Base URL: https://api.example-store.com/v2
+    API Version: 2.1
+    Last Updated: July 23, 2025
+  </doc>
+
+  <!-- Global grammar definitions -->
+  <grammars>
+    <include href="schemas/product.xsd"/>
+    <include href="schemas/user.xsd"/>
+    <include href="schemas/order.xsd"/>
+    
+    <!-- Inline schema definitions -->
+    <xsd:schema elementFormDefault="qualified" targetNamespace="http://api.example-store.com/schemas">
+      
+      <!-- Error response schema -->
+      <xsd:element name="error">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="code" type="xsd:int"/>
+            <xsd:element name="message" type="xsd:string"/>
+            <xsd:element name="details" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="timestamp" type="xsd:dateTime"/>
+            <xsd:element name="path" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      
+      <!-- Product schema -->
+      <xsd:element name="product">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="id" type="xsd:long"/>
+            <xsd:element name="name" type="xsd:string"/>
+            <xsd:element name="description" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="price" type="xsd:decimal"/>
+            <xsd:element name="currency" type="xsd:string"/>
+            <xsd:element name="category" type="xsd:string"/>
+            <xsd:element name="sku" type="xsd:string"/>
+            <xsd:element name="inStock" type="xsd:boolean"/>
+            <xsd:element name="quantity" type="xsd:int"/>
+            <xsd:element name="imageUrls" type="xsd:string" maxOccurs="unbounded" minOccurs="0"/>
+            <xsd:element name="createdAt" type="xsd:dateTime"/>
+            <xsd:element name="updatedAt" type="xsd:dateTime"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      
+      <!-- Product list schema -->
+      <xsd:element name="products">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element ref="product" maxOccurs="unbounded"/>
+          </xsd:sequence>
+          <xsd:attribute name="total" type="xsd:int"/>
+          <xsd:attribute name="page" type="xsd:int"/>
+          <xsd:attribute name="size" type="xsd:int"/>
+        </xsd:complexType>
+      </xsd:element>
+      
+    </xsd:schema>
+  </grammars>
+
+  <!-- Resource type definitions for reuse -->
+  <resource_type id="collection">
+    <doc>Generic collection resource with pagination support</doc>
+    
+    <method name="GET">
+      <doc>Retrieve a paginated list of resources</doc>
+      <request>
+        <param name="page" style="query" type="xsd:int" default="1">
+          <doc>Page number (1-based)</doc>
+        </param>
+        <param name="size" style="query" type="xsd:int" default="20">
+          <doc>Number of items per page (max 100)</doc>
+        </param>
+        <param name="sort" style="query" type="xsd:string" default="id">
+          <doc>Sort field name</doc>
+        </param>
+        <param name="order" style="query" type="xsd:string" default="asc">
+          <doc>Sort order: asc or desc</doc>
+          <option value="asc"/>
+          <option value="desc"/>
+        </param>
+      </request>
+      <response status="200">
+        <doc>Successful response with paginated results</doc>
+      </response>
+      <response status="400">
+        <doc>Bad request - invalid parameters</doc>
+        <representation mediaType="application/json" element="error"/>
+      </response>
+      <response status="500">
+        <doc>Internal server error</doc>
+        <representation mediaType="application/json" element="error"/>
+      </response>
+    </method>
+    
+    <method name="POST">
+      <doc>Create a new resource</doc>
+      <request>
+        <representation mediaType="application/json"/>
+        <representation mediaType="application/xml"/>
+      </request>
+      <response status="201">
+        <doc>Resource created successfully</doc>
+        <param name="Location" style="header" type="xsd:anyURI">
+          <doc>URL of the newly created resource</doc>
+        </param>
+      </response>
+      <response status="400">
+        <doc>Bad request - validation errors</doc>
+        <representation mediaType="application/json" element="error"/>
+      </response>
+      <response status="409">
+        <doc>Conflict - resource already exists</doc>
+        <representation mediaType="application/json" element="error"/>
+      </response>
+    </method>
+  </resource_type>
+
+  <resource_type id="item">
+    <doc>Generic item resource with CRUD operations</doc>
+    
+    <param name="id" style="template" type="xsd:long" required="true">
+      <doc>Unique identifier for the resource</doc>
+    </param>
+    
+    <method name="GET">
+      <doc>Retrieve a specific resource by ID</doc>
+      <response status="200">
+        <doc>Resource found and returned</doc>
+      </response>
+      <response status="404">
+        <doc>Resource not found</doc>
+        <representation mediaType="application/json" element="error"/>
+      </response>
+    </method>
+    
+    <method name="PUT">
+      <doc>Update a resource (full replacement)</doc>
+      <request>
+        <representation mediaType="application/json"/>
+        <representation mediaType="application/xml"/>
+      </request>
+      <response status="200">
+        <doc>Resource updated successfully</doc>
+      </response>
+      <response status="404">
+        <doc>Resource not found</doc>
+        <representation mediaType="application/json" element="error"/>
+      </response>
+      <response status="400">
+        <doc>Bad request - validation errors</doc>
+        <representation mediaType="application/json" element="error"/>
+      </response>
+    </method>
+    
+    <method name="PATCH">
+      <doc>Partially update a resource</doc>
+      <request>
+        <representation mediaType="application/json"/>
+        <representation mediaType="application/json-patch+json"/>
+      </request>
+      <response status="200">
+        <doc>Resource updated successfully</doc>
+      </response>
+      <response status="404">
+        <doc>Resource not found</doc>
+        <representation mediaType="application/json" element="error"/>
+      </response>
+    </method>
+    
+    <method name="DELETE">
+      <doc>Delete a resource</doc>
+      <response status="204">
+        <doc>Resource deleted successfully</doc>
+      </response>
+      <response status="404">
+        <doc>Resource not found</doc>
+        <representation mediaType="application/json" element="error"/>
+      </response>
+      <response status="409">
+        <doc>Conflict - resource cannot be deleted</doc>
+        <representation mediaType="application/json" element="error"/>
+      </response>
+    </method>
+  </resource_type>
+
+  <!-- Root resources -->
+  <resources base="https://api.example-store.com/v2">
+    
+    <!-- API Information -->
+    <resource path="">
+      <doc>API root endpoint providing service information</doc>
+      <method name="GET">
+        <doc>Get API information and available endpoints</doc>
+        <response status="200">
+          <doc>API information</doc>
+          <representation mediaType="application/json">
+            <doc>Service metadata in JSON format</doc>
+          </representation>
+          <representation mediaType="application/hal+json">
+            <doc>HAL formatted response with links</doc>
+          </representation>
+        </response>
+      </method>
+    </resource>
+
+    <!-- Products Resource -->
+    <resource path="products" type="collection">
+      <doc>Product catalog management</doc>
+      
+      <method name="GET">
+        <doc>Search and retrieve products with filtering options</doc>
+        <request>
+          <param name="category" style="query" type="xsd:string">
+            <doc>Filter by product category</doc>
+          </param>
+          <param name="minPrice" style="query" type="xsd:decimal">
+            <doc>Minimum price filter</doc>
+          </param>
+          <param name="maxPrice" style="query" type="xsd:decimal">
+            <doc>Maximum price filter</doc>
+          </param>
+          <param name="inStock" style="query" type="xsd:boolean">
+            <doc>Filter by stock availability</doc>
+          </param>
+          <param name="search" style="query" type="xsd:string">
+            <doc>Search term for name and description</doc>
+          </param>
+        </request>
+        <response status="200">
+          <doc>List of products matching criteria</doc>
+          <representation mediaType="application/json" element="products"/>
+          <representation mediaType="application/xml" element="products"/>
+        </response>
+      </method>
+      
+      <method name="POST">
+        <doc>Create a new product</doc>
+        <request>
+          <representation mediaType="application/json" element="product"/>
+          <representation mediaType="application/xml" element="product"/>
+        </request>
+        <response status="201">
+          <doc>Product created successfully</doc>
+          <representation mediaType="application/json" element="product"/>
+        </response>
+      </method>
+
+      <!-- Individual Product -->
+      <resource path="{id}" type="item">
+        <doc>Individual product operations</doc>
+        
+        <method name="GET">
+          <doc>Retrieve product details</doc>
+          <response status="200">
+            <doc>Product details</doc>
+            <representation mediaType="application/json" element="product"/>
+            <representation mediaType="application/xml" element="product"/>
+          </response>
+        </method>
+        
+        <method name="PUT">
+          <doc>Update product information</doc>
+          <request>
+            <representation mediaType="application/json" element="product"/>
+            <representation mediaType="application/xml" element="product"/>
+          </request>
+          <response status="200">
+            <doc>Product updated successfully</doc>
+            <representation mediaType="application/json" element="product"/>
+          </response>
+        </method>
+
+        <!-- Product Images -->
+        <resource path="images">
+          <doc>Product image management</doc>
+          
+          <method name="GET">
+            <doc>Get all images for a product</doc>
+            <response status="200">
+              <doc>List of product images</doc>
+              <representation mediaType="application/json"/>
+            </response>
+          </method>
+          
+          <method name="POST">
+            <doc>Upload a new product image</doc>
+            <request>
+              <representation mediaType="multipart/form-data">
+                <param name="image" style="form" type="xsd:base64Binary" required="true">
+                  <doc>Image file to upload</doc>
+                </param>
+                <param name="alt" style="form" type="xsd:string">
+                  <doc>Alternative text for the image</doc>
+                </param>
+                <param name="isPrimary" style="form" type="xsd:boolean" default="false">
+                  <doc>Set as primary product image</doc>
+                </param>
+              </representation>
+            </request>
+            <response status="201">
+              <doc>Image uploaded successfully</doc>
+            </response>
+          </method>
+
+          <resource path="{imageId}">
+            <param name="imageId" style="template" type="xsd:long" required="true"/>
+            
+            <method name="DELETE">
+              <doc>Delete a product image</doc>
+              <response status="204">
+                <doc>Image deleted successfully</doc>
+              </response>
+            </method>
+          </resource>
+        </resource>
+
+        <!-- Product Reviews -->
+        <resource path="reviews">
+          <doc>Product review management</doc>
+          
+          <method name="GET">
+            <doc>Get reviews for a product</doc>
+            <request>
+              <param name="rating" style="query" type="xsd:int">
+                <doc>Filter by star rating (1-5)</doc>
+              </param>
+              <param name="verified" style="query" type="xsd:boolean">
+                <doc>Filter by verified purchase</doc>
+              </param>
+            </request>
+            <response status="200">
+              <doc>List of product reviews</doc>
+              <representation mediaType="application/json"/>
+            </response>
+          </method>
+          
+          <method name="POST">
+            <doc>Submit a new review</doc>
+            <request>
+              <param name="Authorization" style="header" type="xsd:string" required="true">
+                <doc>Bearer token for authentication</doc>
+              </param>
+              <representation mediaType="application/json"/>
+            </request>
+            <response status="201">
+              <doc>Review submitted successfully</doc>
+            </response>
+            <response status="401">
+              <doc>Authentication required</doc>
+              <representation mediaType="application/json" element="error"/>
+            </response>
+          </method>
+        </resource>
+      </resource>
+    </resource>
+
+    <!-- Users Resource -->
+    <resource path="users">
+      <doc>User account management</doc>
+      
+      <method name="POST">
+        <doc>Register a new user account</doc>
+        <request>
+          <representation mediaType="application/json">
+            <param name="email" style="plain" type="xsd:string" required="true"/>
+            <param name="password" style="plain" type="xsd:string" required="true"/>
+            <param name="firstName" style="plain" type="xsd:string" required="true"/>
+            <param name="lastName" style="plain" type="xsd:string" required="true"/>
+          </representation>
+        </request>
+        <response status="201">
+          <doc>User account created</doc>
+        </response>
+        <response status="409">
+          <doc>Email already exists</doc>
+          <representation mediaType="application/json" element="error"/>
+        </response>
+      </method>
+
+      <resource path="me">
+        <doc>Current user profile operations</doc>
+        
+        <method name="GET">
+          <doc>Get current user profile</doc>
+          <request>
+            <param name="Authorization" style="header" type="xsd:string" required="true">
+              <doc>Bearer token for authentication</doc>
+            </param>
+          </request>
+          <response status="200">
+            <doc>User profile information</doc>
+            <representation mediaType="application/json"/>
+          </response>
+          <response status="401">
+            <doc>Authentication required</doc>
+            <representation mediaType="application/json" element="error"/>
+          </response>
+        </method>
+        
+        <method name="PUT">
+          <doc>Update current user profile</doc>
+          <request>
+            <param name="Authorization" style="header" type="xsd:string" required="true"/>
+            <representation mediaType="application/json"/>
+          </request>
+          <response status="200">
+            <doc>Profile updated successfully</doc>
+          </response>
+        </method>
+      </resource>
+    </resource>
+
+    <!-- Authentication -->
+    <resource path="auth">
+      <doc>Authentication and authorization endpoints</doc>
+      
+      <resource path="login">
+        <method name="POST">
+          <doc>Authenticate user and obtain access token</doc>
+          <request>
+            <representation mediaType="application/json">
+              <param name="email" style="plain" type="xsd:string" required="true"/>
+              <param name="password" style="plain" type="xsd:string" required="true"/>
+            </representation>
+            <representation mediaType="application/x-www-form-urlencoded">
+              <param name="email" style="form" type="xsd:string" required="true"/>
+              <param name="password" style="form" type="xsd:string" required="true"/>
+            </representation>
+          </request>
+          <response status="200">
+            <doc>Authentication successful</doc>
+            <representation mediaType="application/json">
+              <param name="access_token" style="plain" type="xsd:string"/>
+              <param name="refresh_token" style="plain" type="xsd:string"/>
+              <param name="expires_in" style="plain" type="xsd:int"/>
+              <param name="token_type" style="plain" type="xsd:string"/>
+            </representation>
+          </response>
+          <response status="401">
+            <doc>Invalid credentials</doc>
+            <representation mediaType="application/json" element="error"/>
+          </response>
+        </method>
+      </resource>
+      
+      <resource path="refresh">
+        <method name="POST">
+          <doc>Refresh access token using refresh token</doc>
+          <request>
+            <representation mediaType="application/json">
+              <param name="refresh_token" style="plain" type="xsd:string" required="true"/>
+            </representation>
+          </request>
+          <response status="200">
+            <doc>Token refreshed successfully</doc>
+            <representation mediaType="application/json"/>
+          </response>
+          <response status="401">
+            <doc>Invalid refresh token</doc>
+            <representation mediaType="application/json" element="error"/>
+          </response>
+        </method>
+      </resource>
+    </resource>
+
+    <!-- Orders Resource -->
+    <resource path="orders">
+      <doc>Order management system</doc>
+      
+      <method name="GET">
+        <doc>Get user's order history</doc>
+        <request>
+          <param name="Authorization" style="header" type="xsd:string" required="true"/>
+          <param name="status" style="query" type="xsd:string">
+            <doc>Filter by order status</doc>
+            <option value="pending"/>
+            <option value="processing"/>
+            <option value="shipped"/>
+            <option value="delivered"/>
+            <option value="cancelled"/>
+          </param>
+          <param name="dateFrom" style="query" type="xsd:date">
+            <doc>Filter orders from this date</doc>
+          </param>
+          <param name="dateTo" style="query" type="xsd:date">
+            <doc>Filter orders to this date</doc>
+          </param>
+        </request>
+        <response status="200">
+          <doc>List of user orders</doc>
+          <representation mediaType="application/json"/>
+        </response>
+      </method>
+      
+      <method name="POST">
+        <doc>Create a new order</doc>
+        <request>
+          <param name="Authorization" style="header" type="xsd:string" required="true"/>
+          <representation mediaType="application/json"/>
+        </request>
+        <response status="201">
+          <doc>Order created successfully</doc>
+        </response>
+        <response status="400">
+          <doc>Invalid order data</doc>
+          <representation mediaType="application/json" element="error"/>
+        </response>
+      </method>
+
+      <resource path="{orderId}" type="item">
+        <doc>Individual order operations</doc>
+        
+        <method name="GET">
+          <doc>Get order details</doc>
+          <request>
+            <param name="Authorization" style="header" type="xsd:string" required="true"/>
+          </request>
+          <response status="200">
+            <doc>Order details</doc>
+            <representation mediaType="application/json"/>
+          </response>
+        </method>
+        
+        <resource path="cancel">
+          <method name="POST">
+            <doc>Cancel an order</doc>
+            <request>
+              <param name="Authorization" style="header" type="xsd:string" required="true"/>
+              <representation mediaType="application/json">
+                <param name="reason" style="plain" type="xsd:string"/>
+              </representation>
+            </request>
+            <response status="200">
+              <doc>Order cancelled successfully</doc>
+            </response>
+            <response status="409">
+              <doc>Order cannot be cancelled</doc>
+              <representation mediaType="application/json" element="error"/>
+            </response>
+          </method>
+        </resource>
+      </resource>
+    </resource>
+
+  </resources>
+</application>

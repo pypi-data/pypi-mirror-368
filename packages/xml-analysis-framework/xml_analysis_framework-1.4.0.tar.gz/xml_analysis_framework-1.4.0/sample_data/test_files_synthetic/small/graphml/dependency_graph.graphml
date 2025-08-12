@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns
+         http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  
+  <!-- Software component attributes -->
+  <key id="component_type" for="node" attr.name="component_type" attr.type="string">
+    <desc>Type of software component</desc>
+  </key>
+  <key id="version" for="node" attr.name="version" attr.type="string">
+    <desc>Component version</desc>
+  </key>
+  <key id="size" for="node" attr.name="size" attr.type="int">
+    <desc>Component size in lines of code</desc>
+  </key>
+  <key id="criticality" for="node" attr.name="criticality" attr.type="string">
+    <default>medium</default>
+    <desc>Component criticality level</desc>
+  </key>
+  <key id="maintainer" for="node" attr.name="maintainer" attr.type="string">
+    <desc>Component maintainer or team</desc>
+  </key>
+  
+  <!-- Dependency attributes -->
+  <key id="dependency_type" for="edge" attr.name="dependency_type" attr.type="string">
+    <desc>Type of dependency relationship</desc>
+  </key>
+  <key id="coupling_strength" for="edge" attr.name="coupling_strength" attr.type="double">
+    <default>0.5</default>
+    <desc>Strength of coupling between components</desc>
+  </key>
+  <key id="dependency_scope" for="edge" attr.name="dependency_scope" attr.type="string">
+    <default>compile</default>
+    <desc>Scope of dependency</desc>
+  </key>
+  
+  <!-- Software dependency graph -->
+  <graph id="software_dependencies" edgedefault="directed">
+    
+    <!-- Core system components -->
+    <node id="auth_service">
+      <data key="component_type">service</data>
+      <data key="version">2.1.0</data>
+      <data key="size">1250</data>
+      <data key="criticality">high</data>
+      <data key="maintainer">security_team</data>
+    </node>
+    
+    <node id="user_service">
+      <data key="component_type">service</data>
+      <data key="version">1.5.3</data>
+      <data key="size">2100</data>
+      <data key="criticality">high</data>
+      <data key="maintainer">backend_team</data>
+    </node>
+    
+    <node id="payment_service">
+      <data key="component_type">service</data>
+      <data key="version">3.0.1</data>
+      <data key="size">1800</data>
+      <data key="criticality">critical</data>
+      <data key="maintainer">fintech_team</data>
+    </node>
+    
+    <node id="notification_service">
+      <data key="component_type">service</data>
+      <data key="version">1.2.0</data>
+      <data key="size">900</data>
+      <data key="criticality">medium</data>
+      <data key="maintainer">platform_team</data>
+    </node>
+    
+    <!-- Data layer -->
+    <node id="user_db">
+      <data key="component_type">database</data>
+      <data key="version">postgresql-13</data>
+      <data key="size">0</data>
+      <data key="criticality">critical</data>
+      <data key="maintainer">dba_team</data>
+    </node>
+    
+    <node id="cache_layer">
+      <data key="component_type">cache</data>
+      <data key="version">redis-6.2</data>
+      <data key="size">0</data>
+      <data key="criticality">high</data>
+      <data key="maintainer">platform_team</data>
+    </node>
+    
+    <!-- External libraries -->
+    <node id="jwt_library">
+      <data key="component_type">library</data>
+      <data key="version">8.5.1</data>
+      <data key="size">0</data>
+      <data key="criticality">high</data>
+      <data key="maintainer">external</data>
+    </node>
+    
+    <node id="payment_gateway">
+      <data key="component_type">external_api</data>
+      <data key="version">stripe-v3</data>
+      <data key="size">0</data>
+      <data key="criticality">critical</data>
+      <data key="maintainer">external</data>
+    </node>
+    
+    <node id="email_service">
+      <data key="component_type">external_api</data>
+      <data key="version">sendgrid-v4</data>
+      <data key="size">0</data>
+      <data key="criticality">medium</data>
+      <data key="maintainer">external</data>
+    </node>
+    
+    <!-- Frontend components -->
+    <node id="web_app">
+      <data key="component_type">frontend</data>
+      <data key="version">4.2.1</data>
+      <data key="size">15000</data>
+      <data key="criticality">high</data>
+      <data key="maintainer">frontend_team</data>
+    </node>
+    
+    <node id="mobile_app">
+      <data key="component_type">mobile</data>
+      <data key="version">2.8.0</data>
+      <data key="size">12000</data>
+      <data key="criticality">high</data>
+      <data key="maintainer">mobile_team</data>
+    </node>
+    
+    <!-- API Gateway -->
+    <node id="api_gateway">
+      <data key="component_type">gateway</data>
+      <data key="version">1.0.5</data>
+      <data key="size">800</data>
+      <data key="criticality">critical</data>
+      <data key="maintainer">platform_team</data>
+    </node>
+    
+    <!-- Dependencies -->
+    
+    <!-- Frontend to API Gateway -->
+    <edge source="web_app" target="api_gateway">
+      <data key="dependency_type">http_api</data>
+      <data key="coupling_strength">0.9</data>
+      <data key="dependency_scope">runtime</data>
+    </edge>
+    
+    <edge source="mobile_app" target="api_gateway">
+      <data key="dependency_type">http_api</data>
+      <data key="coupling_strength">0.9</data>
+      <data key="dependency_scope">runtime</data>
+    </edge>
+    
+    <!-- API Gateway to Services -->
+    <edge source="api_gateway" target="auth_service">
+      <data key="dependency_type">service_call</data>
+      <data key="coupling_strength">0.8</data>
+      <data key="dependency_scope">runtime</data>
+    </edge>
+    
+    <edge source="api_gateway" target="user_service">
+      <data key="dependency_type">service_call</data>
+      <data key="coupling_strength">0.7</data>
+      <data key="dependency_scope">runtime</data>
+    </edge>
+    
+    <edge source="api_gateway" target="payment_service">
+      <data key="dependency_type">service_call</data>
+      <data key="coupling_strength">0.6</data>
+      <data key="dependency_scope">runtime</data>
+    </edge>
+    
+    <!-- Service to Service Dependencies -->
+    <edge source="user_service" target="auth_service">
+      <data key="dependency_type">authentication</data>
+      <data key="coupling_strength">0.9</data>
+      <data key="dependency_scope">runtime</data>
+    </edge>
+    
+    <edge source="payment_service" target="auth_service">
+      <data key="dependency_type">authorization</data>
+      <data key="coupling_strength">0.8</data>
+      <data key="dependency_scope">runtime</data>
+    </edge>
+    
+    <edge source="payment_service" target="user_service">
+      <data key="dependency_type">user_lookup</data>
+      <data key="coupling_strength">0.7</data>
+      <data key="dependency_scope">runtime</data>
+    </edge>
+    
+    <edge source="payment_service" target="notification_service">
+      <data key="dependency_type">event_notification</data>
+      <data key="coupling_strength">0.4</data>
+      <data key="dependency_scope">runtime</data>
+    </edge>
+    
+    <!-- Service to Data Dependencies -->
+    <edge source="user_service" target="user_db">
+      <data key="dependency_type">data_persistence</data>
+      <data key="coupling_strength">1.0</data>
+      <data key="dependency_scope">runtime</data>
+    </edge>
+    
+    <edge source="auth_service" target="cache_layer">
+      <data key="dependency_type">session_cache</data>
+      <data key="coupling_strength">0.8</data>
+      <data key="dependency_scope">runtime</data>
+    </edge>
+    
+    <edge source="user_service" target="cache_layer">
+      <data key="dependency_type">data_cache</data>
+      <data key="coupling_strength">0.6</data>
+      <data key="dependency_scope">runtime</data>
+    </edge>
+    
+    <!-- External Dependencies -->
+    <edge source="auth_service" target="jwt_library">
+      <data key="dependency_type">library</data>
+      <data key="coupling_strength">0.9</data>
+      <data key="dependency_scope">compile</data>
+    </edge>
+    
+    <edge source="payment_service" target="payment_gateway">
+      <data key="dependency_type">external_api</data>
+      <data key="coupling_strength">1.0</data>
+      <data key="dependency_scope">runtime</data>
+    </edge>
+    
+    <edge source="notification_service" target="email_service">
+      <data key="dependency_type">external_api</data>
+      <data key="coupling_strength">0.8</data>
+      <data key="dependency_scope">runtime</data>
+    </edge>
+    
+  </graph>
+</graphml>

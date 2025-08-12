@@ -1,0 +1,415 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="sample-java-app" default="build" basedir="." xmlns:ivy="antlib:org.apache.ivy.ant">
+
+  <description>
+    Sample Java Application Build Script
+    This Ant build file demonstrates a comprehensive build process for a Java web application
+    including compilation, testing, packaging, and deployment tasks.
+  </description>
+
+  <!-- Load build properties -->
+  <property file="build.properties"/>
+  <property file="${user.home}/build.properties"/>
+
+  <!-- Project properties -->
+  <property name="project.name" value="sample-java-app"/>
+  <property name="project.version" value="1.2.3"/>
+  <property name="project.vendor" value="Example Corporation"/>
+  
+  <!-- Directory structure -->
+  <property name="src.dir" value="src/main/java"/>
+  <property name="test.src.dir" value="src/test/java"/>
+  <property name="resources.dir" value="src/main/resources"/>
+  <property name="test.resources.dir" value="src/test/resources"/>
+  <property name="web.dir" value="src/main/webapp"/>
+  <property name="config.dir" value="config"/>
+  
+  <!-- Build directories -->
+  <property name="build.dir" value="build"/>
+  <property name="build.classes.dir" value="${build.dir}/classes"/>
+  <property name="build.test.classes.dir" value="${build.dir}/test-classes"/>
+  <property name="build.test.reports.dir" value="${build.dir}/test-reports"/>
+  <property name="build.web.dir" value="${build.dir}/web"/>
+  <property name="build.javadoc.dir" value="${build.dir}/javadoc"/>
+  
+  <!-- Distribution directories -->
+  <property name="dist.dir" value="dist"/>
+  <property name="lib.dir" value="lib"/>
+  <property name="endorsed.lib.dir" value="lib/endorsed"/>
+  
+  <!-- Server properties -->
+  <property name="server.home" value="/opt/tomcat"/>
+  <property name="server.deploy.dir" value="${server.home}/webapps"/>
+  
+  <!-- Database properties -->
+  <property name="db.host" value="localhost"/>
+  <property name="db.port" value="5432"/>
+  <property name="db.name" value="sample_app"/>
+  <property name="db.user" value="app_user"/>
+  <property name="db.password" value=""/>
+  <property name="db.driver" value="org.postgresql.Driver"/>
+  <property name="db.url" value="jdbc:postgresql://${db.host}:${db.port}/${db.name}"/>
+
+  <!-- Compilation properties -->
+  <property name="java.source.version" value="11"/>
+  <property name="java.target.version" value="11"/>
+  <property name="javac.debug" value="true"/>
+  <property name="javac.deprecation" value="true"/>
+  <property name="javac.optimize" value="false"/>
+
+  <!-- Define classpaths -->
+  <path id="compile.classpath">
+    <fileset dir="${lib.dir}">
+      <include name="**/*.jar"/>
+    </fileset>
+    <fileset dir="${endorsed.lib.dir}">
+      <include name="**/*.jar"/>
+    </fileset>
+  </path>
+
+  <path id="test.classpath">
+    <path refid="compile.classpath"/>
+    <pathelement location="${build.classes.dir}"/>
+    <fileset dir="${lib.dir}/test">
+      <include name="**/*.jar"/>
+    </fileset>
+  </path>
+
+  <!-- Define custom tasks -->
+  <taskdef resource="org/apache/ivy/ant/antlib.xml" uri="antlib:org.apache.ivy.ant" classpathref="compile.classpath"/>
+
+  <!-- Ivy configuration for dependency management -->
+  <ivy:settings file="ivysettings.xml"/>
+
+  <!-- Target: help - Display available targets -->
+  <target name="help" description="Display available build targets">
+    <echo message="Available targets:"/>
+    <echo message="  help        - Display this help message"/>
+    <echo message="  init        - Initialize build directories"/>
+    <echo message="  clean       - Clean build and distribution directories"/>
+    <echo message="  resolve     - Resolve and retrieve dependencies"/>
+    <echo message="  compile     - Compile Java source code"/>
+    <echo message="  compile-tests - Compile test source code"/>
+    <echo message="  test        - Run unit tests"/>
+    <echo message="  package     - Create JAR and WAR files"/>
+    <echo message="  javadoc     - Generate API documentation"/>
+    <echo message="  build       - Complete build (compile + test + package)"/>
+    <echo message="  deploy      - Deploy application to server"/>
+    <echo message="  undeploy    - Remove application from server"/>
+    <echo message="  dist        - Create distribution package"/>
+    <echo message="  db-migrate  - Run database migrations"/>
+    <echo message="  all         - Complete build and distribution"/>
+  </target>
+
+  <!-- Target: init - Initialize build environment -->
+  <target name="init" description="Initialize build directories and check dependencies">
+    <echo message="Initializing build for ${project.name} v${project.version}"/>
+    <tstamp>
+      <format property="build.timestamp" pattern="yyyy-MM-dd HH:mm:ss"/>
+    </tstamp>
+    
+    <mkdir dir="${build.dir}"/>
+    <mkdir dir="${build.classes.dir}"/>
+    <mkdir dir="${build.test.classes.dir}"/>
+    <mkdir dir="${build.test.reports.dir}"/>
+    <mkdir dir="${build.web.dir}"/>
+    <mkdir dir="${build.javadoc.dir}"/>
+    <mkdir dir="${dist.dir}"/>
+    
+    <!-- Check for required directories -->
+    <available file="${src.dir}" type="dir" property="src.dir.present"/>
+    <fail unless="src.dir.present" message="Source directory ${src.dir} not found"/>
+    
+    <!-- Check Java version -->
+    <condition property="java.version.ok">
+      <and>
+        <contains string="${java.version}" substring="11"/>
+      </and>
+    </condition>
+    <fail unless="java.version.ok" message="Java 11 or higher required. Current version: ${java.version}"/>
+    
+    <echo message="Build initialized at ${build.timestamp}"/>
+  </target>
+
+  <!-- Target: clean - Clean build artifacts -->
+  <target name="clean" description="Clean build and distribution directories">
+    <echo message="Cleaning build directories..."/>
+    <delete dir="${build.dir}" quiet="true"/>
+    <delete dir="${dist.dir}" quiet="true"/>
+    <delete>
+      <fileset dir="." includes="**/*.log"/>
+      <fileset dir="." includes="**/.DS_Store"/>
+    </delete>
+    <echo message="Clean completed"/>
+  </target>
+
+  <!-- Target: resolve - Resolve dependencies with Ivy -->
+  <target name="resolve" depends="init" description="Resolve and retrieve dependencies">
+    <echo message="Resolving dependencies..."/>
+    <ivy:retrieve pattern="${lib.dir}/[conf]/[artifact]-[revision].[ext]" sync="true"/>
+    <ivy:report todir="${build.dir}/ivy-reports"/>
+    <echo message="Dependencies resolved"/>
+  </target>
+
+  <!-- Target: compile - Compile Java source -->
+  <target name="compile" depends="init,resolve" description="Compile Java source code">
+    <echo message="Compiling Java sources..."/>
+    
+    <javac srcdir="${src.dir}"
+           destdir="${build.classes.dir}"
+           source="${java.source.version}"
+           target="${java.target.version}"
+           debug="${javac.debug}"
+           deprecation="${javac.deprecation}"
+           optimize="${javac.optimize}"
+           includeantruntime="false"
+           encoding="UTF-8">
+      <classpath refid="compile.classpath"/>
+      <compilerarg value="-Xlint:unchecked"/>
+      <compilerarg value="-Xlint:deprecation"/>
+    </javac>
+    
+    <!-- Copy resources -->
+    <copy todir="${build.classes.dir}">
+      <fileset dir="${resources.dir}">
+        <include name="**/*"/>
+        <exclude name="**/*.java"/>
+      </fileset>
+    </copy>
+    
+    <!-- Filter and copy configuration files -->
+    <copy todir="${build.classes.dir}" filtering="true">
+      <fileset dir="${config.dir}">
+        <include name="**/*.properties"/>
+        <include name="**/*.xml"/>
+      </fileset>
+      <filterset>
+        <filter token="PROJECT_VERSION" value="${project.version}"/>
+        <filter token="BUILD_TIMESTAMP" value="${build.timestamp}"/>
+        <filter token="DB_URL" value="${db.url}"/>
+        <filter token="DB_USER" value="${db.user}"/>
+      </filterset>
+    </copy>
+    
+    <echo message="Compilation completed"/>
+  </target>
+
+  <!-- Target: compile-tests - Compile test sources -->
+  <target name="compile-tests" depends="compile" description="Compile test source code">
+    <echo message="Compiling test sources..."/>
+    
+    <javac srcdir="${test.src.dir}"
+           destdir="${build.test.classes.dir}"
+           source="${java.source.version}"
+           target="${java.target.version}"
+           debug="true"
+           includeantruntime="false"
+           encoding="UTF-8">
+      <classpath refid="test.classpath"/>
+    </javac>
+    
+    <!-- Copy test resources -->
+    <copy todir="${build.test.classes.dir}">
+      <fileset dir="${test.resources.dir}">
+        <include name="**/*"/>
+        <exclude name="**/*.java"/>
+      </fileset>
+    </copy>
+    
+    <echo message="Test compilation completed"/>
+  </target>
+
+  <!-- Target: test - Run unit tests -->
+  <target name="test" depends="compile-tests" description="Run unit tests with JUnit">
+    <echo message="Running unit tests..."/>
+    
+    <junit printsummary="true" 
+           haltonfailure="false" 
+           haltonerror="false"
+           fork="true"
+           forkmode="perBatch">
+      
+      <classpath>
+        <path refid="test.classpath"/>
+        <pathelement location="${build.test.classes.dir}"/>
+      </classpath>
+      
+      <formatter type="xml"/>
+      <formatter type="plain"/>
+      
+      <batchtest todir="${build.test.reports.dir}">
+        <fileset dir="${test.src.dir}">
+          <include name="**/*Test.java"/>
+          <include name="**/*TestCase.java"/>
+          <exclude name="**/Abstract*Test.java"/>
+        </fileset>
+      </batchtest>
+    </junit>
+    
+    <!-- Generate HTML test reports -->
+    <junitreport todir="${build.test.reports.dir}">
+      <fileset dir="${build.test.reports.dir}">
+        <include name="TEST-*.xml"/>
+      </fileset>
+      <report format="frames" todir="${build.test.reports.dir}/html"/>
+    </junitreport>
+    
+    <echo message="Unit tests completed. Reports available in ${build.test.reports.dir}/html"/>
+  </target>
+
+  <!-- Target: package - Create application packages -->
+  <target name="package" depends="compile" description="Create JAR and WAR files">
+    <echo message="Creating application packages..."/>
+    
+    <!-- Create JAR file -->
+    <jar destfile="${dist.dir}/${project.name}-${project.version}.jar"
+         basedir="${build.classes.dir}">
+      <manifest>
+        <attribute name="Built-By" value="${user.name}"/>
+        <attribute name="Built-Date" value="${build.timestamp}"/>
+        <attribute name="Implementation-Title" value="${project.name}"/>
+        <attribute name="Implementation-Version" value="${project.version}"/>
+        <attribute name="Implementation-Vendor" value="${project.vendor}"/>
+        <attribute name="Main-Class" value="com.example.app.Main"/>
+        <attribute name="Class-Path" value="lib/"/>
+      </manifest>
+    </jar>
+    
+    <!-- Prepare web application -->
+    <copy todir="${build.web.dir}">
+      <fileset dir="${web.dir}"/>
+    </copy>
+    
+    <copy todir="${build.web.dir}/WEB-INF/classes">
+      <fileset dir="${build.classes.dir}"/>
+    </copy>
+    
+    <copy todir="${build.web.dir}/WEB-INF/lib">
+      <fileset dir="${lib.dir}/runtime">
+        <include name="*.jar"/>
+      </fileset>
+    </copy>
+    
+    <!-- Create WAR file -->
+    <war destfile="${dist.dir}/${project.name}-${project.version}.war"
+         webxml="${build.web.dir}/WEB-INF/web.xml">
+      <fileset dir="${build.web.dir}">
+        <exclude name="WEB-INF/web.xml"/>
+      </fileset>
+      <manifest>
+        <attribute name="Built-By" value="${user.name}"/>
+        <attribute name="Built-Date" value="${build.timestamp}"/>
+        <attribute name="Implementation-Title" value="${project.name}"/>
+        <attribute name="Implementation-Version" value="${project.version}"/>
+        <attribute name="Implementation-Vendor" value="${project.vendor}"/>
+      </manifest>
+    </war>
+    
+    <echo message="Packages created in ${dist.dir}"/>
+  </target>
+
+  <!-- Target: javadoc - Generate API documentation -->
+  <target name="javadoc" depends="init" description="Generate Javadoc API documentation">
+    <echo message="Generating Javadoc documentation..."/>
+    
+    <javadoc destdir="${build.javadoc.dir}"
+             author="true"
+             version="true"
+             use="true"
+             windowtitle="${project.name} API Documentation"
+             doctitle="${project.name} v${project.version}"
+             bottom="Copyright © 2025 ${project.vendor}. All rights reserved."
+             access="protected"
+             encoding="UTF-8"
+             charset="UTF-8">
+      
+      <packageset dir="${src.dir}" defaultexcludes="yes">
+        <include name="com/example/**"/>
+        <exclude name="**/*Test*"/>
+      </packageset>
+      
+      <classpath refid="compile.classpath"/>
+      
+      <link href="https://docs.oracle.com/en/java/javase/11/docs/api/"/>
+      <link href="https://junit.org/junit4/javadoc/latest/"/>
+      
+      <group title="Core API" packages="com.example.core*"/>
+      <group title="Web Layer" packages="com.example.web*"/>
+      <group title="Data Access" packages="com.example.dao*"/>
+      <group title="Utilities" packages="com.example.util*"/>
+    </javadoc>
+    
+    <echo message="Javadoc generated in ${build.javadoc.dir}"/>
+  </target>
+
+  <!-- Target: build - Complete build process -->
+  <target name="build" depends="compile,test,package" description="Complete build process">
+    <echo message="Build completed successfully for ${project.name} v${project.version}"/>
+  </target>
+
+  <!-- Target: deploy - Deploy to application server -->
+  <target name="deploy" depends="package" description="Deploy application to server">
+    <echo message="Deploying ${project.name} to ${server.deploy.dir}..."/>
+    
+    <copy file="${dist.dir}/${project.name}-${project.version}.war"
+          tofile="${server.deploy.dir}/${project.name}.war"
+          overwrite="true"/>
+    
+    <echo message="Application deployed to ${server.deploy.dir}/${project.name}.war"/>
+  </target>
+
+  <!-- Target: undeploy - Remove application from server -->
+  <target name="undeploy" description="Remove application from server">
+    <echo message="Undeploying ${project.name} from ${server.deploy.dir}..."/>
+    
+    <delete file="${server.deploy.dir}/${project.name}.war" quiet="true"/>
+    <delete dir="${server.deploy.dir}/${project.name}" quiet="true"/>
+    
+    <echo message="Application removed from server"/>
+  </target>
+
+  <!-- Target: db-migrate - Run database migrations -->
+  <target name="db-migrate" depends="init" description="Run database migrations">
+    <echo message="Running database migrations..."/>
+    
+    <sql driver="${db.driver}"
+         url="${db.url}"
+         userid="${db.user}"
+         password="${db.password}"
+         classpath="${lib.dir}/database/postgresql.jar"
+         onerror="abort"
+         print="true">
+      <fileset dir="sql/migrations">
+        <include name="*.sql"/>
+      </fileset>
+    </sql>
+    
+    <echo message="Database migrations completed"/>
+  </target>
+
+  <!-- Target: dist - Create distribution package -->
+  <target name="dist" depends="build,javadoc" description="Create complete distribution package">
+    <echo message="Creating distribution package..."/>
+    
+    <zip destfile="${dist.dir}/${project.name}-${project.version}-dist.zip">
+      <zipfileset dir="${dist.dir}" includes="*.jar,*.war" prefix="${project.name}-${project.version}"/>
+      <zipfileset dir="${build.javadoc.dir}" prefix="${project.name}-${project.version}/docs"/>
+      <zipfileset dir="." includes="README.md,LICENSE,CHANGELOG.md" prefix="${project.name}-${project.version}"/>
+      <zipfileset dir="config" prefix="${project.name}-${project.version}/config"/>
+      <zipfileset dir="sql" prefix="${project.name}-${project.version}/sql"/>
+    </zip>
+    
+    <!-- Create checksums -->
+    <checksum file="${dist.dir}/${project.name}-${project.version}-dist.zip" algorithm="SHA-256"/>
+    <checksum file="${dist.dir}/${project.name}-${project.version}.jar" algorithm="SHA-256"/>
+    <checksum file="${dist.dir}/${project.name}-${project.version}.war" algorithm="SHA-256"/>
+    
+    <echo message="Distribution package created: ${dist.dir}/${project.name}-${project.version}-dist.zip"/>
+  </target>
+
+  <!-- Target: all - Complete build and distribution -->
+  <target name="all" depends="clean,dist" description="Complete clean build and distribution">
+    <echo message="Complete build process finished for ${project.name} v${project.version}"/>
+  </target>
+
+</project>

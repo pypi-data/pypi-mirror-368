@@ -1,0 +1,375 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<application xmlns="http://wadl.dev.java.net/2009/02"
+             xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    
+    <doc title="E-Commerce API v2.0">
+        Comprehensive REST API for e-commerce platform with advanced features
+        including user management, product catalog, orders, and payments.
+    </doc>
+
+    <grammars>
+        <include href="schemas/user.xsd" mediaType="application/xml"/>
+        <include href="schemas/product.xsd" mediaType="application/xml"/>
+        <include href="schemas/order.xsd" mediaType="application/xml"/>
+        
+        <xsd:schema targetNamespace="http://api.ecommerce.com/types"
+                   xmlns:tns="http://api.ecommerce.com/types">
+            <xsd:element name="error">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="code" type="xsd:int"/>
+                        <xsd:element name="message" type="xsd:string"/>
+                        <xsd:element name="details" type="xsd:string" minOccurs="0"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+        </xsd:schema>
+    </grammars>
+
+    <resources base="https://api.ecommerce.com/v2">
+        
+        <!-- User Management -->
+        <resource path="users">
+            <doc>User management endpoints</doc>
+            
+            <method name="GET" id="listUsers">
+                <doc>List all users (admin only)</doc>
+                <request>
+                    <param name="api_key" style="query" type="xsd:string" required="true">
+                        <doc>API key for authentication</doc>
+                    </param>
+                    <param name="role" style="query" type="xsd:string">
+                        <doc>Filter by user role</doc>
+                        <option value="admin" mediaType="text/plain"/>
+                        <option value="customer" mediaType="text/plain"/>
+                        <option value="merchant" mediaType="text/plain"/>
+                    </param>
+                    <param name="active" style="query" type="xsd:boolean" default="true">
+                        <doc>Filter by account status</doc>
+                    </param>
+                    <param name="page" style="query" type="xsd:int" default="1">
+                        <doc>Page number for pagination</doc>
+                    </param>
+                    <param name="per_page" style="query" type="xsd:int" default="20">
+                        <doc>Items per page (max 100)</doc>
+                    </param>
+                </request>
+                <response status="200">
+                    <doc>List of users</doc>
+                    <representation mediaType="application/json">
+                        <doc>JSON array of user objects with pagination metadata</doc>
+                    </representation>
+                    <representation mediaType="application/xml" element="tns:users">
+                        <doc>XML list of users</doc>
+                    </representation>
+                </response>
+                <response status="401">
+                    <doc>Unauthorized - invalid API key</doc>
+                    <representation mediaType="application/json"/>
+                </response>
+                <response status="403">
+                    <doc>Forbidden - insufficient permissions</doc>
+                    <representation mediaType="application/json"/>
+                </response>
+            </method>
+            
+            <method name="POST" id="createUser">
+                <doc>Create a new user account</doc>
+                <request>
+                    <param name="Content-Type" style="header" type="xsd:string" required="true" 
+                           default="application/json">
+                        <doc>Request content type</doc>
+                    </param>
+                    <representation mediaType="application/json">
+                        <doc>User registration data in JSON format</doc>
+                    </representation>
+                    <representation mediaType="application/xml" element="tns:user">
+                        <doc>User registration data in XML format</doc>
+                    </representation>
+                </request>
+                <response status="201">
+                    <doc>User created successfully</doc>
+                    <representation mediaType="application/json">
+                        <doc>Created user object with generated ID</doc>
+                    </representation>
+                    <representation mediaType="application/xml" element="tns:user">
+                        <doc>Created user in XML format</doc>
+                    </representation>
+                </response>
+                <response status="400">
+                    <doc>Bad request - validation errors</doc>
+                    <representation mediaType="application/json">
+                        <doc>Validation error details</doc>
+                    </representation>
+                </response>
+                <response status="409">
+                    <doc>Conflict - email already exists</doc>
+                    <representation mediaType="application/json"/>
+                </response>
+            </method>
+            
+            <resource path="{userId}">
+                <doc>Individual user operations</doc>
+                <param name="userId" style="template" type="xsd:string" required="true">
+                    <doc>Unique user identifier (UUID or username)</doc>
+                </param>
+                
+                <method name="GET" id="getUser">
+                    <doc>Retrieve user profile</doc>
+                    <request>
+                        <param name="Authorization" style="header" type="xsd:string" required="true">
+                            <doc>Bearer token or API key</doc>
+                        </param>
+                        <param name="include_private" style="query" type="xsd:boolean" default="false">
+                            <doc>Include private profile data (self or admin only)</doc>
+                        </param>
+                    </request>
+                    <response status="200">
+                        <representation mediaType="application/json">
+                            <doc>User profile data</doc>
+                        </representation>
+                        <representation mediaType="application/xml" element="tns:user">
+                            <doc>User profile in XML</doc>
+                        </representation>
+                    </response>
+                    <response status="404">
+                        <doc>User not found</doc>
+                    </response>
+                </method>
+                
+                <method name="PUT" id="updateUser">
+                    <doc>Update user profile</doc>
+                    <request>
+                        <param name="Authorization" style="header" type="xsd:string" required="true">
+                            <doc>Bearer token</doc>
+                        </param>
+                        <param name="If-Match" style="header" type="xsd:string">
+                            <doc>ETag for optimistic concurrency control</doc>
+                        </param>
+                        <representation mediaType="application/json">
+                            <doc>Updated user data</doc>
+                        </representation>
+                    </request>
+                    <response status="200">
+                        <doc>User updated successfully</doc>
+                        <representation mediaType="application/json"/>
+                    </response>
+                    <response status="409">
+                        <doc>Conflict - resource modified by another request</doc>
+                    </response>
+                    <response status="412">
+                        <doc>Precondition failed - ETag mismatch</doc>
+                    </response>
+                </method>
+                
+                <resource path="orders">
+                    <doc>User's order history</doc>
+                    
+                    <method name="GET" id="getUserOrders">
+                        <doc>Get user's order history</doc>
+                        <request>
+                            <param name="Authorization" style="header" type="xsd:string" required="true"/>
+                            <param name="status" style="query" type="xsd:string">
+                                <doc>Filter by order status</doc>
+                                <option value="pending"/>
+                                <option value="processing"/>
+                                <option value="shipped"/>
+                                <option value="delivered"/>
+                                <option value="cancelled"/>
+                            </param>
+                            <param name="from_date" style="query" type="xsd:date">
+                                <doc>Orders from this date (YYYY-MM-DD)</doc>
+                            </param>
+                            <param name="to_date" style="query" type="xsd:date">
+                                <doc>Orders until this date (YYYY-MM-DD)</doc>
+                            </param>
+                        </request>
+                        <response status="200">
+                            <representation mediaType="application/json">
+                                <doc>Array of order objects</doc>
+                            </representation>
+                        </response>
+                    </method>
+                </resource>
+            </resource>
+        </resource>
+        
+        <!-- Product Catalog -->
+        <resource path="products">
+            <doc>Product catalog management</doc>
+            
+            <method name="GET" id="searchProducts">
+                <doc>Search and filter products</doc>
+                <request>
+                    <param name="q" style="query" type="xsd:string">
+                        <doc>Search query for product name or description</doc>
+                    </param>
+                    <param name="category" style="query" type="xsd:string" repeating="true">
+                        <doc>Filter by category (can specify multiple)</doc>
+                    </param>
+                    <param name="min_price" style="query" type="xsd:decimal">
+                        <doc>Minimum price filter</doc>
+                    </param>
+                    <param name="max_price" style="query" type="xsd:decimal">
+                        <doc>Maximum price filter</doc>
+                    </param>
+                    <param name="in_stock" style="query" type="xsd:boolean">
+                        <doc>Filter by stock availability</doc>
+                    </param>
+                    <param name="sort" style="query" type="xsd:string" default="relevance">
+                        <doc>Sort order</doc>
+                        <option value="relevance"/>
+                        <option value="price_asc"/>
+                        <option value="price_desc"/>
+                        <option value="name"/>
+                        <option value="newest"/>
+                        <option value="rating"/>
+                    </param>
+                    <param name="Accept-Language" style="header" type="xsd:string">
+                        <doc>Preferred language for product descriptions</doc>
+                    </param>
+                </request>
+                <response status="200">
+                    <doc>Product search results</doc>
+                    <representation mediaType="application/json">
+                        <doc>Search results with products and facets</doc>
+                    </representation>
+                    <representation mediaType="application/xml" element="tns:products">
+                        <doc>Product list in XML format</doc>
+                    </representation>
+                </response>
+            </method>
+            
+            <resource path="{productId}">
+                <param name="productId" style="template" type="xsd:string" required="true">
+                    <doc>Product identifier (SKU or UUID)</doc>
+                </param>
+                
+                <method name="GET" id="getProduct">
+                    <doc>Get detailed product information</doc>
+                    <request>
+                        <param name="include_variants" style="query" type="xsd:boolean" default="true">
+                            <doc>Include product variants and options</doc>
+                        </param>
+                        <param name="include_reviews" style="query" type="xsd:boolean" default="false">
+                            <doc>Include customer reviews</doc>
+                        </param>
+                    </request>
+                    <response status="200">
+                        <representation mediaType="application/json">
+                            <doc>Complete product information</doc>
+                        </representation>
+                        <representation mediaType="application/xml" element="tns:product"/>
+                    </response>
+                    <response status="404">
+                        <doc>Product not found</doc>
+                        <representation mediaType="application/json"/>
+                    </response>
+                </method>
+                
+                <resource path="reviews">
+                    <doc>Product reviews and ratings</doc>
+                    
+                    <method name="GET" id="getProductReviews">
+                        <doc>Get product reviews</doc>
+                        <request>
+                            <param name="rating" style="query" type="xsd:int">
+                                <doc>Filter by star rating (1-5)</doc>
+                            </param>
+                            <param name="verified_only" style="query" type="xsd:boolean" default="false">
+                                <doc>Show only verified purchase reviews</doc>
+                            </param>
+                        </request>
+                        <response status="200">
+                            <representation mediaType="application/json"/>
+                        </response>
+                    </method>
+                    
+                    <method name="POST" id="createReview">
+                        <doc>Submit a product review</doc>
+                        <request>
+                            <param name="Authorization" style="header" type="xsd:string" required="true">
+                                <doc>User authentication token</doc>
+                            </param>
+                            <representation mediaType="application/json">
+                                <doc>Review data including rating and comment</doc>
+                            </representation>
+                        </request>
+                        <response status="201">
+                            <doc>Review created successfully</doc>
+                            <representation mediaType="application/json"/>
+                        </response>
+                        <response status="400">
+                            <doc>Invalid review data</doc>
+                        </response>
+                        <response status="409">
+                            <doc>User has already reviewed this product</doc>
+                        </response>
+                    </method>
+                </resource>
+            </resource>
+        </resource>
+        
+        <!-- Orders -->
+        <resource path="orders">
+            <doc>Order management</doc>
+            
+            <method name="POST" id="createOrder">
+                <doc>Create a new order</doc>
+                <request>
+                    <param name="Authorization" style="header" type="xsd:string" required="true"/>
+                    <param name="Idempotency-Key" style="header" type="xsd:string">
+                        <doc>Unique key to prevent duplicate orders</doc>
+                    </param>
+                    <representation mediaType="application/json">
+                        <doc>Order data with items, shipping, and payment info</doc>
+                    </representation>
+                </request>
+                <response status="201">
+                    <doc>Order created successfully</doc>
+                    <representation mediaType="application/json">
+                        <doc>Created order with ID and status</doc>
+                    </representation>
+                </response>
+                <response status="400">
+                    <doc>Invalid order data</doc>
+                </response>
+                <response status="402">
+                    <doc>Payment required - insufficient funds or invalid payment method</doc>
+                </response>
+            </method>
+            
+            <resource path="{orderId}">
+                <param name="orderId" style="template" type="xsd:string" required="true"/>
+                
+                <method name="GET" id="getOrder">
+                    <doc>Get order details</doc>
+                    <request>
+                        <param name="Authorization" style="header" type="xsd:string" required="true"/>
+                    </request>
+                    <response status="200">
+                        <representation mediaType="application/json"/>
+                        <representation mediaType="application/xml" element="tns:order"/>
+                    </response>
+                </method>
+                
+                <method name="PATCH" id="updateOrderStatus">
+                    <doc>Update order status (admin/merchant only)</doc>
+                    <request>
+                        <param name="Authorization" style="header" type="xsd:string" required="true"/>
+                        <representation mediaType="application/json">
+                            <doc>Status update with optional tracking information</doc>
+                        </representation>
+                    </request>
+                    <response status="200">
+                        <doc>Order status updated</doc>
+                        <representation mediaType="application/json"/>
+                    </response>
+                    <response status="403">
+                        <doc>Insufficient permissions</doc>
+                    </response>
+                </method>
+            </resource>
+        </resource>
+    </resources>
+</application>
