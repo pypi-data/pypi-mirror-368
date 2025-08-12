@@ -1,0 +1,107 @@
+[build-system]
+requires = ["hatchling >= 1.27.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "fastapi_validation_i18n/__init__.py"
+
+[project]
+name = "fastapi_validation_i18n"
+description = "FastAPI request validation with i18n error message"
+readme = "README.md"
+requires-python = ">=3.8"
+license = "MIT"
+authors = [
+    { name = "whchi", email = "whccchi@gmail.com" },
+]
+dependencies = [
+    "fastapi>0.99",
+    "pydantic>=2",
+]
+dynamic = ["version"]
+keywords = [
+    'fastapi',
+    'pydantic',
+    'validation',
+    'i18n',
+]
+[project.urls]
+Repository = "https://github.com/whchi/fastapi-validation-i18n"
+[project.scripts]
+publish-locale = 'fastapi_validation_i18n.scripts.publish:main'
+test = 'pytest:main'
+
+[tool.mypy]
+strict_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+disallow_any_generics = true
+check_untyped_defs = true
+
+[tool.yapf]
+column_limit = 88
+based_on_style = "google"
+split_before_logical_operator = true
+split_before_arithmetic_operator = true # flake8 W504
+
+[tool.ruff]
+line-length = 88
+lint.select = [
+    "E", # pycodestyle errors
+    "W", # pycodestyle warnings
+    "F", # pyflakes
+    "I", # isort
+    "C", # flake8-comprehensions
+    "B", # flake8-bugbear
+]
+lint.ignore = [
+    "E501",
+    "B008",
+    "E402",
+    "E226",
+    "B904",
+    "B030",
+    "B006"
+]
+extend-exclude = [
+    ".venv",
+    ".git",
+    "__pycache__",
+    "__init__.py",
+    "frontend",
+]
+[tool.ruff.lint.isort]
+force-single-line = false
+force-sort-within-sections = true
+known-third-party = ["fastapi", "pydantic", "starlette"]
+single-line-exclusions = ["typing"]
+order-by-type = false
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = "single"
+
+[tool.pytest.ini_options]
+addopts = """
+  -ra
+  -q
+  --strict-markers
+"""
+
+testpaths = [
+  "tests"
+]
+
+log_format = "%(asctime)s (%(filename)-16s:%(lineno)-3s) %(levelname)-8s %(message)s"
+log_date_format = "%Y-%M-%D %H:%M:%S"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.3.4",
+    "yapf>=0.40.2",
+    "uvicorn>=0.29.0",
+    "mypy>=1.9.0",
+    "pytest>=8.1.1",
+    "pre-commit>=3.5.0",
+    "pydantic-core>=2.16.0",
+]
