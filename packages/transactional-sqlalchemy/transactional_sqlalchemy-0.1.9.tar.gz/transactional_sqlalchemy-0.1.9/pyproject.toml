@@ -1,0 +1,142 @@
+[project]
+name = "transactional-sqlalchemy"
+version = "0.1.9"
+description = "transactional management using sqlalchemy"
+authors = [{ name = "alban", email = 'decade_vesper.8i@icloud.com' }]
+license-files = ["LICENSE"]
+requires-python = ">=3.9"
+dependencies = [
+    "setuptools>=76.1.0",
+    "sqlalchemy[asyncio]>=2.0.0",
+    "tox>=4.28.4",
+    "tox-uv>=1.26.2",
+    "wheel>=0.45.1",
+]
+readme = "README.md"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Database",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Framework :: AsyncIO",
+]
+keywords = ["sqlalchemy", "transaction", "async", "database", "orm"]
+
+[project.optional-dependencies]
+async = ["sqlalchemy[asyncio]>=2.0.0"]
+dev = [
+    "aiosqlite>=0.21.0",
+    "pre-commit>=4.2.0",
+]
+test = [
+    "pytest[asyncio]>=8.3.5",
+    "pytest-asyncio>=0.25.3",
+    "pytest-cov>=6.2.1",
+    "aiosqlite>=0.21.0",
+    "pytest[asyncio]>=8.3.5",
+    "pytest-asyncio>=0.25.3",
+    "pytest-sqlalchemy>=0.2.1",
+    "pytest-xdist>=3.8.0",
+    "pytest-cov>=6.2.1",
+    "pytest-html>=4.1.1",
+]
+lint = [
+    "ruff>=0.1.0",
+]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+
+[project.urls]
+"Homepage" = "https://github.com/AlBaneo93/transactional_sqlalchemy"
+"Bug Reports" = "https://github.com/AlBaneo93/transactional_sqlalchemy/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["transactional_sqlalchemy*"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+include = ["transactional_sqlalchemy/**/*.py", "tests/**/*.py"]
+extend-include = [".venv", "build", "dist", "migrations"]
+
+[tool.ruff.lint]
+fixable = ["ALL"]
+extend-select = ["Q", "RUF100", "C90", "UP", "I", "E", "F"]
+isort = { combine-as-imports = true, known-first-party = [
+    "transactional_sqlalchemy",
+], split-on-trailing-comma = true }
+mccabe = { max-complexity = 12 }
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+
+[tool.ruff.format]
+quote-style = "double"
+line-ending = "lf"
+skip-magic-trailing-comma = false
+docstring-code-format = true
+
+
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra -q --cov=transactional_sqlalchemy --cov-report=term-missing"
+#asyncio_default_fixture_loop_scope = "function"
+asyncio_mode = "auto"
+
+log_cli = true
+log_cli_level = "INFO"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+log_cli_format = "%(levelname)-8s %(asctime)s %(name)s::%(filename)s:%(funcName)s:%(lineno)d: %(message)s"
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.2.0",
+]
+
+
+[tool.tox]
+env_list = [
+    "py39",
+    "py310",
+    "py311",
+    "py312",
+]
+
+
+[tool.tox.env_run_base]
+description = "Run test under {base_python}"
+commands = [["pytest"]]
+
+[tool.tox.testenv]
+deps = [
+    "pytest",
+    "transactional-sqlalchemy[async]",
+    "pytest-asyncio",
+    "pytest-cov",
+    "pytest-html",
+    "pytest-xdist",
+]
+commands = [
+    "pytest -n auto -e .",
+]
+toxdeps = [
+    "tox-uv"
+]
