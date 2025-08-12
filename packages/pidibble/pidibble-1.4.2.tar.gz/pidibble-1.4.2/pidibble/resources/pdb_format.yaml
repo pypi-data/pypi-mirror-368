@@ -1,0 +1,962 @@
+#
+# Format descriptions for pidibble pdb parser
+# Conforms to v 3.3 Atomic Coordinate Entry Format (2010)
+# Please see https://www.wwpdb.org/documentation/file-format-content/format33/v3.3.html
+#
+# Cameron F Abrams, cfa22@drexel.edu
+#
+# Revision history:
+#
+# 0. 31-JUL-2023: Initial formats
+# 1. 28-FEB-2024: Alphafold stuff
+#
+BASE_URL: https://files.rcsb.org/download
+ALPHAFOLD_API_URL: https://alphafold.ebi.ac.uk/api/prediction
+ALPHAFOLD_API_KEY: AIzaSyCeurAJz7ZGjPQUtEaerUkBZ3TaBkXrY94
+record_types:
+  1: one-time-single-line
+  2: one-time-multiple-line
+  3: multiple-times-one-line
+  4: multiple-times-multiple-lines
+  5: grouping
+  6: other
+custom_formats:
+  Residue10:
+    resName: [String,[1,4]]
+    chainID: [String,[5,5]]
+    seqNum:  [Integer,[6,9]]
+    iCode:  [String,[10,10]]
+  Residue11:
+    resName: [String,[1,4]]
+    chainID: [String,[5,5]]
+    seqNum:  [Integer,[7,10]]
+    iCode:  [String,[11,11]]
+  Residue12:
+    resName: [String,[1,4]]
+    chainID: [String,[5,5]]
+    seqNum:  [Integer,[7,11]]
+    iCode:  [String,[12,12]]
+  Biomtrow:
+    m1: [Float,[1,10]]
+    m2: [Float,[11,20]]
+    m3: [Float,[21,30]]
+    t:  [Float,[36,45]]
+
+record_formats:
+  HEADER:
+    type: 1
+    fields:
+      classification: [String,[11,50]]
+      depDate: [String,[51,59]]
+      idCode: [String,[63,66]]
+  OBSLTE:
+    type: 2
+    fields:
+      continuation: [String,[9,10]]
+      repDate: [String,[12,20]]
+      idCode: [String,[22,25]]
+      ridCodes: [WList,[32,75]]
+    continues:
+      - ridCodes
+  TITLE:
+    type: 2
+    fields:
+      continuation: [String,[9,10]]
+      title: [String,[11,80]]
+    continues:
+      - title
+  CRYST1:
+    type: 1
+    fields:
+        a: [Float,[7,15]]
+        b: [Float,[16,24]]
+        c: [Float,[25,33]]
+        alpha: [Float,[34,40]]
+        beta: [Float,[41,47]]
+        gamma: [Float,[48,54]]
+        sGroup: [String,[56,66]]
+        z: [Integer,[67,70]]
+  END:
+    type: 1
+  NUMMDL:
+    type: 1
+    fields:
+      modelNumber: [Integer,[11,14]]
+  MASTER:
+    type: 1
+    fields:
+      numRemark: [Integer,[11,15]]
+      numHet: [Integer,[21,25]]
+      numHelix: [Integer,[26,30]]
+      numSheet: [Integer,[31,35]]
+      numTurn: [Integer,[36,40]]
+      numSite: [Integer,[41,45]]
+      numXform: [Integer,[46,50]]
+      numCoord: [Integer,[51,55]]
+      numTer: [Integer,[56,60]]
+      numConect: [Integer,[61,65]]
+      numSeq: [Integer,[66,70]]
+  ORIGX1:
+    type: 1
+    fields:
+      O11: [Float,[11,20]]
+      O12: [Float,[21,30]]
+      O13: [Float,[31,40]]
+      T1: [Float,[46,55]]
+  ORIGX2:
+    type: 1
+    fields:
+      O21: [Float,[11,20]]
+      O22: [Float,[21,30]]
+      O23: [Float,[31,40]]
+      T2: [Float,[46,55]]
+  ORIGX3:
+    type: 1
+    fields:
+      O31: [Float,[11,20]]
+      O32: [Float,[21,30]]
+      O33: [Float,[31,40]]
+      T3: [Float,[46,55]]
+  SCALE1:
+    type: 1
+    fields:
+      S11: [Float,[11,20]]
+      S12: [Float,[21,30]]
+      S13: [Float,[31,40]]
+      U1: [Float,[46,55]]
+  SCALE2:
+    type: 1
+    fields:
+      S21: [Float,[11,20]]
+      S22: [Float,[21,30]]
+      S23: [Float,[31,40]]
+      U2: [Float,[46,55]]
+  SCALE3:
+    type: 1
+    fields:
+      S31: [Float,[11,20]]
+      S32: [Float,[21,30]]
+      S33: [Float,[31,40]]
+      U3: [Float,[46,55]]
+  AUTHOR:
+    type: 2
+    fields:
+      continuation: [String,[9,10]]
+      authorList: [CList,[11,79]]
+    continues:
+      - authorList
+  CAVEAT:
+    type: 2
+    fields:
+      continuation: [String,[9,10]]
+      idCode: [String,[12,15]]
+      comment: [String,[20,79]]
+    continues:
+      - comment
+  COMPND:
+    type: 2
+    fields:
+      continuation: [String,[9,10]]
+      compound: [SList,[11,80]]
+    continues:
+      - compound
+    token_formats:
+      compound:
+        tokens:
+          MOL_ID: 
+            type: Integer
+          MOLECULE: 
+            type: String
+          CHAIN: 
+            type: CList
+          FRAGMENT:
+            type: String
+          SYNONYM: 
+            type: CList
+          EC:
+            type: CList
+          ENGINEERED: 
+            type: String
+          MUTATION:
+            type: String
+          OTHER_DETAILS: 
+            type: String
+        determinants:
+          - MOL_ID
+  EXPDTA:
+    type: 2
+    fields:
+      continuation: [String,[9,10]]
+      technique: [String,[11,79]]
+    continues:
+      - technique
+  MDLTYP:
+    type: 2
+    fields: 
+      continuation: [String,[9,10]]
+      comment: [SList,[11,80]]
+    continues:
+      - comment
+  KEYWDS:
+    type: 2
+    fields:
+      continuation: [String,[9,10]]
+      keywds: [CList,[11,79]]
+    continues:
+      - keywds
+  SOURCE:
+    type: 2
+    fields:
+      continuation: [String,[9,10]]
+      srcName: [SList,[11,79]]
+    continues:
+      - srcName
+    token_formats:
+      srcName:
+        tokens:
+          MOL_ID:
+            type: Integer
+          SYNTHETIC:
+            type: String
+          FRAGMENT:
+            type: String
+          ORGANISM_SCIENTIFIC:
+            type: String
+          ORGANISM_COMMON:
+            type: String
+          ORGANISM_TAXID:
+            type: String
+          STRAIN:
+            type: String
+          VARIANT:
+            type: String
+          CELL_LINE:
+            type: String
+          ATCC:
+            type: String
+          ORGAN:
+            type: String
+          TISSUE:
+            type: String
+          CELL:
+            type: String
+          ORGANELLE:
+            type: String
+          SECRETION:
+            type: String
+          CELLULAR_LOCATION:
+            type: String
+          PLASMID:
+            type: String
+          GENE:
+            type: String
+          EXPRESSION_SYSTEM:
+            type: String
+          EXPRESSION_SYSTEM_COMMON:
+            type: String
+          EXPRESSION_SYSTEM_TAXID:
+            type: String
+          EXPRESSION_SYSTEM_STRAIN:
+            type: String
+          EXPRESSION_SYSTEM_VARIANT:
+            type: String
+          EXPRESSION_SYSTEM_CELL:
+            type: String
+          EXPRESSION_SYSTEM_CELL_LINE:
+            type: String
+          EXPRESSION_SYSTEM_ATCC_NUMBER:
+            type: String
+          EXPRESSION_SYSTEM_ORGAN:
+            type: String
+          EXPRESSION_SYSTEM_TISSUE:
+            type: String
+          EXPRESSION_SYSTEM_ORGANELLE:
+            type: String
+          EXPRESSION_SYSTEM_CELLULAR_LOCATION:
+            type: String
+          EXPRESSION_SYSTEM_VECTOR_TYPE:
+            type: String
+          EXPRESSION_SYSTEM_VECTOR:
+            type: String
+          EXPRESSION_SYSTEM_PLASMID:
+            type: String
+          EXPRESSION_SYSTEM_GENE:
+            type: String
+          OTHER_DETAILS:
+            type: String
+        determinants:
+          - MOL_ID
+  SPLIT:
+    type: 2
+    fields: 
+      continuation: [String,[9,10]]
+      idCodes: [WList,[12,80]]
+    continues:
+      - idCodes
+  SPRSDE:
+    type: 2
+    fields:
+      continuation: [String,[9,10]]
+      sprsdeDate: [String,[12,20]]
+      idCode: [String,[22,25]]
+      sidCodes: [WList,[32,75]]
+    continues:
+      - sidCodes
+  ANISOU:
+    type: 3
+    groupby: MODEL.serial
+    fields:
+      serial: [HxInteger,[7,11]]
+      name: [String,[13,16]]
+      altLoc: [String,[17,17]]
+      residue: [Residue10,[18,27]]
+      u00: [Integer,[29,35]]
+      u11: [Integer,[36,42]]
+      u22: [Integer,[43,49]]
+      u01: [Integer,[50,56]]
+      u02: [Integer,[57,63]]
+      u12: [Integer,[64,70]]
+      element: [String,[77,78]]
+      charge: [Float,[79,80]] # String?      
+  ATOM:
+    type: 3
+    groupby: MODEL.serial
+    fields:
+      serial: [HxInteger,[7,11]]
+      name: [String,[13,16]]
+      altLoc: [String,[17,17]]
+      residue: [Residue10,[18,27]]
+      x: [Float,[31,38]]
+      y: [Float,[39,46]]
+      z: [Float,[47,54]]
+      occupancy: [Float,[55,60]]
+      tempFactor: [Float,[61,66]]
+      element: [String,[77,78]]
+      charge: [Float,[79,80]] # String?
+  HETATM:
+    type: 3
+    groupby: MODEL.serial
+    fields:
+      serial: [HxInteger,[7,11]]
+      name: [String,[13,16]]
+      altLoc: [String,[17,17]]
+      residue: [Residue10,[18,27]]
+      x: [Float,[31,38]]
+      y: [Float,[39,46]]
+      z: [Float,[47,54]]
+      occupancy: [Float,[55,60]]
+      tempFactor: [Float,[61,66]]
+      element: [String,[77,78]]
+      charge: [Float,[79,80]] # String?
+  CISPEP:
+    type: 3
+    fields:
+      serNum: [Integer,[8,10]]
+      residue1: [Residue11,[12,22]]
+      residue2: [Residue11,[26,36]]
+      modNum: [Integer,[44,46]]
+      measure: [Float,[54,59]]
+  CONECT:
+    type: 3
+    fields:
+      serial: [HxInteger,[7,11]]
+      partner1: [HxInteger,[12,16]]
+      partner2: [HxInteger,[17,21]]
+      partner3: [HxInteger,[22,26]]
+      partner4: [HxInteger,[27,31]]
+    concatenate:
+      partners:
+        - partner1
+        - partner2
+        - partner3
+        - partner4
+  DBREF:
+    type: 3
+    fields:
+      idCode: [String,[8,11]]
+      chainID: [String,[13,13]]
+      seqBegin: [Integer,[15,18]]
+      insertBegin: [String,[19,19]]
+      seqEnd: [Integer,[21,24]]
+      insertEnd: [String,[25,25]]
+      database: [String,[27,32]]
+      dbAccession: [String,[34,41]]
+      dbIdCode: [String,[43,54]]
+      dbseqBegin: [Integer,[56,60]]
+      dbinsBegin: [String,[61,61]]
+      dbseqEnd: [Integer,[63,67]]
+      dbinsEnd: [String,[68,68]]
+  DBREF1:
+    fields:
+      idCode: [String,[8,11]]
+      chainID: [String,[13,13]]
+      seqBegin: [Integer,[15,18]]
+      insertBegin: [String,[19,19]]
+      seqEnd: [Integer,[21,24]]
+      insertEnd: [String,[25,25]]
+      database: [String,[27,32]]
+      dbIdCode: [String,[48,67]]
+  DBREF2:
+    fields:
+      idCode: [String,[8,11]]
+      chainID: [String,[13,13]]
+      dbAccession: [String,[19,40]]
+      seqBegin: [Integer,[46,55]]
+      seqEnd: [Integer,[58,67]]
+  HELIX:
+    type: 3
+    fields:
+      serNum: [Integer,[8,10]]
+      helixID: [String,[12,14]]
+      initRes: [Residue11,[16,26]]
+      endRes: [Residue11,[28,38]]
+      helixClass: [Integer,[39,40]]
+      comment: [String,[41,70]]
+      length: [Integer,[72,76]]
+    mappings: # not used
+      helixClass:
+        1: Right-handed alpha
+        2: Right-handed omega
+        3: Right-handed pi
+        4: Right-handed gamma
+        5: Right-handed 3-10
+        6: Left-handed alpha
+        7: Left-handed omega
+        8: Left-handed gamma
+        9: 2-7 ribbon/helix
+        10: Polyproline
+  HET:
+    type: 3
+    fields:
+      residue: [Residue11,[8,18]]
+      numHetAtoms: [Integer,[21,25]]
+      text: [String,[31,70]]
+  LINK:
+    type: 3
+    fields:
+      name1: [String,[13,16]]
+      altLoc1: [String,[17,17]]
+      residue1: [Residue10,[18,27]]
+      name2: [String,[43,46]]
+      altLoc2: [String,[47,47]]
+      residue2: [Residue10,[48,57]]
+      sym1: [String,[60,65]]
+      sym2: [String,[67,72]]
+      length: [Float,[74,78]]
+  MODRES:
+    type: 3
+    fields:
+      idCode: [String,[8,11]]
+      residue: [Residue11,[13,23]]
+      stdRes: [String,[25,27]]
+      comment: [String,[30,70]]
+  MTRIX1:
+    type: 3
+    fields:
+      serial: [Integer,[8,10]]
+      M11: [Float,[11,20]]
+      M12: [Float,[21,30]]
+      M13: [Float,[31,40]]
+      V1: [Float,[46,55]]
+      iGiven: [Integer,[60,60]]
+  MTRIX2:
+    type: 3
+    fields:
+      serial: [Integer,[8,10]]
+      M21: [Float,[11,20]]
+      M22: [Float,[21,30]]
+      M23: [Float,[31,40]]
+      V2: [Float,[46,55]]
+      iGiven: [Integer,[60,60]]
+  MTRIX3:
+    type: 3
+    fields:
+      serial: [Integer,[8,10]]
+      M31: [Float,[11,20]]
+      M32: [Float,[21,30]]
+      M33: [Float,[31,40]]
+      V3: [Float,[46,55]]
+      iGiven: [Integer,[60,60]]
+  REVDAT:
+    type: 3
+    fields: 
+      modNum: [Integer,[8,10]]
+      continuation: [String,[11,12]]
+      modDate: [String,[14,22]]
+      modId: [String,[24,27]]
+      modType: [Integer,[32,32]]
+      records: [WList,[40,66]]
+    allowed:
+      modType: [0,1]
+    continues:
+      - records
+    determinants:
+      - modNum
+  SEQADV:
+    type: 3
+    fields:
+      idCode: [String,[8,11]]
+      residue: [Residue11,[13,23]]
+      database: [String,[25,28]]
+      dbAccession: [String,[30,38]]
+      dbRes: [String,[40,42]]
+      dbSeq: [Integer,[44,48]]
+      dbIcode: [String,[49,49]]
+      conflict: [String,[50,70]]
+  SHEET:
+    type: 3
+    fields:
+      strand: [Integer,[8,10]]
+      sheetID: [String,[12,14]]
+      numStrands: [Integer,[15,16]]
+      initRes: [Residue10,[18,27]]
+      endRes: [Residue10,[29,38]]
+      sense: [Integer,[39,40]]
+      curAtom: [String,[42,45]]
+      curRes: [Residue10,[46,55]]
+      prevAtom: [String,[57,60]]
+      prevRes: [Residue10,[61,70]]
+  SSBOND:
+    type: 3
+    fields:
+      serNum: [Integer,[8,10]]
+      residue1: [Residue11,[12,22]]
+      residue2: [Residue11,[26,36]]
+      sym1: [String,[60,65]]
+      sym2: [String,[67,72]]
+      length: [Float,[74,78]]
+  FORMUL:
+    type: 4
+    fields:
+      compNum: [Integer,[9,10]]
+      hetID: [String,[13,15]]
+      continuation: [String,[17,18]]
+      asterisk: [String,[19,19]]
+      chemicalformula: [String,[20,70]]
+    determinants:
+      - compNum
+      - hetID
+    continues:
+      - chemicalformula
+  HETNAM:
+    type: 4
+    fields:
+      continuation: [String,[9,10]]
+      hetID: [String,[12,14]]
+      chemicalname: [String,[16,70]]
+    determinants:
+      - hetID
+    continues:
+      - chemicalname
+  HETSYN:
+    type: 4
+    fields:
+      continuation: [String,[9,10]]
+      hetID: [String,[12,14]] # default determinant
+      hetSynonyms: [SList,[16,70]]
+    determinants:
+      - hetID
+    continues:
+      - hetSynonyms
+  SEQRES:
+    type: 4
+    fields:
+      serNum: [Integer,[8,10]]
+      chainID: [String,[12,12]]
+      numRes: [Integer,[14,17]]
+      resNames: [WList,[20,70]]
+    continuation: serNum
+    determinants:
+      - chainID
+      - numRes
+    continues:
+      - resNames
+  SITE:
+    type: 4
+    fields:
+      seqNum: [Integer,[8,10]]
+      siteID: [String,[12,14]]
+      numRes: [Integer,[16,17]]
+      residue1: [Residue10,[19,28]]
+      residue2: [Residue10,[30,39]]
+      residue3: [Residue10,[41,50]]
+      residue4: [Residue10,[52,61]]
+    continuation: seqNum
+    determinants:
+      - siteID
+      - numRes
+    concatenate:
+      residues:
+        - residue1
+        - residue2
+        - residue3
+        - residue4
+    continues:
+      - residues
+  ENDMDL: # no fields
+    type: 5
+  MODEL:
+    type: 5
+    groupuntil: ENDMDL
+    fields:
+      serial: [Integer,[11,14]]
+  TER:
+    groupby: MODEL.serial
+    type: 5
+    fields:
+      serial: [HxInteger,[7,11]]
+      residue: [Residue10,[18,27]]
+  JRNL:
+    type: 6
+    fields:
+      tokencheck: [SList,[13,26]]
+      subkey: [String,[13,16]]
+      text: [String,[20,79]]
+    subrecords:
+      branchon: subkey
+      required: False
+      formats:
+        AUTH:
+          fields:
+            continuation: [String,[17,18]]
+            authorList: [CList,[20,79]]
+          continues:
+            - authorList
+        TITL:
+          fields:
+            continuation: [String,[17,18]]
+            title: [String,[20,79]]
+          continues:
+            - title
+        REF:
+          fields:
+            continuation: [String,[17,18]]
+            pubName: [String,[20,47]]
+            volumelabel: [String,[50,51]]
+            volume: [String,[52,55]]
+            page: [String,[57,61]]
+            year: [Integer,[63,66]]
+          continues:
+            - pubName
+        PUBL:
+          fields:
+            continuation: [String,[17,18]]
+            pub: [String,[20,70]]
+          continues:
+            - pub
+        REFN:
+          fields:
+            issnORessn: [String,[36,39]]
+            issn: [String,[41,65]]
+        PMID:
+          fields:
+            pmid: [Integer,[20,79]]
+        DOI:
+          fields:
+            doi: [String,[20,79]]
+    token_formats:
+      tokencheck:
+        tokens:
+          PDB_ID:
+            type: String
+            key: PDB ID
+  REMARK:
+    type: 6
+    fields:
+      remarkNum: [Integer,[8,10]]
+      contents: [String,[12,79]]
+    subrecords:
+      required: False
+      branchon: remarkNum
+      formats:
+        -1: # unknown
+          fields:
+            freetext:  [LList,[1,80]]
+        0: # re-refinement notices
+          fields:
+            freetext: [LList,[1,80]]
+          embedded_records:
+            ORIGREF:
+              from: freetext
+              signal: [String,[12,34]]
+              value: ORIGINAL DATA REFERENCE
+              record_index: [Integer,[35,70]]
+              record_format: JRNL
+        1: # references cited
+          fields:
+            freetext: [LList,[1,80]]
+          embedded_records:
+            REFERENCE:
+              from: freetext
+              signal: [String,[12,20]]
+              value: REFERENCE
+              record_index: [Integer,[22,70]]
+              record_format: JRNL
+        2:
+          fields:
+            resolutionmsg: [LList,[24,41]]
+        3:
+          fields:
+            refinementdetails: [LList,[12,80]]
+        4:
+          fields:
+            formatmsg: [LList,[12,80]]
+        100:
+          fields:
+            processmsg: [LList,[12,80]]
+        200:
+          fields:
+            crystallizationmsg: [LList,[12,80]]
+        205:
+          fields:
+            fiberextractionmsg: [LList,[12,80]]
+        210:
+          fields:
+            nmrdetails: [LList,[12,80]]
+        215:
+          fields:
+            solutionnmrdetails: [LList,[12,80]]
+        217:
+          fields:
+            solidstatenmrdetails: [LList,[12,80]]
+        230:
+          fields:
+            neutrondiffractiondetails: [LList,[12,80]]
+        240:
+          fields:
+            electroncrystallographydetails: [LList,[12,80]]
+        245:
+          fields:
+            emdetails: [LList,[12,80]]
+        247:
+          fields:
+            emdisclaimer: [LList,[12,80]]
+        265:
+          fields:
+            solutionscatteringdetails: [LList,[12,80]]
+        280:
+          fields:
+            freetext: [LList,[12,80]]
+          token_formats:
+            freetext: # owns a token-group
+              tokens:
+                SOLV_CONT:
+                  type: Float
+                  key: SOLVENT CONTENT, VS   (%)
+                MATT_COEF:
+                  type: Float
+                  key: MATTHEWS COEFFICIENT, VM (ANGSTROMS**3/DA)
+                CRYS_COND:
+                  type: String
+                  key: CRYSTALLIZATION CONDITIONS
+                  multiline: True
+        285:
+          fields:
+            unitcellinformation: [LList,[12,80]]
+        290:
+          fields:
+            freetext: [LList,[1,80]]
+          embedded_records:
+            CRYSTSYMMTRANS:
+              from: freetext
+              signal: [String,[12,52]]
+              value: CRYSTALLOGRAPHIC SYMMETRY TRANSFORMATIONS
+              skiplines: 3
+              record_format:
+                fields:
+                  label: [SList,[14,18]]
+                  coordinate: [Integer,[19,19]]
+                  divnumber: [Integer,[21,23]]
+                  row: [Biomtrow,[24,69]]
+                continues:
+                  - label
+                  - coordinate
+                  - divnumber
+                  - row
+        300:
+          fields:
+            freetext: [LList,[12,80]]
+          token_formats:
+            freetext:
+              tokens:
+                BIOMOLECULE:
+                  type: CList
+        350:
+          fields:
+            freetext: [LList,[1,80]]
+          embedded_records:
+            BIOMOLECULE:
+              from: freetext
+              signal: [String,[12,22]]
+              value: BIOMOLECULE
+              record_index: [Integer,[24,26]]
+              tokenize:  # lines between the signal line and the embedded record data header are tokenized if a delimiter is found
+                d: ':'
+                from: [String,[12,80]]
+              headers:
+                divlabel: TRANSFORM
+                formats:
+                  mainline:
+                    format: [String,[12,40]]
+                    signalvalue: APPLY THE FOLLOWING TO CHAINS
+                  andline:
+                    format: [String,[31,40]]
+                    signalvalue: AND CHAINS
+                  value:
+                    format: [String,[43,80]]
+              record_format:
+                fields:
+                  label: [SList,[14,18]]
+                  coordinate: [Integer,[19,19]]
+                  divnumber: [Integer,[21,23]]
+                  row: [Biomtrow,[24,69]]
+                continues:
+                  - label
+                  - coordinate
+                  - divnumber
+                  - row
+        375:
+          fields:
+            freetext: [LList,[1,80]]
+          tables:
+            SPECIAL_POSITIONS:
+              from: freetext
+              signal: [String,[12,27]]
+              value: SPECIAL POSITION
+              skiplines: 5
+              fields:
+                 atomname: [String,[12,14]]
+                 residue: [Residue10,[17,26]]
+                 special_message: [String,[28,54]]
+        400:
+          fields:
+            compounddetails: [LList,[12,80]]
+        450:
+          fields:
+            biologicalfreetext: [LList,[12,80]]
+        465:
+          fields:
+            freetext: [LList,[1,80]]
+          tables:
+            MISSING:
+              from: freetext
+              signal: [String,[12,27]]
+              value: MISSING RESIDUES
+              skiplines: 5
+              fields:
+                modelNum: [Integer,[13,14]]
+                resName: [String,[16,18]]
+                chainID: [String,[20,20]]
+                seqNum: [Integer,[22,26]]
+                iCode: [String,[27,27]]
+        470:
+          fields:
+            missingatomspecifications: [LList,[12,80]]
+        480:
+          fields:
+            zerooccupancyspecifications: [LList,[12,80]]
+        500:
+          fields:
+            freetext: [LList,[1,80]]
+          tables:
+            CLOSE_CONTACTS_ASYMM_UNIT:
+              from: freetext
+              signal: [String,[12,59]]
+              value: 'SUBTOPIC: CLOSE CONTACTS IN SAME ASYMMETRIC UNIT'
+              skiplines: 4
+              fields:
+                atom1: [String,[13,16]]
+                residue1: [Residue12,[19,30]]
+                atom2: [String,[34,37]]
+                residue2: [Residue12,[40,51]]
+                distance: [Float,[63,68]]
+            CLOSE_CONTACTS:
+              from: freetext
+              signal: [String,[12,35]]
+              value: 'SUBTOPIC: CLOSE CONTACTS'
+              skiplines: 13
+              fields:
+                atom1: [String,[13,16]]
+                residue1: [Residue12,[19,30]]
+                atom2: [String,[34,37]]
+                residue2: [Residue12,[40,51]]
+                ssymop: [String,[54,59]]
+                distance: [Float,[63,68]]
+            COVALENT_BOND_ANGLES:
+              from: freetext
+              signal: [String,[12,41]]
+              value: 'SUBTOPIC: COVALENT BOND ANGLES'
+              skiplines: 13
+              fields:
+                modelNum: [Integer,[12,13]]
+                residue: [Residue11,[15,25]]
+                atom1: [String,[25,28]]
+                atom2: [String,[32,35]]
+                atom3: [String,[40,43]]
+                deviation: [Float,[58,62]]
+                units: [String,[64,70]]
+            RAMA_OUTLIERS:
+              from: freetext
+              signal: [String,[12,35]]
+              value: 'SUBTOPIC: TORSION ANGLES'
+              skiplines: 12
+              fields:
+                modelNum: [Integer,[12,13]]
+                residue: [Residue10,[15,24]]
+                phi: [Float,[29,35]]
+                psi: [Float,[39,45]]
+            NONCISTRANS:
+              from: freetext
+              signal: [String,[12,39]]
+              value: 'SUBTOPIC: NON-CIS, NON-TRANS'
+              skiplines: 6
+              fields:
+                residueN: [Residue11,[12,22]]
+                residueC: [Residue11,[27,37]]
+                modelNum: [Integer,[44,48]]
+                omega: [Float,[54,60]]
+        525:
+          fields:
+            distantsolventatoms: [LList,[12,80]]
+        600:
+          fields:
+            heterogendetails: [LList,[12,80]]
+        610:
+          fields:
+            nonpolymermissingatoms: [LList,[12,80]]
+        615:
+          fields:
+            nonpolymermodeledatoms: [LList,[12,80]]
+        620:
+          fields:
+            metalcoordinationdetails: [LList,[12,80]]
+        630:
+          fields:
+            inhibitordescription: [LList,[12,80]]
+        650:
+          fields:
+            freetext: [LList,[12,80]]
+          token_formats:
+            freetext: # owns a token-group
+              tokens:
+                HELIX:
+                  type: String
+                  key: DETERMINATION METHOD
+        700:
+          fields:
+            freetext: [LList,[12,80]]
+          token_formats:
+            freetext: # owns a token-group
+              tokens:
+                SHEET:
+                  type: String
+                  key: DETERMINATION METHOD
+        800:
+          fields:
+            sitedetails: [LList,[12,80]]
+        900:
+          fields:
+            relateddetails: [LList,[12,80]]
+        999:
+          fields:
+            sequenceconcerns: [LList,[12,80]]
