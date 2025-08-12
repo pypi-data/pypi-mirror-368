@@ -1,0 +1,74 @@
+[build-system]
+requires = ["setuptools",]
+build-backend = "setuptools.build_meta"
+
+[project]
+version = "0.0.1a2"
+name = "aiida-chemshell"
+description = "AiiDA workflow plugin for the ChemShell chemical modelling software package"
+authors = [
+    {name = "Dr. Benjamin T. Speake", email = "benjamin.speake@stfc.ac.uk"},
+]
+dependencies = [
+    "aiida-core >= 2.6",
+]
+readme = "README.md"
+license = {file = "LICENSE"}
+keywords = ["aiida", "workflows", "chemshell", ]
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering", 
+    "Framework :: AiiDA"
+]
+requires-python = ">=3.10"
+
+[project.urls]
+Source = "https://gitlab.stfc.ac.uk/sil23665/aiida-chemshell"
+
+[project.entry-points."aiida.calculations"]
+"chemshell" = "aiida_chemshell.calculations:ChemShellCalculation"
+
+[project.entry-points."aiida.parsers"]
+"chemshell" = "aiida_chemshell.parsers:ChemShellParser"
+
+[tool.setuptools.packages.find]
+where = ["src",]
+
+[tool.ruff]
+target-version = "py310" 
+line-length = 88 
+indent-width = 4
+exclude = ["conf.py",]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/conftest.py" = ["B008"]
+
+[tool.ruff.lint]
+select = [
+    # flake8-bugbear
+    "B",
+    # pylint
+    "C", "R",
+    # pydocstyle
+    "D",
+    # pycodestyle
+    "E", "W",
+    # Pyflakes
+    "F", "FA",
+    # isort
+    "I",
+    # pep8-naming
+    "N",
+    # pyupgrade
+    "UP",
+]
+ignore = [
+    "C901",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.pylint]
+max-args = 10
