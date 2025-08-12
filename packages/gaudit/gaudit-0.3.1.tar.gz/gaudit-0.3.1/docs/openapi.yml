@@ -1,0 +1,1923 @@
+openapi: 3.0.0
+info:
+  title: GLIMPS Audit
+  description: |
+    This API allows users to submit files for analyze.
+  version: 2.0.4
+servers:
+  - url: 'http://127.0.0.1:8080/api/v2'
+    description: Mock server
+  - url: "{scheme}://{host}/{basePath}"
+    description: R&D test server
+    variables:
+      host:
+        default: gaudit.glimps.re
+        description: R&D server
+      basePath:
+        default: "api/v2"
+      scheme:
+        default: https
+        enum:
+          - "http"
+          - "https"
+
+components:
+  schemas:
+    # General schemas
+    error:
+      type: string
+      description: string describing error encountered
+      default: "internal server error"
+    status:
+      type: boolean
+      default: true
+      description: status is True if operation went well else False
+    username:
+      type: string
+      description: username
+    validity:
+      type: integer
+      description: token validity in milliseconds
+      default: 86400000
+    group:
+      type: string
+      description: |
+        user group name.
+        In a group all users share their analyses and user datasets
+    services:
+      type: array
+      items:
+        type: string
+      description: list of allowed services for a user
+    token:
+      type: string
+      description: a JWT token
+    role:
+      type: string
+      enum:
+        - user
+        - admin
+    message:
+      type: string
+      default: ""
+    badRequest:
+      properties:
+        status:
+          $ref: "#/components/schemas/status"
+        error:
+          $ref: "#/components/schemas/error"
+        details:
+          type: array
+          items:
+            type: object
+    loginReq:
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+    OKResponse:
+      properties:
+        status:
+          $ref: "#/components/schemas/status"
+        message:
+          $ref: "#/components/schemas/message"
+    changePassword:
+      properties:
+        password:
+          type: string
+          format: password
+          description: "password must be at least 6 characters in length"
+        current_password:
+          type: string
+          format: password
+    userProperties:
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        admin:
+          type: boolean
+        picture:
+          type: string
+          default: ""
+        services:
+          type: array
+          items:
+            type: string
+          description: allowed services
+    userAnalyses:
+      properties:
+        analyses:
+          type: integer
+          description: number of analyses for the user group
+          default: 0
+        delete_old:
+          type: boolean
+          description: does the system delete old analyses
+          default: false
+        analysis_duration:
+          type: integer
+          description: average analysis duration (in milliseconds)
+          default: 0
+        disk_usage:
+          type: integer
+          description: disk used by user group analyses (in bytes)
+          default: 0
+        disk_available:
+          type: integer
+          description: available disk space (in bytes)
+          default: 0
+        duration:
+          type: integer
+          description: Analyses time to live (in days)
+          default: 365
+    auditGroups:
+      description: audit groups
+      type: array
+      items:
+        type: string
+      default: []
+    uuid:
+      type: string
+      description: Unique audit identifier
+      example: "32a475f2-d39f-4cf9-ac83-ca403c3ae0d7"
+
+    # Audit schemas
+    findAudits:
+      properties:
+        status:
+          $ref: "#/components/schemas/status"
+        audits:
+          type: array
+          items:
+            $ref: "#/components/schemas/auditSummary"
+        count:
+          type: integer
+          description: number of available audits matching the filters
+    auditSummary:
+      properties:
+        id:
+          type: string
+          description: Audit ID (UUID)
+          format: uuid
+        filename:
+          type: string
+          description: Input filename
+        filetype:
+          type: string
+          description: Filetype (ELF|PE)
+        arch:
+          type: string
+          description: Executable architecture (amd64, i386, ...)
+        group:
+          type: string
+          description: Group of the submitter
+        comment:
+          type: string
+          description: Comment filled by submitter
+        size:
+          type: integer
+          description: Input file size (in bytes)
+        viewed:
+          type: boolean
+          description: |
+            True => the result had already be viewed by an user
+            False => the result had not
+        failed:
+          type: boolean
+          description: if True, an error had occurred
+        done:
+          type: boolean
+          description: if True, the analysis is done
+        user:
+          type: string
+          description: submitter login (email address)
+        services:
+          $ref: "#/components/schemas/auditServices"
+        tags:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+        files:
+          type: integer
+          description: Number of files in audit result (input file and extracted files)
+        hashes:
+          type: array
+          description: Input file hashes
+          items:
+            $ref: "#/components/schemas/hash"
+        created_at:
+          type: string
+          description: Date of submission
+        done_at:
+          type: string
+          description: Date of completion
+    auditServices:
+      type: object
+      description: Map of service names => map of parameters
+      additionalProperties:
+        type: object
+        additionalProperties:
+          type: string
+    auditFiles:
+      type: object
+      description: Map of file ID => filename
+      additionalProperties:
+        type: string
+    hash:
+      type: object
+      properties:
+        Name:
+          type: string
+          description: hash name (sha1, md5, ...)
+        Value:
+          type: string
+    uploadBinary:
+      properties:
+        status:
+          $ref: "#/components/schemas/status"
+        id:
+          type: string
+          description: ID of uploaded file
+    postAudit:
+      properties:
+        group:
+          type: string
+          required: true
+          description: |
+            Each audit has a group associated for sorting purpose.
+            The group is relative to audits, is is not a user group.
+        comment:
+          type: string
+          description: A comment added to the audit
+        services:
+          $ref: "#/components/schemas/auditServices"
+        files:
+          $ref: "#/components/schemas/auditFiles"
+    postedAudit:
+      properties:
+        status:
+          $ref: "#/components/schemas/status"
+        ids:
+          type: array
+          description: List of submitted file IDs
+          items: 
+            type: string
+        aids:
+          type: array
+          description: List of audit IDs
+          items: 
+            type: string
+    auditFull:
+      properties:
+        id: 
+          type: string
+          description: Audit ID (UUID)
+          format: uuid
+        timestamp:
+          type: integer
+          description: Audit timestamp
+        filename:
+          type: string
+          description: Input file name
+        filetype:
+          type: string
+          description: Input filetype (ELF, PE, ...)
+        arch:
+          type: string
+          description: Executable architecture (amd64, i386, ...)
+        group:
+          type: string
+          description: Group of the submitter
+        comment:
+          type: string
+          description: Comment filled by submitter
+        size:
+          type: integer
+          description: Input file size (in bytes)
+        hashes:
+          type: array
+          description: Input file hashes
+          items:
+            $ref: "#/components/schemas/hash"
+        libraries:
+          type: array
+          items:
+            $ref: "#/components/schemas/library"
+        viewed:
+          type: boolean
+          description: |
+            True => the result had already be viewed by an user
+            False => the result had not
+        state:
+          type: integer
+          description: |
+            0 => untreated
+            1 => treated
+        services:
+          $ref: "#/components/schemas/auditServices"
+        created_at:
+          type: string
+          description: Date of submission
+        done_at:
+          type: string
+          description: Date of completion 
+        dataset:
+          type: string
+          description: "Datasets used to correlate input file (separated by ',')"
+        correlate_version:
+          type: string
+          description: Version of GlimpsLibCorrelate
+    library:
+      description: Library found in input executable
+      properties:
+        name:
+          type: string
+        desc:
+          type: string
+          description: Description of the library
+        files:
+          type: object
+          additionalProperties:
+            description: Map of filename => versions
+            type: array
+            items:
+              $ref: "#/components/schemas/versionFound"
+    versionFound:
+      properties:
+        version:
+          type: string
+          description: Version of the library
+        arch:
+          type: string
+          description: Architecture of the library (amd64, i386, ...)
+        score:
+          type: number
+          format: float
+          description: Score associated with the match
+        license:
+          type: string
+          description: Licence associated with the library (GPL, MIT, ...)
+        id:
+          type: string
+          description: ID of the matched binary (format kind@bin_id)
+        bvc:
+          type: string
+          description: Number of vectors found in input
+        lvc:
+          type: string
+          description: Number of vectors found in matched library
+        lcc:
+          type: string
+          description: Number of matches closer than lower threshold (low confidence)
+        mcc:
+          type: string
+          description: Number of matches closer than medium threshold (medium confidence)
+        hcc:
+          type: string
+          description: Number of matches closer than high threshold (high confidence)
+        heatmap:
+          type: array
+          description: |
+            Distribution of match by memory area.
+            By default we have 200 area and score represents the amount of matches found.
+            0 => no match in the area
+            255 => all functions matched
+          items:
+            $ref: "#/components/schemas/heatmapPoint"
+    heatmapPoint:
+      properties:
+        value:
+          type: integer
+          minimum: 0
+          maximum: 255
+          description: Quantity of match found in the area
+        address:
+          type: integer
+          description: memory address of the center of the area
+    getAudit:
+      properties:
+        status:
+          $ref: "#/components/schemas/status"
+        audit:
+          $ref: "#/components/schemas/auditFull"
+        files:
+          type: object
+          properties:
+            binary:
+              type: string
+              description: ID of the input file (for download)
+
+    # Dataset schemas
+    entry:
+      properties:
+        source_name:
+          type: string
+          description: The source from where the entry was grabbed
+        project_name:
+          type: string
+          description: The project associated with the entry (e.g. Glib, openssl, ...)
+        binary_name:
+          type: string
+          description: Filename of the entry
+        size:
+          type: integer
+          description: Entry file size (in bytes)
+        sha256:
+          type: string
+          description: Entry SHA256
+        md5:
+          type: string
+          description: Entry MD5
+        ssdeep:
+          type: string
+          description: Entry SSDeep
+        architecture:
+          type: string
+          description: Entry architecture (e.g. amd64, i386, arm)
+        object_file_type:
+          type: string
+          description: It indicates if the binary is an executable or a dynamic library can be exe, lib or unknown
+        file_format:
+          type: string
+          description: Entry file format (e.g. ELF, PE, ...)
+        functions_count:
+          type: integer
+          description: The number of functions found during disassembly
+        named_functions_count:
+          type: integer
+          description: The number of functions found during disassembly for which we managed to assign a name (either from export tables or from debug information when we have it)
+        exported_functions_count:
+          type: integer
+          description: Number of functions exported by the binary (retrieve from the export/symbol table of PE and ELF)
+        dbg_functions_count:
+          type: integer
+          description: Number of functions found in the debug info
+        kind:
+          type: string
+          description: ID of the dataset
+        gb4_version:
+          type: integer
+          description: It corresponds to the version of the disassembly engine / vector generation (an integer incremented at each significant change)
+        code_version:
+          type: string
+          description: The version of the tool that performed the disassembly of the binary 
+        additional:
+          type: array
+    ListDatasets:
+      properties:
+        datasets:
+          type: array
+          items:
+            $ref: "#/components/schemas/dataset"
+        count:
+          type: integer
+          description: Amount of available datasets
+        status:
+          $ref: "#/components/schemas/status"
+    dataset:
+      properties:
+        group:
+          type: string
+          description: User group associated with the dataset
+        name:
+          type: string
+          description: Name of the dataset
+        comment:
+          type: string
+          description: Comment filled by user
+        kind:
+          type: string
+          description: ID of the dataset
+    AddDataset:
+      properties:
+        name:
+          type: string
+          required: true
+          description: Dataset name
+          minLength: 4
+          maxLength: 26
+          pattern: "[a-zA-Z0-9_-]{4,26}"
+        comment:
+          type: string
+          description: Comment describing the user dataset
+    AddDatasetEntries:
+      properties:
+        home_page:
+          type: string
+          description: The homepage of the project
+          format: uri
+        project_description:
+          type: string
+          description: The description of the project
+        license:
+          type: string
+          description: The license associated with the project
+        source_name:
+          type: string
+          description: The source from where the entry was grabbed
+        project_name:
+          type: string
+          description: The project associated with the entry (e.g. Glib, openssl, ...)
+          required: true
+        files:
+          type: array
+          required: true
+          items:
+            $ref: "#/components/schemas/datasetFileEntry"
+    datasetFileEntry:
+      properties:
+        binary_name:
+          type: string
+          required: true
+          description: Filename of the entry
+        version:
+          type: string
+          description: Version of the entry
+        id:
+          type: string
+          required: true
+          description: ID returned by the upload endpoint
+        dbg_id:
+          type: string
+          description: ID returned by the upload endpoint
+    DatasetEntriesAdded:
+      properties:
+        status:
+          $ref: "#/components/schemas/status"
+        files:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                description: ID returned by the upload endpoint
+              status:
+                type: boolean
+                description: |
+                  true => entry had correctly been added
+                  false => an error occurred during entry processing
+
+    # Libraries schemas
+    libraries:
+      properties:
+        libraries:
+          type: array
+          items:
+            $ref: "#/components/schemas/libraryInfo"
+        count:
+          type: integer
+          description: number of entries matching the filters
+        status:
+          $ref: "#/components/schemas/status"
+        error:
+          $ref: "#/components/schemas/error"
+    libraryInfo:
+      properties:
+        source_name:
+          type: string
+          description: The source from where the entry was grabbed
+        project_name:
+          type: string
+          description: The project associated with the entry (e.g. Glib, openssl, ...)
+        binary_name:
+          type: string
+          description: The filename of the entry (e.g. libc6-2.28.so)
+        binary_type:
+          type: string
+          description: Type of binary (e.g. lib, exe)
+        size:
+          type: integer
+          description: Entry file size (in bytes)
+        sha256:
+          type: string
+          description: Entry SHA256
+        md5:
+          type: string
+          description: Entry MD5
+        ssdeep:
+          type: string
+          description: Entry SSDeep
+        version:
+          type: string
+          description: Entry version
+        architecture:
+          type: string
+          description: Entry architecture (e.g. amd64, i386, arm)
+        file_format:
+          type: string
+          description: Entry file format (e.g. ELF, PE, ...)
+        tags:
+          type: array
+          description: Tags associated with the entry
+          items:
+            type: string
+        home_page:
+          type: string
+          description: The homepage of the project
+          format: uri
+        project_description:
+          type: string
+          description: The description of the project
+        license:
+          type: string
+          description: The license associated with the project
+
+  responses:
+    ErrorResponse:
+      description: an error occurred
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                $ref: "#/components/schemas/status"
+              error:
+                $ref: "#/components/schemas/error"
+    UnauthorizedResponse:
+      description: user login or password are invalid
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                $ref: "#/components/schemas/status"
+              error:
+                $ref: "#/components/schemas/error"
+          examples:
+            unauthorized:
+              value:
+                status: false
+                error: Unauthorized
+    ForbiddenResponse:
+      description: user is not authorized to access this endpoint
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                $ref: "#/components/schemas/status"
+              error:
+                $ref: "#/components/schemas/error"
+          examples:
+            unauthorized:
+              value:
+                status: false
+                error: Forbidden
+    AuthorizedResponse:
+      description: user is authenticated
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              name:
+                $ref: "#/components/schemas/username"
+              validity:
+                $ref: "#/components/schemas/validity"
+              token:
+                $ref: "#/components/schemas/token"
+              group:
+                $ref: "#/components/schemas/group"
+              services:
+                $ref: "#/components/schemas/services"
+              role:
+                $ref: "#/components/schemas/role"
+          examples:
+            admin:
+              value:
+                name: user1
+                validity: 86400000
+                token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiamVyZW15QGdsaW1wcy5sYW4iLCJncm91cCI6ImdsaW1wcyIsInJvbGUiOiJhZG1pbiIsInNlcnZpY2VzIjpbIkdsaW1wc0xpYkNvcnJlbGF0ZSJdLCJleHAiOjE2Mjg2ODc1NDgsImlhdCI6MTYyODYwMTE0OH0.trMPEAIcwYDDTxoBdyhK8VP_BTsYuIUJREwBWddlHoA
+                group: grptest1
+                services:
+                  - GlimpsLibCorrelate
+                role: admin
+            user:
+              value:
+                name: user1
+                validity: 86400000
+                token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiamVyZW15QGdsaW1wcy5sYW4iLCJncm91cCI6ImdsaW1wcyIsInJvbGUiOiJhZG1pbiIsInNlcnZpY2VzIjpbIkdsaW1wc0xpYkNvcnJlbGF0ZSJdLCJleHAiOjE2Mjg2ODc1NDgsImlhdCI6MTYyODYwMTE0OH0.trMPEAIcwYDDTxoBdyhK8VP_BTsYuIUJREwBWddlHoA
+                group: grptest1
+                services:
+                  - GlimpsLibCorrelate
+                role: user
+    BadRequestResponse:
+      description: invalid request from user
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                $ref: "#/components/schemas/status"
+              error:
+                $ref: "#/components/schemas/error"
+              details:
+                type: array
+                items:
+                  type: object
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+paths:
+  /user/login:
+    post:
+      description: endpoint used to authenticated against the server
+      tags:
+        - "user"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/loginReq"
+            examples:
+              user1:
+                value:
+                  email: "test@domain.net"
+                  password: "S3cretP@ßword"
+      responses:
+        401:
+          $ref: "#/components/responses/UnauthorizedResponse"
+        400:
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref:  "#/components/schemas/badRequest"
+              examples:
+                notInput:
+                  value:
+                    status: false
+                    error: "Bad Request"
+                    details:
+                      - "password": "password is a required field"
+                      - "email": "email is a required field"
+        200:
+          $ref: "#/components/responses/AuthorizedResponse"
+
+  /user/refresh:
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - "user"
+      description: Ask for a new token
+      responses:
+        200:
+          description: OK
+          $ref: "#/components/responses/AuthorizedResponse"
+        401:
+          description: token expired
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    $ref: "#/components/schemas/status"
+                  error:
+                    $ref: "#/components/schemas/error"
+                  detail:
+                    type: string
+                    description: string detailing the error encountered
+              examples:
+                expired:
+                  value:
+                    status: false
+                    error: token expired
+                    detail: max validity
+
+  /user/password:
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - "user"
+      description: Change self password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/changePassword"
+            examples:
+              ok:
+                value:
+                  password: NewS3cretP@ssw0rd
+                  current_password: 0ldS3cretP@ssw0rd
+      responses:
+        200:
+          description: password updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OKResponse"
+              examples:
+                ok:
+                  value:
+                    status: true
+                    message: "password updated"
+        401:
+          $ref: "#/components/responses/UnauthorizedResponse"
+        400:
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref:  "#/components/schemas/badRequest"
+              examples:
+                emptyInput:
+                  value:
+                    status: false
+                    error: "Bad Request"
+                    details:
+                      - "password": "password is a required field"
+                      - "current_password": "current_password is a required field"
+                invalidPassword:
+                  value:
+                    status: false
+                    error: "Bad Request"
+                    details:
+                      - "password": "password must be at least 6 characters in length"
+                wrongPassword:
+                  value:
+                    status: false
+                    error: "could not update password"
+                    details:
+                      - "current_password": "invalid"
+
+  /user/properties:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - "user"
+      description: Get self properties
+      responses:
+        200:
+          description: User properties
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/userProperties"
+              examples:
+                ok:
+                  value:
+                    username: "user1"
+                    email: "user1@domain.net"
+                    admin: false
+                    picture: ""
+                    services:
+                      - "GlimpsLibCorrelate"
+                admin:
+                  value:
+                    username: "admin1"
+                    email: "admin1@domain.net"
+                    admin: true
+                    picture: ""
+                    services:
+                      - "GlimpsLibCorrelate"
+                      - "Extract"
+        401:
+          $ref: "#/components/responses/UnauthorizedResponse"
+
+  /user/analyses:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - "user"
+      description: Get analyses stats
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/userAnalyses"
+              examples:
+                ok:
+                  value:
+                    analyses: 3
+                    delete_old: false
+                    duration: 365
+                    disk_usage: 11678324
+                    disk_available: 0
+                    analysis_duration: 50047
+
+  /user/delete_analyses:
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - "user"
+      description: Delete all user analyses (only her own analyses, not all group analyses)
+      responses:
+        200:
+          description: Analyses deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OKResponse"
+              examples:
+                ok:
+                  value:
+                    status: true
+                    message: "analyses deleted"
+        401:
+          $ref: "#/components/responses/UnauthorizedResponse"
+
+  /audits/groups:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - "audits"
+      description: Get user audit groups (for her user group)
+      responses:
+        401:
+          $ref: "#/components/responses/UnauthorizedResponse"
+        200:
+          description: List audit groups
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/auditGroups"
+              examples:
+                ok:
+                  value:
+                    - auditgrp1
+                    - auditgrp2
+                    - auditgrp3
+                empty:
+                  value: []
+
+  /audits:
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - "audits"
+      description: Submit a new file for analysis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/postAudit"
+            examples:
+              oneFile:
+                value:
+                  group: interpreter
+                  comment: static bash
+                  services:
+                    GlimpsLibCorrelate:
+                      dataset: "default,test1"
+                      confidence: "1"
+                      valid: "true"
+                  files:
+                    6cbce50e71d810cdf1342379b8fdbf16411d0aa25ff53f9a9568bae8bbc24ee8: bash_amd-static
+              twoFile:
+                value:
+                  group: interpreter
+                  comment: static bash&zsh
+                  services:
+                    GlimpsLibCorrelate:
+                      dataset: "default,test1"
+                      confidence: "1"
+                      valid: "true"
+                  files:
+                    6cbce50e71d810cdf1342379b8fdbf16411d0aa25ff53f9a9568bae8bbc24ee8: bash_amd-static
+                    1cbce50e71d810cdf1342379b8fdbf16411d0aa25ff53f9a9568bae8bbc24ee8: zsh_amd-static
+      responses:
+        401:
+          $ref: "#/components/responses/UnauthorizedResponse"
+        200:
+          description: audit in progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/postedAudit"
+              examples:
+                OK:
+                  value:
+                    status: true
+                    ids: ["6cbce50e71d810cdf1342379b8fdbf16411d0aa25ff53f9a9568bae8bbc24ee8"]
+                    aids: ["51d6999a-d54d-4ac7-8af3-0425d24fa615"]
+        400:
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref:  "#/components/schemas/badRequest"
+              examples:
+                emptyInput:
+                  value:
+                    status: false
+                    error: "Bad Request"
+                    details:
+                      - "group": "group is a required field"
+                      - "files": "files must contain at least 1 item"
+        403:
+          description: User ask a not allowed service
+          content:
+            application/json:
+              schema:
+                properties:
+                  status:
+                    $ref: "#/components/schemas/status"
+                  error:
+                    $ref: "#/components/schemas/error"
+              examples:
+                extract:
+                  value:
+                    status: false
+                    error: "service not allowed: Extract"
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - "audits"
+      description: List audits
+      parameters:
+        - in: query
+          name: filter
+          schema:
+            type: string
+            description: |
+              Filter used to search audits. Look into group, description, filename and SHA256
+        - in: query
+          name: sortOrder
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+        - in: query
+          name: pageNumber
+          schema:
+            type: integer
+            minimum: 0
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+      responses:
+        200:
+          description: List audits
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/findAudits"
+              examples:
+                ok:
+                  value:
+                    status: true
+                    audits:
+                      - id: "1b645d52-f09a-46e5-9f07-d66170e16899"
+                        filename: "service.bin"
+                        filetype: "ELF"
+                        arch: "amd64"
+                        group: "User123"
+                        comment: "test"
+                        size: 8114176
+                        viewed: true
+                        failed: false
+                        done: true
+                        user: "user@glimps.lab"
+                        services:
+                          GlimpsLibCorrelate:
+                            confidence: "1"
+                            dataset: "default,test1"
+                            valid: "true"
+                        files: 1
+                        hashes: 
+                          - Name: "sha256"
+                            Value: "f1de8ec485ea59a32caca2ed2eda9fe4415d0227cbe018ff6c2cca94179e4e8c"
+                          - Name: "sha1"
+                            Value: "226322c1d6432abe855b2d9a9bade781ae4a09f3"
+                          - Name: "md5"
+                            Value: "3ca9f2efa9357c038cbe05bf707dbec1"
+                          - Name: "ssdeep"
+                            Value: "49152:5kQOM6yInM4Hj3AWaH0ZajA+emboNFWNjpZbmBT+awaVnnMPpkN/1SbIntOHkr:C5M6yfiAWa/c+eQo3WNbtMe3bI"
+                        created_at: "2021-09-21T11:48:07Z"
+                        done_at: "2021-09-21T11:49:44Z"
+                    count: 12
+        401:
+          $ref: "#/components/responses/UnauthorizedResponse"
+        400:
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref:  "#/components/schemas/badRequest"
+              examples:
+                invalidSort:
+                  value:
+                    status: false
+                    error: "Bad Request"
+                    details:
+                      SortOrder: "SortOrder must be one of [asc desc]"
+                invalid:
+                  value:
+                    status: false
+                    error: "Bad Request"
+                    details:
+                      SortOrder: "SortOrder must be one of [asc desc]"
+                      PageNumber: "PageNumber must be 0 or greater"
+                      PageSize: "PageSize must be 1,000 or less"
+                invalid2:
+                  value:
+                    status: false
+                    error: "Bad Request"
+                    details:
+                      PageSize: "PageSize must be 1 or greater"
+
+  /audits/upload:
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - "audits"
+      description: |
+        Upload binary to be used by an audits.
+        Allowed filetype: EXE, ELF, PDB
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The uploaded file
+      responses:
+        200:
+          description: File uploaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/uploadBinary"
+              examples:
+                OK:
+                  value:
+                    status: true
+                    id: 043e607c837d55c38220327ee795e34f196a51224fbe8b6692db3d6bd7d5731e
+        401:
+          $ref: "#/components/responses/UnauthorizedResponse"
+        400:
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref:  "#/components/schemas/badRequest"
+              examples:
+                noFile:
+                  value:
+                    status: false
+                    error: could not find file
+                invalidFile:
+                  value:
+                    status: false
+                    error: invalid file type
+        406:
+          description: Not acceptable
+          content:
+            application/json:
+              schema:
+                $ref:  "#/components/schemas/badRequest"
+              examples:
+                fileTooBig:
+                  value:
+                    status: false
+                    error: "invalid file size (max: 20.0MiB)"
+
+  /audits/{ID}:
+    get:
+      description: Get an audit result
+      security:
+        - bearerAuth: []
+      tags:
+        - "audits"
+      parameters:
+        - in: path
+          name: ID
+          required: true
+          description: Audit ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: Audit fetched
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/getAudit"
+              examples:
+                OK:
+                  value:
+                    audit:
+                      id: "51d6999a-d54d-4ac7-8af3-0425d24fa615"
+                      timestamp: 0
+                      filename: "bash_amd64_bash-static.bin"
+                      filetype: "ELF"
+                      arch: "amd64"
+                      group: "interpreter"
+                      comment: "bash static"
+                      size: 2128040
+                      hashes:
+                        - Name: "sha256"
+                          Value: "6cbce50e71d810cdf1342379b8fdbf16411d0aa25ff53f9a9568bae8bbc24ee8"
+                        - Name: "sha1"
+                          Value: "64e8386b27618f050d8f43b10759ad47a40e90fc"
+                        - Name: "md5"
+                          Value: "882277facd92708ff1410f3d8309ebed"
+                        - Name: "ssdeep"
+                          Value: "49152:1pzr2EWioKCvUIFSL3AdfZsLEdOlN9fQi/nUu+:1pnBWiLCvUIITLE8lGu"
+                      libraries:
+                        - name: "glibc"
+                          desc: ""
+                          files:
+                            libc-2.28.so:
+                              - version: "2.28"
+                                arch: "amd64"
+                                score: 430.53857
+                                id: "udb:glimps:4b2f3a9bf4ebbe2a6e036a47308ee0666586cb9ec3ecbf47acc8e8702206515e@dedb887a5c49294ecd850d86728a0744c0e7ea780be8de2d4fc89f6948386937"
+                                bvc: "2394"
+                                lvc: "2469"
+                                lcc: "1299"
+                                mcc: "897"
+                                hcc: "505"
+                                heatmap: [{"address":4209782,"value":0}]
+                        - name: "libc6-x32"
+                          desc: "GNU C Library: X32 ABI Shared libraries for AMD64"
+                          files:
+                            ld-2.27.so:
+                              - version: "2.27-3ubuntu1"
+                                arch: "amd64"
+                                score: 3.0031128
+                                id: "all:opensource@e6cbb284d6100764403aef6b545277440df4d0f479ee97336c81794d16e9aa63"
+                                bvc: "2394"
+                                lvc: "214"
+                                lcc: "166"
+                                mcc: "133"
+                                hcc: "70"
+                                heatmap: [{"address":4209782,"value":0}]
+                      viewed: false
+                      state: 0
+                      created_at: "2021-09-25T15:57:07Z"
+                      done_at: "2021-09-25T15:58:32Z"
+                      dataset: "default,udb:glimps:4b2f3a9bf4ebbe2a6e036a47308ee0666586cb9ec3ecbf47acc8e8702206515e"
+                      correlate_version: "4.0.0.dev4"
+                    files:
+                      binary: "6cbce50e71d810cdf1342379b8fdbf16411d0aa25ff53f9a9568bae8bbc24ee8"
+                    status: true
+                inProgress:
+                  value:
+                    audit: 
+                      id: "14872e95-9671-439c-840d-f879e6e42f91"
+                      timestamp: 0
+                      filename: "zsh_amd64_zsh-static.bin"
+                      filetype: ""
+                      arch: ""
+                      group: "zsh"
+                      comment: "test"
+                      size: 2570696
+                      hashes:
+                        - Name: "sha256"
+                          Value: "966ee8d63b2e2c018530ab1e7db53c53f0786038c5146416d425c7feb0f62bd3"
+                        - Name: "sha1"
+                          Value: ""
+                        - Name: "md5"
+                          Value: ""
+                        - Name: "ssdeep"
+                          Value: ""
+                      libraries: null
+                      viewed: false
+                      state: 0
+                      created_at: "2021-09-27T15:21:16Z"
+                      done_at: ""
+                      dataset: ""
+                      correlate_version: ""
+                    files: null
+                    status: false
+        401:
+          $ref:  "#/components/responses/UnauthorizedResponse"   
+    delete:
+      description: Delete an audit
+      security:
+        - bearerAuth: []
+      tags:
+        - "audits"
+      parameters:
+        - in: path
+          name: ID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        401:
+          $ref: "#/components/responses/UnauthorizedResponse"
+        200:
+          description: Audit deleted
+          content:
+            application/json:
+              schema:
+                properties:
+                  status:
+                    $ref: "#/components/schemas/status"
+                  message:
+                    type: string
+              examples:
+                OK:
+                  value:
+                    status: true
+                    message: analysis deleted
+
+  /audits/{ID}/idc:
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - "audits"
+      description: Generate IDC file
+      parameters:
+        - in: path
+          name: ID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                libs:
+                  type: string
+                  description: IDs of the library to document with (ID separated by ',')
+            examples:
+              oneLib:
+                value:
+                  libs: all:opensource@39f9fbd6f3482110a397dfbc7a788d79eb040493b6283f604b58b801af124363
+              twoLibs:
+                value:
+                  libs: all:opensource@39f9fbd6f3482110a397dfbc7a788d79eb040493b6283f604b58b801af124363,all:opensource@c4197db65b77898698aec1a5705515aecc0cd29fc4c1a82f0e2b6e802afef04a
+      responses:
+        200:
+          description: IDC generated
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: |
+                  static main() {
+                  set_name(0x004490c0, "GDS_get_user_var"); //BinaryName: complete.so
+                  }
+        401:
+          $ref: "#/components/responses/UnauthorizedResponse"
+        400:
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref:  "#/components/schemas/badRequest"
+              examples:
+                noLibs:
+                  value:
+                    status: false
+                    error: "Bad Request"
+                    details:
+                      - "struct": "cannot bind to model"
+
+  /audits/{ID}/{FILE}/binary:
+    get:
+      description: Download binary from audit
+      security:
+        - bearerAuth: []
+      tags:
+        - "audits"
+      parameters:
+        - in: path
+          name: ID
+          required: true
+          description: Audit ID
+          schema:
+            type: string
+            format: uuid
+        - in: path
+          name: FILE
+          required: true
+          description: File ID (SHA256)
+          schema:
+            type: string
+      responses:
+        401:
+          $ref: "#/components/responses/UnauthorizedResponse"
+        404:
+          description: Audit or binary not found
+          content:
+            application/json:
+              schema:
+                properties:
+                  status:
+                    $ref: "#/components/schemas/status"
+                  error:
+                    $ref: "#/components/schemas/error"
+              examples:
+                notFound:
+                  value:
+                    status: false
+                    error: "file not found"
+        200:
+          description: Download file
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+  /libraries:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - "libraries"
+      parameters:
+        - in: query
+          name: filter
+          required: false
+          description: |
+            Allows the user to filter libraries.
+            The search is performed in arch, SHA256, binary_name and project_name fields
+          schema:
+            type: string
+        - in: query
+          name: pageNumber
+          required: false
+          description: Page index in the paginator. Results start at pageNumber*PageSize
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - in: query
+          name: pageSize
+          required: false 
+          description: Page size represent the number of libraries to fetch
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 2000
+            default: 25
+        - in: query
+          name: sort
+          required: false
+          description: Sort order, ascendant or descendant
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: asc
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/libraries"
+              examples:
+                OK:
+                  value:
+                    libraries:
+                      - source_name: "Win8.1"
+                        project_name: "Microsoft Corporation"
+                        binary_name: "apisetstub"
+                        binary_type: "lib"
+                        size: 3584
+                        sha256: "00042e381639d9d4ad4056e9094797110193ab3e1860e2ff7ac7ad9650508a99"
+                        md5: "078fa21eb626bf5b68f636fd03d0e285"
+                        version: "6.3.9600.16384 (winblue_rtm.130821-1623)"
+                        architecture: "i386"
+                        file_format: "PE"
+                        home_page: "https://www.microsoft.com/"
+                        project_description: "ApiSet Stub DLL"
+                        license: "© Microsoft Corporation. All rights reserved."
+                    count: 278777
+                    status: true
+        401:
+          $ref: "#/components/responses/UnauthorizedResponse"
+        403:
+          $ref: "#/components/responses/ForbiddenResponse"
+        400:
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref:  "#/components/schemas/badRequest"
+              examples:
+                invalidInput:
+                  value:
+                    status: false
+                    error: "Bad Request"
+                    details:
+                      - "PageSize": "PageSize must be 1 or greater"
+
+  /datasets:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - "datasets"
+      description: List user datasets
+      responses:
+        401:
+          $ref: "#/components/responses/UnauthorizedResponse"
+        200:
+          description: List of user datasets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListDatasets"
+              examples:
+                ok:   
+                  value:
+                    status: true
+                    count: 23
+                    datasets: 
+                      - group: "grp1"
+                        name : "uds_1"
+                        comment: "user dataset test description"
+                        kind: "udb:grp1:ed00902dc0cb5b97f73f05061f9e01b1b7643caeff74595c1ba81b1141975542"
+                      - group: "grp2"
+                        name : "uds_2"
+                        comment: "user dataset test description 2"
+                        kind: "udb:grp1:ff00902dc0cb5b97f73f05061f9e01b1b7643caeff74595c1ba81b1141975542"
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - "datasets"
+      description: Add a new dataset
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddDataset"
+            examples:
+              OK:
+                value:
+                  name: dataset_12
+                  comment: a useful dataset
+      responses:
+        401:
+          $ref: "#/components/responses/UnauthorizedResponse"
+        400:
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref:  "#/components/schemas/badRequest"
+              examples:
+                invalidInput:
+                  value:
+                    status: false
+                    error: "Bad Request"
+                    details:
+                      - "name": "name must be at least 4 characters in length"
+        409:
+          description: Status conflict
+        200:
+          description: Dataset added
+          content:
+            application/json:
+              schema:
+                properties:
+                  status:
+                    $ref: "#/components/schemas/status"
+                  kind:
+                    type: string
+                    description: ID of the new dataset
+              examples:
+                ok:
+                  value:
+                    status: true
+                    kind: "udb:grp1:ed00902dc0cb5b97f73f05061f9e01b1b7643caeff74595c1ba81b1141975542"
+
+  /datasets/upload:
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - "datasets"
+      description: |
+        Upload binary to be used by as a new dataset entry or dbg.
+        Allowed filetype: EXE, ELF, PDB
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The uploaded file
+      responses:
+        200:
+          description: File uploaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/uploadBinary"
+              examples:
+                OK:
+                  value:
+                    status: true
+                    id: 043e607c837d55c38220327ee795e34f196a51224fbe8b6692db3d6bd7d5731e
+        401:
+          $ref: "#/components/responses/UnauthorizedResponse"
+        400:
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref:  "#/components/schemas/badRequest"
+              examples:
+                noFile:
+                  value:
+                    status: false
+                    error: could not find file
+                invalidFile:
+                  value:
+                    status: false
+                    error: invalid file type
+        406:
+          description: Not acceptable
+          content:
+            application/json:
+              schema:
+                $ref:  "#/components/schemas/badRequest"
+              examples:
+                fileTooBig:
+                  value:
+                    status: false
+                    error: "invalid file size (max: 20.0MiB)"
+
+  /datasets/{dataset}:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - "datasets"
+      description: List user dataset entries
+      parameters:
+        - in: path
+          name: dataset
+          description: Dataset name
+          required: true
+          schema:
+            type: string
+            pattern: "[a-zA-Z0-9_-]{4,26}"
+        - in: query
+          name: size
+          description: Number of entries to fetch
+          schema:
+            type: integer
+            default: 25
+            minimum: 0
+        - in: query
+          name: from
+          description: Number of entries to skip
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - in: query
+          name: filter
+          description: |
+            Filter allows to filter dataset entries.
+            Value is search in arch, SHA256, binary_name and project_name
+          schema:
+            type: string
+      responses:
+        200:
+          description: List entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    description: number of entries
+                  entries:
+                    type: array
+                    description: array of entries
+                    items:
+                      $ref: "#/components/schemas/entry"
+              examples:
+                ok:
+                  value:
+                    count: 3
+                    entries:
+                      - project_name: "test"
+                        binary_name: "acyclic"
+                        size: 14600
+                        sha256: "6b906c888f46736639c9f257f72140eb4847758b17722c20ded1df9f536b18a8"
+                        md5: "6789e8f2e5fd723310fc0102ccf39534"
+                        ssdeep: "96:R400nKT0HB+BO9a3kNoz4FUCAhyvvqSyCoWoqacul+ZM24sP4EK6FSiVvNu3GM:R4KUwAo0NhFwhyvvBoN9culDG8KSi"
+                        architecture: "amd64"
+                        object_file_type: "exe"
+                        file_format: "ELF"
+                        functions_count: 6
+                        named_functions_count: 0
+                        exported_functions_count: 1
+                        dbg_functions_count: 0
+                        kind: "udb:glimps:27a4b09aa3e4083dd53086d3aac89a1adea6834f0395272cfb0ea9c53306e026"
+                        gb4_version: 2
+                        code_version: "dev.071221-63-gb5391b7d"
+                      - project_name: "test"
+                        binary_name: "alsaloop"
+                        size: 80888
+                        sha256: "a56a796ac211cd41df9b5e6e8dadf42c7913251c5964ce9144f2be6087b7d16e"
+                        md5: "98886ee1265d7390d5ee81770c980cea"
+                        ssdeep: "1536:i8w/SsFYmYzVQvFGfecQ7PmM74gSiUkVwOE4gZ1:i8waMAmvfT73RHcf"
+                        architecture: "amd64"
+                        object_file_type: "exe"
+                        file_format: "ELF"
+                        functions_count: 47
+                        named_functions_count: 0
+                        exported_functions_count: 1
+                        dbg_functions_count: 0
+                        kind: "udb:glimps:27a4b09aa3e4083dd53086d3aac89a1adea6834f0395272cfb0ea9c53306e026"
+                        gb4_version: 2
+                        code_version: "dev.071221-63-gb5391b7d"
+                      - project_name: "test"
+                        binary_name: "animate-im6"
+                        size: 14488
+                        sha256: "9948954b73c8491008ab186268842ba1fd6358cac87f2521a344ed01167c2ee6"
+                        md5: "2556cdc451c9af1278fd8ad34f6e9255"
+                        ssdeep: "96:RK4aTnR5BWB6eEWzocw7w2BCcSiVvBP2J:RUN58ceEWzj2BFSi"
+                        architecture: "amd64"
+                        object_file_type: "exe"
+                        file_format: "ELF"
+                        functions_count: 1
+                        named_functions_count: 0
+                        exported_functions_count: 1
+                        dbg_functions_count: 0
+                        kind: "udb:glimps:27a4b09aa3e4083dd53086d3aac89a1adea6834f0395272cfb0ea9c53306e026"
+                        gb4_version: 2
+                        code_version: "dev.071221-63-gb5391b7d"
+        401:
+          $ref: "#/components/responses/UnauthorizedResponse"
+        400:
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref:  "#/components/schemas/badRequest"
+              examples:
+                invalidInput:
+                  value:
+                    status: false
+                    error: "Bad Request"
+                    details:
+                      - "size": "size must be 1 or greater"
+    delete:
+      security:
+        - bearerAuth: []
+      tags:
+        - "datasets"
+      description: Delete an user dataset
+      parameters:
+        - in: path
+          name: dataset
+          description: Dataset name
+          required: true
+          schema:
+            type: string
+            pattern: "[a-zA-Z0-9_-]{4,26}"
+      responses:
+        401:
+          $ref: "#/components/responses/UnauthorizedResponse"
+        400:
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref:  "#/components/schemas/badRequest"
+              examples:
+                invalidInput:
+                  value:
+                    status: false
+                    error: "Bad Request"
+                    details:
+                      - "name": "name must be at least 4 characters in length"
+        200:
+          description: Dataset deleted
+          content:
+            application/json:
+              schema:
+                properties:
+                  status:
+                    $ref: "#/components/schemas/status"
+              examples:
+                ok:
+                  value:
+                    status: true
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - "datasets"
+      description: Add an user dataset entries
+      parameters:
+        - in: path
+          name: dataset
+          description: Dataset name
+          required: true
+          schema:
+            type: string
+            pattern: "[a-zA-Z0-9_-]{4,26}"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddDatasetEntries"
+            examples:
+              user1:
+                value:
+                  source_name: "src_1"
+                  project_name: "test"
+                  license: "GPL"
+                  home_page: "https://www.glimps.re"
+                  project_description: "A useful collection of stuff"
+                  files:
+                    - id: "3868d4db2a7997c293b0df2d4fbe72e69efb992928e7e3c705ed4948a091ae89"
+                      version: "1.0.2"
+                      binary_name: "libsec-1.so.0"
+      responses:
+        200:
+          description: file added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DatasetEntriesAdded"
+              examples:
+                oneFileAdded:
+                  value:
+                    status: true
+                    files:
+                      - id: dedb887a5c49294ecd850d86728a0744c0e7ea780be8de2d4fc89f6948386937
+                        status: true
+                twoFilePartiallyAdded:
+                  value:
+                    status: false
+                    files:
+                      - id: dedb887a5c49294ecd850d86728a0744c0e7ea780be8de2d4fc89f6948386937
+                        status: true
+                      - id: 1234887a5c49294ecd850d86728a0744c0e7ea780be8de2d4fc89f6948386937
+                        status: false
+        401:
+          $ref: "#/components/responses/UnauthorizedResponse"
+        400:
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref:  "#/components/schemas/badRequest"
+              examples:
+                invalidInput:
+                  value:
+                    status: false
+                    error: "Bad Request"
+                    details:
+                      - "name": "name is required field"

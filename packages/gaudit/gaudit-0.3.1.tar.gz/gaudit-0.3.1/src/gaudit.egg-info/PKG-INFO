@@ -1,0 +1,1243 @@
+Metadata-Version: 2.4
+Name: gaudit
+Version: 0.3.1
+Summary: Library and CLI for GLIMPS Audit API
+Author-email: GLIMPS dev core team <contact@glimps.re>
+Keywords: python,glimps,reverse engineering,malware,binary,analysis,ida
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Programming Language :: Python :: 3
+Classifier: Operating System :: MacOS :: MacOS X
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Operating System :: POSIX :: Linux
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: click~=8.0
+Requires-Dist: click-default-group~=1.2
+Requires-Dist: requests~=2.32
+Requires-Dist: rich~=11.0
+Requires-Dist: construct~=2.10
+Dynamic: license-file
+
+# GLIMPS Audit Client Library and CLI
+
+[![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+[![PyPI version](https://badge.fury.io/py/gaudit.svg)](https://badge.fury.io/py/gaudit)
+
+A comprehensive Python client library, command-line interface, and IDA Pro plugin for interacting with the GLIMPS Audit API v2.0.4. This tool enables seamless integration with GLIMPS's binary analysis platform for software composition analysis and vulnerability detection.
+
+## Table of Contents
+
+- [Features](#features)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [IDA Pro Plugin](#ida-pro-plugin)
+- [Quick Start](#quick-start)
+- [Configuration](#configuration)
+- [CLI Usage Guide](#cli-usage-guide)
+- [Python Library Usage](#python-library-usage)
+- [API Reference](#api-reference)
+- [Examples](#examples)
+- [Testing](#testing)
+- [Development](#development)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [License](#license)
+- [Support](#support)
+
+## Features
+
+### Core Capabilities
+- **Complete API Coverage**: Full implementation of GLIMPS Audit API v2.0.4
+- **Triple Interface**: Python library, command-line tool, and IDA Pro plugin
+- **Binary Analysis**: Submit executables (PE/ELF) for comprehensive analysis
+- **Library Detection**: Identify third-party libraries and their versions
+- **Dataset Management**: Create, populate, and manage custom reference datasets
+- **Vulnerability Correlation**: Match binaries against known vulnerable components
+- **IDA Pro Integration**: Direct integration with IDA Pro for reverse engineering workflows
+
+### Technical Features
+- **Cross-Platform Support**: Windows, macOS, and Linux compatibility
+- **Secure Authentication**: JWT-based authentication with automatic token refresh
+- **Comprehensive Testing**: 80%+ code coverage with unit and integration tests
+- **Type Hints**: Full type annotation support for better IDE integration
+- **Async Support**: Efficient handling of long-running operations
+- **Configurable**: Environment variables and configuration files support
+
+## Requirements
+
+- Python 3.8 or higher
+- pip package manager
+- Active GLIMPS Audit account with API access
+- For IDA Pro plugin: IDA Pro 8.5 or higher
+
+### System Dependencies
+- Operating System: Windows 10+, macOS 10.14+, or Linux (Ubuntu 18.04+)
+- Network: Internet connection for API access
+- Storage: ~50MB for installation
+
+## Installation
+
+### From PyPI (Recommended)
+
+```bash
+pip install gaudit
+```
+
+### From Source (Latest Development)
+
+```bash
+# Clone the repository
+git clone https://github.com/GLIMPS/gaudit.git
+cd gaudit
+
+# Install in production mode
+pip install .
+
+# Or install in development mode (editable)
+pip install -e .
+```
+
+### Development Installation
+
+For contributors and developers:
+
+```bash
+# Clone and install with development dependencies
+git clone https://github.com/GLIMPS/gaudit.git
+cd gaudit
+pip install -r requirements-dev.txt
+pip install -e .
+
+# Verify installation
+gaudit --version
+```
+
+### Docker Installation (Alternative)
+
+```dockerfile
+FROM python:3.11-slim
+RUN pip install gaudit
+```
+
+## IDA Pro Plugin
+
+The GAudit package includes a powerful IDA Pro plugin for integrating GLIMPS Audit directly into your reverse engineering workflow.
+
+### Plugin Installation
+
+1. **Install the GAudit package**:
+   ```bash
+   pip install gaudit
+   ```
+
+2. **Copy the plugin file to IDA Pro plugins directory**:
+   
+   The plugin file `ida_gaudit.py` is included in the repository root. Copy it to your IDA Pro plugins directory:
+   
+   **Windows**:
+   ```cmd
+   copy ida_gaudit.py "C:\Program Files\IDA Pro 8.5\plugins\"
+   ```
+   
+   **Linux/macOS**:
+   ```bash
+   cp ida_gaudit.py /path/to/ida/plugins/
+   ```
+
+3. **Restart IDA Pro**
+
+### Plugin Features
+
+The GAudit IDA Pro plugin provides three main features:
+
+#### 1. Document Database
+Analyze your IDA database against GLIMPS's extensive library database and automatically apply function names from matched libraries. This feature:
+- Builds an ELF from your IDA database
+- Uploads it to GLIMPS for analysis
+- Allows you to select which matched libraries to use
+- Automatically renames functions based on matches
+
+#### 2. Add to Dataset
+Upload your analyzed binaries to custom GLIMPS datasets for building your own reference library:
+- Export your IDA database as ELF
+- Upload to GLIMPS server
+- Add to your custom dataset with metadata
+- Build your organization's binary knowledge base
+
+#### 3. Build ELF
+Export your IDA Pro database as an ELF file for external analysis or sharing:
+- Converts IDA database to standard ELF format
+- Preserves function information and symbols
+- Enables analysis with other tools
+
+### Plugin Usage
+
+After installation, access the plugin through IDA Pro's menu:
+
+**Edit Menu**:
+- `Edit → GAudit → Document database` - Analyze and document functions
+- `Edit → GAudit → Add database to a dataset` - Add to your dataset
+- `Edit → GAudit → Build ELF` - Export as ELF file
+
+**Plugin Menu**:
+- `Edit → Plugins → GAudit settings` - Configure server and credentials
+
+### Plugin Configuration
+
+On first use:
+1. Go to `Edit → Plugins → GAudit settings`
+2. Enter server URL (default: `https://gaudit.glimps.re`)
+3. Enter your email and password
+4. Check "Ignore server certificate" only for self-signed certificates
+5. Click OK to save
+
+Configuration is stored and persists across IDA Pro sessions.
+
+### IDC Script Integration
+
+Generate IDC scripts from the command line for batch processing:
+
+```bash
+# Analyze a binary
+gaudit audit create --group "ida" --file /path/to/binary.exe
+
+# Get audit details to find library IDs
+gaudit audit get <audit-id>
+
+# Generate IDC script with selected libraries
+gaudit audit idc <audit-id> \
+  --lib "lib_id_1" \
+  --lib "lib_id_2" \
+  --output documentation.idc
+
+# In IDA Pro: File → Script file... → Select documentation.idc
+```
+
+## Quick Start
+
+### First-Time Setup
+
+1. **Obtain API Credentials**
+   - Sign up at [https://gaudit.glimps.re](https://gaudit.glimps.re)
+   - Navigate to your profile settings
+   - Note your email and password
+
+2. **Configure Authentication**
+
+   Using CLI (Interactive):
+   ```bash
+   gaudit login
+   # Enter email and password when prompted
+   ```
+
+   Using Environment Variables:
+   ```bash
+   export GLIMPS_AUDIT_URL="https://gaudit.glimps.re"
+   export GLIMPS_AUDIT_EMAIL="your-email@example.com"
+   export GLIMPS_AUDIT_PASSWORD="your-password"
+   ```
+
+3. **Verify Setup**
+   ```bash
+   gaudit whoami
+   ```
+
+### Basic Workflow Example
+
+```bash
+# 1. Upload and analyze a binary
+gaudit audit create --group security --file /path/to/application.exe --comment "Security scan"
+
+# 2. Check analysis status
+gaudit audit list --filter "application.exe"
+
+# 3. Retrieve detailed results
+gaudit audit get <audit-id>
+
+# 4. Generate IDA Pro documentation
+gaudit audit idc <audit-id> --lib <library-id> --output functions.idc
+
+# 5. Export results as JSON
+gaudit audit get <audit-id> --json > results.json
+
+# 6. Build a custom dataset for future comparisons
+gaudit dataset create my_libs --comment "Our validated libraries"
+
+# 7. Add files to your dataset
+gaudit dataset add-files my_libs \
+  --project "ValidatedLibs" \
+  --file "/path/to/safe_lib_v1.dll@1.0.0" \
+  --file "/path/to/safe_lib_v2.dll@2.0.0" \
+  --auto-upload \
+  --license "MIT"
+```
+
+## Configuration
+
+### Configuration Hierarchy
+
+The client uses the following priority order for configuration:
+1. Command-line arguments (highest priority)
+2. Environment variables
+3. Configuration file
+4. Default values (lowest priority)
+
+### Configuration File Location
+
+| Platform | Location |
+|----------|----------|
+| Linux | `~/.config/gaudit/config.json` |
+| macOS | `~/Library/Application Support/gaudit/config.json` |
+| Windows | `%APPDATA%\gaudit\config.json` |
+
+### Configuration File Format
+
+```json
+{
+  "url": "https://gaudit.glimps.re",
+  "email": "user@example.com",
+  "token": "eyJ0eXAiOiJKV1QiLCJhbGc...",
+  "verify_ssl": true
+}
+```
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `GLIMPS_AUDIT_URL` | API server URL | `https://gaudit.glimps.re` |
+| `GLIMPS_AUDIT_EMAIL` | User email for authentication | None |
+| `GLIMPS_AUDIT_PASSWORD` | User password for authentication | None |
+| `GLIMPS_AUDIT_TOKEN` | JWT authentication token | None |
+| `GLIMPS_AUDIT_VERIFY_SSL` | SSL certificate verification | `true` |
+
+## CLI Usage Guide
+
+### Authentication Commands
+
+```bash
+# Interactive login
+gaudit login
+
+# Login with credentials
+gaudit login --email user@example.com --password secret
+
+# Check authentication status
+gaudit whoami
+
+# Change password
+gaudit change-password
+
+# Logout (clear stored credentials)
+gaudit logout
+```
+
+### Audit Management
+
+```bash
+# Upload a file for analysis
+gaudit audit upload /path/to/binary.exe
+
+# Create audit with uploaded file
+gaudit audit create \
+  --group "production" \
+  --file "6cbce50e71d810cd:binary.exe" \
+  --comment "Production release v1.2.3" \
+  --dataset "default,custom"
+
+# Create audit with direct file upload
+gaudit audit create \
+  --group "testing" \
+  --file /path/to/binary.exe \
+  --comment "Test build"
+
+# List all audits
+gaudit audit list
+
+# Filter audits
+gaudit audit list --filter "keyword" --size 50 --sort desc
+
+# Get detailed audit results
+gaudit audit get 51d6999a-d54d-4ac7-8af3-0425d24fa615
+
+# Generate IDC script for IDA Pro
+gaudit audit idc <audit-id> \
+  --lib "lib_id_1" \
+  --lib "lib_id_2" \
+  --output documentation.idc
+
+# Download analyzed binary
+gaudit audit download <audit-id> <file-id> --output recovered.exe
+
+# Delete an audit
+gaudit audit delete <audit-id>
+
+# List available audit groups
+gaudit audit groups
+```
+
+### Dataset Management
+
+```bash
+# List all datasets
+gaudit dataset list
+
+# Create a new dataset
+gaudit dataset create my_reference --comment "Custom reference libraries"
+
+# List dataset entries
+gaudit dataset entries my_reference --filter "openssl"
+
+# Upload a file for dataset use
+gaudit dataset upload /path/to/library.dll
+
+# Add files to dataset (multiple methods)
+
+# Method 1: Using pre-uploaded file IDs
+gaudit dataset add-files my_reference \
+  --project "MyProject" \
+  --file "6cbce50e71d810cd:library.dll@1.0.0" \
+  --license "MIT"
+
+# Method 2: Auto-upload local files
+gaudit dataset add-files my_reference \
+  --project "MyProject" \
+  --file "/path/to/library.dll@1.0.0" \
+  --file "/path/to/helper.dll@1.0.1" \
+  --auto-upload \
+  --license "MIT"
+
+# Update dataset to latest version
+gaudit dataset update my_reference
+
+# Delete a dataset
+gaudit dataset delete my_reference
+```
+
+### Library Search
+
+```bash
+# List all libraries
+gaudit library list
+
+# Search for specific libraries
+gaudit library list --filter "openssl" --size 100
+
+# Filter by architecture
+gaudit library list --filter "amd64" --sort desc
+```
+
+### User Management
+
+```bash
+# View user statistics
+gaudit user stats
+
+# Delete all user analyses
+gaudit user delete-analyses
+```
+
+## Python Library Usage
+
+### Basic Example
+
+```python
+from gaudit import GlimpsAuditClient
+
+# Initialize client
+client = GlimpsAuditClient(
+    url="https://gaudit.glimps.re",
+    verify_ssl=True
+)
+
+# Authenticate
+result = client.login("user@example.com", "password")
+print(f"Logged in as: {result['name']}")
+
+# Upload and analyze a file
+upload = client.upload_file_for_audit("application.exe")
+file_id = upload["id"]
+
+# Create audit with analysis parameters
+audit = client.create_audit(
+    group="security-scans",
+    files={file_id: "application.exe"},
+    comment="Automated security scan",
+    services={
+        "GlimpsLibCorrelate": {
+            "dataset": "default,custom",
+            "confidence": "1",
+            "valid": "true"
+        }
+    }
+)
+
+audit_id = audit["aids"][0]
+print(f"Audit created: {audit_id}")
+
+# Wait for completion and get results
+import time
+while True:
+    details = client.get_audit(audit_id)
+    if details["audit"].get("done_at"):
+        break
+    time.sleep(5)
+
+# Process results
+audit_data = details["audit"]
+print(f"Analysis completed: {audit_data['done_at']}")
+print(f"Libraries found: {len(audit_data.get('libraries', []))}")
+
+for library in audit_data.get("libraries", []):
+    print(f"- {library['name']}")
+    for file, versions in library.get("files", {}).items():
+        for version in versions:
+            print(f"  {file} v{version['version']} (score: {version['score']})")
+```
+
+### Advanced Usage with IDA Pro Integration
+
+```python
+#!/usr/bin/env python3
+"""
+Analyze binaries and generate IDA Pro documentation
+"""
+
+from gaudit import GlimpsAuditClient
+from pathlib import Path
+import time
+
+class IDADocumentationGenerator:
+    def __init__(self, client: GlimpsAuditClient):
+        self.client = client
+    
+    def analyze_and_document(self, binary_path: Path, output_dir: Path):
+        """
+        Analyze a binary and generate IDA Pro documentation
+        
+        Args:
+            binary_path: Path to the binary file
+            output_dir: Directory for output files
+        """
+        
+        # Upload and analyze
+        print(f"Uploading {binary_path.name}...")
+        upload = self.client.upload_file_for_audit(str(binary_path))
+        
+        audit = self.client.create_audit(
+            group="ida-documentation",
+            files={upload["id"]: binary_path.name},
+            comment="IDA Pro documentation generation",
+            services={
+                "GlimpsLibCorrelate": {
+                    "dataset": "default",
+                    "confidence": "1",
+                    "valid": "true"
+                }
+            }
+        )
+        
+        audit_id = audit["aids"][0]
+        print(f"Analysis started: {audit_id}")
+        
+        # Wait for completion
+        while True:
+            details = self.client.get_audit(audit_id)
+            if details["audit"].get("done_at"):
+                break
+            print(".", end="", flush=True)
+            time.sleep(2)
+        
+        print("\nAnalysis complete!")
+        
+        # Extract library IDs
+        libraries = details["audit"].get("libraries", [])
+        if not libraries:
+            print("No libraries matched")
+            return None
+        
+        # Select top matches
+        library_ids = []
+        for lib in libraries[:10]:  # Top 10 matches
+            for file, versions in lib.get("files", {}).items():
+                for version in versions:
+                    if version["score"] > 80:  # High confidence matches
+                        library_ids.append(version["id"])
+                        print(f"Including: {lib['name']} v{version['version']} (score: {version['score']:.1f})")
+        
+        if not library_ids:
+            print("No high-confidence matches found")
+            return None
+        
+        # Generate IDC script
+        idc_content = self.client.generate_idc(audit_id, library_ids)
+        
+        # Save IDC file
+        output_dir.mkdir(parents=True, exist_ok=True)
+        idc_path = output_dir / f"{binary_path.stem}_documentation.idc"
+        
+        with open(idc_path, "w") as f:
+            f.write(idc_content)
+        
+        print(f"\nIDC script saved to: {idc_path}")
+        print(f"To use in IDA Pro:")
+        print(f"  1. Open {binary_path.name} in IDA Pro")
+        print(f"  2. File → Script file...")
+        print(f"  3. Select {idc_path}")
+        
+        return idc_path
+    
+    def batch_analyze(self, directory: Path, output_dir: Path):
+        """
+        Analyze all executables in a directory
+        
+        Args:
+            directory: Directory containing binaries
+            output_dir: Directory for IDC output files
+        """
+        
+        exe_patterns = ["*.exe", "*.dll", "*.so", "*.elf"]
+        binaries = []
+        
+        for pattern in exe_patterns:
+            binaries.extend(directory.glob(pattern))
+        
+        print(f"Found {len(binaries)} binaries to analyze")
+        
+        results = []
+        for binary in binaries:
+            print(f"\n{'='*60}")
+            print(f"Processing: {binary.name}")
+            print(f"{'='*60}")
+            
+            try:
+                idc_path = self.analyze_and_document(binary, output_dir)
+                results.append({
+                    "binary": binary.name,
+                    "idc_path": str(idc_path) if idc_path else None,
+                    "status": "success" if idc_path else "no_matches"
+                })
+            except Exception as e:
+                print(f"Error processing {binary.name}: {e}")
+                results.append({
+                    "binary": binary.name,
+                    "error": str(e),
+                    "status": "failed"
+                })
+        
+        # Summary
+        print(f"\n{'='*60}")
+        print("BATCH ANALYSIS COMPLETE")
+        print(f"{'='*60}")
+        successful = sum(1 for r in results if r["status"] == "success")
+        no_matches = sum(1 for r in results if r["status"] == "no_matches")
+        failed = sum(1 for r in results if r["status"] == "failed")
+        
+        print(f"Total processed: {len(results)}")
+        print(f"  Successful: {successful}")
+        print(f"  No matches: {no_matches}")
+        print(f"  Failed: {failed}")
+        
+        return results
+
+# Usage example
+if __name__ == "__main__":
+    # Initialize client
+    client = GlimpsAuditClient()
+    client.login("analyst@example.com", "password")
+    
+    generator = IDADocumentationGenerator(client)
+    
+    # Single file analysis
+    generator.analyze_and_document(
+        Path("/path/to/unknown_binary.exe"),
+        Path("/path/to/idc_output")
+    )
+    
+    # Batch analysis
+    generator.batch_analyze(
+        Path("/path/to/binaries"),
+        Path("/path/to/idc_output")
+    )
+```
+
+## API Reference
+
+### Client Initialization
+
+```python
+GlimpsAuditClient(url: str = "https://gaudit.glimps.re", verify_ssl: bool = True)
+```
+
+### Authentication Methods
+
+| Method | Description | Returns |
+|--------|-------------|---------|
+| `login(email, password)` | Authenticate with credentials | Auth response with token |
+| `refresh_token()` | Refresh authentication token | New auth response |
+| `is_token_valid()` | Check token validity | Boolean |
+| `ensure_authenticated()` | Ensure valid authentication | None or raises exception |
+
+### Audit Methods
+
+| Method | Description | Returns |
+|--------|-------------|---------|
+| `create_audit(group, files, comment, services)` | Create new audit | Audit creation response |
+| `list_audits(filter, sort_order, page_number, page_size)` | List audits | Paginated audit list |
+| `get_audit(audit_id)` | Get audit details | Full audit information |
+| `delete_audit(audit_id)` | Delete an audit | Status response |
+| `upload_file_for_audit(file_path)` | Upload file for analysis | File upload response |
+| `download_audit_binary(audit_id, file_id, save_path)` | Download analyzed file | Binary content |
+| `generate_idc(audit_id, library_ids)` | Generate IDA IDC script | IDC script content |
+| `get_audit_groups()` | Get available audit groups | List of group names |
+
+### Dataset Methods
+
+| Method | Description | Parameters | Returns |
+|--------|-------------|------------|---------|
+| `list_datasets()` | List all datasets | None | Dataset list |
+| `create_dataset(name, comment)` | Create new dataset | `name` (required), `comment` (optional) | Dataset creation response |
+| `get_dataset_entries(dataset_name, size, from_index, filter)` | Get dataset entries | `dataset_name` (required), others optional | Paginated entry list |
+| `add_dataset_entries(dataset_name, project_name, files, ...)` | Add entries to dataset | `dataset_name`, `project_name`, `files` (all required) | Addition status |
+| `delete_dataset(dataset_name)` | Delete a dataset | `dataset_name` (required) | Status response |
+| `update_dataset(dataset_name)` | Update dataset version | `dataset_name` (required) | None (202 Accepted) |
+| `upload_file_for_dataset(file_path)` | Upload file for dataset | `file_path` (required) | Upload response with ID |
+
+## Examples
+
+### Example: Vulnerability Scanner
+
+```python
+#!/usr/bin/env python3
+"""
+Scan binaries for known vulnerable libraries
+"""
+
+from gaudit import GlimpsAuditClient
+from pathlib import Path
+import sys
+
+def scan_for_vulnerabilities(client: GlimpsAuditClient, file_path: Path):
+    """Scan a binary for vulnerable libraries"""
+    
+    print(f"Scanning {file_path.name}...")
+    
+    # Upload file
+    upload = client.upload_file_for_audit(str(file_path))
+    
+    # Create audit with vulnerability detection
+    audit = client.create_audit(
+        group="vulnerability-scan",
+        files={upload["id"]: file_path.name},
+        comment="Vulnerability scan",
+        services={
+            "GlimpsLibCorrelate": {
+                "dataset": "vulnerable_libs",
+                "confidence": "1",
+                "valid": "true"
+            }
+        }
+    )
+    
+    audit_id = audit["aids"][0]
+    
+    # Wait for completion
+    import time
+    max_wait = 300  # 5 minutes
+    start_time = time.time()
+    
+    while time.time() - start_time < max_wait:
+        details = client.get_audit(audit_id)
+        if details["audit"].get("done_at"):
+            break
+        time.sleep(5)
+    
+    # Check for vulnerable libraries
+    vulnerabilities = []
+    for lib in details["audit"].get("libraries", []):
+        # Check against vulnerability database
+        if lib["name"] in ["log4j", "openssl-1.0.1"]:
+            vulnerabilities.append({
+                "library": lib["name"],
+                "severity": "HIGH",
+                "description": f"Known vulnerable library: {lib['name']}"
+            })
+    
+    return vulnerabilities
+
+# Usage
+if __name__ == "__main__":
+    client = GlimpsAuditClient()
+    client.login("security@example.com", "password")
+    
+    vulnerabilities = scan_for_vulnerabilities(
+        client, 
+        Path(sys.argv[1])
+    )
+    
+    if vulnerabilities:
+        print("VULNERABILITIES FOUND:")
+        for vuln in vulnerabilities:
+            print(f"  - {vuln['library']}: {vuln['description']}")
+        sys.exit(1)
+    else:
+        print("No known vulnerabilities detected")
+        sys.exit(0)
+```
+
+### Example: Complete Dataset Management
+
+```python
+#!/usr/bin/env python3
+"""
+Complete example of dataset creation and management
+"""
+
+from gaudit import GlimpsAuditClient
+from pathlib import Path
+
+def create_and_populate_dataset(client: GlimpsAuditClient):
+    """Example showing complete dataset workflow with required fields"""
+    
+    # Step 1: Create a new dataset
+    dataset_name = "custom_libs_v1"
+    dataset = client.create_dataset(
+        name=dataset_name,
+        comment="Custom library dataset for internal projects"
+    )
+    print(f"Created dataset: {dataset['kind']}")
+    
+    # Step 2: Upload files to be added to the dataset
+    library_files = [
+        "/path/to/mylib_v1.0.dll",
+        "/path/to/mylib_v1.1.dll",
+        "/path/to/helper.so"
+    ]
+    
+    uploaded_files = []
+    for file_path in library_files:
+        upload = client.upload_file_for_dataset(file_path)
+        uploaded_files.append({
+            "id": upload["id"],
+            "binary_name": Path(file_path).name,
+            "version": "1.0.0"
+        })
+        print(f"Uploaded: {Path(file_path).name} -> {upload['id']}")
+    
+    # Step 3: Add files to dataset with REQUIRED fields
+    result = client.add_dataset_entries(
+        dataset_name=dataset_name,
+        project_name="InternalProject",  # REQUIRED
+        files=uploaded_files,             # REQUIRED
+        source_name="Internal Build System",
+        license="Proprietary",
+        home_page="https://internal.example.com/project",
+        project_description="Internal libraries for company projects"
+    )
+    
+    if result["status"]:
+        print(f"Successfully added {len(uploaded_files)} files to dataset")
+    
+    # Step 4: Verify dataset entries
+    entries = client.get_dataset_entries(dataset_name)
+    print(f"\nDataset now contains {entries['count']} entries:")
+    for entry in entries.get("entries", []):
+        print(f"  - {entry['binary_name']} ({entry['architecture']})")
+        print(f"    SHA256: {entry['sha256']}")
+    
+    return dataset_name
+
+# Usage
+if __name__ == "__main__":
+    client = GlimpsAuditClient()
+    client.login("admin@example.com", "password")
+    
+    dataset_name = create_and_populate_dataset(client)
+    print(f"\nDataset '{dataset_name}' created and populated successfully!")
+```
+
+### Example: Compliance Reporter
+
+```python
+#!/usr/bin/env python3
+"""
+Generate compliance reports for analyzed binaries
+"""
+
+from gaudit import GlimpsAuditClient
+from datetime import datetime
+import json
+
+def generate_compliance_report(client: GlimpsAuditClient, audit_id: str):
+    """Generate a compliance report from audit results"""
+    
+    details = client.get_audit(audit_id)
+    audit = details["audit"]
+    
+    report = {
+        "report_date": datetime.now().isoformat(),
+        "audit_id": audit_id,
+        "file": {
+            "name": audit["filename"],
+            "type": audit["filetype"],
+            "architecture": audit["arch"],
+            "size": audit["size"],
+            "hashes": {h["Name"]: h["Value"] for h in audit["hashes"]}
+        },
+        "compliance": {
+            "total_libraries": len(audit.get("libraries", [])),
+            "licensed_libraries": [],
+            "unlicensed_libraries": [],
+            "copyleft_licenses": [],
+            "permissive_licenses": []
+        }
+    }
+    
+    # Analyze licenses
+    for lib in audit.get("libraries", []):
+        for file, versions in lib.get("files", {}).items():
+            for version in versions:
+                license_type = version.get("license", "Unknown")
+                lib_entry = {
+                    "name": lib["name"],
+                    "file": file,
+                    "version": version["version"],
+                    "license": license_type
+                }
+                
+                if license_type == "Unknown":
+                    report["compliance"]["unlicensed_libraries"].append(lib_entry)
+                else:
+                    report["compliance"]["licensed_libraries"].append(lib_entry)
+                    
+                    # Categorize by license type
+                    if license_type in ["GPL", "LGPL", "AGPL"]:
+                        report["compliance"]["copyleft_licenses"].append(lib_entry)
+                    elif license_type in ["MIT", "BSD", "Apache"]:
+                        report["compliance"]["permissive_licenses"].append(lib_entry)
+    
+    # Add compliance summary
+    report["summary"] = {
+        "compliant": len(report["compliance"]["unlicensed_libraries"]) == 0,
+        "copyleft_risk": len(report["compliance"]["copyleft_licenses"]) > 0,
+        "license_coverage": (
+            len(report["compliance"]["licensed_libraries"]) / 
+            report["compliance"]["total_libraries"] * 100
+            if report["compliance"]["total_libraries"] > 0 else 0
+        )
+    }
+    
+    return report
+
+# Usage
+client = GlimpsAuditClient()
+client.login("compliance@example.com", "password")
+
+report = generate_compliance_report(client, "audit-id-123")
+print(json.dumps(report, indent=2))
+```
+
+## Testing
+
+### Running Tests
+
+```bash
+# Run all unit tests
+pytest
+
+# Run with coverage report
+pytest --cov=gaudit --cov-report=html
+
+# Run specific test module
+pytest tests/test_client.py
+
+# Run tests matching pattern
+pytest -k "test_login"
+
+# Run with verbose output
+pytest -v
+
+# Using the test runner script
+python run_tests.py --coverage
+```
+
+### Integration Testing
+
+Integration tests require a live API server:
+
+```bash
+# Set environment variables
+export GLIMPS_TEST_API_URL="https://gaudit.glimps.re"
+export GLIMPS_TEST_EMAIL="test@example.com"
+export GLIMPS_TEST_PASSWORD="test-password"
+
+# Run integration tests
+pytest -m integration
+
+# Or using the test runner
+python run_tests.py --integration
+```
+
+### Test Coverage
+
+Current test coverage targets:
+- Minimum: 80%
+- Target: 90%+
+- Current: Check with `pytest --cov=gaudit`
+
+## Development
+
+### Project Structure
+
+```
+gaudit/
+├── src/gaudit/           # Source code
+│   ├── __init__.py      # Package initialization
+│   ├── client.py        # API client implementation
+│   ├── cli.py           # CLI implementation
+│   ├── config.py        # Configuration management
+│   ├── elfbuilder.py    # ELF building utilities
+│   └── ida/             # IDA Pro plugin modules
+│       ├── __init__.py
+│       ├── plugin.py    # Main plugin code
+│       ├── idbtoelf.py  # IDA to ELF conversion
+│       ├── ui.py        # Plugin UI components
+│       └── version.py   # Plugin version
+├── ida_gaudit.py        # IDA Pro plugin entry point
+├── tests/               # Test suite
+│   ├── test_client.py   # Client tests
+│   ├── test_cli.py      # CLI tests
+│   └── utils.py         # Test utilities
+├── docs/                # Documentation
+│   └── openapi.yml      # API specification
+├── examples/            # Example scripts
+├── requirements.txt     # Production dependencies
+└── pyproject.toml       # Project configuration
+```
+
+### Development Setup
+
+```bash
+# Clone repository
+git clone https://github.com/GLIMPS/gaudit.git
+cd gaudit
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install development dependencies
+pip install -r requirements-dev.txt
+pip install -e .
+
+# Run linting
+ruff check src tests
+
+# Format code
+ruff format src tests
+
+# Run tests
+pytest
+```
+
+### Code Style
+
+This project follows:
+- PEP 8 style guide
+- Type hints for all public methods
+- Docstrings for all modules, classes, and functions
+- Maximum line length: 119 characters
+
+### Pre-commit Hooks
+
+```bash
+# Install pre-commit
+pip install pre-commit
+
+# Install hooks
+pre-commit install
+
+# Run manually
+pre-commit run --all-files
+```
+
+## Troubleshooting
+
+### Common Issues
+
+#### Authentication Failures
+
+**Problem**: "API Error 401: Unauthorized"
+
+**Solutions**:
+1. Verify credentials are correct
+2. Check if token has expired: `gaudit whoami`
+3. Re-authenticate: `gaudit login`
+4. Verify API URL is correct
+
+#### SSL Certificate Errors
+
+**Problem**: SSL certificate verification failed
+
+**Solutions**:
+1. Update certificates: `pip install --upgrade certifi`
+2. For testing only: `gaudit --insecure login`
+3. Set custom CA bundle: `export REQUESTS_CA_BUNDLE=/path/to/ca-bundle.crt`
+
+#### IDA Pro Plugin Not Loading
+
+**Problem**: Plugin doesn't appear in IDA Pro menus
+
+**Solutions**:
+1. Verify `ida_gaudit.py` is in the correct plugins directory
+2. Check IDA Pro console for error messages
+3. Ensure `gaudit` package is installed in IDA's Python environment
+4. Verify Python version compatibility (3.8+)
+
+#### File Upload Errors
+
+**Problem**: "invalid file type" or "invalid file size"
+
+**Solutions**:
+1. Verify file is PE (Windows) or ELF (Linux) executable
+2. Check file size is under 20MB limit
+3. Ensure file is not corrupted: `file /path/to/binary`
+
+#### Dataset Entry Errors
+
+**Problem**: "Bad Request" when adding dataset entries
+
+**Solutions**:
+1. Ensure `project_name` is provided (REQUIRED field)
+2. Ensure `files` array is provided (REQUIRED field)
+3. Verify file IDs exist from prior upload
+4. Check dataset name exists and you have permissions
+
+**Example of correct usage**:
+```python
+client.add_dataset_entries(
+    dataset_name="my_dataset",
+    project_name="MyProject",  # REQUIRED
+    files=[{                    # REQUIRED
+        "id": "file_id_from_upload",
+        "binary_name": "library.dll",
+        "version": "1.0.0"
+    }]
+)
+```
+
+#### Connection Timeouts
+
+**Problem**: Requests timing out
+
+**Solutions**:
+1. Check network connectivity
+2. Verify firewall settings
+3. Try using a different DNS server
+4. Contact your network administrator
+
+### Debug Mode
+
+Enable detailed logging for troubleshooting:
+
+```python
+import logging
+
+# Enable debug logging
+logging.basicConfig(level=logging.DEBUG)
+
+# Now client will show detailed requests/responses
+client = GlimpsAuditClient()
+```
+
+### Getting Help
+
+1. Check the [FAQ](https://support.glimps.re/faq)
+2. Search [existing issues](https://github.com/GLIMPS/gaudit/issues)
+3. Contact support: support@glimps.re
+4. Join our [community forum](https://community.glimps.re)
+
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### Quick Contribution Guide
+
+1. Fork the repository
+2. Create a feature branch:
+   ```bash
+   git checkout -b feature/amazing-feature
+   ```
+3. Make your changes and add tests
+4. Ensure tests pass:
+   ```bash
+   pytest
+   ruff check .
+   ```
+5. Commit with descriptive message:
+   ```bash
+   git commit -m "Add amazing feature: description of changes"
+   ```
+6. Push to your fork:
+   ```bash
+   git push origin feature/amazing-feature
+   ```
+7. Open a Pull Request
+
+### Development Guidelines
+
+- Write tests for new features
+- Update documentation for API changes
+- Follow existing code style
+- Add type hints for new functions
+- Keep commits atomic and descriptive
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+## Support
+
+### Resources
+
+- **Documentation**: [https://docs.glimps.re](https://docs.glimps.re)
+- **API Reference**: [https://api.glimps.re/docs](https://api.glimps.re/docs)
+- **Support Portal**: [https://support.glimps.re](https://support.glimps.re)
+- **Email**: support@glimps.re
+- **Company Website**: [https://www.glimps.re](https://www.glimps.re)
+
+### Professional Support
+
+For enterprise support, custom integrations, or training, contact contact@glimps.re
+
+## Changelog
+
+### Version 0.1.1 (Latest)
+- **IDA Pro Plugin**: Full integration with IDA Pro for reverse engineering workflows
+- **IDC Generation**: Generate IDA Pro documentation scripts from audit results
+- **Enhanced Dataset Management**: Added `dataset upload` and `dataset add-files` commands
+- **Auto-Upload Feature**: New `--auto-upload` flag for automatic file upload when adding to datasets
+- **Improved Error Messages**: Better handling of required fields with helpful error messages
+- **ELF Builder**: Added support for building ELF files from IDA databases
+
+See [CHANGELOG.md](CHANGELOG.md) for complete version history and release notes.
+
+## Acknowledgments
+
+- GLIMPS development team for the API platform
+- Open source community for invaluable tools and libraries
+- All contributors and users providing feedback and improvements
+
+---
+
+**Copyright (c) 2025 GLIMPS** - Prevent tomorrow's threats today.
