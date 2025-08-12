@@ -1,0 +1,133 @@
+Metadata-Version: 2.4
+Name: polymetrix
+Version: 0.2.0
+Summary: A framework for calculating descriptors for polymers
+Author-email: Sreekanth Kunchapu <sreekanthkuncha@gmail.com>, Kevin Maik Jablonka <mail@kjablonka.com>
+License: MIT
+Keywords: Polymer,flexibility descriptors,Physics-based descriptors
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Science/Research
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Intended Audience :: Science/Research
+Classifier: Topic :: Scientific/Engineering
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Operating System :: Unix
+Classifier: Operating System :: MacOS
+Requires-Python: <3.13,>=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: networkx
+Requires-Dist: numpy
+Requires-Dist: pandarallel
+Requires-Dist: pandas
+Requires-Dist: radonpy-pypi
+Requires-Dist: rdkit
+Requires-Dist: matplotlib
+Requires-Dist: mofdscribe
+Requires-Dist: pystow
+Provides-Extra: dev
+Requires-Dist: jupyter; extra == "dev"
+Requires-Dist: docformatter; extra == "dev"
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: pytest-cov; extra == "dev"
+Requires-Dist: ruff; extra == "dev"
+Requires-Dist: bump-my-version; extra == "dev"
+Requires-Dist: mkdocs; extra == "dev"
+Requires-Dist: mkdocs-material; extra == "dev"
+Requires-Dist: mkdocstrings[python]; extra == "dev"
+
+<h1 align="center">
+  PolyMetriX
+</h1>
+<p align="center">
+    <a href="https://pypi.org/project/polymetrix">
+        <img alt="PyPI" src="https://img.shields.io/pypi/v/polymetrix" />
+    </a>
+    <a href="./LICENSE">
+        <img alt="PyPI - License" src="https://img.shields.io/pypi/l/polymetrix" />
+    </a>
+    <a href='https://lamalab-org.github.io/PolyMetriX/'>
+        <img src="https://img.shields.io/badge/docs-passing-brightgreen" alt="Documentation">
+    </a>
+    <a href="https://www.contributor-covenant.org">
+        <img alt="Contributor Covenant" src="https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg" />
+    </a>
+</p>
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./docs/figures/overview-dark.png">
+  <img alt="PolyMetriX Overview" src="./docs/figures/overview_polymetrix.png">
+</picture>
+</p>
+
+_PolyMetriX_ is a comprehensive Python library that powers the entire machine learning workflow for polymer informatics. From data preparation to feature engineering, it provides a unified framework for developing structure-property relationships in polymer science.
+
+For more detailed information, see the [documentation](https://lamalab-org.github.io/PolyMetriX/).
+
+## ✨ Installing PolyMetriX
+
+**Prerequisites**
+
+- **Python 3.10 or newer:**
+
+```bash
+pip install polymetrix
+```
+
+For more detailed installation instructions, see the [documentation](https://lamalab-org.github.io/PolyMetriX/installation/).
+
+## Loading Curated Glass Transition Temperature Dataset
+
+```python
+# Import necessary modules
+from polymetrix.datasets import CuratedGlassTempDataset
+
+# Load the dataset
+dataset = CuratedGlassTempDataset()
+```
+
+## Getting Features for Polymers
+
+```python
+from polymetrix.featurizers.polymer import Polymer
+from polymetrix.featurizers.chemical_featurizer import MolecularWeight
+from polymetrix.featurizers.sidechain_backbone_featurizer import FullPolymerFeaturizer
+
+# initialize the FullPolymerFeaturizer class with required featurizers
+featurizer = FullPolymerFeaturizer(MolecularWeight())
+
+polymer = Polymer.from_psmiles('*CCCCCCNC(=O)c1ccc(C(=O)N*)c(Sc2ccccc2)c1')
+result = featurizer.featurize(polymer)
+```
+
+For more detailed usage instructions, see the [documentation](https://lamalab-org.github.io/PolyMetriX/how_to_guides/).
+
+## Comparator method for Polymer-Organic Mixtures
+
+```python
+from polymetrix.featurizers.polymer import Polymer
+from polymetrix.featurizers.molecule import Molecule, FullMolecularFeaturizer
+from polymetrix.featurizers.chemical_featurizer import MolecularWeight, NumHBondDonors, NumHBondAcceptors, NumRotatableBonds
+from polymetrix.featurizers.sidechain_backbone_featurizer import FullPolymerFeaturizer
+from polymetrix.comparator import PolymerMoleculeComparator
+
+# initialize with required featurizers
+polymer_featurizer = FullPolymerFeaturizer(MolecularWeight())
+molecule_featurizer = FullMolecularFeaturizer(MolecularWeight())
+
+polymer = Polymer.from_psmiles('*CCCCCCNC(=O)c1ccc(C(=O)N*)c(Sc2ccccc2)c1')
+molecule = Molecule.from_smiles('CC(=O)OC1=CC=CC=C1C(=O)O')
+
+comparator = PolymerMoleculeComparator(polymer_featurizer, molecule_featurizer)
+difference = comparator.compare(polymer, molecule)
+```
+
+For more detailed usage instructions, see the [documentation](https://lamalab-org.github.io/PolyMetriX/how_to_guides/).
+
+# How to contribute
+
+We welcome contributions to PolyMetriX! Please refer to the [contribution guidelines](https://lamalab-org.github.io/PolyMetriX/contributing/) for more information.
