@@ -1,0 +1,28 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
+    ":maintainLockFilesMonthly",
+    ":pinVersions",
+    "customManagers:githubActionsVersions",
+    "github>Turbo87/renovate-config//rust/updateToolchain"
+  ],
+  "timezone": "Asia/Tokyo",
+  "reviewers": ["fluxth"],
+  "packageRules": [
+    {
+      "description": "Don't pin pyproject.toml",
+      "matchFileNames": ["pyproject.toml"],
+      "rangeStrategy": "auto"
+    },
+    {
+      "description": "Auto-merge GitHub Actions patch and digest updates",
+      "matchUpdateTypes": ["patch", "digest"],
+      "matchManagers": ["github-actions"],
+      "schedule": ["before 6am"],
+      "automerge": true,
+      "automergeType": "pr"
+    }
+  ]
+}
