@@ -1,0 +1,477 @@
+Metadata-Version: 2.4
+Name: itinerizer
+Version: 0.5.1
+Summary: A comprehensive travel itinerary management system with JSON storage
+Author-email: Itinerizer Contributors <contact@itinerizer.io>
+Maintainer-email: Itinerizer Contributors <contact@itinerizer.io>
+License: MIT
+Project-URL: Homepage, https://github.com/yourusername/itinerizer
+Project-URL: Documentation, https://itinerizer.readthedocs.io
+Project-URL: Repository, https://github.com/yourusername/itinerizer.git
+Project-URL: Bug Tracker, https://github.com/yourusername/itinerizer/issues
+Project-URL: Changelog, https://github.com/yourusername/itinerizer/blob/main/CHANGELOG.md
+Keywords: travel,itinerary,trip,planning,booking,tourism,vacation,business-travel,json-storage
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Office/Business
+Classifier: Topic :: Other/Nonlisted Topic
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+License-File: AUTHORS
+Requires-Dist: pydantic>=2.0.0
+Requires-Dist: python-dateutil>=2.8.2
+Provides-Extra: server
+Requires-Dist: fastapi>=0.100.0; extra == "server"
+Requires-Dist: uvicorn[standard]>=0.23.0; extra == "server"
+Requires-Dist: python-multipart>=0.0.6; extra == "server"
+Provides-Extra: web
+Requires-Dist: flask>=3.0.0; extra == "web"
+Requires-Dist: flask-cors>=4.0.0; extra == "web"
+Requires-Dist: flask-session>=0.5.0; extra == "web"
+Requires-Dist: requests>=2.31.0; extra == "web"
+Provides-Extra: nlp
+Requires-Dist: openai>=1.0.0; extra == "nlp"
+Requires-Dist: tiktoken>=0.5.0; extra == "nlp"
+Provides-Extra: performance
+Requires-Dist: orjson>=3.9.0; extra == "performance"
+Provides-Extra: dev
+Requires-Dist: pytest>=7.4.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.1.0; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.21.0; extra == "dev"
+Requires-Dist: black>=23.0.0; extra == "dev"
+Requires-Dist: flake8>=6.0.0; extra == "dev"
+Requires-Dist: mypy>=1.4.0; extra == "dev"
+Requires-Dist: pre-commit>=3.3.0; extra == "dev"
+Provides-Extra: all
+Requires-Dist: itinerizer[dev,nlp,performance,server,web]; extra == "all"
+Dynamic: license-file
+
+# Itinerizer
+
+[![PyPI Version](https://img.shields.io/pypi/v/itinerizer)](https://pypi.org/project/itinerizer/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/itinerizer)](https://pypi.org/project/itinerizer/)
+[![License](https://img.shields.io/pypi/l/itinerizer)](https://github.com/yourusername/itinerizer/blob/main/LICENSE)
+[![Documentation Status](https://readthedocs.org/projects/itinerizer/badge/?version=latest)](https://itinerizer.readthedocs.io/en/latest/?badge=latest)
+[![Tests](https://github.com/yourusername/itinerizer/workflows/Tests/badge.svg)](https://github.com/yourusername/itinerizer/actions)
+[![Coverage](https://codecov.io/gh/yourusername/itinerizer/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/itinerizer)
+
+A comprehensive travel itinerary management system with JSON storage, REST API, and web interface.
+
+## Features
+
+- **Complete Itinerary Management**: Create, update, and manage complex travel itineraries
+- **Multiple Segment Types**: Flights, hotels, meetings, activities, transfers, and custom segments
+- **JSON Storage**: Simple, file-based storage with automatic backups
+- **REST API**: Optional FastAPI server for building web applications
+- **Web Interface**: Optional Flask-based web UI with responsive design
+- **Type Safety**: Full type hints with Pydantic validation
+- **Thread-Safe**: Concurrent access with file locking
+- **Extensible**: Easy to extend with custom segment types and storage backends
+
+## Installation
+
+### Basic Installation
+
+Install the core library:
+
+```bash
+pip install itinerizer
+```
+
+### With Optional Components
+
+Install with the REST API server:
+
+```bash
+pip install itinerizer[server]
+```
+
+Install with the web interface:
+
+```bash
+pip install itinerizer[web]
+```
+
+Install with everything:
+
+```bash
+pip install itinerizer[all]
+```
+
+## Quick Start
+
+### Basic Usage
+
+```python
+from datetime import date, datetime
+from itinerizer import ItineraryManager, Traveler, TravelerType
+
+# Create manager
+manager = ItineraryManager()
+
+# Create a traveler
+traveler = Traveler(
+    type=TravelerType.ADULT,
+    first_name="Alice",
+    last_name="Smith",
+    email="alice@example.com"
+)
+
+# Create an itinerary
+itinerary = manager.create_itinerary(
+    title="Tokyo Business Trip",
+    start_date=date(2025, 3, 15),
+    end_date=date(2025, 3, 22),
+    travelers=[traveler],
+    trip_type="BUSINESS"
+)
+
+print(f"Created itinerary: {itinerary.id}")
+```
+
+### Adding Segments
+
+```python
+from itinerizer import FlightSegment, HotelSegment, Location, Company, Money
+from decimal import Decimal
+
+# Add a flight
+flight = FlightSegment(
+    flight_number="UA837",
+    airline=Company(name="United Airlines", code="UA"),
+    origin=Location(name="San Francisco", code="SFO"),
+    destination=Location(name="Tokyo Narita", code="NRT"),
+    departure_datetime=datetime(2025, 3, 15, 11, 30),
+    arrival_datetime=datetime(2025, 3, 16, 15, 20),
+    traveler_ids=[traveler.id],
+    cabin="BUSINESS",
+    total_price=Money(amount=Decimal("4500.00"), currency="USD")
+)
+
+# Add to itinerary
+manager.add_segment(itinerary.id, flight)
+
+# Add a hotel
+hotel = HotelSegment(
+    property=Company(name="Conrad Tokyo"),
+    location=Location(name="Conrad Tokyo", city="Tokyo"),
+    check_in_date=date(2025, 3, 16),
+    check_out_date=date(2025, 3, 21),
+    traveler_ids=[traveler.id],
+    room_type="King Executive Room",
+    total_price=Money(amount=Decimal("2500.00"), currency="USD")
+)
+
+manager.add_segment(itinerary.id, hotel)
+```
+
+### Retrieving and Searching
+
+```python
+# Get a specific itinerary
+itinerary = manager.get_itinerary(itinerary_id)
+
+# Search itineraries
+business_trips = manager.search_itineraries(
+    trip_type="BUSINESS",
+    status="CONFIRMED"
+)
+
+# List all itineraries
+all_ids = manager.list_itineraries()
+```
+
+## REST API Server
+
+Run the FastAPI server:
+
+```python
+from itinerizer.server import create_app
+import uvicorn
+
+app = create_app()
+uvicorn.run(app, host="0.0.0.0", port=8000)
+```
+
+Or from the command line:
+
+```bash
+uvicorn itinerizer.server.app:app --reload
+```
+
+### API Endpoints
+
+- `GET /health` - Health check
+- `GET /api/itineraries` - List all itineraries
+- `GET /api/itineraries/{id}` - Get specific itinerary
+- `POST /api/itineraries` - Create new itinerary
+- `PUT /api/itineraries/{id}` - Update itinerary
+- `DELETE /api/itineraries/{id}` - Delete itinerary
+- `POST /api/itineraries/{id}/segments` - Add segment
+- `DELETE /api/itineraries/{id}/segments/{segment_id}` - Remove segment
+
+API documentation available at `http://localhost:8000/api/docs`
+
+## Web Interface
+
+The web interface provides a user-friendly way to manage itineraries:
+
+```bash
+cd web_ui
+python app.py
+```
+
+Access at `http://localhost:5000`
+
+Features:
+- Dashboard with itinerary overview
+- Create and edit itineraries
+- Manage travelers and segments
+- Natural language itinerary creation (with NLP addon)
+- Analytics and reporting
+
+## Data Models
+
+### Itinerary
+
+The main container for a trip:
+
+```python
+from itinerizer import Itinerary, ItineraryStatus
+
+itinerary = Itinerary(
+    title="European Vacation",
+    status=ItineraryStatus.PLANNED,
+    start_date=date(2025, 6, 1),
+    end_date=date(2025, 6, 15),
+    travelers=[...],
+    segments=[...],
+    trip_type="LEISURE"
+)
+```
+
+### Segments
+
+Different types of travel segments:
+
+- **FlightSegment**: Air travel with airline, flight number, airports
+- **HotelSegment**: Accommodation with check-in/out dates
+- **MeetingSegment**: Business meetings with agenda and attendees
+- **ActivitySegment**: Tours, events, and activities
+- **TransferSegment**: Ground transportation
+- **CustomSegment**: Flexible segment for other needs
+
+### Validation
+
+Built-in validation ensures data integrity:
+
+```python
+from itinerizer import ItineraryValidator
+
+validator = ItineraryValidator()
+result = validator.validate(itinerary)
+
+if not result.is_valid:
+    for error in result.errors:
+        print(f"Error: {error.message}")
+```
+
+## Storage
+
+### JSON Storage (Default)
+
+Itineraries are stored as JSON files:
+
+```
+data/
+  itineraries/
+    {uuid}.json
+  backups/
+    {uuid}_{timestamp}.json
+```
+
+### Custom Storage Path
+
+```python
+manager = ItineraryManager(storage_path="/path/to/storage")
+```
+
+### Thread Safety
+
+The storage system uses file locking for safe concurrent access:
+
+```python
+from itinerizer.storage import JSONItineraryStore
+
+store = JSONItineraryStore()
+with store.singleton.edit_lock(itinerary_id):
+    # Exclusive write access
+    store.save(itinerary)
+```
+
+## Advanced Features
+
+### Custom Segment Types
+
+Extend the base segment for specialized needs:
+
+```python
+from itinerizer import BaseSegment
+from typing import Literal
+
+class CruiseSegment(BaseSegment):
+    type: Literal["CRUISE"] = "CRUISE"
+    ship_name: str
+    cabin_number: str
+    departure_port: Location
+    arrival_port: Location
+    # ... additional fields
+```
+
+### Preferences and Metadata
+
+Store additional information:
+
+```python
+from itinerizer import TravelPreferences
+
+preferences = TravelPreferences(
+    seat_preference="AISLE",
+    meal_preference="Vegetarian",
+    hotel_chain_preference=["Hilton", "Marriott"]
+)
+
+itinerary.preferences = preferences
+itinerary.metadata = {
+    "booking_source": "Corporate Portal",
+    "approval_code": "MGR-2025-001"
+}
+```
+
+## Development
+
+### Setting Up Development Environment
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/itinerizer.git
+cd itinerizer
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install in development mode
+pip install -e ".[dev]"
+
+# Run tests
+pytest
+
+# Run with coverage
+pytest --cov=itinerizer
+```
+
+### Running Tests
+
+```bash
+# Unit tests
+pytest tests/unit/
+
+# Integration tests
+pytest tests/integration/
+
+# All tests with coverage
+pytest --cov=itinerizer --cov-report=html
+```
+
+### Code Quality
+
+```bash
+# Format code
+black src/ tests/
+
+# Lint
+flake8 src/ tests/
+
+# Type checking
+mypy src/
+```
+
+## Docker Support
+
+Run with Docker:
+
+```bash
+# Build image
+docker build -t itinerizer .
+
+# Run container
+docker run -p 8000:8000 itinerizer
+
+# With docker-compose
+docker-compose up
+```
+
+## Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+### Development Workflow
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests
+5. Submit a pull request
+
+## Documentation
+
+- [Full Documentation](https://itinerizer.readthedocs.io)
+- [API Reference](https://itinerizer.readthedocs.io/api)
+- [Examples](https://github.com/yourusername/itinerizer/tree/main/examples)
+- [Changelog](CHANGELOG.md)
+
+## Support
+
+- [Issue Tracker](https://github.com/yourusername/itinerizer/issues)
+- [Discussions](https://github.com/yourusername/itinerizer/discussions)
+- Email: contact@itinerizer.io
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- Built with [Pydantic](https://pydantic-docs.helpmanual.io/) for data validation
+- REST API powered by [FastAPI](https://fastapi.tiangolo.com/)
+- Web interface built with [Flask](https://flask.palletsprojects.com/)
+- JSON operations optimized with [orjson](https://github.com/ijl/orjson) (optional)
+
+## Citation
+
+If you use Itinerizer in your research or project, please cite:
+
+```bibtex
+@software{itinerizer,
+  title = {Itinerizer: A Comprehensive Travel Itinerary Management System},
+  author = {Itinerizer Contributors},
+  year = {2025},
+  url = {https://github.com/yourusername/itinerizer}
+}
+```
+
+---
+
+Made with ❤️ by the Itinerizer Contributors
