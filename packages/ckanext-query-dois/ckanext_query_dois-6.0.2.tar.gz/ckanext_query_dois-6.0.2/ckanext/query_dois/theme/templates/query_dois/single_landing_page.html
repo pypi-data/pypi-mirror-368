@@ -1,0 +1,187 @@
+{% extends "page.html" %}
+
+{% block title %}
+{{ _('DOI') }}: {{ doi }}
+{% endblock %}
+
+{%- block meta -%}
+    {{ super() }}
+    <meta name="citation_doi" content="doi:https://doi.org/{{ doi }}" />
+    <meta name="citation_title" content="Data Portal Query on {{ resource['name'] }}, {{ query_doi.count }} records" />
+    <meta name="citation_author" content="{{', '.join(authors)}}" />
+    <meta name="citation_online_date" content="{{ query_doi.timestamp }}" />
+    <meta name="citation_publisher" content="{{ publisher }}" />
+{%- endblock -%}
+
+{% block primary_content %}
+{% asset 'ckanext-query-dois/main' %}
+<article class="module">
+    <div class="module-content">
+        <h1 class="page-heading">{{ _('DOI') }}: {{ doi }}</h1>
+
+        {% block doi_warnings %}
+            {% if warnings|length > 0 %}
+            <div class="alert-warning qd_warning_banner">
+                {% for warning in warnings %}
+                <p>{{ warning }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+        {% endblock %}
+
+        {% block visual_query %}
+        {% snippet "query_dois/snippets/visual_datastore_search.html", search=query_doi.query %}
+        <br />
+        {% endblock %}
+
+        {% block citation %}
+        {% if not is_inaccessible %}
+        <h3>{{ _('Cite this as') }}</h3>
+        <div class="qd_block">
+            <p>
+                {{ h.create_citation_text(query_doi.doi, query_doi.timestamp, resource['name'],
+                                          package['title'], package_doi, html=True) | safe }}
+            </p>
+        </div>
+        {% endif %}
+        {% endblock %}
+
+        {% block details %}
+        <h3>{{ _('Details') }}</h3>
+        <div class="qd_block qd_details">
+            {% if not is_inaccessible %}
+            <div>
+                {% set resource_url = h.url_for('resource.read', id=package['name'], resource_id=resource['id']) %}
+                {% set package_url = h.url_for('dataset.read', id=package['name']) %}
+                <b>{{ _('Resource:') }}</b> <a href="{{ resource_url }}">{{ resource['name'] }}</a>
+            </div>
+            <div>
+                <b>{{ _('Package:') }}</b> <a href="{{ package_url }}">{{ package['title'] }}</a>
+            </div>
+            <div>
+                <b>{{ _('License:') }}</b> {% snippet "snippets/license.html", pkg_dict=package, text_only=True %}
+            </div>
+            {% endif %}
+            <div>
+                <b>{{ _('Retrieved:') }}</b> {{ query_doi.timestamp }}
+            </div>
+            <div>
+                <b>{{ _('Total records:') }}</b> {{ query_doi.count }}
+            </div>
+        </div>
+        {% endblock %}
+
+        {% block stats %}
+        <h3>{{ _('Statistics') }}</h3>
+        <div class="qd_block qd_stats">
+              <div>
+                  <b>{{ _('Total downloads:') }}</b> {{ usage_stats['downloads'] }}
+              </div>
+              <div>
+                  <b>{{ _('Last downloaded:') }}</b> {{ usage_stats['last_download_timestamp'] or _('Never') }}
+              </div>
+          </div>
+        {% endblock %}
+    </div>
+</article>
+{% endblock %}
+
+
+{% block secondary_content %}
+{% if is_inaccessible %}
+    <div class="module, module-narrow module-shallow">
+        <h2 class="module-heading">
+            <i class="fas fa-times fa-lg inline-icon-left"></i>{{ _('Data missing') }}
+        </h2>
+        <div class="module-content">
+            <div class="qd_help_text">
+              {% trans %}
+                  All data associated with this DOI have been deleted, moved, or are no longer available.
+              {% endtrans %}
+            </div>
+        </div>
+    </div>
+{% else %}
+<div class="module module-narrow module-shallow">
+    <h2 class="module-heading">
+        <i class="fas fa-eye fa-lg inline-icon-left"></i>{{ _('View data') }}
+        <i class="fas fa-info-circle fa-xs inline-icon-right qd_tooltip">
+            <span class="qd_tooltiptext">
+                {% trans %}
+                Use the links to view the data associated with this DOI.
+                {% endtrans %}
+            </span>
+        </i>
+    </h2>
+    <div class="module-content">
+        <a href="{{ reruns.page.original }}">{{ _('Original') }}</a>
+        <i class="fas fa-info-circle fa-xs inline-icon-right qd_tooltip">
+            <span class="qd_tooltiptext">
+                {% trans %}
+                View the data as it looked when the DOI was originally minted.
+                {% endtrans %}
+            </span>
+        </i>
+    </div>
+    <div class="module-content">
+        <a href="{{ reruns.page.current }}">{{ _('Current') }}</a>
+        <i class="fas fa-info-circle fa-xs inline-icon-right qd_tooltip">
+            <span class="qd_tooltiptext">
+                {% trans %}
+                View the data as it looks now. This may result in different results to the DOI's
+                original data if the data has been modified since it was minted.
+                {% endtrans %}
+            </span>
+        </i>
+    </div>
+</div>
+
+<div class="module module-narrow module-shallow">
+    <h2 class="module-heading">
+        <i class="fas fa-flask fa-lg inline-icon-left"></i>{{ _('View with API') }}
+        <i class="fas fa-info-circle fa-xs inline-icon-right qd_tooltip">
+            <span class="qd_tooltiptext">
+                {% trans %}
+                Use the links to view the data associated with this DOI through the API.
+                {% endtrans %}
+            </span>
+        </i>
+    </h2>
+    <div class="module-content">
+        <a href="{{ reruns.api.original }}">{{ _('Original') }}</a>
+        <i class="fas fa-info-circle fa-xs inline-icon-right qd_tooltip">
+            <span class="qd_tooltiptext">
+                {% trans %}
+                View the data as it looked when the DOI was originally minted.
+                {% endtrans %}
+            </span>
+        </i>
+    </div>
+    <div class="module-content">
+        <a href="{{ reruns.api.current }}">{{ _('Current') }}</a>
+        <i class="fas fa-info-circle fa-xs inline-icon-right qd_tooltip">
+            <span class="qd_tooltiptext">
+                {% trans %}
+                View the data as it looks now. This may result in different results to the DOI's
+                original data if the data has been modified since it was minted.
+                {% endtrans %}
+            </span>
+        </i>
+    </div>
+</div>
+
+{% if h.versioned_datastore_available %}
+<div class="module, module-narrow module-shallow">
+    <h2 class="module-heading">
+        <i class="far fa-arrow-alt-circle-down fa-lg inline-icon-left"></i>{{ _('Download') }}
+    </h2>
+    <div class="module-content">
+        {% snippet 'versioned_datastore/snippets/download_button.html',
+            slug_or_doi=query_doi.doi,
+            icon_class="fas fa-download",
+            label=_('Download') %}
+    </div>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}
