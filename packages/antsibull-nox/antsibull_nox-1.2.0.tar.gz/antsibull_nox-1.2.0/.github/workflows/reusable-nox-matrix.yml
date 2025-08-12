@@ -1,0 +1,192 @@
+---
+# GNU General Public License v3.0+ (see LICENSES/GPL-3.0-or-later.txt or
+# https://www.gnu.org/licenses/gpl-3.0.txt)
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2025 Felix Fontein <felix@fontein.de>
+
+name: Run sanity, unit, and integration tests
+
+"on":
+  workflow_call:
+    inputs:
+      upload-codecov:
+        type: boolean
+        description: >-
+          Whether code coverage should be collected and uploaded to codecov.io.
+        required: false
+        default: false
+    secrets:
+      CODECOV_TOKEN:
+        required: false
+
+jobs:
+  create-matrixes:
+    name: "Create matrixes"
+    runs-on: ubuntu-latest
+    outputs:
+      sanity-matrix: ${{ fromJSON(steps.generate-matrix.outputs.run-nox).sanity }}
+      units-matrix: ${{ fromJSON(steps.generate-matrix.outputs.run-nox).units }}
+      integration-matrix: ${{ fromJSON(steps.generate-matrix.outputs.run-nox).integration }}
+      ee-matrix: ${{ fromJSON(steps.generate-matrix.outputs.run-nox).execution-environment }}
+    steps:
+      - name: Check out collection
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Run nox
+        uses: ansible-community/antsibull-nox@main
+        id: generate-matrix
+        with:
+          sessions: matrix-generator
+
+  # Sessions with coverage
+
+  sanity:
+    name: ${{ matrix.skip && 'Skipping ' || '' }}Sanity (Ⓐ${{ matrix.ansible-core }})
+    needs:
+      - create-matrixes
+    strategy:
+      matrix:
+        include: >-
+          ${{ fromJson(needs.create-matrixes.outputs.sanity-matrix || '[{"skip": true}]') }}
+    runs-on: ${{ matrix.gha-container || 'ubuntu-latest' }}
+    steps:
+      - name: Check out collection
+        if: >-
+          !matrix.skip
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Run nox
+        if: >-
+          !matrix.skip
+        uses: ansible-community/antsibull-nox@main
+        with:
+          extra-python-versions: ${{ matrix.python }}
+          extra-args: ${{ inputs.upload-codecov && '--coverage' || '' }}
+          sessions: ${{ matrix.name }}
+      - name: Upload coverage for final step
+        if: >-
+          !matrix.skip && inputs.upload-codecov
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage-sanity-${{ matrix.name }}
+          path: tests/output/reports/coverage=sanity=*.xml
+
+  units:
+    name: ${{ matrix.skip && 'Skipping ' || '' }}Units (${{ matrix.display-name }})
+    needs:
+      - create-matrixes
+    strategy:
+      matrix:
+        include: >-
+          ${{ fromJson(needs.create-matrixes.outputs.units-matrix || '[{"skip": true}]') }}
+    runs-on: ${{ matrix.gha-container || 'ubuntu-latest' }}
+    steps:
+      - name: Check out collection
+        if: >-
+          !matrix.skip
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Run nox
+        if: >-
+          !matrix.skip
+        uses: ansible-community/antsibull-nox@main
+        with:
+          extra-python-versions: ${{ matrix.python }}
+          extra-args: ${{ inputs.upload-codecov && '--coverage' || '' }}
+          sessions: ${{ matrix.name }}
+      - name: Upload coverage for final step
+        if: >-
+          !matrix.skip && inputs.upload-codecov
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage-units-${{ matrix.name }}
+          path: tests/output/reports/coverage=units=*.xml
+
+  integration:
+    name: ${{ matrix.skip && 'Skipping ' || '' }}I (${{ matrix.display-name }})
+    needs:
+      - create-matrixes
+    strategy:
+      fail-fast: false
+      matrix:
+        include: >-
+          ${{ fromJson(needs.create-matrixes.outputs.integration-matrix || '[{"skip": true}]') }}
+    runs-on: ${{ matrix.gha-container || 'ubuntu-latest' }}
+    steps:
+      - name: Check out collection
+        if: >-
+          !matrix.skip
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Run nox
+        if: >-
+          !matrix.skip
+        uses: ansible-community/antsibull-nox@main
+        with:
+          extra-python-versions: ${{ matrix.python }}
+          extra-args: ${{ inputs.upload-codecov && '--coverage' || '' }}
+          sessions: ${{ matrix.name }}
+      - name: Upload coverage for final step
+        if: >-
+          !matrix.skip && inputs.upload-codecov && (matrix.has-coverage != 'false')
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage-integration-${{ matrix.name }}
+          path: tests/output/reports/coverage=integration=*.xml
+
+  upload-coverage:
+    name: Upload coverage
+    if: inputs.upload-codecov
+    needs:
+      - sanity
+      - units
+      - integration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out collection
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Download coverage from previous steps
+        uses: actions/download-artifact@v5
+        with:
+          pattern: code-coverage-*
+      - name: List all files
+        run: find . -name 'coverage=*.xml'
+        shell: bash
+      - name: Upload coverage
+        uses: codecov/codecov-action@v5
+        with:
+          files: coverage=*.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  # Sessions without coverage
+
+  ee:
+    name: ${{ matrix.skip && 'Skipping ' || '' }}EE (${{ matrix.description }})
+    if: needs.create-matrixes.outputs.ee-matrix != ''
+    needs:
+      - create-matrixes
+    strategy:
+      fail-fast: false
+      matrix:
+        include: >-
+          ${{ fromJson(needs.create-matrixes.outputs.ee-matrix || '[{"skip": true}]') }}
+    runs-on: ${{ matrix.gha-container || 'ubuntu-latest' }}
+    steps:
+      - name: Check out collection
+        if: >-
+          !matrix.skip
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Run nox
+        if: >-
+          !matrix.skip
+        uses: ansible-community/antsibull-nox@main
+        with:
+          sessions: ${{ matrix.name }}
