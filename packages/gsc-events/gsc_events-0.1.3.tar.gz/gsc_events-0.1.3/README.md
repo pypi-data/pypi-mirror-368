@@ -1,0 +1,129 @@
+# GSC Events for Plutonium T6
+
+A GSC script and Python library for capturing and handling game events in Plutonium T6 (Call of Duty: Black Ops 2).
+
+## Features
+
+- Captures various in-game events and saves them to JSONL files
+- Python library to read and process these events in real-time
+- Supports the following events:
+  - Player Connected/Disconnected
+  - Player Spawned/Death
+  - Player Killed (with killer and weapon information)
+  - Player Chat Messages
+  - Killcam Start/End
+
+## Installation
+
+### Option 1: From GitHub Repository
+#### 1. Clone the repository:
+```bash
+git clone https://github.com/Yallamaztar/gsc-events.git
+```
+
+### Option 2: Direct Installation
+#### 1. Copy `gsc-events.gsc` to your Plutonium T6 scripts folder:
+```
+%localappdata%\Plutonium\storage\t6\scripts\
+```
+
+#### 2. Install the Python package:
+```bash
+pip install gsc-events
+```
+
+## Event Format
+
+Events are stored in JSONL format (one JSON object per line) in separate files for each event type. For example:
+
+```jsonl
+{ "event": "player_connected", "args": ["PlayerName"] }
+{ "event": "player_say", "args": ["PlayerName", "message"] }
+{ "event": "player_killed", "args": ["VictimName", "KillerName", "WeaponName"] }
+```
+
+## Python Usage
+
+```python
+from gsc_events import GSCClient
+
+client = GSCClient()
+
+@client.on("player_connected")
+def on_connected(player: str):
+    print(f"{player} Connected")
+
+@client.on("player_spawned")
+def on_spawned(player: str):
+    print(f"{player} Spawned")
+
+@client.on("player_death")
+def on_death(player: str):
+    print(f"{player} Died")
+
+@client.on("joined_spectators")
+def on_join_spectators(player: str):
+    print(f"{player} Joined spectators")
+
+@client.on("player_killed")
+def on_killed(player: str, attacker: str, reason: str):
+    print(f"{player} was killed by {attacker} with {reason}")
+
+@client.on("player_disconnected")
+def on_disconnect(player: str):
+    print(f"{player} Disconnected")
+
+@client.on("weapon_change")
+def on_weapon_change(player: str, weapon: str):
+    print(f"{player} changed weapon to {weapon}")
+
+@client.on("player_say")
+def on_say(player: str, message: str):
+    print(f"{player} said {message}")
+
+@client.on("menu_response")
+def on_menu_response(player: str, menu: str, response: str):
+    print(f"{player} opened {menu} | response: {response}")
+
+@client.on("joined_team")
+def on_joined_team(player: str, team: str):
+    print(f"{player} joined {team}")
+
+@client.on("killcam_start")
+def on_killcam():
+    print(f"Killcam started")
+
+@client.on("killcam_end")
+def on_killcam_end():
+    print(f"Killcam ended")
+
+client.run()
+```
+
+## Events Reference
+
+| Event Name | Arguments | Description |
+|------------|-----------|-------------|
+| player_connected | player_name | Triggered when a player connects |
+| player_disconnected | player_name | Triggered when a player disconnects |
+| player_spawned | player_name | Triggered when a player spawns |
+| player_death | player_name | Triggered when a player dies |
+| player_killed | victim_name, killer_name, weapon | Triggered when a player is killed |
+| player_say | player_name, message | Triggered when a player sends a chat message |
+| joined_team | player_name, team | Triggered when a player joins a team |
+| joined_spectators | player_name | Triggered when a player joins spectators |
+| weapon_change | player_name, weapon | Triggered when a player changes weapon |
+| killcam_start | none | Triggered when killcam starts |
+| killcam_end | none | Triggered when killcam ends |
+| menu_response | player_name, menu, response | Triggered when a menu is opened and responded to |
+| score_event | player_name, score_type, value | Triggered when player gains score (XP, medal, etc.) |
+| streak_awarded | player_name, streak_name | Triggered when player earns a killstreak |
+| objective_captured | player_name, objective | Triggered when an objective is captured |
+| objective_defended | player_name, objective | Triggered when an objective is defended |
+| objective_taken | player_name, objective | Triggered when an objective is taken |
+| flag_captured | player_name | Triggered when a CTF flag is captured |
+| flag_dropped | player_name | Triggered when a CTF flag is dropped |
+| flag_returned | player_name | Triggered when a CTF flag is returned |
+| hardpoint_entered | player_name | Triggered when player enters Hardpoint |
+| hardpoint_left | player_name | Triggered when player leaves Hardpoint |
+----
