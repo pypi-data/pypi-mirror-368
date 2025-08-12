@@ -1,0 +1,108 @@
+Metadata-Version: 2.4
+Name: cartagon-monday-client
+Version: 0.1.7
+Summary: Cliente Python para integraciones con la API GraphQL de Monday.com
+Author-email: Miguel Diaz <mpsdiaz@gmail.com>
+License: MIT
+Project-URL: Homepage, https://github.com/MiguelDN/cartagon-monday-client/settings
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Requires-Dist: requests>=2.25.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"
+Requires-Dist: responses>=0.18; extra == "dev"
+
+# 🧩 Cartagon Monday Client
+
+Cliente Python para interactuar con la API GraphQL de [Monday.com](https://monday.com) de forma sencilla, con reintentos automáticos, manejo de errores y utilidades avanzadas.
+
+## 🚀 Instalación
+
+```bash
+pip install cartagon-monday-client
+```
+
+## 🔑 Requisitos
+
+Necesitas una API Key válida de Monday.com con acceso a los tableros que quieres consultar o modificar.
+
+## ✨ Características principales
+
+- Manejo automático de errores y reintentos (`ComplexityException`, `403`, `5xx`, etc.).
+- **Compatibilidad con `API-Version` 2025-01**.
+- Logging de depuración activado (configurable por entorno).
+- Acceso a tableros, ítems, columnas, subítems y sus valores.
+- Creación y actualización de ítems y subítems.
+- Eliminación segura de ítems y subítems temporales.
+- Consultas con paginación por cursor y filtrado por columnas.
+- **Obtención de columnas de subítems** mediante creación temporal.
+- **Creación de actualizaciones (`updates`) con menciones a usuarios**.
+- Fragmentos predefinidos para todas las columnas comunes.
+
+## 🧱 Uso básico
+
+```python
+from cartagon_monday_client import MondayClient
+
+client = MondayClient(api_key="TU_API_KEY")
+
+# Verificar conexión
+if client.test_connection():
+    print("Conexión OK")
+
+# Obtener tableros
+boards = client.get_boards(limit=5)
+
+# Crear un ítem
+item = client.create_item(board_id=12345, item_name="Nuevo item")
+```
+
+## 🔧 Funcionalidades disponibles
+
+### Autenticación y conexión
+- `test_connection()`: Verifica si la API Key es válida.
+
+### Tableros
+- `get_boards(limit=10, page=1, fields=None)`: Lista de tableros.
+- `board_columns(board_id)`: Columnas de un tablero.
+
+### Ítems y subítems
+- `get_all_items(board_id, limit=50, fields=None, columns_ids=None)`: Recupera todos los ítems de un tablero con paginación por cursor.
+- `get_items_by_column_value(board_id, column_id, value, fields=None, operator="any_of", limit=200)`: Filtra ítems por valor de columna.
+- `get_item(item_id, columns_ids=None)`: Obtiene un ítem por ID.
+- `create_item(board_id, item_name, group_id=None, column_values=None)`: Crea un nuevo ítem.
+- `create_subitem(parent_item_id, subitem_name, column_values=None)`: Crea un nuevo subítem.
+- `update_simple_column_value(item_id, board_id, column_id, value)`: Actualiza el valor de una columna simple.
+- `update_multiple_column_values(item_id, board_id, column_values)`: Actualiza múltiples columnas de un ítem.
+- `delete_item(item_id)`: Elimina un ítem.
+- `create_item_update(item_id, body, mention_user=[])`: Crea un cambio (`update`) en un ítem, con opción de mencionar usuarios.
+
+### Columnas
+- `item_columns(item_id)`: Columnas de un ítem.
+- `subitems_columns(board_id)`: Columnas de subítems de un tablero.
+
+## 🛠 Excepciones
+
+El cliente lanza `MondayAPIError` cuando ocurre un fallo en la API de Monday.com.
+
+```python
+from cartagon_monday_client.exceptions import MondayAPIError
+```
+
+## 📌 Novedades recientes
+
+- Añadida **API-Version `2025-01`** en los encabezados.
+- Implementada **paginación por cursor** en `get_all_items` y `get_items_by_column_value`.
+- Método `subitems_columns()` que obtiene las columnas de subítems creando y borrando un subítem temporalmente.
+- Método `create_item_update()` para crear actualizaciones con menciones a usuarios.
+- Logs de depuración (`print` y `logging`) para mostrar queries GraphQL completas durante desarrollo.
+
+## 🧪 Tests
+
+(Agrega aquí si tienes tests automatizados, o deja este bloque para el futuro)
+
+---
+
+## 📝 Licencia
+
+MIT License. Desarrollado por el equipo de Cartagon.
