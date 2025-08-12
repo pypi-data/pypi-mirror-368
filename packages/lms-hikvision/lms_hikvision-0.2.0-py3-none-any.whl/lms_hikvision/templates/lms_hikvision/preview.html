@@ -1,0 +1,132 @@
+{% load static %}
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>实时预览</title>
+    <script src="{% static 'hikvision/js/lib/h5player.min.js' %}"></script>
+    {% include "common.html" %}
+</head>
+<body>
+<div id="play_window"></div>
+</body>
+</html>
+<script>
+    const url = '{{ preview_url }}';
+    const curIndex = 0;
+    let myPlugin;
+    document.addEventListener('DOMContentLoaded', () => {
+        myPlugin = new JSPlugin({
+            szId: "play_window",
+            szBasePath: './',
+            mseWorkerEnable: true,
+        })
+        myPlugin.JS_Play(url, {
+            playURL: url,
+            mode: 1,
+            PlayBackMode: 1,
+            keepDecoder: 0,
+            token: ""
+        }, curIndex).then(() => {
+            console.info('JS_Play success');
+        }, (err) => {
+            console.info('JS_Play failed:', err);
+        })
+    });
+
+
+    // 定义按键映射对象
+    const KEY_MAP = {
+        'KeyW': {action: 0, command: 'UP'},
+        'KeyA': {action: 0, command: 'LEFT'},
+        'KeyS': {action: 0, command: 'DOWN'},
+        'KeyD': {action: 0, command: 'RIGHT'},
+        'Space': {action: 1, command: ''}
+    };
+    // 初始化按键状态
+    let isKeyPressed = "";
+    // 默认速度
+    const SPEED = 50;
+    const handleKeyDown = (event) => {
+        if (isKeyPressed === "") {
+            const {key, code, keyCode} = event;
+            const actionData = KEY_MAP[code];
+            if (actionData) {
+                //console.log(`你按下了键: ${key}，键码为: ${keyCode}`);
+                isKeyPressed = code;
+                control_camera(actionData.action, actionData.command, SPEED);
+            }
+            // 停止监听 keydown 事件
+            window.removeEventListener('keydown', handleKeyDown);
+        }
+    }
+
+    const handleKeyUp = () => {
+        const {key, code, keyCode} = event;
+        if (code === isKeyPressed) {
+            //console.log(`你抬起了键: ${key}，键码为: ${keyCode}`);
+            isKeyPressed = "";
+            control_camera(1, "STOP_TRACK");
+        }
+        // 继续监听 keydown 事件
+        window.addEventListener('keydown', handleKeyDown);
+    }
+
+
+    // 开始监听 keydown 和 keyup 事件
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+
+    async function control_camera(action, command, speed = 50) {
+
+        const urlParams = new URLSearchParams(window.location.search);
+        // 获取名为name的参数值
+        const index_code = urlParams.get('index_code');
+        try {
+            const response = await fetch('/hikvision/control/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()  // 传递CSRF令牌
+                },
+                body: JSON.stringify({
+                    index_code: index_code,
+                    action: action,
+                    command: command,
+                    speed: speed
+                })
+            });
+            const data = await response.json();
+            if (data.result.code === '0') {
+                console.log('成功调用：' + data.result.msg);
+            } else {
+                console.log('错误：' + data.result.msg);
+            }
+        } catch (error) {
+            console.log('请求失败：' + error.msg);
+        }
+    }
+
+    const getCSRFToken = () => {
+        const cookies = document.cookie.split(';');
+        for (const cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'csrftoken') {
+                return decodeURIComponent(value);
+            }
+        }
+        return null;
+    }
+
+</script>
+<style>
+    body {
+        margin: 0;
+    }
+
+    #play_window {
+        width: 100vw !important;
+        height: 100vh !important;
+    }
+</style>

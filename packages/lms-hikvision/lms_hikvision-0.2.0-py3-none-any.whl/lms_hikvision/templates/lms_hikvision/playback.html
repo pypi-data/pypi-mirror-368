@@ -1,0 +1,52 @@
+{% load static %}
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>视频回放</title>
+    <script src="{% static 'hikvision/js/lib/h5player.min.js' %}"></script>
+    {% include "common.html" %}
+</head>
+<body>
+<div id="play_window"></div>
+</body>
+</html>
+<script>
+    const url = '{{ res }}';
+    const st = '{{ st }}'
+    const et = '{{ et }}'
+    console.log(url)
+    const curIndex = 0;
+    let myPlugin;
+    document.addEventListener('DOMContentLoaded', () => {
+        myPlugin = new JSPlugin({
+            szId: "play_window",
+            szBasePath: './',
+            mseWorkerEnable: true,
+        })
+        myPlugin.JS_Play(url, {
+            playURL: url,
+            mode: 1,
+            PlayBackMode: 1,
+            keepDecoder: 0,
+            token: ""
+        }, curIndex, st, et).then(() => {
+            console.info('JS_Play success');
+        }, (err) => {
+            console.info('JS_Play failed:', err);
+        })
+    });
+
+</script>
+
+<style>
+    body {
+        margin: 0;
+    }
+
+    #play_window {
+        margin: auto;
+        width: 100vw !important;
+        height: 100vh !important;
+    }
+</style>
