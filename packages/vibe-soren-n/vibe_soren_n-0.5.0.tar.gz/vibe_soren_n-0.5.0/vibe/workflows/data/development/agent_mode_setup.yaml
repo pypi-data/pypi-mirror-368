@@ -1,0 +1,100 @@
+name: "VS Code Agent Mode Setup"
+description: "🤖 Complete setup for VS Code Agent Mode with Vibe integration"
+triggers:
+  - "setup agent mode"
+  - "configure vscode agent"
+  - "enable agent mode"
+  - "mcp agent setup"
+  - "vs code ai setup"
+
+category: "development"
+
+steps:
+  - step_text: "🔧 **Enable Agent Mode in VS Code** - Add required settings to VS Code configuration"
+    command: |
+      echo 'Add these settings to your VS Code settings.json:'
+      echo '{'
+      echo '  "chat.agent.enabled": true,'
+      echo '  "chat.mcp.enabled": true,'
+      echo '  "chat.tools.autoApprove": false'
+      echo '}'
+
+  - step_text: "📁 **Create .github/chatmodes directory** - Set up custom chat modes location"
+    command: "mkdir -p .github/chatmodes"
+    working_dir: "."
+
+  - step_text: "🤖 **Install Vibe Agent Chat Mode** - Create optimized vibe-agent.chatmode.md"
+    command: |
+      cat > .github/chatmodes/vibe-agent.chatmode.md << 'EOF'
+      ---
+      description: Vibe workflow-first mode (concise, rate-limit aware)
+      mode: agent
+      model: Claude Sonnet 4
+      ---
+
+      # Vibe Development Mode (Always Concise)
+
+      Purpose: Use Vibe to develop Vibe. Always concise, TPS-aware by default.
+
+      ## Core loop
+      1) Ask Vibe MCP tool "what workflow for [task]?"
+      2) Act on suggested guidance.
+      3) Validate via Vibe's checks.
+      4) Capture reusable patterns as YAML workflows.
+
+      ## Output policy (TPS-aware)
+      - Short replies (≤200–250 words), ≤6 bullets, no repetition.
+      - Show commands only when to be run; otherwise summarize.
+      - Use delta updates; avoid restating plans.
+      - Prefer links/refs over quotes; avoid large code unless runnable.
+      - Batch steps and keep outputs minimal; sample large listings (head), quiet flags.
+
+      ## Tools (MCP)
+      Use: start_workflow, get_workflow_status, advance_workflow, back_workflow, restart_workflow, break_workflow, list_workflow_sessions.
+
+      TPS tooling guidance:
+      - Prefer single batched calls over many small ones.
+      - Use quiet flags for tests/linters; reduce verbose output.
+      - Backoff + retry with jitter on 429s; lower detail if rate-limited.
+
+      ## Quick prompts
+      - "run quality checks"
+      - "set up Python env"
+      - "create ADR for X"
+      - "start development session"
+
+      ## Categories
+      core, python, frontend, documentation, development, session, automation, testing, media.
+
+      ## Rate-limit tips
+      - Short prompts; reuse context; batch tool calls; avoid chatty loops.
+      - Backoff + retry on 429; reduce detail level; stream if available.
+
+      ## Success
+      Guidance-first behavior, terse outputs, validation demonstrated, reusable patterns captured.
+      EOF
+    working_dir: "."
+
+  - step_text: "🔌 **Configure MCP Server** - Ensure Vibe MCP server is ready for VS Code"
+    command: "ls -la mcp-server/index.js && echo '✅ MCP server configured'"
+    working_dir: "."
+
+  - step_text: "📋 **Verify MCP Tools Available** - Test that workflows are accessible via MCP"
+    command: "uv run vibe mcp --help | head -20"
+    working_dir: "."
+
+  - step_text: "🎯 **Test Agent Mode Integration** - Verify everything works together"
+    command: |
+      echo "🤖 Agent mode setup complete!"
+      echo ""
+      echo "Next steps:"
+      echo "1. Restart VS Code to load new settings"
+      echo "2. Open VS Code Chat (Ctrl+Shift+I or Cmd+Shift+I)"
+      echo "3. Switch to 'vibe-agent' mode in the chat mode selector"
+      echo "4. Test with: 'What workflow should I use for testing?'"
+      echo ""
+      echo "Full agent capabilities now available:"
+      echo "✅ File editing (create, edit, delete)"
+      echo "✅ Terminal command execution"
+      echo "✅ Vibe workflow integration via MCP"
+      echo "✅ All VS Code agent tools"

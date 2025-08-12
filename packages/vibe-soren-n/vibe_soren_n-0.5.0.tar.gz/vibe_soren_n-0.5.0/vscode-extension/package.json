@@ -1,0 +1,120 @@
+{
+  "name": "vibe-workflows",
+  "displayName": "Vibe AI Workflows",
+  "description": "AI-powered workflow orchestration for development tasks",
+  "version": "0.5.0",
+  "publisher": "soren-n",
+  "icon": "images/vibe-icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/soren-n/vibe"
+  },
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other",
+    "Machine Learning",
+    "Snippets"
+  ],
+  "keywords": [
+    "ai",
+    "workflow",
+    "automation",
+    "productivity",
+    "mcp",
+    "model-context-protocol"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "vibe.startWorkflow",
+        "title": "Start Workflow",
+        "category": "Vibe"
+      },
+      {
+        "command": "vibe.listWorkflows",
+        "title": "List Available Workflows",
+        "category": "Vibe"
+      },
+      {
+        "command": "vibe.openWorkflowGuide",
+        "title": "Open Workflow Guide",
+        "category": "Vibe"
+      }
+    ],
+    "configuration": {
+      "title": "Vibe Workflows",
+      "properties": {
+        "vibe.mcpServerPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the Vibe MCP server executable"
+        },
+        "vibe.autoStartMcpServer": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically start MCP server when extension activates"
+        },
+        "vibe.defaultWorkflowCategory": {
+          "type": "string",
+          "default": "core",
+          "description": "Default workflow category to show",
+          "enum": [
+            "core",
+            "python",
+            "frontend",
+            "documentation",
+            "development",
+            "session"
+          ]
+        }
+      }
+    },
+    "views": {
+      "explorer": [
+        {
+          "id": "vibeWorkflows",
+          "name": "Vibe Workflows",
+          "when": "workspaceHasVibeConfig"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "vibeWorkflows",
+        "contents": "Welcome to Vibe AI Workflows! \ud83d\ude80\n\n[Start Workflow](command:vibe.startWorkflow)\n[Browse Workflows](command:vibe.listWorkflows)\n\nTo get started, open a workspace with a .vibe.yaml file or run a workflow command."
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "package": "npx @vscode/vsce package --no-git-tag-version",
+    "publish": "npx @vscode/vsce publish --no-git-tag-version",
+    "clean": "rm -rf out && rm -f *.vsix",
+    "rebuild": "npm run clean && npm run compile",
+    "version": "npm version --no-git-tag-version"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.74.0",
+    "@types/node": "16.x",
+    "@typescript-eslint/eslint-plugin": "^5.45.0",
+    "@typescript-eslint/parser": "^5.45.0",
+    "eslint": "^8.28.0",
+    "typescript": "^4.9.4",
+    "@vscode/test-electron": "^2.2.0",
+    "@vscode/vsce": "^2.15.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  }
+}
