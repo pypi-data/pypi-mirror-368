@@ -1,0 +1,42 @@
+# Minimal pre-commit configuration
+repos:
+  # General code quality
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: check-yaml
+      - id: check-toml
+      - id: debug-statements
+
+  # Python formatting and linting
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.15
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  # Fast unit tests only
+  - repo: local
+    hooks:
+      - id: pytest-unit
+        name: Unit tests
+        entry: pytest
+        language: system
+        pass_filenames: false
+        always_run: true
+        args: [-m, "not integration and not slow", --tb=line, -q, tests/]
+        stages: [pre-commit]
+
+exclude: |
+  (?x)^(
+      \.git/|
+      __pycache__/|
+      build/|
+      dist/|
+      \.venv/|
+      src/alomancy/_?version\.py
+  )
