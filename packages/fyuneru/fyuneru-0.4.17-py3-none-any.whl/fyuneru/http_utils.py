@@ -1,0 +1,264 @@
+"""
+http工具类
+"""
+
+import random
+import socket
+import ssl
+from collections import defaultdict
+from functools import wraps
+from pathlib import Path
+from urllib.parse import urlparse
+import ipaddress
+
+import requests
+from joblib import Parallel, delayed
+from loguru import logger
+from requests.adapters import HTTPAdapter, PoolManager
+from urllib3.util.ssl_ import create_urllib3_context
+
+from .lib import tqdm_loguru
+
+
+def handle_exception(func):
+    """异常处理包装类"""
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"请求失败，状态码: {e.response.status_code}")
+            return None
+        except requests.exceptions.Timeout as e:
+            logger.error(f"请求超时: {e}")
+            return None
+        except requests.exceptions.RequestException as e:
+            logger.error(f"发生错误: {e}")
+            return None
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.error(f"发生错误: {e}")
+            return None
+
+    return wrapper
+
+
+def __get_headers(token: str) -> dict[str, str]:
+    return {
+        "Access-Token": token,
+    }
+
+
+@handle_exception
+def get_json(url: str, session: requests.Session | None = None, proxies=None):
+    """获取json"""
+    response = (session or requests).get(url, proxies=proxies)
+    response.raise_for_status()
+    if response.status_code != 200:
+        return None
+    return response.json()
+
+
+@handle_exception
+def get_content(
+    url: str,
+    session: requests.Session | None = None,
+    proxies: dict[str, str] | None = None,
+    headers: dict[str, str] | None = None,
+) -> bytes:
+    """获取内容"""
+    response = (session or requests).get(url, proxies=proxies, headers=headers)
+    response.raise_for_status()
+    return response.content
+
+
+class SSLAdapter(HTTPAdapter):
+    """
+    Custom SSL adapter for handling SNI (Server Name Indication) in HTTPS requests.
+
+    This adapter ensures proper SSL/TLS connections when using IP addresses
+    while maintaining the correct hostname for certificate verification.
+    """
+
+    def __init__(self, server_hostname: str, **kwargs):
+        """
+        Initialize the SSL adapter with a specific server hostname.
+
+        Args:
+            server_hostname: The hostname to use for SNI and Host header
+            **kwargs: Additional arguments passed to HTTPAdapter
+        """
+        self.server_hostname = server_hostname
+        super().__init__(**kwargs)
+
+    def init_poolmanager(self, *args, **kwargs):
+        """Initialize the pool manager with custom SSL context."""
+        # Create a custom SSL context that handles IP addresses properly
+        context = create_urllib3_context()
+        context.check_hostname = False  # Disable hostname verification for IP addresses
+        context.verify_mode = ssl.CERT_REQUIRED  # Still verify the certificate
+
+        kwargs["ssl_context"] = context
+        self.poolmanager = PoolManager(*args, **kwargs)
+
+    def add_headers(self, request, **kwargs):
+        """Add the Host header for proper SNI handling."""
+        if (
+            hasattr(request, "url")
+            and "https://" in request.url
+            and hasattr(self, "server_hostname")
+            and self.server_hostname
+        ):
+            request.headers["Host"] = self.server_hostname
+        return super().add_headers(request, **kwargs)
+
+    def __getstate__(self):
+        """Handle object serialization for multiprocessing compatibility."""
+        state = self.__dict__.copy()
+        return state
+
+    def __setstate__(self, state):
+        """Handle object deserialization for multiprocessing compatibility."""
+        self.__dict__.update(state)
+        if not hasattr(self, "server_hostname"):
+            self.server_hostname = None
+
+    def cert_verify(self, conn, url, verify, cert):
+        """
+        Custom certificate verification that handles IP addresses.
+
+        When connecting to an IP address but expecting a certificate for a hostname,
+        we need to override the default verification behavior.
+        """
+        # Call the parent's cert_verify but handle SSL errors gracefully
+        try:
+            return super().cert_verify(conn, url, verify, cert)
+        except requests.exceptions.SSLError:
+            # For IP address connections, we disable certificate hostname verification
+            # but we still want to verify the certificate chain
+            if hasattr(conn, "sock") and conn.sock:
+                # The certificate is already verified by the SSL context
+                # We just need to bypass the hostname check
+                return
+
+
+def write_content(
+    url: str,
+    path: Path,
+    session: requests.Session | None = None,
+    proxies: dict[str, str] | None = None,
+    headers: dict[str, str] | None = None,
+):
+    """写入内容"""
+    from loguru import logger
+
+    if path.exists():
+        logger.debug(f"文件已存在: {path}")
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    while (
+        content := get_content(
+            url=url, session=session, proxies=proxies, headers=headers
+        )
+    ) is None:
+        continue
+    with path.open("wb") as f:
+        f.write(content)
+
+
+def batch_download(
+    path_url: dict[Path, str],
+    sessions: list[requests.Session] | None = None,
+    proxies: dict[str, str] | None = None,
+    session_num: int = 8,
+    n_jobs: int = 16,
+):
+    """批量下载"""
+    if not sessions:
+        sessions = [requests.Session() for _ in range(session_num)]
+    host_grouped_path_url = defaultdict(list)
+    for write_path, url in path_url.items():
+        host_grouped_path_url[urlparse(url).hostname].append((write_path, url))
+    for idx, (host, path_urls) in enumerate(host_grouped_path_url.items()):
+        logger.info(f"[{idx}/{len(host_grouped_path_url)}] batch downloading...")
+        for session in sessions:
+            session.mount("https://", SSLAdapter(server_hostname=host))
+        ip = socket.gethostbyname(host)
+
+        Parallel(n_jobs=n_jobs, backend="threading")(
+            delayed(write_content)(
+                url.replace(host, ip),
+                write_path,
+                random.choice(sessions),
+                proxies,
+                {"Host": host},
+            )
+            for write_path, url in tqdm_loguru(
+                path_urls,
+                desc=f"[{idx}/{len(host_grouped_path_url)}] batch downloading...",
+            )
+        )
+
+
+@handle_exception
+def get_task_info(
+    task_id: str,
+    token: str,
+    domain: str,
+    session: requests.Session | None = None,
+    host: str | None = None,
+):
+    """请求task_info信息"""
+    url = f"{domain}/api/v2/task/get/task-info"
+    headers = __get_headers(token)
+    if host:
+        headers["Host"] = host
+    params = {"taskId": task_id}
+    response = (session or requests).post(url, headers=headers, json=params)
+    response.raise_for_status()
+    if response.status_code != 200:
+        return None
+    return response.json()
+
+
+@handle_exception
+def get_item_info(
+    item_id: str,
+    token: str,
+    domain: str,
+    session: requests.Session | None = None,
+    host: str | None = None,
+):
+    """item 请求信息"""
+    url = f"{domain}/api/v2/item/get-item-info"
+    headers = __get_headers(token)
+    if host:
+        headers["Host"] = host
+    params = {"itemId": item_id}
+    response = (session or requests).post(url, headers=headers, json=params)
+    response.raise_for_status()
+    if response.status_code != 200:
+        return None
+    return response.json()
+
+
+@handle_exception
+def find_labels(
+    task_id: str,
+    item_id: str,
+    token: str,
+    domain: str,
+    session: requests.Session | None = None,
+    host: str | None = None,
+):
+    """请求标签信息"""
+    url = f"{domain}/api/v2/label/find-labels"
+    headers = __get_headers(token)
+    if host:
+        headers["Host"] = host
+    params = {"taskId": task_id, "itemId": item_id}
+    response = (session or requests).post(url, headers=headers, json=params)
+    response.raise_for_status()
+    if response.status_code != 200:
+        return None
+    return response.json()
