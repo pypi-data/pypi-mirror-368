@@ -1,0 +1,535 @@
+Metadata-Version: 2.4
+Name: pinet-hcnn
+Version: 0.1.0
+Summary: A differentiable orthogonal projection layer for training hard-constrained neural networks.
+Author-email: Panagiotis Grontas <pgrontas@control.ee.ethz.ch>, Antonio Terpin <aterpin@ethz.ch>
+License:                                  Apache License
+                                   Version 2.0, January 2004
+                                http://www.apache.org/licenses/
+        
+           TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+        
+           1. Definitions.
+        
+              "License" shall mean the terms and conditions for use, reproduction,
+              and distribution as defined by Sections 1 through 9 of this document.
+        
+              "Licensor" shall mean the copyright owner or entity authorized by
+              the copyright owner that is granting the License.
+        
+              "Legal Entity" shall mean the union of the acting entity and all
+              other entities that control, are controlled by, or are under common
+              control with that entity. For the purposes of this definition,
+              "control" means (i) the power, direct or indirect, to cause the
+              direction or management of such entity, whether by contract or
+              otherwise, or (ii) ownership of fifty percent (50%) or more of the
+              outstanding shares, or (iii) beneficial ownership of such entity.
+        
+              "You" (or "Your") shall mean an individual or Legal Entity
+              exercising permissions granted by this License.
+        
+              "Source" form shall mean the preferred form for making modifications,
+              including but not limited to software source code, documentation
+              source, and configuration files.
+        
+              "Object" form shall mean any form resulting from mechanical
+              transformation or translation of a Source form, including but
+              not limited to compiled object code, generated documentation,
+              and conversions to other media types.
+        
+              "Work" shall mean the work of authorship, whether in Source or
+              Object form, made available under the License, as indicated by a
+              copyright notice that is included in or attached to the work
+              (an example is provided in the Appendix below).
+        
+              "Derivative Works" shall mean any work, whether in Source or Object
+              form, that is based on (or derived from) the Work and for which the
+              editorial revisions, annotations, elaborations, or other modifications
+              represent, as a whole, an original work of authorship. For the purposes
+              of this License, Derivative Works shall not include works that remain
+              separable from, or merely link (or bind by name) to the interfaces of,
+              the Work and Derivative Works thereof.
+        
+              "Contribution" shall mean any work of authorship, including
+              the original version of the Work and any modifications or additions
+              to that Work or Derivative Works thereof, that is intentionally
+              submitted to Licensor for inclusion in the Work by the copyright owner
+              or by an individual or Legal Entity authorized to submit on behalf of
+              the copyright owner. For the purposes of this definition, "submitted"
+              means any form of electronic, verbal, or written communication sent
+              to the Licensor or its representatives, including but not limited to
+              communication on electronic mailing lists, source code control systems,
+              and issue tracking systems that are managed by, or on behalf of, the
+              Licensor for the purpose of discussing and improving the Work, but
+              excluding communication that is conspicuously marked or otherwise
+              designated in writing by the copyright owner as "Not a Contribution."
+        
+              "Contributor" shall mean Licensor and any individual or Legal Entity
+              on behalf of whom a Contribution has been received by Licensor and
+              subsequently incorporated within the Work.
+        
+           2. Grant of Copyright License. Subject to the terms and conditions of
+              this License, each Contributor hereby grants to You a perpetual,
+              worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+              copyright license to reproduce, prepare Derivative Works of,
+              publicly display, publicly perform, sublicense, and distribute the
+              Work and such Derivative Works in Source or Object form.
+        
+           3. Grant of Patent License. Subject to the terms and conditions of
+              this License, each Contributor hereby grants to You a perpetual,
+              worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+              (except as stated in this section) patent license to make, have made,
+              use, offer to sell, sell, import, and otherwise transfer the Work,
+              where such license applies only to those patent claims licensable
+              by such Contributor that are necessarily infringed by their
+              Contribution(s) alone or by combination of their Contribution(s)
+              with the Work to which such Contribution(s) was submitted. If You
+              institute patent litigation against any entity (including a
+              cross-claim or counterclaim in a lawsuit) alleging that the Work
+              or a Contribution incorporated within the Work constitutes direct
+              or contributory patent infringement, then any patent licenses
+              granted to You under this License for that Work shall terminate
+              as of the date such litigation is filed.
+        
+           4. Redistribution. You may reproduce and distribute copies of the
+              Work or Derivative Works thereof in any medium, with or without
+              modifications, and in Source or Object form, provided that You
+              meet the following conditions:
+        
+              (a) You must give any other recipients of the Work or
+                  Derivative Works a copy of this License; and
+        
+              (b) You must cause any modified files to carry prominent notices
+                  stating that You changed the files; and
+        
+              (c) You must retain, in the Source form of any Derivative Works
+                  that You distribute, all copyright, patent, trademark, and
+                  attribution notices from the Source form of the Work,
+                  excluding those notices that do not pertain to any part of
+                  the Derivative Works; and
+        
+              (d) If the Work includes a "NOTICE" text file as part of its
+                  distribution, then any Derivative Works that You distribute must
+                  include a readable copy of the attribution notices contained
+                  within such NOTICE file, excluding those notices that do not
+                  pertain to any part of the Derivative Works, in at least one
+                  of the following places: within a NOTICE text file distributed
+                  as part of the Derivative Works; within the Source form or
+                  documentation, if provided along with the Derivative Works; or,
+                  within a display generated by the Derivative Works, if and
+                  wherever such third-party notices normally appear. The contents
+                  of the NOTICE file are for informational purposes only and
+                  do not modify the License. You may add Your own attribution
+                  notices within Derivative Works that You distribute, alongside
+                  or as an addendum to the NOTICE text from the Work, provided
+                  that such additional attribution notices cannot be construed
+                  as modifying the License.
+        
+              You may add Your own copyright statement to Your modifications and
+              may provide additional or different license terms and conditions
+              for use, reproduction, or distribution of Your modifications, or
+              for any such Derivative Works as a whole, provided Your use,
+              reproduction, and distribution of the Work otherwise complies with
+              the conditions stated in this License.
+        
+           5. Submission of Contributions. Unless You explicitly state otherwise,
+              any Contribution intentionally submitted for inclusion in the Work
+              by You to the Licensor shall be under the terms and conditions of
+              this License, without any additional terms or conditions.
+              Notwithstanding the above, nothing herein shall supersede or modify
+              the terms of any separate license agreement you may have executed
+              with Licensor regarding such Contributions.
+        
+           6. Trademarks. This License does not grant permission to use the trade
+              names, trademarks, service marks, or product names of the Licensor,
+              except as required for reasonable and customary use in describing the
+              origin of the Work and reproducing the content of the NOTICE file.
+        
+           7. Disclaimer of Warranty. Unless required by applicable law or
+              agreed to in writing, Licensor provides the Work (and each
+              Contributor provides its Contributions) on an "AS IS" BASIS,
+              WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+              implied, including, without limitation, any warranties or conditions
+              of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+              PARTICULAR PURPOSE. You are solely responsible for determining the
+              appropriateness of using or redistributing the Work and assume any
+              risks associated with Your exercise of permissions under this License.
+        
+           8. Limitation of Liability. In no event and under no legal theory,
+              whether in tort (including negligence), contract, or otherwise,
+              unless required by applicable law (such as deliberate and grossly
+              negligent acts) or agreed to in writing, shall any Contributor be
+              liable to You for damages, including any direct, indirect, special,
+              incidental, or consequential damages of any character arising as a
+              result of this License or out of the use or inability to use the
+              Work (including but not limited to damages for loss of goodwill,
+              work stoppage, computer failure or malfunction, or any and all
+              other commercial damages or losses), even if such Contributor
+              has been advised of the possibility of such damages.
+        
+           9. Accepting Warranty or Additional Liability. While redistributing
+              the Work or Derivative Works thereof, You may choose to offer,
+              and charge a fee for, acceptance of support, warranty, indemnity,
+              or other liability obligations and/or rights consistent with this
+              License. However, in accepting such obligations, You may act only
+              on Your own behalf and on Your sole responsibility, not on behalf
+              of any other Contributor, and only if You agree to indemnify,
+              defend, and hold each Contributor harmless for any liability
+              incurred by, or claims asserted against, such Contributor by reason
+              of your accepting any such warranty or additional liability.
+        
+           END OF TERMS AND CONDITIONS
+        
+           APPENDIX: How to apply the Apache License to your work.
+        
+              To apply the Apache License to your work, attach the following
+              boilerplate notice, with the fields enclosed by brackets "[]"
+              replaced with your own identifying information. (Don't include
+              the brackets!)  The text should be enclosed in the appropriate
+              comment syntax for the file format. We also recommend that a
+              file or class name and description of purpose be included on the
+              same "printed page" as the copyright notice for easier
+              identification within third-party archives.
+        
+           Copyright 2025 Panagiotis Grontas and Antonio Terpin
+        
+           Licensed under the Apache License, Version 2.0 (the "License");
+           you may not use this file except in compliance with the License.
+           You may obtain a copy of the License at
+        
+               http://www.apache.org/licenses/LICENSE-2.0
+        
+           Unless required by applicable law or agreed to in writing, software
+           distributed under the License is distributed on an "AS IS" BASIS,
+           WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+           See the License for the specific language governing permissions and
+           limitations under the License.
+        
+Project-URL: Homepage, https://github.com/antonioterpin/pinet
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: jax>=0.6.2
+Requires-Dist: tqdm>=4.67.1
+Requires-Dist: h5py>=3.13.0
+Requires-Dist: ruamel.yaml>=0.18.10
+Requires-Dist: imageio>=2.37.0
+Requires-Dist: matplotlib>=3.10.1
+Requires-Dist: optax>=0.2.4
+Requires-Dist: flax>=0.10.2
+Requires-Dist: cvxpy>=1.6.6
+Requires-Dist: torch>=2.6.0
+Requires-Dist: cvxpylayers>=0.1.9
+Requires-Dist: jaxopt>=0.8.5
+Requires-Dist: wandb>=0.20.1
+Provides-Extra: dev
+Requires-Dist: snowballstemmer==2.2.0; extra == "dev"
+Requires-Dist: pre_commit==4.0.1; extra == "dev"
+Requires-Dist: pytest-cov; extra == "dev"
+Requires-Dist: tomli; extra == "dev"
+Provides-Extra: cuda12
+Requires-Dist: jax[cuda12_pip]>=0.6.2; extra == "cuda12"
+Dynamic: license-file
+
+# &Pi;net: Optimizing hard-constrained neural networks with orthogonal projection layers
+
+[![arXiv](https://img.shields.io/badge/arXiv-TODO-b31b1b?style=flat&logo=arxiv&logoColor=white)](https://arxiv.org/abs/TODO)
+[![GitHub stars](https://img.shields.io/github/stars/antonioterpin/pinet?style=social)](https://github.com/antonioterpin/pinet/stargazers)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://github.com/antonioterpin/pinet/LICENSE)
+[![codecov](https://codecov.io/gh/antonioterpin/pinet/graph/badge.svg?token=UQ48NNZSI4)](https://codecov.io/gh/antonioterpin/pinet)
+[![Tests](https://github.com/antonioterpin/pinet/actions/workflows/test.yaml/badge.svg)](https://github.com/antonioterpin/pinet/actions/workflows/test.yaml)
+[![PyPI version](https://img.shields.io/pypi/v/pinet-hcnn.svg)](https://pypi.org/project/pinet-hcnn)
+
+[![Follow Panos](https://img.shields.io/badge/LinkedIn-Panagiotis%20Grontas-blue?&logo=linkedin)](https://www.linkedin.com/in/panagiotis-grontas-4517b0184)
+[![Follow Antonio](https://img.shields.io/twitter/follow/antonio_terpin.svg?style=social)](https://twitter.com/antonio_terpin)
+
+![Cover Image](media/cover.jpg)
+
+This repository contains a [JAX](https://github.com/jax-ml/jax) implementation of &Pi;net, an output layer for neural networks that ensures the satisfaction of specified convex constraints.
+
+> [!NOTE] TL;DR
+> &Pi;net leverages operator splitting for rapid and reliable projections in the forward pass, and the implicit function theorem for backpropagation. It offers a *feasible-by-design* optimization proxy for parametric constrained optimization problems to obtain modest-accuracy solutions faster than traditional solvers when solving a single problem, and significantly faster for a batch of problems.
+
+## Index
+- [Getting started](#getting-started)
+- [Examples](#examples)
+- [Contributing](#contributing-☕️)
+- [Citation](#citation-🙏)
+
+## Getting started
+To install &Pi;net, run:
+- CPU-only (Linux/macOS/Windows)
+  ```bash
+  pip install pinet-hcnn
+  ```
+- GPU (NVIDIA, CUDA 12)
+  ```bash
+  pip install "pinet-hcnn[cuda12]"
+  ```
+
+> [!WARNING] CUDA dependencies
+> If you have issues with CUDA drivers, please follow the official instructions for [cuda12 and cudnn](https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64&Distribution=Ubuntu&target_version=22.04&target_type=deb_local) (Note: wheels only available on linux). If you have issues with conflicting CUDA libraries, check also [this issue](https://github.com/jax-ml/jax/issues/17497)... or use our Docker container 🤗.
+
+We also provide a working [Docker](https://docs.docker.com/) image to reproduce the results of the paper and to build on top.
+```bash
+docker compose run --rm pinet-cpu # Run the pytests on CPU
+docker compose run --rm pinet-gpu # Run the pytests on GPU
+```
+> [!WARNING] CUDA dependencies
+> Running the Docker container with GPU support requires [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) on the host.
+
+See also the section on [reproducing the paper's results](#reproducing-the-papers-results) for more examples of commands.
+
+
+### Supported platforms 💻
+|        | Linux x86\_64 | Linux aarch64 | Mac aarch64 | Windows x86\_64 | Windows WSL2 x86\_64 |
+| -------------- | ------------- | ------------- | ----------- | --------------- | -------------------- |
+| **CPU**        | ✅           | ✅           | ✅         | ✅             | ✅                  |
+| **NVIDIA GPU** | ✅           | ✅           | n/a         | ❌              | ❌         |
+
+
+## Examples
+
+# Constraints & Projection Layer
+All tensors are **batched**. Let `B` = batch size (you may use `B=1` to broadcast across a batch).
+
+- Vectors: shape `(B, n, 1)`
+- Matrices: shape `(B, n, d)`
+
+## EqualityConstraint — enforce `A @ x == b`
+
+```python
+import jax.numpy as jnp
+from pinet import EqualityConstraint
+
+B, n_eq, d = 4, 3, 5
+A = jnp.zeros((1, n_eq, d))         # (1, n_eq, d)  # broadcast across batch
+b = jnp.zeros((B, n_eq, 1))         # (B, n_eq, 1)
+
+eq = EqualityConstraint(
+    A=A,
+    b=b,
+    method=None,                    # let Project decide / lift later
+    var_b=True,                     # b provided per-batch at runtime
+    var_A=False,                    # A constant (broadcasted)
+)
+```
+
+> [!WARNING] `method=None`
+> `eq.project()` is only available if `method="pinv"`.
+> When you have multiple constraints and you plan on using the equality constraint only within the projection layer, you can leave `method=None` (as above).
+
+## AffineInequalityConstraint — enforce `lb ≤ C @ x ≤ ub`
+
+```python
+import jax.numpy as jnp
+from pinet import AffineInequalityConstraint
+
+n_ineq = 7
+C  = jnp.zeros((1, n_ineq, d))      # (1, n_ineq, d)
+lb = jnp.full((B, n_ineq, 1), -1.0) # (B, n_ineq, 1)
+ub = jnp.full((B, n_ineq, 1),  1.0) # (B, n_ineq, 1)
+
+ineq = AffineInequalityConstraint(C=C, lb=lb, ub=ub)
+```
+
+> [!WARNING] `ineq.project()` intentionally `NotImplemented`
+> To improve the efficiency of the projection, we always "lift" the affine inequality constraints as described in the paper. For this, we did not even bother implementing the projection method for this type of constraints 🤗.
+
+## BoxConstraint — clip selected dimensions
+
+```python
+import numpy as np
+import jax.numpy as jnp
+from pinet import BoxConstraint, BoxConstraintSpecification
+
+lb_x = jnp.full((B, d, 1), -2.0)    # (B, d, 1)
+ub_x = jnp.full((B, d, 1),  2.0)    # (B, d, 1)
+mask = np.ones(d, dtype=bool)       # apply to all dims (use False to skip dims)
+
+box = BoxConstraint(BoxConstraintSpecification(lb=lb_x, ub=ub_x, mask=mask))
+# box.project(...) clips x[:, mask, :] into [lb_x, ub_x].
+```
+
+## Combine constraints with `Project` (Douglas–Rachford)
+
+`Project` handles:
+- **Lifting** inequalities into equalities + auxiliary variables;
+- Optional **Ruiz equilibration**;
+- JIT-compiled forward;
+- Optional custom VJP for backprop.
+
+```python
+from pinet.project import Project
+from pinet.dataclasses import ProjectionInstance
+import jax.numpy as jnp
+
+proj = Project(
+    eq_constraint=eq,              # can be None
+    ineq_constraint=ineq,          # can be None
+    box_constraint=box,            # can be None
+    unroll=False,                  # use custom VJP path by default
+)
+
+# Build a ProjectionInstance with the point to project and (optionally) runtime specs:
+x0 = jnp.zeros((B, d, 1))
+yraw = ProjectionInstance(x=x0)
+# If var_b=True and you supply per-batch b at runtime, pass it via your dataclass, e.g.:
+# yraw = yraw.update(eq=yraw.eq.update(b=b))
+
+y, sK = proj.call(       # JIT-compiled projector
+    yraw=yraw,
+    n_iter=50,                    # Douglas-Rachford iterations
+    n_iter_backward=100,          # Maximum number of iterations for the bicgstab algorithm
+    sigma=1.0, omega=1.7,
+)
+
+# If you want to resume the projection with the latest governing sequence sK,
+# you can provided to the call method via s0=sK.
+
+cv = proj.cv(y)  # (B, 1, 1) max violation across constraints
+                 # The CV can also be assessed for the different constraints separately,
+                 # e.g., eq.cv(y), if eq is a constraint for y
+                 # (shapes need to match, so be careful of lifting!)
+```
+
+### Notes
+- **Batch rules:** For each pair of tensors `(X, Y)`, either batch sizes match or one is `1` (broadcast).
+- **Equality `method`:** Use `method="pinv"` when you rely on the equality projector standalone. When used inside `Project`, you can keep `method=None`; lifting will set up the pseudo-inverse internally.
+- **Dimensions after lifting:** If inequalities are present, the internal lifted dimension is `d + n_ineq` (auxiliary variables).
+
+---
+
+# Minimal “Toy MPC” Application
+
+The helper below wires the projector into a Pinet model; the loss is your batched objective.
+
+```python
+# benchmarks/toy_MPC/model.py
+import jax.numpy as jnp
+from flax import linen as nn
+from pinet import BoxConstraint, BoxConstraintSpecification, EqualityConstraint
+from src.benchmarks.model import build_model_and_train_step, setup_pinet
+
+def setup_model(rng_key, hyperparameters, A, X, b, lb, ub, batched_objective):
+    activation = getattr(nn, hyperparameters["activation"])
+    if activation is None:
+        raise ValueError(f"Unknown activation: {hyperparameters['activation']}")
+
+    # Constraints (b varies at runtime; A is constant & broadcasted)
+    eq  = EqualityConstraint(A=A, b=b, method=None, var_b=True)
+    box = BoxConstraint(BoxConstraintSpecification(lb=lb, ub=ub))
+    project, project_test, _ = setup_pinet(eq_constraint=eq, box_constraint=box,
+                                           hyperparameters=hyperparameters)
+
+    model, params, train_step = build_model_and_train_step(
+        rng_key=rng_key,
+        dim=A.shape[2],
+        features_list=hyperparameters["features_list"],
+        activation=activation,
+        project=project,                # projector in the training graph
+        project_test=project_test,      # projector used at eval
+        raw_train=hyperparameters.get("raw_train", False),
+        raw_test=hyperparameters.get("raw_test", False),
+        loss_fn=lambda preds, _b: batched_objective(preds),
+        example_x=X[:1, :, 0],
+        example_b=b[:1],
+        jit=True,
+    )
+    return model, params, train_step
+```
+
+### Run the end-to-end script
+To reproduce the results in the paper, you can run
+```bash
+python -m src.benchmarks.toy_MPC.run_toy_MPC --filename toy_MPC_seed42_examples10000.npz --config toy_MPC --seed 12
+```
+To generate the dataset, run
+```bash
+TODO
+```
+
+You’ll get:
+- **Training logs** (loss, CV, timing),
+- **Validation/Test** metrics incl. relative suboptimality & CV,
+- **Saved params & results** ready to reload and plot trajectories.
+
+> [!TIP] Troubleshooting
+> All the objects in `pinet.dataclasses` offer a `validate` methods, which can be used to verify your inputs.
+
+### Works using &Pi;net ⚙️
+We collect here applications using &Pi;net. Please feel free to open a pull request to add yours! 🤗
+
+Link | Project
+--|--
+[![View Repo](https://img.shields.io/badge/GitHub-antonioterpin%2Fglitch-blue?logo=github)](https://github.com/antonioterpin/glitch) | **Multi-vehicle trajectory optimization with non-convex preferences**<br/>This project features contexts dimensions in the millions and tens of thousands of optimization variables.
+
+## Contributing ☕️
+Contributions are more than welcome! 🙏 Please check out our [contributing page](./CONTRIBUTING.md), and feel free to open an issue for problems and feature requests⚠️.
+
+## Benchmarks 📈
+Below, we summarize the performance gains of &Pi;net over state-of-the-art methods. We consider the following metrics:
+- Relative Suboptimality ($\texttt{RS}$): The suboptimality of a candidate solution $\hat{y}$ compared to the optimal objective $J(y^{\star})$, computed by a high-accuracy solver.
+- Constraint Violation ($\texttt{CV}$): Maximum violation ($\infty$-norm) of any constraint (equality and inequality). In practice, any solver achieving a $\texttt{CV}$ below $10^{-5}$ is considered to have high accuracy and there is little benefit to go below that. Instead, when methods have sufficiently low $\texttt{CV}$, having a low $\texttt{RS}$ is better.
+- Learning curves: Progress on $\texttt{RS}$ and $\texttt{CV}$ over wall-clock time on the validation set.
+- Single inference time: The time required to solve one instance at test time.
+- Batch inference time: The time required to solve a batch of $1024$ instances at test time.
+
+We report the results for an optimization problem with optimization variable of dimension $d$, $n_{\mathrm{eq}}$ equality and $n_{\mathrm{ineq}}$ inequality convex constraints and with a  non-convex objective. Here, we use a small and a large (in the parametric optimization sense) datasets $(d, n_{\mathrm{eq}}, n_{\mathrm{ineq}})  \in \{(100, 50, 50), (1000, 500, 500)\}$.
+
+![Non-convex CV and RS](media/nonconvex-cvrs.jpg)
+![Non-convex learning curves](media/nonconvex-times.jpg)
+
+Overall, &Pi;net outperforms the state-of-the-art in accuracy and training times.
+For more comparisons and ablations, please check out our [paper](TODO).
+
+### Reproducing the paper's results
+To reproduce our benchmarks and ablations, you can run
+```bash
+python -m src.benchmarks.QP.run_QP --seed 0 --id <ID> --config <CONFIG>  --proj_method <METHOD>
+```
+To select `ID`, `CONFIG`, and `METHOD`, please refer to the table below.
+Experiment | ID | CONFIG | METHOD
+--|--|--|--
+&Pi;net results on the small convex benchmark | TODO | benchmark_small_autotune | pinet
+&Pi;net results on the large convex benchmark | TODO | benchmark_large_autotune | pinet
+&Pi;net results on the small non-convex benchmark | TODO | benchmark_small_autotune | pinet
+&Pi;net results on the large non-convex benchmark | TODO | benchmark_large_autotune | pinet
+&Pi;net results on the TODO benchmark with manual tuning | TODO | benchmark_config_manual | pinet
+&Pi;net results on the TODO benchmark without equilibration | TODO | benchmark_noequil_autotune | pinet
+cvxpy results on the small convex benchmark | TODO | benchmark_cvxpy | cvxpy
+jaxopt results on the small convex benchmark | TODO | benchmark_jaxopt_small | jaxopt
+jaxopt results on the large convex benchmark | TODO | benchmark_jaxopt_large | jaxopt
+jaxopt results on the small non-convex benchmark | TODO | benchmark_jaxopt_small | jaxopt
+jaxopt results on the large non-convex benchmark | TODO | benchmark_jaxopt_small | jaxopt
+
+>[!WARNING] Generating the large dataset
+> The repo contains only the data to run the small benchmark. For the large one, you need first to generate the data. For this, please run
+> ```bash
+> TODO
+> ```
+> NOTE: This may take a while... In a future release, we plan to provide several datasets with [Hugging face 🤗](https://huggingface.co/) or similar providers, and this step will be less tedious.
+
+For `DC3`, we used the [open-source implementation](https://github.com/locuslab/DC3).
+
+> [!TIP] With Docker 🐳
+> To run the above commands within th docker container, you can use
+> ```bash
+> docker compose run --rm pinet-cpu -m src.benchmarks.QP.run_QP --seed 0 --id <ID> --config <CONFIG>  --proj_method <METHOD> # run on CPU
+> docker compose run --rm pinet-gpu -m src.benchmarks.QP.run_QP --seed 0 --id <ID> --config <CONFIG>  --proj_method <METHOD> # run on GPU
+> ```
+
+For the toy MPC, please refer to [the examples section](#a-toy-example-approximating-a-mpc-controller). For the second-order cone constraints, you can use [this notebook](./src/benchmarks/toy_SOC/main.py).
+
+## Citation 🙏
+If you use this code in your research, please cite our paper:
+```bash
+   @inproceedings{grontas2025pinet,
+     title={Pinet: Optimizing hard-constrained neural networks with orthogonal projection layers},
+     author={Grontas, Panagiotis and Terpin, Antonio and Balta C., Efe and D'Andrea, Raffaello and Lygeros, John},
+     journal={arXiv preprint arXiv:TODO},
+     year={2025}
+   }
+```
