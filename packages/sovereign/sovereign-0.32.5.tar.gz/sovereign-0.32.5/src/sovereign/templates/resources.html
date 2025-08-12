@@ -1,0 +1,200 @@
+{%- extends 'base.html' %}
+{% block title %}{{ resource_type|capitalize }}{% endblock %}
+
+{% block head %}
+    <meta name="last_update" content="{{ last_update }}">
+    <script src="/static/search_filter.js"></script>
+    <script src="/static/panel.js"></script>
+    <style>
+        .filtered {
+            display: none;
+        }
+    </style>
+{% endblock %}
+
+
+{%- block body %}
+    <div class="content">
+        <p class="content">
+        <div class="dropdown is-hoverable">
+            <div class="dropdown-trigger">
+                <button class="button is-dark" aria-haspopup="true" aria-controls="dropdown-menu">
+                    <span>Envoy Version</span>
+                    <span class="icon is-small">
+                        <i class="fas fa-angle-down" aria-hidden="true"></i>
+                    </span>
+                </button>
+            </div>
+            <div class="dropdown-menu" id="dropdown-menu" role="menu">
+                <div class="dropdown-content">
+                    <div class="dropdown-item">
+                        <p>All resources will be formatted for the selected version</p>
+                    </div>
+                    {% for v in available_versions %}
+                        <a class="dropdown-item{% if v == version %} is-active{% endif %}"
+                           href="/ui/set-version?version={{ v }}">
+                            {{ v.replace('_', '') }}
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="dropdown is-hoverable">
+            <div class="dropdown-trigger">
+                <button class="button is-dark" aria-haspopup="true" aria-controls="dropdown-menu">
+                    <span>Service Cluster</span>
+                    <span class="icon is-small">
+                        <i class="fas fa-angle-down" aria-hidden="true"></i>
+                    </span>
+                </button>
+            </div>
+            <div class="dropdown-menu" id="dropdown-menu" role="menu">
+                <div class="dropdown-content">
+                    <div class="dropdown-item">
+                        <p>Only resources for the selected service cluster will be shown</p>
+                    </div>
+                    {% for cluster in available_service_clusters %}
+                        <a class="dropdown-item{% if cluster == service_cluster %} is-active{% endif %}"
+                           href="/ui/set-service-cluster?service_cluster={{ cluster }}">
+                            {{ cluster.replace('*', 'any') }}
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        </p>
+    </div>
+
+    {% set count = resources|length %}
+    {% if count > 0 %}
+    <nav class="panel is-dark" id="resources">
+        <p class="panel-heading">
+            {{ resource_type|capitalize }}
+        </p>
+        <div class="panel-block">
+            <p class="control has-icons-left">
+                <label for="search_filter">
+                    <input
+                            class="input"
+                            type="text"
+                            id="search_filter"
+                            onkeyup="filter_results('search_filter', 'resources')"
+                            placeholder="Filter {{ resource_type }} by any string"
+                    >
+                </label>
+                <span class="icon is-left">
+                <i class="fas fa-search" aria-hidden="true"></i>
+            </span>
+            </p>
+        </div>
+
+        {% set res = resources|selectattr('get')|list %}
+        {% set plural = {
+            0: 'resources',
+            1: 'resource'
+        } %}
+        {% for resource in res %}
+            {% if "sovereign_error" in resource %}
+                <span class="panel-icon">
+                    <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                </span>
+                <div class="notification is-danger">
+                    {{ resource["sovereign_error"] }}
+                </div>
+                <pre>
+                {{ resource["sovereign_error"] }}
+                </pre>
+            {% else %}
+            {% set name = resource.get('name') or resource['cluster_name'] %}
+            <a class="panel-block has-text-weight-medium"
+                   href="/ui/resources/{{ resource_type }}/{{ name }}">
+                    <span class="panel-icon">
+                        <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                    </span>
+                    {{ name }}
+                </a>
+            {% endif %}
+        {% endfor %}
+            <div class="panel-block">
+                <p class="content is-small">
+                    {{ count }} {{ plural.get(count, 'resources') }}
+                </p>
+            </div>
+        </nav>
+
+        {% if resource_type == 'routes' %}
+            <nav class="panel">
+              <p class="panel-heading">Virtual Hosts</p>
+              <div class="panel-block">
+                <p class="control has-icons-left">
+                  <input id="searchInput" class="input" type="text" placeholder="Filter virtual-hosts by any string" />
+                  <span class="icon is-left">
+                    <i class="fas fa-search" aria-hidden="true"></i>
+                  </span>
+                </p>
+              </div>
+              <p class="panel-tabs">
+                <a class="is-active" onclick="filterTabs(this, 'all')">All</a>
+                {% for resource in res %}
+                    <a onclick="filterTabs(this, '{{ resource["name"] }}')">
+                        {{ resource['name'] }}
+                    </a>
+                {% endfor %}
+              </p>
+              {% for resource in res %}
+                  {% for virtualhost in resource['virtual_hosts'] %}
+                      <a class="panel-block virtualhost"
+                         data-category="{{ resource['name'] }}"
+                         href="/ui/resources/routes/{{ resource['name'] }}/{{ virtualhost['name'] }}">
+                      <span class="panel-icon">
+                          <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                      </span>
+                          {{ virtualhost['name'] }}
+                      </a>
+                  {% endfor %}
+              {% endfor %}
+            </nav>
+        {% endif %}
+    {% else %}
+        <span class="panel-icon">
+            <i class="fas fa-arrow-right" aria-hidden="true"></i>
+        </span>
+        <div class="notification is-danger">
+            No resources found
+        </div>
+    {% endif %}
+    {% if show_debuginfo %}
+    <pre>
+    {%- if discovery_request != None %}
+    ---
+    DiscoveryRequest:
+      Node:
+        Id: {{ discovery_request.node.id }}
+        Cluster: {{ discovery_request.node.cluster }}
+        Metadata: {{ discovery_request.node.metadata }}
+        Locality: {{ discovery_request.node.locality }}
+        Build Version: {{ discovery_request.node.build_version }}
+      Version Info: {{ discovery_request.version_info }}
+      Resource Names: {{ discovery_request.resources or "*" }}
+      # Sovereign-generated fields
+      Envoy Version: {{ discovery_request.envoy_version }}
+      Client Uid: {{ discovery_request.uid }}
+      Host Header: {{ discovery_request.desired_controlplane }}
+    {%- endif %}
+    {%- if discovery_response != None %}
+    ---
+    DiscoveryResponse:
+      Metadata:
+        {%- for line in discovery_response.metadata %}
+        {{ line }}
+        {%- endfor %}
+      Config version: {{ discovery_response.version }}
+    {%- endif %}
+    </pre>
+    {% endif %}
+{% endblock -%}
+{% block footer %}
+<div class="content has-text-centered is-small">
+    <p>{{ last_update }}</p>
+</div>
+{% endblock %}
