@@ -1,0 +1,51 @@
+{#
+Renders a list of resources with icons and view links.
+
+resources - A list of resources to render
+pkg - A package object that the resources belong to.
+
+Example:
+
+  {% snippet "package/snippets/resources_list.html", pkg=pkg, resources=pkg.resources %}
+
+#}
+<section id="dataset-resources" class="resources">
+  <h2>{{ _('Data and Resources') }}</h2>
+  {% block resource_list %}
+    {% if resources %}
+      <ul class="{% block resource_list_class %}resource-list{% endblock %}">
+        {% block resource_list_inner %}
+          {% set can_edit = h.check_access('package_update', {'id':pkg.id }) %}
+          {% set grouped_resources = h.group_resources(resources) %}
+          {% for group_name, group_slug, group_items in grouped_resources %}
+              {% if group_name %}
+              <div class="flex-container flex-between subgroup-header" data-toggle="collapse"
+                   aria-expanded="false" data-target="#grp-{{ group_slug }}">
+                  <i class="fas fa-layer-group inline-icon-left"></i>
+                <h3 class="no-margin flex-child-grow">{{ group_name }}</h3>
+                  <span>({{ group_items|length }} resource{% if (group_items|length) != 1 %}s{% endif %})</span>
+                <button type="button" class="collapse-toggle collapsed" data-toggle="collapse"
+                        data-target="#grp-{{ group_slug }}" aria-expanded="false">
+                    <span class="sr-only">Expand {{ group_name }}</span>
+                </button>
+              </div>
+              {% endif %}
+              <div id="grp-{{ group_slug }}" class="collapse {% if group_name %}subgroup{% else %}in{% endif %}" aria-expanded="false">
+                  {% for resource in group_items %}
+                    {% snippet 'package/snippets/resource_item.html', pkg=pkg, res=resource, can_edit=can_edit %}
+                  {% endfor %}
+              </div>
+          {% endfor %}
+        {% endblock %}
+      </ul>
+    {% else %}
+      {% if h.check_access('resource_create', {'package_id': pkg['id']}) %}
+          {% trans url=h.url_for('resource.new', id=pkg.name) %}
+            <p class="empty">This dataset has no data, <a href="{{ url }}">why not add some?</a></p>
+          {% endtrans %}
+      {% else %}
+          <p class="empty">{{ _('This dataset has no data') }}</p>
+      {% endif %}
+    {% endif %}
+    {% endblock %}
+</section>

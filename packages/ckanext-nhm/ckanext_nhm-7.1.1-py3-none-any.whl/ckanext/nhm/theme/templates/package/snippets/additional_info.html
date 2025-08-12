@@ -1,0 +1,96 @@
+{% ckan_extends %}
+
+      {% block package_additional_info %}
+        {% if g.pkg_dict.url %}
+          <tr>
+            <th scope="row" class="dataset-label">{{ _('Source') }}</th>
+            <td class="dataset-details" property="foaf:homepage">{{ h.link_to(g.pkg_dict.url, g.pkg_dict.url, rel='foaf:homepage', target='_blank') }}</td>
+          </tr>
+        {% endif %}
+
+        {% if g.pkg_dict.maintainer_email %}
+          <tr>
+            <th scope="row" class="dataset-label">{{ _('Maintainer') }}</th>
+            <td class="dataset-details" property="dc:contributor">{{ h.mail_to(email_address=g.pkg_dict.maintainer_email, name=g.pkg_dict.maintainer) }}</td>
+          </tr>
+        {% elif g.pkg_dict.maintainer %}
+          <tr>
+            <th scope="row" class="dataset-label">{{ _('Maintainer') }}</th>
+            <td class="dataset-details" property="dc:contributor">{{ g.pkg_dict.maintainer }}</td>
+          </tr>
+        {% endif %}
+
+        {% if g.pkg_dict.version %}
+          <tr>
+            <th scope="row" class="dataset-label">{{ _("Version") }}</th>
+            <td class="dataset-details">{{ g.pkg_dict.version }}</td>
+          </tr>
+        {% endif %}
+
+        {% if h.check_access('package_update',{'id':g.pkg_dict.id}) %}
+          <tr>
+            <th scope="row" class="dataset-label">{{ _("State") }}</th>
+            <td class="dataset-details">{{ g.pkg.state }}</td>
+          </tr>
+        {% endif %}
+
+      {% block extras scoped %}
+
+            {% set temporal_extent = g.pkg_dict.get('temporal_extent', None) %}
+            {% set update_frequency = g.pkg_dict.get('update_frequency', None) %}
+            {% set affiliation = g.pkg_dict.get('affiliation', None) %}
+            {% set dataset_category = g.pkg.dataset_category.pop() if g.pkg.dataset_category else None %}
+
+            {% if affiliation %}
+                <tr>
+                    <th scope="row" class="dataset-label">{{ _("Affiliation") }}</th>
+                    <td class="dataset-details">{{ affiliation }}</td>
+                </tr>
+            {%  endif %}
+
+            {% block attribution_row %}
+                {{ super() }}
+            {% endblock %}
+
+            {% if temporal_extent %}
+                <tr>
+                    <th scope="row" class="dataset-label">{{ _("Temporal extent") }}</th>
+                    <td class="dataset-details">{{ temporal_extent }}</td>
+                </tr>
+            {%  endif %}
+
+            {% if update_frequency %}
+                <tr>
+                    <th scope="row" class="dataset-label">{{ _("Update frequency") }}</th>
+                    <td class="dataset-details">{{ h.update_frequency_get_label(update_frequency) }}</td>
+                </tr>
+            {%  endif %}
+
+            {% if dataset_category %}
+                <tr>
+                    <th scope="row" class="dataset-label">{{ _("Dataset category") }}</th>
+                    <td class="dataset-details">{{ dataset_category }}</td>
+                </tr>
+            {%  endif %}
+
+            <tr>
+                <th scope="row">{{ _('Last updated') }}</th>
+                <td>{{ h.get_latest_update_for_package(pkg_dict) }}</td>
+<!--                <td>{{ h.render_datetime(pkg_dict.last_modified) or h.render_datetime(pkg_dict.revision_timestamp) or h.render_datetime(pkg_dict.created) or _('unknown') }}</td>-->
+                </tr>
+            <tr>
+                <th scope="row">{{ _('Last resource update') }}</th>
+                <td>{{ h.get_latest_update_for_package_resources(pkg_dict) }}</td>
+                </tr>
+            <tr>
+                <th scope="row">{{ _('Created') }}</th>
+                <td>{{ h.render_datetime(g.pkg.metadata_created) or _('unknown') }}</td>
+                </tr>
+            <tr>
+                <th scope="row">{{ _('License') }}</th>
+                <td>{% snippet "snippets/license.html", pkg_dict=g.pkg_dict, text_only=True %}</td>
+            </tr>
+
+      {% endblock %}
+
+      {% endblock %}

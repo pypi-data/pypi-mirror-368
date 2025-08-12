@@ -1,0 +1,49 @@
+{% ckan_extends %}
+
+{% block package_item %}
+
+<tr>
+    <td class="td-package">
+        {% block heading %}
+            {{ super() }}
+        {% endblock %}
+
+        {% block notes %}
+            {{ super() }}
+        {% endblock %}
+
+        {% block resources %}
+            {{ super() }}
+        {% endblock %}
+
+    </td>
+
+    <td class="td-author">
+        {% if package.author %}
+            {{ package.author }}
+        {% endif %}
+    </td>
+
+    <td class="td-category">
+        {% if package.dataset_category %}
+            {{ package.dataset_category[0] }}
+        {% endif %}
+    </td>
+
+    <td class="td-license">
+        {% if package.license_title %}
+            {{ package.license_title }}
+        {% endif %}
+    </td>
+
+</tr>
+
+{% endblock %}
+
+{% block resources_inner %}
+    {% for format in h.dict_list_reduce(package.resources, 'format') %}
+        <li>
+            <a href="{{ h.url_for('dataset.search', res_format=format) }}" class="label label-default" data-format="{{ format.lower() }}" rel="nofollow">{{ format }}</a>
+        </li>
+    {% endfor %}
+{% endblock %}
