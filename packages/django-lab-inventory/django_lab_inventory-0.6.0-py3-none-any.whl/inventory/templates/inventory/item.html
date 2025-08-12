@@ -1,0 +1,119 @@
+{% extends "base_view.html" %}
+{% load widget_tweaks %}
+
+{% block title %} meliza-lab : item : {{ item.name }} {% endblock %}
+
+{% block content %}
+
+<h2>item: {{ item.name }}</h2>
+
+<hr>
+
+<dl class="dl-horizontal">
+  <dt>vendor</dt>
+  <dd>
+    {% if item.vendor.url %}<a href="{{ item.vendor.url }}">{{ item.vendor }}</a>
+    {% else %}{{ item.vendor }}{% endif %}
+  </dd>
+  <dt>catalog</dt>
+  <dd>
+    {% if item.vendor_url %}<a href="{{ item.vendor_url }}">{{ item.catalog }}</a>
+    {% else %}{{ item.catalog }}{% endif %}
+  </dd>
+  <dt>manufacturer</dt>
+  <dd>
+    {% if item.manufacturer.url %}<a href="{{ item.manufacturer.url }}">{{ item.manufacturer }}</a>
+    {% else %}{{ item.manufacturer|default:"" }}{% endif %}
+  </dd>
+  <dt>part number</dt>
+  <dd>
+    {% if item.mfg_url %}<a href="{{ item.mfg_url }}">{{ item.manufacturer_number }}</a>
+    {% else %}{{ item.manufacturer_number|default:"" }}{% endif %}
+  </dd>
+  <dt>unit size</dt><dd>{{ item.unit_size }}</dd>
+</dl>
+
+<dl class="dl-horizontal">
+  <dt>category</dt><dd>{{ item.category }}</dd>
+  <dt>part of</dt><dd>{{ item.parent_item|default:"" }}</dd>
+</dl>
+
+<dl class="dl-horizontal">
+  <dt>comments</dt><dd>{{ item.comments }}</dd>
+</dl>
+
+<h3>orders</h3>
+
+<table class="table table-striped table-condensed">
+  <thead>
+    <th>Order Date</th>
+    <th>Price</th>
+    <th>Quantity</th>
+    <th>Total Price</th>
+    <th>Received</th>
+    <th>Location</th>
+    <th>Serial</th>
+    <th>Equipment #</th>
+    <th></th>
+  </thead>
+  <tbody>
+    {% for oit in lineitems.iterator %}
+    <tr>
+      <td><a href="{% url 'inventory:order' oit.order.id %}">{{ oit.order.placed_on|default_if_none:"(in progress)" }}</a></td>
+      <td>{{ oit.cost }}</td>
+      <td>{{ oit.units_purchased }}</td>
+      <td>{{ oit.total_cost }}</td>
+      <td>{{ oit.arrived_on|default:"no" }}</td>
+      <td>{{ oit.location|default:"" }}</td>
+      <td>{{ oit.serial|default:"" }}</td>
+      <td>{{ oit.uva_equip|default:"" }}</td>
+      <td><a href="{% url 'admin:inventory_orderitem_change' oit.id %}"
+             class="glyphicon glyphicon-edit" alt="[edit]" aria-label="[Edit]"></a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<p>To enter or update information about an item after it has been received, click the <span class="glyphicon glyphicon-edit" alt="[edit]" aria-label="Edit"></span> icon. To place a new order for the item, use the form below.</p>
+
+<hr/>
+
+
+<div class="panel panel-default">
+  <div class="panel-heading">
+    <h3 class="panel-title">Order this item</h3>
+  </div>
+  <div class="panel-body">
+    <form action="{% url 'inventory:add_item_to_order' item.id %}" class="form-horizontal" method="post" role="form">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      {% for field in form %}
+      <div class="form-group {% if field.errors %}has-error{% endif %}">
+        <label for="{{field.auto_id}}" class="col-sm-2 control-label">{{ field.label }}</label>
+        <div class="col-sm-5">
+          {% render_field field class+="form-control" %}
+        </div>
+      </div>
+      {% endfor %}
+
+      <div class="form-group">
+        <div class="col-sm-offset-2 col-sm-10">
+          <button type="submit" class="btn btn-default">Add item to order</button>
+        </div>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<hr>
+<a href="{% url 'inventory:items' %}">back to item list</a><br/>
+<a href="{% url 'inventory:new_item' %}">add a new item</a><br/>
+<a href="{% url 'inventory:copy_item' item.id %}">create a copy of this item</a></br>
+<a href="{% url 'admin:inventory_item_change' item.id %}">edit item (advanced users only)</a><br/>
+
+
+{% endblock %}
