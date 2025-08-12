@@ -1,0 +1,63 @@
+image: ${IMAGE_REFERENCE_1}
+
+variables:
+  CONSTANT_1: 1
+  CONSTANT_2: '2'
+  IMAGE_REFERENCE_1: registry.gitlab.com/radiandevcore/tools/gcil/alpine:3
+  IMAGE_REFERENCE_2: registry.gitlab.com/radiandevcore/tools/gcil/alpine:3.13
+  IMAGE_REFERENCE_4: local:quiet
+  VALUE_1: value1
+  VALUE_2:
+
+stages:
+  - variables
+
+'Job 1':
+  stage: variables
+  script:
+    - echo 'Job 1'
+
+'Job 2':
+  stage: variables
+  image: ${IMAGE_REFERENCE_2}
+  script:
+    - ls -la ${FOLDER:-/opt}/
+    - pwd
+
+'Job 3':
+  stage: variables
+  variables:
+    CONSTANT_2: 'New constant 2'
+    IMAGE_REFERENCE_1: registry.gitlab.com/radiandevcore/tools/gcil/alpine:unknown
+    VALUE_2: New value 2
+  script:
+    - echo 'Job 3'
+    - echo "USER = ${USER}"
+    - echo "CONSTANT_1 = ${CONSTANT_1}"
+    - echo "CONSTANT_2 = ${CONSTANT_2}"
+    - echo "CONSTANT_3 = ${CONSTANT_3}"
+    - echo "VALUE_1 = ${VALUE_1}"
+    - echo "VALUE_2 = ${VALUE_2}"
+    - echo "VALUE_3 = ${VALUE_3}"
+
+'Job 4':
+  stage: variables
+  image: ${IMAGE_REFERENCE_4}
+  variables:
+    IMAGE_REFERENCE_4: registry.gitlab.com/radiandevcore/tools/gcil/alpine:unknown
+    VALUE_3:
+    VALUE_4: New value 4
+  script:
+    - echo 'Job 4'
+    - echo "VALUE_1 = ${VALUE_1}"
+    - echo "VALUE_2 = ${VALUE_2}"
+    - echo "VALUE_3 = ${VALUE_3}"
+    - echo "VALUE_4 = ${VALUE_4}"
+
+'Job 5':
+  stage: variables
+  image: ${IMAGE_REFERENCE_5}
+  variables:
+    IMAGE_REFERENCE_5: registry.gitlab.com/radiandevcore/tools/gcil/alpine:3
+  script:
+    - echo 'Job 5'

@@ -1,0 +1,25 @@
+image:
+  name: registry.gitlab.com/radiandevcore/tools/gcil/docker:latest
+  entrypoint: ['']
+
+stages:
+  - sockets
+
+'Job 1':
+  stage: sockets
+  services:
+    - redis:latest
+    - name: registry.gitlab.com/radiandevcore/tools/gcil/docker:27-dind
+      alias: docker
+  script:
+    - echo 'Job 1'
+    - echo "DOCKER_CERT_PATH=${DOCKER_CERT_PATH}"
+    - echo "DOCKER_HOST=${DOCKER_HOST}"
+    - echo "DOCKER_TLS_VERIFY=${DOCKER_TLS_VERIFY}"
+    - timeout 5 docker system info
+    - timeout 5 docker ps
+
+'Job 3':
+  stage: sockets
+  script:
+    - echo 'Job 2'

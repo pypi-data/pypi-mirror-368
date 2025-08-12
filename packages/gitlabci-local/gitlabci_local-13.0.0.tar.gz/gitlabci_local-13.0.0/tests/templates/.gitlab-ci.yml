@@ -1,0 +1,44 @@
+image: local
+
+stages:
+  - template_stage
+
+before_script:
+  - date
+  - echo '__BEFORE_SCRIPT__'
+
+after_script:
+  - date
+  - echo '__AFTER_SCRIPT__'
+
+.template-second: &template-second
+  stage: template_stage
+  before_script:
+    - whoami
+    - echo '__TEMPLATE_BEFORE_SCRIPT__'
+  script:
+    - ls -la /
+    - date
+  after_script:
+    - whoami
+    - echo '__TEMPLATE_AFTER_SCRIPT__'
+
+'Job 1':
+  <<: *template-second
+
+'Job 2':
+  <<: *template-second
+  when: manual
+
+'Job 3':
+  <<: *template-second
+  image: local:quiet
+  before_script:
+    - whoami
+    - echo '__OVERRIDE_TEMPLATE_BEFORE_SCRIPT__'
+  script:
+    - whoami
+    - echo '__OVERRIDE_TEMPLATE_SCRIPT__'
+  after_script:
+    - whoami
+    - echo '__OVERRIDE_TEMPLATE_AFTER_SCRIPT__'

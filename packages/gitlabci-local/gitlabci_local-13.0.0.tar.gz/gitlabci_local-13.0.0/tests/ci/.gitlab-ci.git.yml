@@ -1,0 +1,25 @@
+image: local
+
+stages:
+  - ci_git
+
+variables:
+  CI_LOCAL_WORKDIR: '.'
+
+.local:
+  volumes:
+    - .
+
+'Job 1':
+  stage: ci_git
+  script:
+    - echo "CI_COMMIT_REF_NAME=${CI_COMMIT_REF_NAME}"
+    - echo "CI_COMMIT_REF_SLUG=${CI_COMMIT_REF_SLUG}"
+    - echo "CI_COMMIT_SHA=${CI_COMMIT_SHA}"
+    - echo "CI_COMMIT_SHORT_SHA=${CI_COMMIT_SHORT_SHA}"
+    - echo "CI_DEFAULT_BRANCH=${CI_DEFAULT_BRANCH}"
+    - test -z "${CI_COMMIT_REF_NAME}" && exit 1 || true
+    - test -z "${CI_COMMIT_REF_SLUG}" && exit 1 || true
+    - test -z "${CI_COMMIT_SHA}" && exit 1 || true
+    - test -z "${CI_COMMIT_SHORT_SHA}" && exit 1 || true
+    - test -z "${CI_DEFAULT_BRANCH}" && exit 1 || true

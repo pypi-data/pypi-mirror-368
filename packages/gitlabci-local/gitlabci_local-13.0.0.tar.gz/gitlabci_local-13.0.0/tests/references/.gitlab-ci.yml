@@ -1,0 +1,57 @@
+include:
+  - local: setup.yml
+
+.teardown:
+  after_script:
+    - echo 'deleting environment'
+
+test:
+  script:
+    - !reference [.setup, script]
+    - echo 'running my own command'
+  after_script:
+    - !reference [.teardown, after_script]
+
+.vars:
+  variables:
+    URL: 'http://my-url.internal'
+    IMPORTANT_VAR: 'the details'
+
+test-vars-1:
+  variables: !reference [.vars, variables]
+  script:
+    - printenv
+
+test-vars-2:
+  variables:
+    MY_VAR: !reference [.vars, variables, IMPORTANT_VAR]
+  script:
+    - printenv
+
+.snippets:
+  one:
+    - echo 'ONE!'
+  two:
+    - !reference [.snippets, one]
+    - echo 'TWO!'
+  three:
+    - !reference [.snippets, two]
+    - echo 'THREE!'
+
+nested-references:
+  script:
+    - !reference [.snippets, three]
+
+nested-references-reversed:
+  script:
+    - !reference [.snippets-reversed, three]
+
+.snippets-reversed:
+  three:
+    - !reference [.snippets-reversed, two]
+    - echo 'THREE!'
+  two:
+    - !reference [.snippets-reversed, one]
+    - echo 'TWO!'
+  one:
+    - echo 'ONE!'

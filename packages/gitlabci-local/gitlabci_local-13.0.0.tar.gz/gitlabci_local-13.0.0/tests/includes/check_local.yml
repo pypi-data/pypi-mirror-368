@@ -1,0 +1,32 @@
+.local:
+  variables:
+    VARIABLE_1: 'VARIABLE_1'
+    VARIABLE_2: 'VARIABLE_2'
+  volumes:
+    - ../:/opt/parent:ro
+    - ../includes:/opt/includes:ro
+
+'Job 1':
+  stage: includes
+  image: local:quiet
+  script:
+    - set -x
+    - echo 'Job 1'
+    - echo "VARIABLE_1=${VARIABLE_1}"
+    - echo "VARIABLE_2=${VARIABLE_2}"
+    - echo "VARIABLE_3=${VARIABLE_3}"
+    - test -z "${VARIABLE_1}" && exit 1 || true
+    - test -z "${VARIABLE_2}" && exit 1 || true
+    - test -z "${VARIABLE_3}" && exit 1 || true
+    - test "${VARIABLE_2}" = 'OVERRIDE_2'
+
+'Job 2':
+  stage: includes
+  image: registry.gitlab.com/radiandevcore/tools/gcil/alpine:3
+  script:
+    - set -x
+    - echo 'Job 2'
+    - ls -la /opt/
+    - test -e /opt/includes
+    - test -e /opt/parent
+    - test -e /opt/src

@@ -1,0 +1,33 @@
+image: local
+
+stages:
+  - scripts
+
+variables:
+  IMAGE_BASE: local
+  IMAGE_PARENT: ${IMAGE_BASE}
+  IMAGE_1: ${IMAGE_BASE}
+  IMAGE_2: ${IMAGE_BASE}:quiet
+  IMAGE_3: ${IMAGE_BASE}:silent
+
+'Job 1':
+  stage: scripts
+  image: ${IMAGE_1}
+  script:
+    - echo 'Job 1'
+
+'Job 2':
+  stage: scripts
+  image: ${IMAGE_2}
+  script:
+    - echo 'Job 2'
+
+'Job 3':
+  stage: scripts
+  image: ${IMAGE_3}
+  before_script:
+    - echo '__BEFORE__'
+  script:
+    - echo 'Job 3'
+  after_script:
+    - echo '__AFTER__'

@@ -1,0 +1,42 @@
+image: local
+
+stages:
+  - anchors
+
+.script_anchors: &script_anchors
+  - whoami
+  - date
+  - echo 1
+  - |
+    echo 2
+    echo 3
+  - if true;
+    then
+    echo 4;
+    echo 5;
+    fi
+
+before_script:
+  - *script_anchors
+  - echo 6
+after_script:
+  - *script_anchors
+  - echo 6
+
+'Job 1':
+  stage: anchors
+  script:
+    - *script_anchors
+    - echo 6
+
+'Job 2':
+  stage: anchors
+  before_script:
+    - *script_anchors
+    - echo 6
+  script:
+    - *script_anchors
+    - echo 6
+  after_script:
+    - *script_anchors
+    - echo 6

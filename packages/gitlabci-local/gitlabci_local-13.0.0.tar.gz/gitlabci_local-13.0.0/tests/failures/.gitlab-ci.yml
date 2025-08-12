@@ -1,0 +1,68 @@
+image: local
+
+stages:
+  - failure_stage
+
+before_script:
+  - echo '__BEFORE_SCRIPT__'
+  - date
+
+after_script:
+  - echo '__AFTER_SCRIPT__'
+  - date
+
+'Job 1':
+  stage: failure_stage
+  script:
+    - echo '__SCRIPT__'
+    - echo 'Job 1'
+
+'Job 2':
+  stage: failure_stage
+  script:
+    - echo '__SCRIPT__'
+    - echo 'Job 2'
+    - 'false'
+    - echo '__SHOULD_NEVER_HAPPEN__'
+  allow_failure: true
+
+'Job 3':
+  stage: failure_stage
+  script:
+    - echo 'Job 3'
+
+'Job 4':
+  stage: failure_stage
+  script:
+    - echo '__SHOULD_NEVER_HAPPEN__'
+  when: on_failure
+
+'Job 5':
+  stage: failure_stage
+  script:
+    - 'false'
+
+'Job 6':
+  stage: failure_stage
+  script:
+    - echo '__SHOULD_NEVER_HAPPEN__'
+
+'Job 7':
+  stage: failure_stage
+  image: registry.gitlab.com/radiandevcore/tools/gcil/alpine:3
+  script:
+    - echo '__SHOULD_ALWAYS_RUN__'
+  when: always
+
+'Job 8':
+  stage: failure_stage
+  image: registry.gitlab.com/radiandevcore/tools/gcil/alpine:3
+  script:
+    - echo '__SHOULD_RUN_ON_FAILURE__'
+  when: on_failure
+
+'Job 9':
+  stage: failure_stage
+  script:
+    - echo '__SHOULD_RUN_ON_FAILURE__'
+  when: on_failure

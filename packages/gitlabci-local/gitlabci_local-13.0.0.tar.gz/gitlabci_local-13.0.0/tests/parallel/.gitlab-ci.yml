@@ -1,0 +1,63 @@
+stages:
+  - parallel
+
+'Job 1':
+  image: registry.gitlab.com/radiandevcore/tools/gcil/python:${PYTHON_VERSION}-alpine
+  stage: parallel
+  parallel:
+    matrix:
+      - PYTHON_VERSION: ['3.8', '3.13']
+  script:
+    - echo 'Job 1'
+    - echo "${PYTHON_VERSION}"
+
+'Job 2':
+  image: registry.gitlab.com/radiandevcore/tools/gcil/python:${PYTHON_VERSION}-alpine
+  stage: parallel
+  parallel:
+    matrix:
+      - PYTHON_VERSION: ['3.8', '3.13']
+        VALUE1:
+          - '1'
+          - '2'
+          - '3'
+        VALUE2:
+          - '1'
+          - '2'
+      - PYTHON_VERSION: ['3.8', '3.13']
+        VALUE1:
+          - '3'
+          - '2'
+          - '1'
+        VALUE2:
+          - '2'
+          - '1'
+        VALUE3:
+          - '1'
+          - '2'
+  script:
+    - env | grep 'VALUE.*'
+    - echo 'Job 1'
+    - echo "${PYTHON_VERSION}"
+    - test "${VALUE1:-0}" -gt 0
+    - test "${VALUE1:-0}" -lt 4
+    - test "${VALUE2:-0}" -gt 0
+    - test "${VALUE2:-0}" -lt 3
+    - echo "${VALUE3}"
+
+'Job 3':
+  image: registry.gitlab.com/radiandevcore/tools/gcil/python:${PYTHON_VERSION}-alpine
+  stage: parallel
+  parallel:
+    matrix:
+      - PYTHON_VERSION: '3.8'
+  script:
+    - echo 'Job 3'
+    - echo "${PYTHON_VERSION}"
+
+'Job 4':
+  image: registry.gitlab.com/radiandevcore/tools/gcil/python:3.13-alpine
+  stage: parallel
+  parallel: 10
+  script:
+    - echo 'Job 4'

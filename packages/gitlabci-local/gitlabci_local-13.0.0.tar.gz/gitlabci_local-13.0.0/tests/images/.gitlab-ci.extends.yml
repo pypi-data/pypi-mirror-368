@@ -1,0 +1,36 @@
+image: registry.gitlab.com/radiandevcore/tools/gcil/debian:testing-slim
+
+stages:
+  - images_extends
+
+.template_1:
+  stage: images_extends
+  script:
+    - echo 'Job 1'
+    - ls -a /etc/debian_version
+    - type ruby && exit 1 || true
+
+.template_2:
+  stage: images_extends
+  script:
+    - echo 'Job 2'
+    - ls -a /etc/debian_version
+    - type ruby && exit 1 || true
+
+.template_3:
+  stage: images_extends
+  image: registry.gitlab.com/radiandevcore/tools/gcil/debian:testing-slim
+  script:
+    - echo 'Job 3'
+    - ls -a /etc/debian_version
+    - type ruby && exit 1 || true
+
+'Job 1':
+  extends: .template_1
+
+'Job 2':
+  extends: .template_2
+  image: registry.gitlab.com/radiandevcore/tools/gcil/debian:testing-slim
+
+'Job 3':
+  extends: .template_3

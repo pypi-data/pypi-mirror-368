@@ -1,0 +1,55 @@
+image: registry.gitlab.com/radiandevcore/tools/gcil/alpine:3
+
+variables:
+  PROJECT_FIRST_DIR: '$CI_PROJECT_DIR/first'
+  PROJECT_SECOND_DIR: '${CI_PROJECT_DIR}/second'
+  PROJECT_VARIABLE_DIR: '${CI_VARIABLE_DIR}/second'
+  CI_CONSTANT_PRE_DIR: .
+  PROJECT_CONSTANT_PRE_DIR: '${CI_CONSTANT_PRE_DIR}/second'
+  PROJECT_CONSTANT_POST_DIR: '${CI_CONSTANT_POST_DIR}/second'
+  CI_CONSTANT_POST_DIR: .
+  PROJECT_NESTED_CONSTANT_PRE_DIR: '${PROJECT_CONSTANT_PRE_DIR}'
+  PROJECT_NESTED_CONSTANT_POST_DIR: '${PROJECT_CONSTANT_POST_DIR}'
+
+stages:
+  - project
+
+'Job 1':
+  stage: project
+  script:
+    - echo "CI_JOB_NAME=${CI_JOB_NAME}"
+    - test -z "${CI_JOB_NAME}" && exit 1 || true
+    - echo "CI_JOB_NAME_SLUG=${CI_JOB_NAME_SLUG}"
+    - test -z "${CI_JOB_NAME_SLUG}" && exit 1 || true
+    - echo "CI_PROJECT_DIR=${CI_PROJECT_DIR}"
+    - test -z "${CI_PROJECT_DIR}" && exit 1 || true
+    - echo "CI_BUILDS_DIR=${CI_BUILDS_DIR}"
+    - test -z "${CI_BUILDS_DIR}" && exit 1 || true
+    - pwd
+    - ls -la ./
+    - ls -la "${PROJECT_FIRST_DIR}"
+    - ls -la "${PROJECT_SECOND_DIR}"
+
+'Job 2':
+  stage: project
+  script:
+    - ls -la "${PROJECT_FIRST_DIR}"
+    - ls -la "${PROJECT_SECOND_DIR}"
+    - ls -la "${PROJECT_VARIABLE_DIR}"
+    - echo "CI_VARIABLE_DIR=${CI_VARIABLE_DIR}"
+    - test -z "${CI_VARIABLE_DIR}" && exit 1 || true
+  when: manual
+
+'Job 3':
+  stage: project
+  script:
+    - ls -la "${PROJECT_CONSTANT_PRE_DIR}"
+    - ls -la "${PROJECT_CONSTANT_POST_DIR}"
+  when: manual
+
+'Job 4':
+  stage: project
+  script:
+    - ls -la "${PROJECT_NESTED_CONSTANT_PRE_DIR}"
+    - ls -la "${PROJECT_NESTED_CONSTANT_POST_DIR}"
+  when: manual

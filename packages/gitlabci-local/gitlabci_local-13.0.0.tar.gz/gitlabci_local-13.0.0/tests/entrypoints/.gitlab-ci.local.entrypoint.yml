@@ -1,0 +1,20 @@
+image:
+  name: alpine:3
+
+stages:
+  - entrypoints
+
+.local:
+  image:
+    entrypoint: ['sh', '-c', 'adduser -D -g 1501 -u 1501 user && su user $0']
+
+'Job 1':
+  stage: entrypoints
+  before_script:
+    - echo '__BEFORE__'
+  script:
+    - id
+    - id -u | grep 1501
+    - id -g | grep 1501
+  after_script:
+    - echo '__AFTER__'

@@ -1,0 +1,53 @@
+image: local
+
+stages:
+  - template_stage_1
+  - template_stage_2
+  - template_stage_4
+
+.template-one:
+  stage: template_stage_1
+  script:
+    - date
+
+.template-two:
+  extends: .template-unknown
+  stage: template_stage_2
+  script:
+    - date
+
+.template-three:
+  extends:
+    - .template-unknown-1
+    - .template-two
+    - .template-unknown-2
+  script:
+    - date
+
+.template-four:
+  extends:
+    - .template-unknown
+  stage: template_stage_4
+  script:
+    - date
+
+'Job 1':
+  extends:
+    - .template-unknown-1
+    - .template-one
+    - .template-unknown-2
+
+'Job 2':
+  extends:
+    - .template-unknown-1
+    - .template-two
+    - .template-unknown-2
+
+'Job 3':
+  extends: .template-three
+
+'Job 4':
+  extends: .template-four
+
+'Job 5':
+  extends: .template-unknown

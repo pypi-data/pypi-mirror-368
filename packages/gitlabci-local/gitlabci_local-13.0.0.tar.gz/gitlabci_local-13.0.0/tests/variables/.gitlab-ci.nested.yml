@@ -1,0 +1,65 @@
+image: local
+
+stages:
+  - scripts
+
+variables:
+  DOUBLE_NESTED_1_1: 'doublenested/variable/${NESTED_1_1}/value'
+  DOUBLE_NESTED_2_1: 'doublenested/variable/${NESTED_2_1}/value'
+  NESTED_1_1: 'nested/variable/${CONSTANT_1}/value'
+  NESTED_2_1: 'nested/variable/${CONSTANT_2}/value'
+  CONSTANT_1: 'constant1'
+  CONSTANT_2: 'constant2'
+  NESTED_1_2: 'nested/variable/${CONSTANT_1}/value'
+  NESTED_2_2: 'nested/variable/${CONSTANT_2}/value'
+  DOUBLE_NESTED_1_2: 'doublenested/variable/${NESTED_1_2}/value'
+  DOUBLE_NESTED_2_2: 'doublenested/variable/${NESTED_2_2}/value'
+  UNKNOWN_1: ${UNKNOWN}
+  DOUBLE_UNKNOWN_1: 'doubleunknown/variable/${UNKNOWN_1}/value'
+  EXTENDED_1_NAME: extended_1
+  EXTENDED_1: /${EXTENDED_1_NAME}_path
+  EXTENDED_2_NAME: extended_2
+  EXTENDED_2: /$EXTENDED_2_NAME/path
+  EXTENDED_3_NAME: extended_3
+  EXTENDED_3: /$EXTENDED_3_NAME
+  EXTENDED_4_NAME: extended_4
+  EXTENDED_4: /${EXTENDED_4}/path
+  EXTENDED_5_NAME: extended_5
+  EXTENDED_5: /$EXTENDED_5/path
+  LOCATION: $(readlink -f "${LOCATION}")
+  PWD: $(readlink -f "${PWD}")
+  SELF_VALUE: ${SELF_VALUE}
+  SELF_NESTED: ${CONSTANT_1}+${SELF_VALUE}-${SELF_NESTED}
+  PREFILLED_1:
+    value: 'prefilled_value_1'
+    description: 'Prefilled variable 1 description'
+
+'Job 1':
+  stage: scripts
+  script:
+    - echo 'Job 1'
+    - set +x
+    - env | grep '^CONSTANT_1=' | grep -v '\$'
+    - env | grep '^CONSTANT_2=' | grep -v '\$'
+    - env | grep '^NESTED_1_1=' | grep -v '\$'
+    - env | grep '^NESTED_2_1=' | grep -v '\$'
+    - env | grep '^NESTED_1_2=' | grep -v '\$'
+    - env | grep '^NESTED_2_2=' | grep -v '\$'
+    - env | grep '^DOUBLE_NESTED_1_1=' | grep -v '\$'
+    - env | grep '^DOUBLE_NESTED_2_1=' | grep -v '\$'
+    - env | grep '^DOUBLE_NESTED_1_2=' | grep -v '\$'
+    - env | grep '^DOUBLE_NESTED_2_2=' | grep -v '\$'
+    - env | grep '^UNKNOWN=' && false || true
+    - env | grep '^UNKNOWN_1=' | grep '^UNKNOWN_1=$'
+    - env | grep '^DOUBLE_UNKNOWN_1=' | grep -v '\$' | grep '//'
+    - env | grep '^EXTENDED_[12345]=' | sort
+    - env | grep '^EXTENDED_1=' | grep '^EXTENDED_1=/extended_1_path$'
+    - env | grep '^EXTENDED_2=' | grep '^EXTENDED_2=/extended_2/path$'
+    - env | grep '^EXTENDED_3=' | grep '^EXTENDED_3=/extended_3$'
+    - env | grep '^EXTENDED_4=' | grep '^EXTENDED_4=//path$'
+    - env | grep '^EXTENDED_5=' | grep '^EXTENDED_5=//path$'
+    - env | grep '^LOCATION=' | grep '^LOCATION=$(readlink -f "")$'
+    - env | grep '^PWD=' | grep -v '\$'
+    - env | grep '^SELF_VALUE=' | grep '^SELF_VALUE=$'
+    - env | grep '^SELF_NESTED=' | grep '^SELF_NESTED=constant1+-$'
+    - env | grep '^PREFILLED_1=' | grep '^PREFILLED_1=prefilled_value_1$'

@@ -1,0 +1,60 @@
+stages:
+  - extends
+
+.stage:
+  stage: extends
+
+.image:
+  image: registry.gitlab.com/radiandevcore/tools/gcil/alpine:3.13
+
+.before_script:
+  before_script:
+    - echo 'Template [BEFORE]'
+
+.script:
+  script:
+    - echo 'Template'
+
+.after_script:
+  after_script:
+    - echo 'Template [BEFORE]'
+
+.template:
+  extends:
+    - .stage
+    - .image
+    - .before_script
+    - .script
+    - .after_script
+
+'Job 1':
+  extends:
+    - .stage
+    - .image
+    - .before_script
+    - .script
+    - .after_script
+
+'Job 2':
+  extends:
+    - .after_script
+    - .script
+    - .before_script
+    - .image
+    - .stage
+
+'Job 3':
+  extends: template
+  script:
+    - echo 'Job 3'
+
+'Job 4':
+  extends:
+    - .stage
+    - .image
+    - .before_script
+    - .script
+    - .after_script
+    - template
+  script:
+    - echo 'Job 3'

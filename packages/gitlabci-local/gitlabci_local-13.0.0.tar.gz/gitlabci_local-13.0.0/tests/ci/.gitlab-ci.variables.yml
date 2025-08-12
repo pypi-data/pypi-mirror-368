@@ -1,0 +1,27 @@
+image: local
+
+stages:
+  - ci_variables
+
+variables:
+  CI_LOCAL_WORKDIR: '.'
+  VERSION_REF_NAME: '${CI_COMMIT_REF_NAME}'
+  VERSION_REF_SLUG: '${CI_COMMIT_REF_SLUG}'
+  VERSION_SHA: '${CI_COMMIT_SHA}'
+  VERSION_SHORT_SHA: '${CI_COMMIT_SHORT_SHA}'
+
+.local:
+  volumes:
+    - .
+
+'Job 1':
+  stage: ci_variables
+  script:
+    - echo "VERSION_REF_NAME=${VERSION_REF_NAME}"
+    - echo "VERSION_REF_SLUG=${VERSION_REF_SLUG}"
+    - echo "VERSION_SHA=${VERSION_SHA}"
+    - echo "VERSION_SHORT_SHA=${VERSION_SHORT_SHA}"
+    - test -z "${VERSION_REF_NAME}" && exit 1 || true
+    - test -z "${VERSION_REF_SLUG}" && exit 1 || true
+    - test -z "${VERSION_SHA}" && exit 1 || true
+    - test -z "${VERSION_SHORT_SHA}" && exit 1 || true

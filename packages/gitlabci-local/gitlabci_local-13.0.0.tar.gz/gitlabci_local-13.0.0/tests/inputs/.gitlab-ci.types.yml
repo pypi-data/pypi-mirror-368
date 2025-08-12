@@ -1,0 +1,78 @@
+spec:
+  inputs:
+    stage:
+      description: 'Define the pipeline stage'
+      default: 'components'
+    name:
+      description: 'Define the pipeline job name'
+      options:
+        - job1
+        - job2
+        - job3
+      default: job1
+    flag_false:
+      description: 'Define the pipeline flag_false'
+      type: boolean
+      default: false
+    flag_true:
+      description: 'Define the pipeline flag_true'
+      type: boolean
+      default: true
+    number:
+      description: 'Define the pipeline number'
+      type: number
+      options:
+        - 1
+        - 2
+        - 3
+      default: 2
+    floating:
+      description: 'Define the pipeline floating'
+      type: number
+      options:
+        - 1.1
+        - 2.2
+        - 3.3
+      default: 2.2
+    int2str:
+      description: 'Define the pipeline int2str'
+      type: string
+      options:
+        - '1'
+        - '-2'
+        - '3'
+      default: -2
+    float2str:
+      description: 'Define the pipeline float2str'
+      type: string
+      options:
+        - '1.1'
+        - '-2.2'
+        - '3.3'
+      default: -2.2
+    version:
+      description: 'Define the pipeline version'
+      type: string
+      regex: '^v\d+\.\d+(\.\d+)?$'
+      options:
+        - 'v1.2.3'
+        - 'v2.3.4'
+        - 'v3.4.5'
+      default: 'v1.2.3'
+
+---
+
+stages:
+  - $[[ inputs.stage ]]
+
+$[[ inputs.name ]]:
+  stage: $[[ inputs.stage ]]
+  script:
+    - echo ' [Job] Component'
+    - echo ' [Input] flag_false = $[[ inputs.flag_false ]]'
+    - echo ' [Input] flag_true = $[[ inputs.flag_true ]]'
+    - echo ' [Input] number = $[[ inputs.number ]]'
+    - echo ' [Input] floating = $[[ inputs.floating ]]'
+    - echo ' [Input] int2str = $[[ inputs.int2str ]]'
+    - echo ' [Input] float2str = $[[ inputs.float2str ]]'
+    - echo ' [Input] version = $[[ inputs.version ]]'

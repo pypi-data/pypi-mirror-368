@@ -1,0 +1,38 @@
+image: registry.gitlab.com/radiandevcore/tools/gcil/alpine:3
+
+stages:
+  - network
+
+variables:
+  CI_LOCAL_NETWORK: 'host'
+  ENV_CI: 'FIRST_VALUE_NOT_EXPECTED'
+  ENV_GLOBAL: 'GLOBAL_VALUE'
+  VARIABLE_GLOBAL: 'UNKNOWN_VALUE'
+
+'Job 1':
+  stage: network
+  before_script:
+    - echo '__BEFORE__'
+  script:
+    - set -x
+    - pwd
+    - uname -a
+    - echo "CI_LOCAL=${CI_LOCAL}"
+    - test -z "${CI_LOCAL}" && exit 1 || true
+    - echo "CI_LOCAL_NETWORK=${CI_LOCAL_NETWORK}"
+  after_script:
+    - echo '__AFTER__'
+
+'Job 2':
+  stage: network
+  image: registry.gitlab.com/radiandevcore/tools/gcil/alpine:3
+  before_script:
+    - echo '__BEFORE__'
+  script:
+    - set -x
+    - ip a
+    - echo "CI_LOCAL=${CI_LOCAL}"
+    - test -z "${CI_LOCAL}" && exit 1 || true
+    - echo "CI_LOCAL_NETWORK=${CI_LOCAL_NETWORK}"
+  after_script:
+    - echo '__AFTER__'

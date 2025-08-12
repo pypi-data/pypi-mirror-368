@@ -1,0 +1,23 @@
+image: registry.gitlab.com/radiandevcore/tools/gcil/alpine:3
+
+stages:
+  - workdir
+
+variables:
+  GIT_CLONE_PATH: /test
+
+'Job 1':
+  stage: workdir
+  script:
+    - pwd
+    - ls -la ./
+    - pwd | grep '^/test/workdir$' || exit 1
+
+'Job 2':
+  stage: workdir
+  variables:
+    GIT_CLONE_PATH: /builds/very_long_path_for_specific_builds
+  script:
+    - pwd
+    - ls -la ./
+    - pwd | grep '^/builds/very_long_path_for_specific_builds/workdir$' || exit 1

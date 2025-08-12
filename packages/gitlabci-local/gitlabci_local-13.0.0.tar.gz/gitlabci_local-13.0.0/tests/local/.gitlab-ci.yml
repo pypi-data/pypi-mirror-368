@@ -1,0 +1,219 @@
+image: registry.gitlab.com/radiandevcore/tools/gcil/alpine:3
+
+stages:
+  - local_first
+  - local_second
+  - local_third
+  - local_forth
+  - local_fifth
+  - local_sixth
+  - local_seventh
+  - local_eighth
+  - local_ninth
+  - local_tenth
+
+variables:
+  CI_LOCAL_AFTER: 'true'
+  CI_LOCAL_BASH: 'false'
+  CI_LOCAL_BEFORE: 'true'
+  CI_LOCAL_DEBUG: 'false'
+  CI_LOCAL_DISPLAY: 'false'
+  CI_LOCAL_ENGINE: 'auto'
+  CI_LOCAL_HOST: 'false'
+  CI_LOCAL_MANUAL: 'true'
+  CI_LOCAL_NETWORK: 'host'
+  CI_LOCAL_NO_CONSOLE: 'true'
+  CI_LOCAL_NO_VERBOSE: 'true'
+  CI_LOCAL_NOTIFY: 'false'
+  CI_LOCAL_QUIET: 'true'
+  CI_LOCAL_RANDOM_PATHS: 'false'
+  CI_LOCAL_REAL_PATHS: 'true'
+  CI_LOCAL_SHELL: 'bash --login'
+  CI_LOCAL_SOCKETS: 'true'
+  CI_LOCAL_SSH: 'true'
+  CI_LOCAL_WORKDIR: '.'
+  ENV_CI: 'FIRST_VALUE_NOT_EXPECTED'
+  ENV_GLOBAL: 'GLOBAL_VALUE'
+  VARIABLE_GLOBAL: 'UNKNOWN_VALUE'
+
+.local:
+  all: true
+  env:
+    - HOSTNAME
+    - MISSING
+    - ENV_CI=SECOND_VALUE_EXPECTED
+    - ENV_SET=1
+    - folder/environment.env
+  image:
+    name: local
+    entrypoint:
+      - linux32
+  names:
+    - local_first
+    - local_second
+    - local_third
+    - local_forth
+    - local_fifth
+    - local_sixth
+    - local_eighth
+  no_regex: true
+  pipeline: true
+  tags:
+    - deploy
+  variables:
+    VARIABLE_JOB: 'OVERRIDDEN_VALUE'
+    VARIABLE_GLOBAL: 'OVERRIDDEN_VALUE'
+    VARIABLE_NEW: value_1
+  version: 7.0.0
+  volumes:
+    - .:/opt/src
+    - ../:/opt/parent:ro
+
+'Job 1':
+  stage: local_first
+  before_script:
+    - echo '__BEFORE__'
+  script:
+    - set -x
+    - pwd
+    - ls /etc/alpine-release && exit 1 || true
+    - uname -a
+    - echo "CI_LOCAL=${CI_LOCAL}"
+    - test -z "${CI_LOCAL}" && exit 1 || true
+    - echo "CI_LOCAL_ENGINE=${CI_LOCAL_ENGINE}"
+    - echo "CI_LOCAL_ENGINE_NAME=${CI_LOCAL_ENGINE_NAME}"
+    - echo "CI_LOCAL_NETWORK=${CI_LOCAL_NETWORK}"
+  after_script:
+    - echo '__AFTER__'
+
+'Job 2':
+  stage: local_second
+  image: registry.gitlab.com/radiandevcore/tools/gcil/alpine:3
+  before_script:
+    - echo '__BEFORE__'
+  script:
+    - set -x
+    - ls -la /opt/src/
+    - ls -la /opt/parent/
+    - touch /opt/parent/test && exit 1 || true
+    - cat /etc/alpine-release
+    - uname -a
+    - ip a
+    - echo "CI_LOCAL=${CI_LOCAL}"
+    - test -z "${CI_LOCAL}" && exit 1 || true
+    - echo "CI_LOCAL_ENGINE=${CI_LOCAL_ENGINE}"
+    - echo "CI_LOCAL_ENGINE_NAME=${CI_LOCAL_ENGINE_NAME}"
+    - test -z "${CI_LOCAL_ENGINE_NAME}" && exit 1 || true
+  after_script:
+    - echo '__AFTER__'
+
+'Job 3':
+  stage: local_third
+  image: registry.gitlab.com/radiandevcore/tools/gcil/alpine:3
+  before_script:
+    - echo '__BEFORE__'
+  script:
+    - echo '__MANUAL__'
+  after_script:
+    - echo '__AFTER__'
+  when: manual
+
+'Job 4':
+  stage: local_forth
+  image: registry.gitlab.com/radiandevcore/tools/gcil/alpine:3
+  before_script:
+    - echo '__BEFORE__'
+  script:
+    - echo '__DEPLOY__'
+  after_script:
+    - echo '__AFTER__'
+  tags:
+    - deploy
+
+'Job 5':
+  stage: local_fifth
+  image: local
+  before_script:
+    - echo '__BEFORE__'
+  script:
+    - echo '__PUBLISH__'
+  after_script:
+    - echo '__AFTER__'
+  tags:
+    - publish
+
+'Job 6':
+  stage: local_sixth
+  image: registry.gitlab.com/radiandevcore/tools/gcil/alpine:3
+  script:
+    - echo "HOSTNAME=${HOSTNAME}"
+    - echo "MISSING=${MISSING}"
+    - echo "ENV_CI=${ENV_CI}"
+    - echo "ENV_FILE=${ENV_FILE}"
+    - echo "ENV_GLOBAL=${ENV_GLOBAL}"
+    - echo "ENV_SET=${ENV_SET}"
+
+'Job 7':
+  stage: local_seventh
+  image: registry.gitlab.com/radiandevcore/tools/gcil/alpine:3
+  script:
+    - echo "__NOT_EXPECTED__"
+
+'Job 8':
+  stage: local_eighth
+  image: registry.gitlab.com/radiandevcore/tools/gcil/alpine:3
+  before_script:
+    - echo '__BEFORE__'
+  script:
+    - set -x
+    - echo "CI_LOCAL=${CI_LOCAL}"
+    - test -z "${CI_LOCAL}" && exit 1 || true
+    - echo "CI_LOCAL_ENGINE=${CI_LOCAL_ENGINE}"
+    - echo "CI_LOCAL_ENGINE_NAME=${CI_LOCAL_ENGINE_NAME}"
+    - test -z "${CI_LOCAL_ENGINE_NAME}" && exit 1 || true
+  after_script:
+    - echo '__AFTER__'
+
+'Job 9':
+  stage: local_ninth
+  image: registry.gitlab.com/radiandevcore/tools/gcil/alpine:3
+  variables:
+    VARIABLE_JOB: 'JOB_VALUE'
+  script:
+    - set -x
+    - echo "HOSTNAME=${HOSTNAME}"
+    - test -z "${HOSTNAME}" && exit 1 || true
+    - echo "MISSING=${MISSING}"
+    - test ! -z "${MISSING}" && exit 1 || true
+    - echo "ENV_CI=${ENV_CI}"
+    - test ! "${ENV_CI}" = 'SECOND_VALUE_EXPECTED' && exit 1 || true
+    - echo "ENV_FILE=${ENV_FILE}"
+    - test ! "${ENV_FILE}" = 'value' && exit 1 || true
+    - echo "ENV_GLOBAL=${ENV_GLOBAL}"
+    - test ! "${ENV_GLOBAL}" = 'GLOBAL_VALUE' && exit 1 || true
+    - echo "ENV_SET=${ENV_SET}"
+    - test ! "${ENV_SET}" = '1' && exit 1 || true
+    - echo "VARIABLE_JOB=${VARIABLE_JOB}"
+    - test ! "${VARIABLE_JOB}" = 'OVERRIDDEN_VALUE' && exit 1 || true
+    - echo "VARIABLE_GLOBAL=${VARIABLE_GLOBAL}"
+    - test ! "${VARIABLE_GLOBAL}" = 'OVERRIDDEN_VALUE' && exit 1 || true
+    - echo "VARIABLE_NEW=${VARIABLE_NEW}"
+    - test ! "${VARIABLE_NEW}" = 'value_1' && exit 1 || true
+  when: manual
+
+'Job 10':
+  stage: local_tenth
+  image: registry.gitlab.com/radiandevcore/tools/gcil/alpine:3
+  before_script:
+    - echo '__BEFORE__'
+  script:
+    - set -x
+    - echo "CI_LOCAL_HOST=${CI_LOCAL_HOST}"
+    - echo "CI_LOCAL_USER_HOST_GID=${CI_LOCAL_USER_HOST_GID}"
+    - echo "CI_LOCAL_USER_HOST_UID=${CI_LOCAL_USER_HOST_UID}"
+    - echo "CI_LOCAL_USER_HOST_USERNAME=${CI_LOCAL_USER_HOST_USERNAME}"
+    - test -z "${CI_LOCAL_USER_HOST_GID}" && exit 1 || true
+    - test -z "${CI_LOCAL_USER_HOST_UID}" && exit 1 || true
+    - test -z "${CI_LOCAL_USER_HOST_USERNAME}" && exit 1 || true
+  after_script:
+    - echo '__AFTER__'

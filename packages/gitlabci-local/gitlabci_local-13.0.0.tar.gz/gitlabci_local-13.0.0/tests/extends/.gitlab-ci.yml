@@ -1,0 +1,91 @@
+include:
+  - local: '/job_1.yml'
+  - local: '/job_2.yml'
+  - local: '/job_3.yml'
+  - local: '/template_1.yml'
+  - local: '/template_2.yml'
+  - local: '/template_3.yml'
+  - local: '/template_4.yml'
+  - local: '/templates.yml'
+
+stages:
+  - extends
+
+variables:
+  CONSTANT_4: global_4
+  CONSTANT_5: global_5
+
+'Job 4':
+  stage: extends
+  extends: Job 3
+  script:
+    - echo 'Job 4'
+
+'Template 1':
+  stage: extends
+  extends: .template_1
+  image: registry.gitlab.com/radiandevcore/tools/gcil/alpine:3
+  script:
+    - echo 'Template 1'
+
+'Template 2':
+  stage: extends
+  extends: .template_2
+  script:
+    - echo 'Template 2'
+
+'Template 3':
+  stage: extends
+  extends: .template_3
+  image: registry.gitlab.com/radiandevcore/tools/gcil/alpine:3
+  script:
+    - echo 'Template 3'
+
+'Template 4 - 1':
+  stage: extends
+  extends: .template_4
+  image: registry.gitlab.com/radiandevcore/tools/gcil/alpine:3
+  script:
+    - echo 'Template 4 - 1'
+
+'Template 4 - 2':
+  stage: extends
+  extends: .template_4
+  image: registry.gitlab.com/radiandevcore/tools/gcil/alpine:3
+  variables:
+    CONSTANT_1: override_1
+  script:
+    - echo 'Template 4 - 2'
+
+'Template 4 - 3':
+  stage: extends
+  extends: .template_4_3
+  image: registry.gitlab.com/radiandevcore/tools/gcil/alpine:3
+  variables:
+    CONSTANT_1: override_1
+  script:
+    - echo 'Template 4 - 3'
+
+'Template 4 - 4':
+  stage: extends
+  extends:
+    - .template_4
+    - .template_4_4
+  image: registry.gitlab.com/radiandevcore/tools/gcil/alpine:3
+  variables:
+    CONSTANT_1: override_1
+  script:
+    - echo 'Template 4 - 4'
+
+'Templates 1':
+  stage: extends
+  extends:
+    - .templates_1
+
+'Templates 2':
+  extends:
+    - .templates_1
+    - .templates_2
+  image: registry.gitlab.com/radiandevcore/tools/gcil/alpine:3
+  script:
+    - echo 'Templates 2'

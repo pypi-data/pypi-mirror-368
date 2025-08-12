@@ -1,0 +1,23 @@
+image:
+  name: registry.gitlab.com/radiandevcore/tools/gcil/docker:latest
+  entrypoint: ['']
+
+stages:
+  - privileged
+
+.local:
+  no_regex: true
+
+privileged:
+  stage: privileged
+  script:
+    - echo " [Job] ${CI_JOB_NAME}"
+    - env | grep '^CI_LOCAL_PRIVILEGED=' | grep -v '\$'
+    - test -c /dev/kmsg && echo 'Privileged' || exit 1
+
+unprivileged:
+  stage: privileged
+  script:
+    - echo " [Job] ${CI_JOB_NAME}"
+    - env | grep '^CI_LOCAL_PRIVILEGED=' | grep -v '\$'
+    - test -c /dev/kmsg && exit 1 || echo 'Unprivileged'

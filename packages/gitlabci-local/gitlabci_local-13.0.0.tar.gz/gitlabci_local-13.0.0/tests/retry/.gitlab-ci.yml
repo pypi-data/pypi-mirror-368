@@ -1,0 +1,48 @@
+image: local
+
+stages:
+  - failure
+  - success
+
+'Job 1':
+  stage: failure
+  script:
+    - echo 'Job 1'
+    - echo '1' >./retry.tmp
+    - 'false'
+  retry: 0
+
+'Job 2':
+  stage: success
+  script:
+    - echo 'Job 2'
+    - echo $(($(cat ./retry.tmp) + 1)) >./retry.tmp
+    - grep '3' ./retry.tmp
+  retry: 1
+
+'Job 3':
+  stage: success
+  script:
+    - echo 'Job 3'
+    - echo $(($(cat ./retry.tmp) + 1)) >./retry.tmp
+    - grep '6' ./retry.tmp
+  retry: 2
+
+'Job 4':
+  stage: success
+  script:
+    - echo 'Job 4'
+    - echo $(($(cat ./retry.tmp) + 1)) >./retry.tmp
+    - grep '9' ./retry.tmp
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+
+'Job 5':
+  stage: success
+  script:
+    - echo 'Job 5'
+    - echo $(($(cat ./retry.tmp) + 1)) >./retry.tmp
+    - grep '10' ./retry.tmp

@@ -1,0 +1,45 @@
+image: registry.gitlab.com/radiandevcore/tools/gcil/alpine:3
+
+stages:
+  - volumes
+
+variables:
+  CI_LOCAL_WORKDIR: '.'
+  VARIABLE_CI: 'FIRST_VALUE_NOT_EXPECTED'
+  VARIABLE_GLOBAL: 'GLOBAL_VALUE'
+
+.local:
+  volumes:
+    - .:/opt/src
+    - .:/opt/src/folder
+    - .:/opt/src2
+    - ../:/opt/parent:ro
+
+'Job 1':
+  stage: volumes
+  before_script:
+    - echo '__BEFORE__'
+  script:
+    - pwd
+    - ls -la ./
+    - ls -la /opt/src/
+    - ls -la /opt/src/folder/
+    - ls -la /opt/src2/
+    - ls -la /opt/src2/folder/
+    - ls -la /opt/src3/ || true
+    - ls -la /opt/parent/
+    - touch /opt/parent/test && exit 1 || true
+  after_script:
+    - echo '__AFTER__'
+
+'Job 2':
+  stage: volumes
+  image: local
+  before_script:
+    - echo '__BEFORE__'
+  script:
+    - pwd
+    - ls -la ./
+  after_script:
+    - echo '__AFTER__'
+  when: manual

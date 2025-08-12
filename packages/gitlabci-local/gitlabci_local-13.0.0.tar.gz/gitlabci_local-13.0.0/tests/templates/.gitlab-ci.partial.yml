@@ -1,0 +1,40 @@
+image: local
+
+stages:
+  - template_stage
+
+.template-one:
+  stage: template_stage
+  script:
+    - date
+
+.template-two:
+  extends: .template-unknown
+  stage: template_stage
+
+.template-three:
+  extends:
+    - .template-unknown
+    - .template-two
+
+.template-four:
+  extends:
+    - .template-unknown
+  stage: template_stage
+  script:
+    - date
+
+'Job 1':
+  extends: .template-one
+
+'Job 2':
+  extends: .template-two
+
+'Job 3':
+  extends: .template-three
+
+'Job 4':
+  extends: .template-four
+
+'Job 5':
+  extends: .template-unknown
