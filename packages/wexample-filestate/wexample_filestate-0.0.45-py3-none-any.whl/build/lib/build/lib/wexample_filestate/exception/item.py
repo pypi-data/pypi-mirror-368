@@ -1,0 +1,2 @@
+class ChildNotFoundException(Exception):
+    pass
