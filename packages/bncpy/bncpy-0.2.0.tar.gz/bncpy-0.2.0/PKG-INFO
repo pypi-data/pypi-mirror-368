@@ -1,0 +1,84 @@
+Metadata-Version: 2.4
+Name: bncpy
+Version: 0.2.0
+Summary: Benjamin and Charlotte game
+Author: Jae W. Choi
+License: MIT
+Project-URL: Homepage, https://github.com/jwc20/bncpy
+Project-URL: Repository, https://github.com/jwc20/bncpy.git
+Project-URL: Issues, https://github.com/jwc20/bncpy/issues
+Keywords: game,bulls-and-cows,bulls,cows,mastermind
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: httpx>=0.28.1
+Requires-Dist: jsonpickle>=4.1.1
+Provides-Extra: dev
+Requires-Dist: black>=25.1.0; extra == "dev"
+Requires-Dist: pytest>=8.4.1; extra == "dev"
+Requires-Dist: ruff>=0.12.7; extra == "dev"
+Requires-Dist: setuptools>=80.9.0; extra == "dev"
+Requires-Dist: wheel>=0.45.1; extra == "dev"
+Requires-Dist: build>=1.3.0; extra == "dev"
+Requires-Dist: twine>=6.1.0; extra == "dev"
+Dynamic: license-file
+
+# bncpy
+
+Benjamin and Charlotte
+
+## Installation
+
+```bash
+pip install bncpy
+```
+
+## Usage
+
+```python
+from bnc import Board, Game, Player
+from bnc.utils import generate_guess, get_random_number
+
+# Game configuration
+config = {
+  "code_length": 4,
+  "num_of_colors": 6,
+  "num_of_guesses": 10
+}
+
+# Create players with boards
+players = [
+  Player(name="Jae", board=Board(**config)),
+  Player(name="Soo", board=Board(**config)),
+  Player(name="Benjamin", board=Board(**config)),
+  Player(name="Charlotte", board=Board(**config))
+]
+
+# Create game with secret code
+secret_code = get_random_number(length=4, max_value=5)  # Random 4-digit code
+game = Game(players, secret_code=secret_code)
+
+# Submit guesses
+game.submit_guess(players[0], "1234")
+game.submit_guess(players[1], generate_guess(code_length, num_of_colors))  # Random guess
+
+# Check game state
+print(game.state)
+players[0].board.display_board()
+
+# Check winners
+if game.winners:
+  for winner in game.winners:
+    print(f"Winner: {winner.name}")
+```
+
+## Setting the secret code
+
+- **Multiple ways to set secret codes:**
+  - Via Game initialization: `Game(players, secret_code="1234")`
+  - Per player: `player.set_secret_code_to_board("1234")`
+  - Random generation: `game.set_random_secret_code()`
+
+## Dependencies
+
+- [httpx](https://github.com/encode/httpx)
