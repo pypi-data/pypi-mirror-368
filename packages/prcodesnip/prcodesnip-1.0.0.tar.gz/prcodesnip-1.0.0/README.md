@@ -1,0 +1,664 @@
+# PRCodeSnip 🚀
+
+[![PyPI version](https://badge.fury.io/py/prcodesnip.svg)](https://badge.fury.io/py/prcodesnip)
+[![Python Support](https://img.shields.io/pypi/pyversions/prcodesnip.svg)](https://pypi.org/project/prcodesnip/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+AI-powered GitHub PR analysis, risk prediction, and automated release notes generation. Make smarter merge decisions with intelligent pre-merge analysis.
+
+## ✨ Features
+
+- 🎯 **Smart Risk Prediction**: AI-powered analysis to predict PR risks before merge
+- 📝 **Automated Release Notes**: Generate professional release notes from PR changes
+- 🔍 **Code Quality Analysis**: Comprehensive pre-merge code quality checks
+- 🌐 **Multi-language Support**: Interface available in 25+ languages
+- 🤖 **GitHub Integration**: Post comments, create status checks, and workflow automation
+- ⚡ **Lightning Fast**: Async processing with parallel analysis
+- 🛡️ **Security First**: Built-in security scanning and vulnerability detection
+
+## 🚀 Quick Start
+
+### Installation
+
+```bash
+# Install from PyPI
+pip install prcodesnip
+
+# Or install in development mode
+pip install -e .
+```
+
+### First-time Setup (Interactive)
+
+```bash
+prcodesnip setup
+```
+
+This will guide you through:
+- Setting up GitHub token
+- Configuring OpenAI API key (optional)
+- Setting default repository
+- Choosing language preferences
+
+### Basic Usage
+
+```bash
+# Quick risk analysis
+prcodesnip predict-risk --pr 123 --repo owner/repo
+
+# Generate release notes
+prcodesnip draft-release --pr 123 --repo owner/repo
+
+# Complete pre-merge analysis
+prcodesnip premerge-analyze --pr 123 --post-comment
+```
+
+## 📋 Complete Command Reference
+
+### 🔧 Setup and Configuration
+
+#### `prcodesnip setup`
+Interactive setup wizard for first-time users.
+
+```bash
+prcodesnip setup
+```
+
+**What it does:**
+- Guides you through GitHub token setup
+- Configures OpenAI API key for AI features
+- Sets default repository and preferences
+- Creates configuration file
+
+---
+
+#### `prcodesnip config`
+Manage configuration settings.
+
+```bash
+# Show current configuration
+prcodesnip config --show
+
+# Test your configuration
+prcodesnip config --test
+
+# Create sample config file
+prcodesnip config --create
+
+# Reset configuration (run setup again)
+prcodesnip config --reset
+```
+
+**Options:**
+- `--show`: Display current configuration with masked tokens
+- `--test`: Test GitHub and OpenAI API connections
+- `--create`: Create a sample configuration file
+- `--reset`: Reset configuration and run interactive setup
+
+---
+
+### 🎯 Risk Analysis Commands
+
+#### `prcodesnip predict-risk`
+Analyze and predict risks for a PR before merging.
+
+```bash
+prcodesnip predict-risk --pr 123 --repo owner/repo [OPTIONS]
+```
+
+**Required Options:**
+- `--pr INTEGER`: Pull Request number to analyze
+- `--repo TEXT`: GitHub repository in format `owner/repo`
+
+**Optional Options:**
+- `--token TEXT`: GitHub token (or set `GITHUB_TOKEN` env var)
+- `--detailed`: Show detailed risk breakdown by category
+- `--debug`: Enable debug logging
+
+**Example Output:**
+```
+✅ Risk Prediction Results
+========================================
+Overall Risk: ⚠️ Moderate (0.65/1.0)
+Confidence: 0.85
+
+📊 Detailed Risk Breakdown:
+  🐛 Bug Probability: 0.30
+  🔒 Security Risk: 0.15
+  ⚡ Performance Risk: 0.80
+  🧩 Complexity Risk: 0.45
+
+💡 Recommendations:
+  1. Review performance impact of database changes
+  2. Add unit tests for new authentication logic
+  3. Consider breaking change into smaller PRs
+```
+
+---
+
+### 📝 Release Notes Commands
+
+#### `prcodesnip draft-release`
+Generate draft release notes from PR changes.
+
+```bash
+prcodesnip draft-release --pr 123 --repo owner/repo [OPTIONS]
+```
+
+**Required Options:**
+- `--pr INTEGER`: Pull Request number (or will prompt interactively)
+
+**Optional Options:**
+- `--repo TEXT`: GitHub repository (uses default from config if not provided)
+- `--token TEXT`: GitHub token (or set `GITHUB_TOKEN` env var)
+- `--format [markdown|json|text]`: Output format (default: markdown)
+- `--output TEXT`: Output file path (default: stdout)
+
+**Format Examples:**
+
+**Markdown (default):**
+```markdown
+## Draft Release Notes
+*Generated from PR #123: Add user authentication system*
+
+### ✨ New Features
+- Add JWT-based user authentication
+- Implement password reset functionality
+
+### 🐛 Bug Fixes
+- Fixed login form validation errors
+
+### 📦 Dependencies
+- Updated security packages to latest versions
+```
+
+**JSON:**
+```json
+{
+  "version": "minor",
+  "pr_number": 123,
+  "title": "Add user authentication system",
+  "generated_at": "2025-08-09T12:00:00.000000",
+  "changes": {
+    "features": ["Add JWT-based user authentication"],
+    "bug_fixes": ["Fixed login form validation errors"]
+  },
+  "confidence_score": 0.85
+}
+```
+
+**Text:**
+```
+Version: minor
+Confidence: 0.85
+
+## Draft Release Notes
+*Generated from PR #123: Add user authentication system*
+
+### New Features
+- Add JWT-based user authentication
+- Implement password reset functionality
+```
+
+---
+
+### 🚀 Complete Analysis Commands
+
+#### `prcodesnip premerge-analyze`
+Complete pre-merge analysis with risk prediction and release notes.
+
+```bash
+prcodesnip premerge-analyze --pr 123 [OPTIONS]
+```
+
+**Optional Options:**
+- `--pr INTEGER`: Pull Request number (will prompt if not provided)
+- `--repo TEXT`: GitHub repository (uses default from config)
+- `--token TEXT`: GitHub token (or set `GITHUB_TOKEN` env var)
+- `--commit-sha TEXT`: Commit SHA for GitHub status checks
+- `--post-comment`: Post analysis results as PR comment
+- `--create-status`: Create GitHub status check
+- `--output TEXT`: Output file for analysis results (default: premerge-analysis.json)
+
+**Example Usage:**
+```bash
+# Basic analysis
+prcodesnip premerge-analyze --pr 123
+
+# With GitHub integration
+prcodesnip premerge-analyze --pr 123 --post-comment --create-status --commit-sha abc123def
+
+# Save to custom file
+prcodesnip premerge-analyze --pr 123 --output my-analysis.json
+```
+
+**Output Structure:**
+```json
+{
+  "timestamp": "2025-08-09T12:00:00.000000",
+  "pr_data": {
+    "number": 123,
+    "title": "Add new feature",
+    "repository": "owner/repo"
+  },
+  "risk_analysis": {
+    "risk_assessment": {
+      "overall_score": 0.25,
+      "risk_level": "low",
+      "confidence": 0.90
+    },
+    "detailed_risks": {
+      "bug_probability": 0.10,
+      "security_risk": 0.05,
+      "performance_risk": 0.30,
+      "complexity_risk": 0.15
+    },
+    "recommendations": [
+      "Add unit tests for new functionality",
+      "Review performance impact"
+    ]
+  },
+  "draft_release_notes": {
+    "version": "minor",
+    "release_notes": "## Draft Release Notes...",
+    "confidence_score": 0.85
+  }
+}
+```
+
+---
+
+#### `prprcodesnip analyze-fast`
+Fast async analysis with parallel processing.
+
+```bash
+prprcodesnip analyze-fast --pr 123 --repo owner/repo [OPTIONS]
+```
+
+**Options:** Same as `analyze` command but optimized for speed.
+
+**Features:**
+- Parallel processing of analysis tasks
+- Reduced memory usage
+- Faster API calls
+- Suitable for CI/CD pipelines
+
+---
+
+### 🤖 GitHub Integration Commands
+
+#### `prprcodesnip setup-workflow`
+Setup CI/CD workflow integration.
+
+```bash
+prprcodesnip setup-workflow [OPTIONS]
+```
+
+**Options:**
+- `--provider [github-actions|gitlab-ci|jenkins]`: CI/CD provider (default: github-actions)
+- `--output-dir TEXT`: Directory for workflow files (default: .github/workflows)
+
+**Generated GitHub Actions Workflow:**
+- Triggers on PR open/update
+- Runs complete pre-merge analysis
+- Posts results as PR comments
+- Creates GitHub status checks
+- Uploads analysis artifacts
+
+**Setup Instructions After Generation:**
+1. Add `OPENAI_API_KEY` to repository secrets
+2. Ensure `GITHUB_TOKEN` has write permissions
+3. Commit and push the workflow file
+4. Create a test PR to see it in action
+
+---
+
+### 🌐 Multi-language Commands
+
+#### `prcodesnip language`
+Multi-language support commands for **programming language detection** and **interface languages**.
+
+```bash
+# Detect programming languages in repository
+prcodesnip language detect-languages --repo owner/repo
+
+# Setup development environment for programming language
+prcodesnip language setup-environment python
+
+# Set CLI interface language
+prcodesnip language set-language es
+
+# List available interface languages
+prcodesnip language list-languages
+
+# Show current locale information
+prcodesnip language show-locale-info
+```
+
+**🖥️ CLI Interface Languages (25+ supported):**
+- **European**: English, Spanish, French, German, Italian, Dutch, Portuguese, Russian, Polish, Czech
+- **Asian**: Japanese, Korean, Chinese, Hindi, Thai, Vietnamese, Indonesian, Malay
+- **Middle Eastern**: Arabic, Hebrew, Turkish
+- **Nordic**: Swedish, Norwegian, Danish, Finnish
+- **Other**: Romanian, Hungarian, Filipino
+
+**💻 Programming Languages Supported (60+ languages):**
+
+**Mainstream Languages:**
+- Python, JavaScript, TypeScript, Go, Java, C#, Rust, C++, C
+- PHP, Ruby, Swift, Kotlin, Scala
+
+**Functional Languages:**
+- Haskell, OCaml, Erlang, Elixir, F#, Clojure
+
+**JVM Languages:**
+- Java, Kotlin, Scala, Groovy, Clojure
+
+**Systems Programming:**
+- Rust, C, C++, Assembly, Zig
+
+**Web Technologies:**
+- HTML, CSS, JavaScript, TypeScript
+
+**Mobile Development:**
+- Swift (iOS), Kotlin (Android), Dart (Flutter), Objective-C
+
+**Scientific Computing:**
+- Python, R, MATLAB, Julia
+
+**Scripting Languages:**
+- Python, JavaScript, Bash, PowerShell, Perl, Lua, Fish
+
+**Emerging Languages:**
+- Crystal, Nim, V, Zig
+
+**Blockchain:**
+- Solidity, Vyper
+
+**Game Development:**
+- GDScript (Godot), ActionScript
+
+**Hardware Description:**
+- Verilog, VHDL, SystemVerilog
+
+**Configuration & Markup:**
+- YAML, TOML, JSON, XML, Markdown
+
+**Infrastructure:**
+- Dockerfile, Terraform, Makefile
+
+**And many more!** See the complete list in the language detector.
+
+---
+
+### 🔍 Data and Analysis Commands
+
+#### `prcodesnip analyze`
+Legacy full analysis command (use `premerge-analyze` for new projects).
+
+```bash
+prcodesnip analyze --pr 123 --repo owner/repo [OPTIONS]
+```
+
+**Options:**
+- `--pr INTEGER`: Pull Request number (required)
+- `--repo TEXT`: GitHub repository
+- `--token TEXT`: GitHub token
+- `--openai-key TEXT`: OpenAI API key
+- `--output TEXT`: Output file (default: release-notes.md)
+
+---
+
+#### `prcodesnip fetch`
+Fetch raw PR data from GitHub (useful for debugging).
+
+```bash
+prcodesnip fetch --pr 123 --repo owner/repo [OPTIONS]
+```
+
+**Options:**
+- `--pr INTEGER`: Pull Request number (required)
+- `--repo TEXT`: GitHub repository
+- `--token TEXT`: GitHub token
+
+**Output:** Raw JSON data with PR title, body, diff, and metadata.
+
+---
+
+### 📚 Help and Information Commands
+
+#### `prcodesnip quickstart`
+Show quick start guide for new users.
+
+```bash
+prcodesnip quickstart
+```
+
+**Displays:**
+- First-time setup instructions
+- Basic usage examples
+- Configuration tips
+- GitHub integration guide
+
+---
+
+## 🔧 Configuration Options
+
+### Environment Variables
+
+```bash
+# Required for GitHub integration
+export GITHUB_TOKEN="ghp_your_token_here"
+
+# Optional for AI-powered release notes
+export OPENAI_API_KEY="sk-your_key_here"
+
+# Optional language setting
+export PRCODESNIP_LANGUAGE="es"
+```
+
+### Configuration File
+
+PRCodeSnip looks for configuration in these locations (in order):
+1. `./.prcodesnip.json` (current directory)
+2. `~/.prcodesnip/config.json` (user home)
+3. Environment variables
+
+**Sample Configuration:**
+```json
+{
+  "github": {
+    "token": "env:GITHUB_TOKEN",
+    "default_repo": "owner/repo"
+  },
+  "openai": {
+    "api_key": "env:OPENAI_API_KEY",
+    "model": "gpt-4o-mini"
+  },
+  "quality": {
+    "tools": ["pytest", "pylint", "bandit", "coverage"],
+    "timeout": 300
+  },
+  "output": {
+    "default_format": "markdown",
+    "default_file": "release-notes.md"
+  },
+  "language": "en"
+}
+```
+
+## 📖 Usage Examples
+
+### 🎯 Risk Analysis Examples
+
+```bash
+# Basic risk analysis
+prcodesnip predict-risk --pr 42 --repo microsoft/vscode
+
+# Detailed risk breakdown
+prcodesnip predict-risk --pr 42 --repo owner/repo --detailed
+
+# With debug information
+prcodesnip predict-risk --pr 42 --repo owner/repo --detailed --debug
+```
+
+### 📝 Release Notes Examples
+
+```bash
+# Generate markdown release notes
+prcodesnip draft-release --pr 42 --repo owner/repo
+
+# Generate JSON format
+prcodesnip draft-release --pr 42 --repo owner/repo --format json
+
+# Save to file
+prcodesnip draft-release --pr 42 --repo owner/repo --output changelog.md
+
+# Interactive mode (prompts for PR and repo)
+prcodesnip draft-release
+```
+
+### 🚀 Complete Analysis Examples
+
+```bash
+# Basic analysis
+prcodesnip premerge-analyze --pr 42
+
+# With GitHub integration
+prcodesnip premerge-analyze --pr 42 --post-comment --create-status
+
+# Production workflow
+prcodesnip premerge-analyze \
+  --pr 42 \
+  --repo owner/repo \
+  --commit-sha abc123def \
+  --post-comment \
+  --create-status \
+  --output production-analysis.json
+```
+
+### 🌐 Multi-language Examples
+
+```bash
+# === PROGRAMMING LANGUAGE DETECTION ===
+# Detect programming languages used in repository
+prcodesnip language detect-languages --repo microsoft/vscode
+
+# Setup development environment for specific programming language
+prcodesnip language setup-environment python --project-path ./my-python-project
+
+# === CLI INTERFACE LANGUAGES ===
+# Set Spanish interface for CLI
+prcodesnip language set-language es
+
+# Analyze with Spanish interface
+prcodesnip predict-risk --pr 42 --repo owner/repo --language es
+
+# Show current locale and number formatting
+prcodesnip language show-locale-info
+
+# List all available interface languages
+prcodesnip language list-languages
+```
+
+### 🔍 Language Support Explanation
+
+**🖥️ CLI Interface Languages:**
+- Changes the language of CodeSnip's interface (menus, messages, help text)
+- Affects number formatting, currency display, date formats
+- 25+ languages supported (Spanish, French, German, Japanese, etc.)
+- Use: `prcodesnip language set-language es`
+
+**💻 Programming Language Detection:**
+- Detects which programming languages are used in your repository
+- Analyzes code files, configuration files, and project structure
+- 60+ programming languages supported (Python, JavaScript, Go, Rust, etc.)
+- Automatically installs appropriate development tools and linters
+- Use: `prcodesnip language detect-languages --repo owner/repo`
+
+**Example Output for Programming Language Detection:**
+```
+🎯 Primary Language: python
+📊 Detected Languages: python, javascript, dockerfile, yaml
+⚙️ Installing tools for python, javascript...
+✅ Tools installed: pytest, pylint, eslint, prettier, hadolint
+```
+
+## 🔒 Security and Privacy
+
+- **Token Security**: Tokens are never logged or stored in plain text
+- **API Calls**: Only necessary data is sent to external APIs
+- **Local Processing**: Most analysis happens locally
+- **Configurable**: All external integrations are optional
+
+## ⚡ Performance Tips
+
+1. **Use Fast Mode**: `analyze-fast` for CI/CD pipelines
+2. **Set Timeouts**: Configure appropriate timeouts in config
+3. **Cache Results**: Results are cached for repeated analyses
+4. **Parallel Processing**: Multiple PRs can be analyzed simultaneously
+
+## 🛠️ Development and Testing
+
+### Local Development
+
+```bash
+# Clone repository
+git clone https://github.com/your-org/prcodesnip
+cd prcodesnip
+
+# Setup development environment
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# or venv\Scripts\activate  # Windows
+
+# Install in development mode
+pip install -e .[dev]
+
+# Run tests
+pytest
+
+# Run with coverage
+coverage run -m pytest
+coverage report
+```
+
+**Note**: The `venv/` folder is automatically created and should not be committed to version control. It's included in `.gitignore`.
+
+### Testing Your Changes
+
+```bash
+# Test with real PR
+prcodesnip draft-release --pr 4 --repo your-username/your-repo
+
+# Test risk prediction
+prcodesnip predict-risk --pr 4 --repo your-username/your-repo --detailed
+
+# Test full analysis
+prcodesnip premerge-analyze --pr 4 --output test-analysis.json
+```
+
+## 🤝 Contributing
+
+Contributions welcome! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests
+5. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 📞 Support and Community
+
+- 📖 [Documentation](https://docs.prcodesnip.com)
+- 🐛 [Report Issues](https://github.com/prcodesnip/prcodesnip/issues)
+- 💬 [Discussions](https://github.com/prcodesnip/prcodesnip/discussions)
+- 📧 [Email Support](mailto:support@prcodesnip.com)
+
+---
+
+Made with ❤️ by the PRCodeSnip team. Happy coding! 🚀
