@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}SnapCheck Audit Report{% endblock %}</title>
+
+  <!-- Favicon & Brand stylesheet (use RELATIVE paths so file:// works) -->
+  <link rel="icon" href="static/logo.png" />
+  <link rel="stylesheet" href="static/brand.css" />
+
+  <style>
+    :root { color-scheme: light dark; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: #f7f7f7; color: #111;
+    }
+    .dark body { background: #0b0b0b; color: #eaeaea; }
+
+    /* Header & footer */
+    .sc-header { background: var(--brand-black); color: #fff; border-bottom: 1px solid var(--brand-olive); }
+    .sc-footer { background: #0f0f0f; color: #bdbdbd; border-top: 1px solid #262626; }
+
+    /* Layout */
+    .sc-container { max-width: 1120px; margin: 0 auto; padding: 14px 16px; }
+
+    /* Logo */
+    .sc-logo { display: inline-block; height: 56px; width: auto; vertical-align: middle; border-radius: 8px; }
+
+    /* Header layout */
+    .sc-header .sc-container {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      min-height: 64px;
+    }
+    .sc-header .left { display: flex; align-items: center; gap: 14px; }
+    .sc-header .right { display: flex; align-items: center; gap: 8px; }
+    .sc-btn-primary { line-height: 1; padding: 8px 12px; }
+
+    /* Responsive tweaks */
+    @media (max-width: 640px) {
+      .sc-logo { height: 42px; }
+      .sc-header .sc-container { padding: 10px 12px; }
+    }
+
+    /* Print cleanup */
+    @media print {
+      .sc-header, .sc-footer, [data-action="toggle"], #toggleTheme { display: none !important; }
+      body { background: #fff !important; color: #000 !important; }
+      .sc-card { break-inside: avoid; border-color: #ccc !important; }
+      .sc-kpi { box-shadow: none !important; }
+      canvas { max-height: 200px !important; }
+      a { color: #000 !important; text-decoration: none; }
+    }
+  </style>
+
+  {% block head_extra %}{% endblock %}
+</head>
+<body class="h-full">
+
+  <!-- Header (uses top-level brand_* or summary.brand_*; falls back to defaults) -->
+  <header class="sc-header">
+    <div class="sc-container">
+      <div class="left">
+        {% set _logo = brand_logo_url or summary.brand_logo_url or 'static/logo.png' %}
+        <img src="{{ _logo }}" alt="SnapCheck" class="sc-logo" />
+
+        <div>
+          <div style="font-weight:600;">
+            {{ brand_title or summary.brand_title or 'SnapCheck Report' }}
+            {% if brand_subtitle or summary.brand_subtitle %}
+              <span class="opacity-70" style="font-weight:400;">— {{ brand_subtitle or summary.brand_subtitle }}</span>
+            {% endif %}
+            {% if summary.demo_mode %}
+              <span class="ml-2 text-xs px-2 py-1 rounded bg-yellow-400 text-black">DEMO</span>
+            {% endif %}
+          </div>
+          {% if timestamp %}
+            <div style="font-size:12px; opacity:.7;">Audit: {{ timestamp }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="right">
+        {% block header_actions %}{% endblock %}
+      </div>
+    </div>
+  </header>
+
+  <main class="sc-container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="sc-footer">
+    <div class="sc-container" style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+      <div style="font-size:12px; opacity:.7;">
+        © {{ (timestamp or '')[:4] or '2025' }} SnapCheck — All systems, one snap.
+      </div>
+      <div style="display:flex; gap:12px; font-size:12px;">
+        {% block footer_links %}
+          {% if brand_link or summary.brand_link %}
+            <a href="{{ brand_link or summary.brand_link }}" style="color:#bdbdbd;">Home</a>
+          {% endif %}
+          <a href="#" style="color:#bdbdbd;">Docs</a>
+          <a href="#" style="color:#bdbdbd;">Changelog</a>
+          <a href="#" style="color:#bdbdbd;">Support</a>
+        {% endblock %}
+      </div>
+    </div>
+  </footer>
+
+  {% block scripts_head %}{% endblock %}
+  {% block scripts_end %}{% endblock %}
+</body>
+</html>
