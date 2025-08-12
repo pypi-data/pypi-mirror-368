@@ -1,0 +1,37 @@
+name: Pytest with Codecov
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 5
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+    env:
+      PYTHON: ${{ matrix.python-version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the latest version of uv and set the python version
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+      - name: Install tox-gh
+        run: |
+          uv add tox-gh --dev
+      - name: Setup tox test suite
+        run: |
+          uv run tox -vv --notest
+      - name: Run test suite
+        run: |
+          uv run tox --skip-pkg-install
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: braniii/prettypyplot
+          files: ./coverage.xml
+          env_vars: PYTHON
