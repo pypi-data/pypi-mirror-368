@@ -1,0 +1,154 @@
+<!---
+The MIT License (MIT)
+
+Copyright (c) 2025 Almaz Ilaletdinov <a.ilaletdinov@yandex.ru>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
+OR OTHER DEALINGS IN THE SOFTWARE.
+--->
+
+# flake8-simple-var
+
+[![test](https://github.com/blablatdinov/flake8-simple-var/actions/workflows/test.yml/badge.svg)](https://github.com/blablatdinov/flake8-simple-var/actions/workflows/test.yml)
+[![codecov](https://codecov.io/gh/blablatdinov/flake8-simple-var/branch/master/graph/badge.svg)](https://codecov.io/gh/blablatdinov/flake8-simple-var)
+[![Python Version](https://img.shields.io/pypi/pyversions/flake8-simple-var.svg)](https://pypi.org/project/flake8-simple-var/)
+[![wemake-python-styleguide](https://img.shields.io/badge/style-wemake-000000.svg)](https://github.com/wemake-services/wemake-python-styleguide)
+
+## Background
+
+This flake8 plugin enforces the principle that variable names should contain only one word. The idea is based on the concept that compound variable names (like `textLength`, `table_name`, or `current-user-email`) often indicate that the scope is too large and complex, making simple nouns ambiguous.
+
+When you need compound names, it usually means your scope is too big and complex. An ideal method should deal with up to five variables, and an ideal class should encapsulate up to five properties. If we have five variables, we should be able to find five unique single-word nouns to name them.
+
+This approach promotes cleaner, more maintainable code by encouraging smaller, more focused scopes.
+
+## Installation
+
+To install `flake8-simple-var`, you can use `pip`:
+
+```bash
+pip install flake8-simple-var
+```
+
+## Usage
+
+After installing the plugin, flake8 will automatically use it when you run the following command:
+
+```bash
+flake8 your_project_directory
+```
+
+The plugin will check variable names to ensure they contain only one word. If a variable name contains multiple words (camelCase, snake_case, kebab-case, etc.), an error will be reported.
+
+## Rules
+
+The plugin checks the following types of variable names:
+
+- **SVN100**: Variable names should contain only one word
+- **SVN200**: Function argument names should contain only one word
+- **SVN300**: Exception handler variable names should contain only one word
+- **SVN400**: With statement variable names should contain only one word
+
+### What is considered a compound name:
+
+- `textLength` (camelCase)
+- `table_name` (snake_case)
+- `current-user-email` (kebab-case)
+- `USER_NAME` (UPPER_CASE with multiple words)
+
+### What is considered valid:
+
+- `x`, `name`, `value`, `count` (single words)
+- `_private_var` (private variables starting with `_` are ignored)
+- `__very_private` (dunder names are ignored)
+
+## Examples
+
+### ❌ Invalid variable names:
+
+```python
+# These will trigger SVN errors
+textLength = 10
+userName = "john"
+table_name = "users"
+current_user_email = "test@example.com"
+file_path = "/tmp/file.txt"
+
+def process_data(user_name, file_path):
+    return user_name + file_path
+
+for item_name in items:
+    print(item_name)
+
+try:
+    pass
+except ValueError as error_message:
+    print(error_message)
+
+with open('file.txt') as file_handle:
+    content = file_handle.read()
+```
+
+### ✅ Valid variable names:
+
+```python
+# These are valid single-word names
+x = 1
+name = "test"
+value = 42
+count = 10
+user = "john"
+table = "users"
+email = "test@example.com"
+file = "/tmp/file.txt"
+
+def process_data(user, file):
+    return user + file
+
+for item in items:
+    print(item)
+
+try:
+    pass
+except ValueError as error:
+    print(error)
+
+with open('file.txt') as file:
+    content = file.read()
+```
+
+## Philosophy
+
+The principle behind this plugin is inspired by the idea that compound variable names often indicate:
+
+1. **Large scope**: When you need compound names, it usually means your scope (method, class, module) is too large
+2. **Complexity**: Simple nouns become ambiguous because there are too many variables in the same scope
+3. **Poor design**: If you can't find unique single-word names for your variables, consider refactoring
+
+The goal is to encourage:
+- Smaller, more focused methods and classes
+- Better variable naming through context
+- Cleaner, more readable code
+
+## License
+
+[MIT](https://github.com/blablatdinov/flake8-simple-var/blob/master/LICENSE)
+
+## Credits
+
+This project was generated with [`wemake-python-package`](https://github.com/wemake-services/wemake-python-package). Current template version is: [9899cb192f754a566da703614227e6d63227b933](https://github.com/wemake-services/wemake-python-package/tree/9899cb192f754a566da703614227e6d63227b933). See what is [updated](https://github.com/wemake-services/wemake-python-package/compare/9899cb192f754a566da703614227e6d63227b933...master) since then.
