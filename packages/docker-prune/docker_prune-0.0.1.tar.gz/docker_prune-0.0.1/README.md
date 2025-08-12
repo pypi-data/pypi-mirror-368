@@ -1,0 +1,406 @@
+# Docker Prune CLI
+
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Python](https://img.shields.io/badge/python-3.8%2B-blue.svg)
+
+`docker-prune` is a powerful CLI tool designed to manage and clean up unused Docker resources including containers, images, volumes, and networks. It allows for fine-grained filtering to optimize Docker environments and reclaim disk space.
+
+---
+
+## Features
+
+- **Container Management**: Stop and remove containers based on age, name, labels, and restart count.
+- **Image Cleanup**: Remove unused images with filters for age, tags, and labels.
+- **Volume Pruning**: Delete unused volumes with label-based filters and age-based rules.
+- **Network Pruning**: Remove unused Docker networks, excluding built-in networks (`bridge`, `host`, `none`) and custom exclusions.
+- **Detailed Storage Info**: View disk usage statistics for Docker images and volumes.
+- **Configurable Validation**: Load cleanup configurations via YAML files.
+- **Debug Logging**: Enable detailed logs for troubleshooting.
+
+---
+
+## Installation
+
+To install the `docker-prune` binary, run:
+
+```bash
+pip install docker-prune
+```
+
+This will make the `docker-prune` command available in your system's PATH.
+
+---
+
+## Usage
+
+### Basic Commands
+
+```bash
+docker-prune --help
+```
+
+Displays available commands and options.
+
+---
+
+#### Run Cleanup Configurations
+
+```bash
+docker-prune run --validate cleanup-config.yml
+```
+
+Runs cleanup commands from a YAML configuration file.
+
+---
+
+#### Get Info
+
+```bash
+docker-prune info
+```
+
+Displays storage usage information for Docker images and volumes.
+
+Example Output:
+
+```plaintext
+INFO - Overall usage Images: 732.91MB Volumes: 1.31MB
+INFO - Total reclaimed space: 0.00B
+```
+
+---
+
+#### Manage Containers
+
+Stop containers older than 1 week (default):
+
+```bash
+docker-prune containers stop --age "1w"
+```
+
+Remove containers with specific labels:
+
+```bash
+docker-prune containers rm --label "com.example.project=myproject"
+```
+
+---
+
+#### Clean Docker Images
+
+Remove images older than 90 days (default):
+
+```bash
+docker-prune images --age "90d"
+```
+
+Exclude images with specific tags:
+
+```bash
+docker-prune images --not-tag "^latest$"
+```
+
+---
+
+#### Prune Volumes
+
+Remove volumes older than 30 days (default):
+
+```bash
+docker-prune volumes --age "30d"
+```
+
+Exclude volumes with labels (default exclusions include `docker-compose` and `Podman` labels):
+
+```bash
+docker-prune volumes --not-label "^com.docker.compose.project"
+```
+
+---
+
+#### Delete Networks
+
+Remove unused networks older than 15 days:
+
+```bash
+docker-prune networks --age "15d"
+```
+
+Exclude custom networks with names matching a specific regex pattern:
+
+```bash
+docker-prune networks --not-name "^custom_network_.*"
+```
+
+**Note**:
+- Built-in networks (`bridge`, `host`, `none`) are **always excluded** from pruning and cannot be included.
+- The default `--not-label` option excludes networks commonly associated with `docker-compose` or `Podman` projects, such as:
+  - `^com.docker.compose.project`
+  - `^io.podman.compose.project`
+  - `^com.docker.compose.network`
+  - `^io.podman.compose.network`
+
+---
+
+### Debug Mode
+
+Enable detailed logging for debugging:
+
+```bash
+docker-prune --debug containers stop --age "2d"
+```
+
+---
+
+### YAML Configuration Example
+
+You can specify cleanup rules in a YAML file:
+
+```yaml
+- docker-prune containers stop --age "7d"
+- docker-prune containers rm --age "30d"
+- docker-prune images --age "90d" --not-tag "^latest$"
+- docker-prune volumes --age "30d" --not-label "^com.docker.compose.project"
+- docker-prune networks --age "15d"
+```
+
+Run the configuration:
+
+```bash
+docker-prune run config.yml
+```
+
+---
+
+### Cleanup Profiles
+
+The `docker-prune` tool supports predefined cleanup profiles (`default`, `aggressive`, and `conservative`) that can be switched via the `DOCKER_PRUNE_PROFILE` environment variable. By default, the tool uses the `default` profile and schedules cleanup tasks via a cronjob at `0 2 * * *`.
+
+#### Default
+
+The default cleanup profile balances disk space reclamation and safety. Suitable for regular maintenance.
+
+```shell
+DOCKER_PRUNE_PROFILE=default
+```
+
+#### Aggressive
+
+The aggressive cleanup profile prioritizes reclaiming disk space over safety. Use it when disk space is critical.
+
+```shell
+DOCKER_PRUNE_PROFILE=aggressive
+```
+
+#### Conservative
+
+The conservative cleanup profile prioritizes safety and minimizes the risk of removing resources unintentionally. Suitable for production environments.
+
+```shell
+DOCKER_PRUNE_PROFILE=conservative
+```
+
+### Summary of Configurations
+
+| **Profile**        | **Containers Stop**               | **Containers Remove**           | **Images**                       | **Volumes**                                  | **Networks**                                 |
+|---------------------|-----------------------------------|----------------------------------|----------------------------------|----------------------------------------------|----------------------------------------------|
+| **default**         | `--restart=100`                 | `--age=30d`                     | `--age=90d`                     | `--age=30d`, `--not-label='^com.docker.keep=(1\|true\|yes)?$'` | `--not-label='^com.docker.keep=(1\|true\|yes)?$'` |
+| **aggressive**      | `--restart=10`, `--age=7d`      | `--age=7d`                     | `--age=30d`                     | `--age=7d`, `--not-label='^com.docker.keep=(1\|true\|yes)?$'` | `--age=7d`, `--not-label='^com.docker.keep=(1\|true\|yes)?$'` |
+| **conservative**    | `--restart=200`, `--age=30d`    | `--age=90d` | `--age=180d`, `--not-tag='^latest$\|^stable$'` | `--age=90d`, `--not-label='^com.docker.keep=(1\|true\|yes)?$'`, `--not-label='^com.docker.compose.project'` | `--age=30d`, `--not-label='^com.docker.keep=(1\|true\|yes)?$'`, `--not-label='^com.docker.compose.network'` |
+
+---
+
+### Default Cronjob Scheduler
+
+The Docker container for `docker-prune` starts a cronjob scheduler by default. The cleanup tasks are executed based on the selected profile (`default`, `aggressive`, `conservative`) and are scheduled to run at `0 2 * * *` (every day at 2:00 AM). Profiles act as shorthand for built-in configuration files, but users can provide a fully custom configuration file if needed.
+
+#### Profile and Custom Configuration Behavior
+
+1. **Profiles**:
+   - Profiles (`default`, `aggressive`, `conservative`) are shorthand for pre-defined configuration files built into the container.
+   - The profile selected via the `DOCKER_PRUNE_PROFILE` environment variable determines which built-in configuration file is used.
+
+   The corresponding built-in configuration file is located at:
+   - If `DOCKER_PRUNE_PROFILE` is set to `default`, the container will use `/config/config-default.yaml`.
+   - If `DOCKER_PRUNE_PROFILE` is set to `aggressive`, the container will use `/config/config-aggressive.yaml`.
+   - If `DOCKER_PRUNE_PROFILE` is set to `conservative`, the container will use `/config/config-conservative.yaml`.
+
+2. **Custom Configuration File**:
+   - Users can bypass the profile system entirely and provide a fully custom configuration file path via the `DOCKER_PRUNE_CONFIG_FILE` environment variable.
+   - This allows complete control over the cleanup tasks and behavior.
+
+   Example of custom configuration file usage:
+   ```bash
+   -e DOCKER_PRUNE_CONFIG_FILE=/path/to/custom-config.yaml
+   ```
+
+---
+
+#### Environment Variables
+
+1. **`DOCKER_PRUNE_PROFILE`**:
+   - Selects one of the built-in profiles (`default`, `aggressive`, `conservative`).
+   - Example:
+     ```bash
+     -e DOCKER_PRUNE_PROFILE=aggressive
+     ```
+
+2. **`DOCKER_PRUNE_CONFIG_FILE`**:
+   - Specifies the path to a custom configuration file. If provided, it overrides the profile-based default file.
+   - Example:
+     ```bash
+     -e DOCKER_PRUNE_CONFIG_FILE=/path/to/custom-config.yaml
+     ```
+
+3. **`DOCKER_PRUNE_SCHEDULE`**:
+   - Defines a custom cron schedule for the cleanup tasks. Accepts values supported by the [Supercronic](https://github.com/aptible/supercronic) project.
+   - Example:
+     ```bash
+     -e DOCKER_PRUNE_SCHEDULE="*/10 * * * *"  # Runs every 10 minutes
+     ```
+
+---
+
+#### Example Command
+
+Run the Docker container with a custom profile (`aggressive`) and schedule:
+
+```bash
+docker run -it \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -e DOCKER_PRUNE_PROFILE=aggressive \
+  -e DOCKER_PRUNE_SCHEDULE="0 */6 * * *" \
+  -e TZ=Europe/Berlin \
+  docker-prune:latest
+```
+
+Run the Docker container with a fully custom configuration file:
+
+```bash
+docker run -it \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -e DOCKER_PRUNE_CONFIG_FILE=/path/to/custom-config.yaml \
+  -e DOCKER_PRUNE_SCHEDULE="0 */6 * * *" \
+  -e TZ=Europe/Berlin \
+  docker-prune:latest
+```
+
+---
+
+#### Supported Custom Schedule
+
+The `DOCKER_PRUNE_SCHEDULE` environment variable uses cron-style expressions for scheduling cleanup tasks. Below are a few examples:
+
+| **Schedule**          | **Description**                     |
+|------------------------|-------------------------------------|
+| `0 2 * * *`           | Every day at 2:00 AM (default).     |
+| `*/10 * * * *`        | Every 10 minutes.                   |
+| `0 */6 * * *`         | Every 6 hours.                      |
+| `0 3 * * 1`           | Every Monday at 3:00 AM.            |
+| `30 1 1 * *`          | On the first day of every month at 1:30 AM. |
+
+For more advanced scheduling options, refer to the [Supercronic documentation](https://github.com/aptible/supercronic).
+
+---
+
+### Default Parameter Values
+
+Many commands come with default values for parameters. Below are some commonly used defaults:
+
+- **Containers**:
+  - `--age`: `1w` (1 week)
+  - `--timeout`: `60` (60 seconds before forcing stop)
+
+- **Images**:
+  - `--age`: `90d` (90 days)
+
+- **Volumes**:
+  - `--age`: `30d` (30 days)
+  - `--not-label`: Excludes common `docker-compose` and `Podman` volume labels.
+
+- **Networks**:
+  - `--age`: None (manual configuration required)
+  - `--not-name`: Excludes `bridge`, `host`, `none`.
+
+---
+
+## Development
+
+### Requirements
+
+- Python 3.8 or higher
+- Docker Python SDK
+- Click library
+- JSON Schema validation library
+- PyYAML for YAML parsing
+
+---
+
+### Setup with Pipenv
+
+Clone the repository:
+
+```bash
+git clone https://github.com/yourusername/docker-prune.git
+cd docker-prune
+```
+
+Install dependencies using `pipenv`:
+
+```bash
+pip install pipenv
+pipenv install --dev
+```
+
+Activate the virtual environment:
+
+```bash
+pipenv shell
+```
+
+Run the tool locally:
+
+```bash
+python -m docker_prune.cli --help
+```
+
+---
+
+### Run Locally with Docker
+
+You can build and run the tool using Docker for testing in an isolated environment.
+
+#### Build the Docker Image
+
+```bash
+docker build -t docker-prune:latest -f docker/Dockerfile .
+```
+
+#### Run the Docker Container
+
+```bash
+docker run -it \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -e TZ=Europe/Berlin \
+  -e DOCKER_PRUNE_SCHEDULE='*/10 * * * *' \
+  -e DOCKER_PRUNE_DEBUG=false \
+  docker-prune:latest
+```
+
+---
+
+## Contributing
+
+Contributions are welcome! Feel free to open issues or submit pull requests.
+
+---
+
+### Reporting Issues
+
+If you encounter any bugs or have feature requests, please open an issue on the [GitHub repository](https://github.com/yourusername/docker-prune).
+
+---
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
