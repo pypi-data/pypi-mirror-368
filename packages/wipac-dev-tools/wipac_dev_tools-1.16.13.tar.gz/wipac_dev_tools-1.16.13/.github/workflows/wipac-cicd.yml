@@ -1,0 +1,251 @@
+name: ci/cd
+
+on:
+  push:
+    branches: [ '**' ]
+    tags-ignore: [ '**' ]
+
+jobs:
+
+  py-versions:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.versions.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+      - id: versions
+        uses: WIPACrepo/wipac-dev-py-versions-action@v2.6
+
+
+  ############################################################################
+  # LINTERS
+  #############################################################################
+
+  flake8:
+    needs: [ py-versions ]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.py3 }}
+      - uses: WIPACrepo/wipac-dev-flake8-action@v1.3
+        with:
+          max-complexity: 10  # ideal is ~10-15
+
+  mypy:
+    needs: [ py-versions ]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.py3 }}
+      - uses: WIPACrepo/wipac-dev-mypy-action@v2.0
+
+
+  ############################################################################
+  # PACKAGING
+  #############################################################################
+
+  py-setup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          ref: ${{ github.ref }}  # dont lock to sha (action needs to push)
+      - uses: WIPACrepo/wipac-dev-py-setup-action@v5.0
+        with:
+          python_min: 3.9
+          pypi_name: wipac-dev-tools
+          author: WIPAC Developers
+          author_email: developers@icecube.wisc.edu
+          keywords_comma: "WIPAC, python tools, utilities"
+          auto_mypy_option: True
+
+  py-dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          ref: ${{ github.ref }}  # dont lock to sha (action needs to push)
+      - uses: WIPACrepo/wipac-dev-py-dependencies-action@v3.0
+
+
+  ############################################################################
+  # TESTS
+  #############################################################################
+
+  prep-pytest:
+    runs-on: ubuntu-latest
+    outputs:
+      pytest_info_json: ${{ steps.set.outputs.pytest_info_json }}
+      pytest_ignore_args: ${{ steps.set.outputs.pytest_ignore_args }}
+    steps:
+      - name: Define outputs
+        id: set
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+
+
+          #
+          # *** HERE ARE THE TEST FILES & THEIR RESPECTIVE INSTALL OPTIONS ***
+          #
+          # Define test info directly as a JSON list of "file:[extras]" strings
+          # - The 'vanilla' test is one that has no (or minimal) install extras
+          # - Any test file listed will be ignored in the vanilla tests
+          #
+          PYTEST_INFO_JSON='[
+            "vanilla:[tests]",
+            "prometheus_tools_test.py:[tests,prometheus]",
+            "mongo_jsonschema_tools_test.py:[tests,mongo,jsonschema]"
+          ]'
+          
+          
+          # format json
+          PYTEST_INFO_JSON=$(echo "$PYTEST_INFO_JSON" | sed ':a;N;$!ba;s/,\s*\]/\]/') # remove trailing comma 
+          PYTEST_INFO_JSON=$(echo "$PYTEST_INFO_JSON" | jq -c '.') # put on one line
+          echo $PYTEST_INFO_JSON
+
+          # Assemble ignore args by extracting the filename part
+          PYTEST_IGNORE_ARGS=""
+          for file in $(jq -r '.[] | split(":")[0]' <<< "$PYTEST_INFO_JSON"); do
+            if [[ "$file" != "vanilla" ]]; then
+              PYTEST_IGNORE_ARGS+=" --ignore=tests/$file"
+            fi
+          done
+          echo $PYTEST_IGNORE_ARGS
+
+          # output
+          echo "pytest_info_json=$PYTEST_INFO_JSON" >> "$GITHUB_OUTPUT"
+          echo "pytest_ignore_args=$PYTEST_IGNORE_ARGS" >> "$GITHUB_OUTPUT"
+
+  tests:
+    needs: [ py-versions, prep-pytest ]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
+        pytest_info: ${{ fromJSON(needs.prep-pytest.outputs.pytest_info_json) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.py3 }}
+      - name: Parse file and extras from pytest_info
+        id: parse
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          PYTEST_INFO="${{ matrix.pytest_info }}"
+          # "file:[extras]"
+          FILE="${PYTEST_INFO%%:*}"     # before `:`
+          EXTRAS="${PYTEST_INFO#*:}"    # after  `:`
+          echo "file=$FILE" >> "$GITHUB_OUTPUT"
+          echo "extras=$EXTRAS" >> "$GITHUB_OUTPUT"
+      - name: Install dependencies
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          pip install --upgrade pip wheel setuptools
+          pip install ".${{ steps.parse.outputs.extras }}"
+      - name: Run tests
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          if [[ "${{ steps.parse.outputs.file }}" == "vanilla" ]]; then
+            pytest -vvvv ${{ needs.prep-pytest.outputs.pytest_ignore_args }}
+          else
+            pytest -vvvv "tests/${{ steps.parse.outputs.file }}"
+          fi
+
+
+  ############################################################################
+  # RELEASE
+  #############################################################################
+
+  tag-and-release:
+    # only run on main/master/default
+    if: format('refs/heads/{0}', github.event.repository.default_branch) == github.ref
+    needs: [
+      py-versions,
+      flake8,
+      mypy,
+      py-setup,
+      py-dependencies,
+      tests,
+    ]
+    runs-on: ubuntu-latest
+    concurrency: tag-and-release  # prevent any possible race conditions
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # required to see tags and commits
+          ref: ${{ github.sha }}  # lock to triggered commit ('github.ref' is dynamic)
+      - uses: actions/setup-python@v5  # needed for building project
+        with:
+          python-version: "${{ fromJSON(needs.py-versions.outputs.matrix)[0] }}"
+
+      # Get Next Version & Tag
+      - uses: WIPACrepo/wipac-dev-next-version-action@v1.2
+        id: next-version
+        with:
+          force-patch-if-no-commit-token: true
+          ignore-paths: |
+            **/README.md
+            .github/**
+            .gitignore
+            dependencies-logs/**
+            tests/**
+      - if: steps.next-version.outputs.version != ''
+        name: Tag New Version
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          git tag v${{ steps.next-version.outputs.version }}  # note: prepend 'v'
+          git push origin --tags
+
+      # Build Python Package
+      - if: steps.next-version.outputs.version != ''
+        uses: WIPACrepo/wipac-dev-py-build-action@v1.1
+        # -> uses the most recent git tag for versioning (aka the one made above)
+        # -> creates 'dist/' files
+
+      # Grab artifacts created by 'WIPACrepo/wipac-dev-py-dependencies-action'
+      - if: steps.next-version.outputs.version != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: py-dependencies-logs
+          path: pydep-release-assets/
+
+      # GitHub Release
+      - if: steps.next-version.outputs.version != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*
+            pydep-release-assets/**/*
+          tag_name: v${{ steps.next-version.outputs.version }}  # must match git tag above
+          generate_release_notes: true
+
+      # PyPI Release
+      - if: steps.next-version.outputs.version != ''
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_TOKEN }}
