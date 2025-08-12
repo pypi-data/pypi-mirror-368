@@ -1,0 +1,76 @@
+[project]
+name = "commonroad-sumo"
+version = "2025.1.1"
+description = "Interface between CommonRoad and the SUMO traffic simulator"
+authors = [
+    { name = "Florian Finkeldei", email = "florian.finkeldei@tum.de" },
+    { name = "Jan-Niklas Weghorn", email = "jan-niklas.weghorn@tum.de" }
+]
+requires-python = ">=3.10,<4.0"
+readme = "README.md"
+license = "BSD-3-Clause"
+dependencies = [
+    "numpy (>=1.26.1,<2.0.0); python_version<'3.13'",
+    "numpy (>=2.1.0); python_version>='3.13'",
+    "commonroad-io (>=2024.3,<2025.0)",
+    "shapely (>=2.0.0,<3.0.0)",
+    "ffmpeg (>=1.4,<2.0.0)",
+    "matplotlib (>=3.0.0,<4.0.0)",
+    "libsumo (>=1.24.0,<2.0.0)",
+    "traci (>=1.24.0,<2.0.0)",
+    "typing-extensions (>=4.12.2,<5.0.0)"
+]
+
+[project.urls]
+Documentation = "https://cps.pages.gitlab.lrz.de/sumo-interface/"
+
+[project.optional-dependencies]
+test = [
+    "coverage[toml] (>=7.5,<8.0.0)",
+    "pytest (>=7.4,<8.0.0)",
+    "pytest-mock (>=3.12.0,<4.0.0)",
+    "parameterized (>=0.8.1,<1.0.0)"
+]
+dev = [
+    "pre-commit (>=3.5.0,<4.0.0)"
+]
+docs = [
+    "mkdocs (>=1.6.0,<2.0.0)",
+    "mkdocstrings-python (>=1.10.3,<2.0.0)",
+    "mkdocs-autorefs (>=1.0.1,<2.0.0)",
+    "mkdocs-material (>=9.6.14,<10.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+src = ["commonroad_sumo", "tests"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "I", "F"]
+
+[tool.ruff.lint.isort]
+# This makes sure that the 'tests' modules are not classified as third party modules
+known-local-folder = ["tests"]
+
+[tool.mypy]
+python_version = "3.10"
+check_untyped_defs = true
+warn_return_any = false
+warn_unused_configs = true
+no_implicit_optional = true
+warn_unused_ignores = true # Make sure, that nothing has an ignore annotation that is not needed
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+# TODO: enable type checking on all modules
+module = ["commonroad_sumo.visualization.*", "commonroad_sumo.sumolib.net", "commonroad_sumo.cr2sumo.map_converter.map_converter", "commonroad_sumo.sumo_config.*", "commonroad_sumo.scenario.*", "tests.*", "commonroad_sumo.cr2sumo.map_converter.util", "commonroad_sumo.cr2sumo.map_converter.traffic_light", "commonroad_sumo.cr2sumo.map_converter.traffic_sign"]
+ignore_errors = true
+
+
+[tool.coverage.run]
+# Coverage should only be reported on the source code of the package not e.g. the tests
+source = ["commonroad_sumo"]

@@ -1,0 +1,86 @@
+Metadata-Version: 2.3
+Name: commonroad-sumo
+Version: 2025.1.1
+Summary: Interface between CommonRoad and the SUMO traffic simulator
+License: BSD-3-Clause
+Author: Florian Finkeldei
+Author-email: florian.finkeldei@tum.de
+Requires-Python: >=3.10,<4.0
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Provides-Extra: dev
+Provides-Extra: docs
+Provides-Extra: test
+Requires-Dist: commonroad-io (>=2024.3,<2025.0)
+Requires-Dist: coverage[toml] (>=7.5,<8.0.0) ; extra == "test"
+Requires-Dist: ffmpeg (>=1.4,<2.0.0)
+Requires-Dist: libsumo (>=1.24.0,<2.0.0)
+Requires-Dist: matplotlib (>=3.0.0,<4.0.0)
+Requires-Dist: mkdocs (>=1.6.0,<2.0.0) ; extra == "docs"
+Requires-Dist: mkdocs-autorefs (>=1.0.1,<2.0.0) ; extra == "docs"
+Requires-Dist: mkdocs-material (>=9.6.14,<10.0.0) ; extra == "docs"
+Requires-Dist: mkdocstrings-python (>=1.10.3,<2.0.0) ; extra == "docs"
+Requires-Dist: numpy (>=1.26.1,<2.0.0) ; python_version < "3.13"
+Requires-Dist: numpy (>=2.1.0) ; python_version >= "3.13"
+Requires-Dist: parameterized (>=0.8.1,<1.0.0) ; extra == "test"
+Requires-Dist: pre-commit (>=3.5.0,<4.0.0) ; extra == "dev"
+Requires-Dist: pytest (>=7.4,<8.0.0) ; extra == "test"
+Requires-Dist: pytest-mock (>=3.12.0,<4.0.0) ; extra == "test"
+Requires-Dist: shapely (>=2.0.0,<3.0.0)
+Requires-Dist: traci (>=1.24.0,<2.0.0)
+Requires-Dist: typing-extensions (>=4.12.2,<5.0.0)
+Project-URL: Documentation, https://cps.pages.gitlab.lrz.de/sumo-interface/
+Description-Content-Type: text/markdown
+
+# CommonRoad - SUMO Interface
+
+[![PyPI pyversions](https://img.shields.io/pypi/pyversions/commonroad-sumo.svg)](https://pypi.python.org/pypi/commonroad-sumo/)
+[![PyPI version fury.io](https://badge.fury.io/py/commonroad-sumo.svg)](https://pypi.python.org/pypi/commonroad-sumo/)
+[![PyPI download week](https://img.shields.io/pypi/dw/commonroad-sumo.svg?label=PyPI%20downloads)](https://pypi.python.org/pypi/commonroad-sumo/)
+[![PyPI download month](https://img.shields.io/pypi/dm/commonroad-sumo.svg?label=PyPI%20downloads)](https://pypi.python.org/pypi/commonroad-sumo/)
+[![PyPI license](https://img.shields.io/pypi/l/commonroad-sumo.svg)](https://pypi.python.org/pypi/commonroad-sumo/)
+
+
+Interface between [CommonRoad](https://commonroad.in.tum.de) and the traffic simulator [SUMO](https://sumo.dlr.de).
+
+It allows you to run non-interactive simulations to generate traffic on lanelet networks to create new CommonRoad scenarios. Additionally, you can run interactive simulations where a motion planner is executed in tandem with SUMO. The ego vehicle is controlled by the motion planner, while the behavior of the other vehicles is simulated by SUMO.
+
+More about the interface can be found in the [original paper](http://mediatum.ub.tum.de/doc/1486856/344641.pdf):
+
+Moritz Klischat, Octav Dragoi, Mostafa Eissa, and Matthias Althoff, *Coupling SUMO with a Motion Planning Framework for Automated Vehicles*, SUMO 2019: Simulating Connected Urban Mobility
+
+## Quick Start
+
+### Installation
+
+The interface is available on PyPI and can be easily installed:
+
+```bash
+$ pip install commonroad-sumo
+```
+
+SUMO itself is already included as a dependency, therefore no further steps are required to use the interface.
+
+### Example Usage
+
+The following snippet will simulate random traffic on the lanelet network of a given CommonRoad scenario for `100` time steps and write the resulting CommonRoad scenario to `/tmp/simulated_scenario.xml`:
+
+```python
+from commonroad.common.file_reader import CommonRoadFileReader
+
+from commonroad_sumo import NonInteractiveSumoSimulation
+
+scenario, _ = CommonRoadFileReader("<path to CommonRoad scenario>").open()
+
+simulation_result = NonInteractiveSumoSimulation.from_scenario(scenario).run(simulation_steps=100)
+simulation_result.write_to_file("/tmp/simulated_scenario.xml")
+```
+
+## Documentation
+
+The full documentation can be found at [cps.pages.gitlab.lrz.de/commonroad/sumo-interface](https://cps.pages.gitlab.lrz.de/commonroad/sumo-interface/).
+
