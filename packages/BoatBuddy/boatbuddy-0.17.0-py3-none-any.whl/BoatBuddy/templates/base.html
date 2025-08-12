@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="/static/bootstrap/css/bootstrap.css">
+    <link rel="stylesheet" href="/static/bootstrap-icons/bootstrap-icons.css">
+    <script src="/static/jquery-3.7.1.min.js"></script>
+    <script src="/static/popper.min.js"></script>
+    <script src="/static/bootstrap/js/bootstrap.min.js"></script>
+    <script src="/static/gauge.min.js"></script>
+    <script src="/static/GaugeMeter.js"></script>
+    <script src="/static/ol/ol.js"></script>
+    <script src="/static/WindComponent.js"></script>
+    <script src="/static/NavigationComponent.js"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/main.css" type="text/css">
+    <link rel="stylesheet" href="/static/WindComponent.css" type="text/css">
+    <link rel="stylesheet" href="/static/NavigationComponent.css" type="text/css">
+    <link rel="shortcut icon" href="/static/favicon.ico">
+    <title>{{application_name}} - {{boat_name}}</title>
+</head>
+
+<body id="body-element-id"
+      class="container-fluid bg-dark bg-gradient text-light position-absolute m-0 p-0">
+<div class="container-fluid p-0 m-0">
+    <div id="about_us_modal" tabindex="-1" class="modal fade" data-backdrop="static"
+         xmlns="http://www.w3.org/1999/html"
+         role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content" id="about_us_modal_content">
+                <div class="modal-header">
+                    <h5 class="modal-title">{{application_name}}</h5>
+                </div>
+                <div class="modal-body">
+                    <div class="row mt-2 mb-2">
+                        <span><b>Created by Joe Zeitouny</b></span>
+                    </div>
+                    <div class="row mb-2">
+                        <span><b>Version&nbsp {{application_version}}</b></span>
+                    </div>
+                    <div class="row mb-2">
+                        <span><b>Website</b>&nbsp <a href="https://boatbuddy.site" target="_blank">https://boatbuddy.site</a></span>
+                    </div>
+                    <div class="row mb-2">
+                        <div id="system_configuration_card" class="card border bg-dark text-light">
+                            <div class="card-body p-0">
+                                <h5 class="card-title">System Configuration</h5>
+                                <form action="/upload_config" method="POST" enctype="multipart/form-data">
+                                    <div class="container d-flex p-1 align-items-center">
+                                        <div class="col-9 col-sm-10">
+                                            <input type="file" name="config_file" accept=".json">
+                                        </div>
+                                        <div class="col-2">
+                                            <button type="submit" class="btn btn-primary">Upload</button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="close btn btn-secondary" onclick="hideAboutUsModal()">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row px-0 mx-0">
+        <nav id="navbar-element-id" class="navbar navbar-expand-lg bg-dark bg-gradient shadow mx-0 px-0">
+            <div class="container-fluid">
+                <div class="col-9 col-md-4 col-lg-5 col-xl-4">
+                    <button class="navbar-brand btn" type="button" onclick="showAboutUsModal()">
+                        <span><img src="/static/logo.png" alt="..." width="32" height="32"> {{application_name}}</small></span>
+                    </button>
+                </div>
+                <div class="col-3 col-md-1 col-lg-2 col-xl-4 text-end text-md-center">
+                    <span class="navbar-text fw-bolder"
+                          id="curr_time_id" style="font-size: 20px; cursor: pointer;"
+                          onclick="location.reload(true);"></span>
+                </div>
+                <div class="col-12 col-md-7 col-lg-5 col-xl-4">
+                    <span class="row align-items-center justify-content-end pe-1">
+                        <div class="col-auto mb-1 mb-sm-0 pe-1 pe-sm-2 me-1" id="anchor_alarm_section">
+                            <span class="d-inline-block" tabindex="0" data-toggle="tooltip" data-bs-placement="left"
+                                  title="Feature is disabled because the GPS module is down" id="set_anchor_tooltip_id">
+                                <button class="btn btn-success" id="set_anchor_alarm_button_id" type="button"
+                                        style="visibility: visible; display: Block; font-size: 0.9rem;"
+                                        onclick="showSetAnchorAlarmModal()"
+                                        disabled>
+                                    <span>
+                                        <span><i class="bi bi-link-45deg"></i>&nbspSet anchor</span>
+                                    </span>
+                                </button>
+                            </span>
+                            <button class="btn btn-warning" id="update_anchor_alarm_button_id" type="button"
+                                    style="visibility: hidden; display: None; font-size: 0.9rem;"
+                                    onclick="showUpdateAnchorAlarmModal()">
+                                <span class="spinner-border spinner-border-sm" role="status"></span>
+                                Anchor distance:&nbsp<span id="anchor_distance_label_id"></span>m
+                            </button>
+                        </div>
+                        <div class="col-auto border border-2 border-white rounded p-1 me-2">
+                            <div class="row px-0 mx-0">
+                                <span class="px-0 mx-0">
+                                    <span class="navbar-text" style="font-size: 0.9rem;"><i
+                                            class="bi bi-bootstrap-reboot"></i>&nbsp;{{session_run_mode}}</span>
+                                    <button class="ms-2 btn btn-success" type="submit" id="session_button_id"
+                                            onclick="toggleSession()" style="font-size: 0.9rem;">
+                                            <span>
+                                                <span id="session_button_spinner"
+                                                      class="spinner-border spinner-border-sm"
+                                                      style="visibility: hidden; display: none;" role="status"
+                                                      aria-hidden="true"></span>
+                                                <span id="session_button_text">Start Session</span>
+                                            </span>
+                                    </button>
+                                </span>
+                            </div>
+                        </div>
+                    </span>
+                </div>
+            </div>
+        </nav>
+    </div>
+    <div class="row px-0 mx-0">
+        <div id="connection_lost_modal" class="modal fade" tabindex="-1" data-backdrop="static" data-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger">
+                        <h5 class="modal-title text-light">Warning !!!</h5>
+                    </div>
+                    <div class="modal-body bg-danger">
+                        <span><i class="bi bi-exclamation-triangle" style="color: white;"></i><span class="text-light">&nbspConnection to the server is lost!</span></span>
+                    </div>
+                    <div class="modal-footer bg-danger">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal" id="loading_modal" tabindex="-1" role="dialog" data-backdrop="static" data-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content bg-transparent border-0" id="loading_modal_content_id">
+                    <div class="modal-body text-center">
+                        <div class="spinner-border" role="status">
+                        </div>
+                        <h5 class="mt-2">Loading...</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% block content %}
+        {% endblock %}
+    </div>
+</div>
+
+<script type="text/javascript">
+    connection_lost_dialog_shown = false;
+    const aboutUsModal = new bootstrap.Modal(document.getElementById('about_us_modal'), {backdrop: 'static'});
+
+    function hideAboutUsModal() {
+        aboutUsModal.hide();
+    }
+
+    function showAboutUsModal() {
+        aboutUsModal.show();
+    }
+
+    function updateNavBar() {
+        // Update the time
+        $.ajax({
+            type: 'GET',
+            url: '/current_time',
+            success: function(data) {
+                // if the connection has recovered and the connection error dialog was shown
+                if (connection_lost_dialog_shown) {
+                    // hide the connection lost dialog
+                    $('#connection_lost_modal').modal('hide');
+                    connection_lost_dialog_shown = false;
+                }
+                // Update the relevant part of the webpage with the new data
+                document.getElementById('curr_time_id').innerHTML = data['curr_time'];
+            }
+        });
+
+        // Update anchor alarm section
+        $.ajax({
+            type: 'GET',
+            url: '/anchor_alarm_data',
+            success: function(data) {
+                if (data['anchor_alarm_module']) {
+                    if (data['anchor_is_set']) {
+                        document.getElementById('set_anchor_alarm_button_id').style.display = 'none';
+                        document.getElementById('set_anchor_alarm_button_id').style.visibility = 'hidden';
+                        document.getElementById("set_anchor_tooltip_id").classList.remove('d-inline-block');
+                        document.getElementById('update_anchor_alarm_button_id').style.display = 'block';
+                        document.getElementById('update_anchor_alarm_button_id').style.visibility = 'visible';
+                        document.getElementById('anchor_distance_label_id').innerHTML = data['anchor_distance'];
+                        if (data['anchor_distance'] > data['anchor_allowed_distance']) {
+                            document.getElementById("update_anchor_alarm_button_id").classList.remove('btn-warning');
+                            document.getElementById("update_anchor_alarm_button_id").classList.add('btn-danger');
+                        }
+                        else {
+                            document.getElementById("update_anchor_alarm_button_id").classList.remove('btn-danger');
+                            document.getElementById("update_anchor_alarm_button_id").classList.add('btn-warning');
+                        }
+                    }
+                    else {
+                        document.getElementById('update_anchor_alarm_button_id').style.display = 'none';
+                        document.getElementById('update_anchor_alarm_button_id').style.visibility = 'hidden';
+                        document.getElementById('anchor_distance_label_id').innerHTML = '';
+                        document.getElementById('set_anchor_alarm_button_id').style.display = 'block';
+                        document.getElementById('set_anchor_alarm_button_id').style.visibility = 'visible';
+                        document.getElementById("set_anchor_tooltip_id").classList.add('d-inline-block');
+                        if (data['gps_module_running']) {
+                            document.getElementById('set_anchor_alarm_button_id').removeAttribute("disabled");
+                            $('#set_anchor_tooltip_id').tooltip('disable');
+                        }
+                        else {
+                            document.getElementById('set_anchor_alarm_button_id').setAttribute("disabled", "disabled");
+                            $('#set_anchor_tooltip_id').tooltip('enable');
+                        }
+                    }
+                }
+                else {
+                    document.getElementById('set_anchor_alarm_button_id').style.display = 'none';
+                    document.getElementById('set_anchor_alarm_button_id').style.visibility = 'hidden';
+                }
+            }
+        });
+    }
+
+    $(document).ready(function() {
+        // Initialize tooltips
+        $('[data-toggle="tooltip"]').tooltip();
+
+        // Call the refreshData function every 1 seconds
+        setInterval(updateNavBar, 1000);
+    });
+
+    $(document).ajaxError(function( event, request, settings ) {
+        //When XHR Status code is 0 there is no connection with the server
+        if (request.status == 0){
+            if (!connection_lost_dialog_shown) {
+                $('#connection_lost_modal').modal('show');
+                connection_lost_dialog_shown = true;
+            }
+        }
+    });
+
+
+</script>
+
+</body>
+
+</html>
