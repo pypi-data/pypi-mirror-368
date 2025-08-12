@@ -1,0 +1,93 @@
+
+import json
+import os
+import toml
+
+
+SECRET_FILE = r'settings/.secret.toml'
+SOFTWARE_INFOS_FILE = r'settings/software_infos.toml'
+
+ICO_FILE = r'settings/xey.ico'
+
+SOFTWARE_NAME = "software_name"
+
+SHARE_DIR = r" "
+PROBLEM_SHARE_DIR = r" "
+
+
+def load_config(filepath, default):
+    """
+    加载配置文件，如果文件不存在或解析失败则使用默认配置
+
+    :param filepath: TOML 文件路径
+    :param default: 默认配置字典
+    :return: 加载的配置字典
+    """
+    # 尝试读取现有的 TOML 文件
+    try:
+        if os.path.exists(filepath):
+            with open(filepath, 'r', encoding='utf-8') as f:
+                config = toml.load(f)
+        else:
+            config = default
+    except (FileNotFoundError, toml.TomlDecodeError):
+        config = default
+
+    # 检查是否缺少必要的参数，如果缺少则更新为默认值
+    for key, value in default.items():
+        if key not in config:
+            config[key] = value
+
+    return config
+
+
+def save_config(file_path, config_dict):
+    """
+    将配置字典保存到 TOML 文件中
+
+    :param file_path: TOML 文件路径
+    :param config_dict: 配置字典
+    """
+    with open(file_path, 'w', encoding='utf-8') as f:
+        toml.dump(config_dict, f)
+
+
+def load_json(json_path):
+    """
+    加载 JSON 文件并返回其内容
+
+    :param json_path: JSON 文件的路径
+    :return: JSON 文件的内容（字典或列表），如果加载失败则返回 None
+    """
+    try:
+        # 尝试打开并读取 JSON 文件
+        with open(json_path, 'r', encoding='utf-8') as file:
+            data = json.load(file)
+        return data
+    except FileNotFoundError:
+        print(f"错误：文件未找到 - {json_path}")
+    except json.JSONDecodeError:
+        print(f"错误：文件格式无效（非标准 JSON） - {json_path}")
+    except PermissionError:
+        print(f"错误：没有权限读取文件 - {json_path}")
+    except Exception as e:
+        print(f"错误：加载 JSON 文件时发生未知错误 - {e}")
+    return None
+
+
+def load_credentials(config_path=SECRET_FILE):
+    """
+    从配置文件中加载服务器连接凭证。
+
+    :param config_path: 配置文件的路径。
+    :return: 包含服务器IP、共享名称、用户名和密码的元组。
+    """
+    with open(config_path, 'r') as config_file:
+        config_info = toml.load(config_file)
+        credentials = config_info.get("credentials", {})
+        return (
+            credentials.get("server_ip"),
+            credentials.get("share_name"),
+            credentials.get("username"),
+            credentials.get("password"),
+        )

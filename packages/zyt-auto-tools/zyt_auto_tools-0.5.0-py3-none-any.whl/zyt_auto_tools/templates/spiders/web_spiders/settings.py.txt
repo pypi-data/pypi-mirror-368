@@ -1,0 +1,114 @@
+
+import os
+from datetime import datetime
+
+BOT_NAME = "web_spiders"
+
+SPIDER_MODULES = ["web_spiders.spiders"]
+NEWSPIDER_MODULE = "web_spiders.spiders"
+
+# Obey robots.txt rules
+ROBOTSTXT_OBEY = False
+
+# -------------------------------日志_SETTINGS----------------------------------
+log_folder = "./logs"
+os.makedirs(log_folder, exist_ok=True)
+
+LOG_ENABLED = True
+LOG_FILE = f"./logs/{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.log"
+LOG_LEVEL = "INFO"
+LOG_FORMAT = '%(asctime)s [%(name)s] %(levelname)s: %(message)s'
+# -----------------------------------------------------------------------------
+
+# ------------------------------延时与并发_SETTINGS------------------------------
+CONCURRENT_REQUESTS4 = 16  # 最大并发请求数量
+CONCURRENT_REQUESTS_PER_DOMAIN = 16  # 单个域名最大并发请求数量
+CONCURRENT_REQUESTS_PER_IP = 8  # 单个IP最大并发请求数量
+
+DOWNLOAD_DELAY = 1.4  # 每次请求延时(default: 0)
+RANDOMIZE_DOWNLOAD_DELAY = True  # 启用随机延迟(默认0.5-1.5倍)
+
+DOWNLOAD_TIMEOUT = 20  # 超时最大尝试时间
+
+AUTOTHROTTLE_ENABLED = False  # 动态调整
+# The initial download delay
+# AUTOTHROTTLE_START_DELAY = 5
+# The maximum download delay to be set in case of high latencies
+# AUTOTHROTTLE_MAX_DELAY = 60
+# The average number of requests Scrapy should be sending in parallel to
+# each remote server
+# AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0
+# Enable showing throttling stats for every response received:
+# AUTOTHROTTLE_DEBUG = False
+# -----------------------------------------------------------------------------
+
+# ------------------------------重试机制_SETTINGS------------------------------
+RETRY_ENABLED = True
+RETRY_TIMES = 3
+# 设置需要重试的 HTTP 状态码
+RETRY_HTTP_CODES = [500, 502, 503, 504, 408, 429, 301, 302, 307]
+RETRY_DELAY = 8  # 重试的延迟
+RETRY_EXCEPTIONS = [Exception]  # 对全部异常都重试
+# -----------------------------------------------------------------------------
+
+# ------------------------------重定向机制_SETTINGS------------------------------
+REDIRECT_ENABLED = True  # 允许重定向(处理网页跳转情况)
+MEDIA_ALLOW_REDIRECTS = True  # 允许重定向(处理媒体跳转情况)
+
+REDIRECT_MAX_TIMES = 20
+# -----------------------------------------------------------------------------
+
+# Disable cookies (enabled by default)
+# COOKIES_ENABLED = False
+
+# Disable Telnet Console (enabled by default)
+# TELNETCONSOLE_ENABLED = False
+
+# Override the default request headers:
+DEFAULT_REQUEST_HEADERS = {
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+    "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6",
+}
+
+# Enable or disable spider middlewares
+# See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
+# SPIDER_MIDDLEWARES = {
+#    "web_spiders.middlewares.WebSpidersSpiderMiddleware": 543,
+# }
+
+DOWNLOADER_MIDDLEWARES = {
+    "scrapy.downloadermiddlewares.useragent.UserAgentMiddleware": None,  # 关闭默认UA
+    'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 110,  # 处理ip代理
+    "web_spiders.middlewares.RandomUserAgentMiddleware": 500,  # 启用随机UA
+    "web_spiders.middlewares.RandomProxyMiddleware": 100,  # 启用随机IP
+    # 'rotating_proxies.middlewares.RotatingProxyMiddleware': 610,
+    # 'rotating_proxies.middlewares.BanDetectionMiddleware': 620,
+}
+
+# ROTATING_PROXY_LIST_PATH = config.PROXIES_PATH
+
+# Enable or disable extensions
+# See https://docs.scrapy.org/en/latest/topics/extensions.html
+# EXTENSIONS = {
+#    "scrapy.extensions.telnet.TelnetConsole": None,
+# }
+
+image_folder = "./images"
+os.makedirs(image_folder, exist_ok=True)
+
+ITEM_PIPELINES = {
+    "web_spiders.pipelines.BasicImagePipeline": 300,
+}
+IMAGES_STORE = image_folder  # 图片存储目录
+
+# Enable and configure HTTP caching (disabled by default)
+# See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html#httpcache-middleware-settings
+# HTTPCACHE_ENABLED = True
+# HTTPCACHE_EXPIRATION_SECS = 0
+# HTTPCACHE_DIR = "httpcache"
+# HTTPCACHE_IGNORE_HTTP_CODES = []
+# HTTPCACHE_STORAGE = "scrapy.extensions.httpcache.FilesystemCacheStorage"
+
+# Set settings whose default value is deprecated to a future-proof value
+TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
+FEED_EXPORT_ENCODING = "utf-8"

@@ -1,0 +1,78 @@
+
+import os
+
+import scrapy
+from scrapy.pipelines.images import ImagesPipeline
+
+import utils
+import config
+
+
+class BasicImagePipeline(ImagesPipeline):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 加载配置文件
+        self.basic_setting = config.load_config(config.BASIC_SETTING_FILE, config.BASIC_SETTING_DEFAULT_CONFIG)
+        # 查重文件路径
+        self.used_urls_dir_path = config.USED_URLS_DIR_PATH
+
+    def get_media_requests(self, item, info):
+        # 从item中提取图片URL与关键词并创建请求
+        image_url = item['image_url']
+        keyword = item['keyword']
+        web_name = item['web_name']
+
+        # 检查是否已经下载过
+        if self.is_url_downloaded(image_url, web_name):
+            info.spider.logger.info(f"图片已存在，跳过下载: {image_url}")
+            return
+
+        yield scrapy.Request(url=image_url, meta={'keyword': keyword, 'web_name': web_name})
+
+    def is_url_downloaded(self, image_url, web_name):
+        """检查图片URL是否已经存在于查重文件中"""
+        filename = f"{web_name}_{self.basic_setting['type_name']}.txt"
+        file_path = os.path.join(self.used_urls_dir_path, filename)
+        if os.path.exists(file_path):
+            with open(file_path, 'r') as f:
+                downloaded_urls = f.read().splitlines()
+            return image_url in downloaded_urls
+        else:
+            return False
+
+    def save_url_to_txt(self, image_url, web_name):
+        """将下载成功的图片URL存入查重文件"""
+        filename = f"{web_name}_{self.basic_setting['type_name']}.txt"
+        file_path = os.path.join(self.used_urls_dir_path, filename)
+        mode = "a" if os.path.exists(file_path) else "w"
+
+        with open(file_path, mode) as f:
+            f.write(image_url + '\n')
+
+    def file_path(self, request, response=None, info=None, *, item=None):
+        current_time = utils.get_formatted_timestamp()
+        keyword = request.meta['keyword']
+        web_name = request.meta['web_name']
+
+        file_name = f"{web_name}_{keyword}_{current_time}.png"
+        save_dir = os.path.join(self.basic_setting["save_dir"], web_name)
+
+        return f"{save_dir}/{file_name}"  # 从这里返回文件名
+
+    def item_completed(self, results, item, info):
+        for success, file_info_or_failure in results:
+            if success:
+                info.spider.logger.info(f"图片下载成功: {file_info_or_failure['path']}")
+                self.save_url_to_txt(item['image_url'], item['web_name'])
+            else:
+                # 提取失败信息（直接操作 Failure 对象）
+                failure = file_info_or_failure
+                exception = failure.value  # 原始异常对象
+
+                failure_info = {
+                    'url': item['image_url'],
+                    'exception': str(exception),  # 异常信息（如 "404 Not Found"）
+                }
+                info.spider.logger.error(f"图片下载失败: {failure_info}")
+
+        return item

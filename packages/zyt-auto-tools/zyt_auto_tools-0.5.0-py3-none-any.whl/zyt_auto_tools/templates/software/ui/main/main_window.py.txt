@@ -1,0 +1,83 @@
+
+import os
+from PyQt5 import QtGui, QtCore
+from PyQt5.QtWidgets import QMainWindow, QFileDialog, QMessageBox
+
+import config
+import utils
+from ui.ExampleWindow import Ui_MainWindow
+from ui.main.feedback_main import FeedbackWindow
+from network.software_update import Updater
+from network import server_connect
+
+
+class MainWindow(QMainWindow, Ui_MainWindow):
+    """
+    软件的主窗口类
+
+    Attributes:
+        feedback_window (FeedbackWindow): 问题反馈窗口对象。
+        wrong_txt_path (str): 错误数据文件路径。
+        current_software_path (str): 当前软件的可执行文件路径。
+        current_software_version (str): 当前软件的版本号。
+        updater(Updater): 自动更新类。
+    """
+
+    def __init__(self, window_title, parent=None):
+        """
+        初始化主窗口。
+
+        :param window_title: 窗口标题，由外部传入。
+        :param parent: 父窗口对象，默认为 None。
+        """
+        super(MainWindow, self).__init__(parent)
+        self.setupUi(self)
+        self.setWindowTitle(window_title)  # 使用传入的标题
+        self.setWindowIcon(QtGui.QIcon(config.ICO_FILE))
+
+        self.feedback_window = None
+        self.wrong_txt_path = None
+        self.current_software_path = utils.get_current_software_path()
+        self.current_software_version = server_connect.get_current_software_version(self.current_software_path)
+        # 合并默认配置和用户配置，用户配置优先级更高
+        self.updater = Updater(self.current_software_path, self.current_software_version)
+
+        # 连接信号与槽
+        self.software_update_action.triggered.connect(self.updater.update_software)
+        self.problem_feedback_action.triggered.connect(self.feedback_problem)
+
+        self.updater.auto_update()
+        self.updater.init_update()
+
+    def feedback_problem(self):
+        """
+        处理问题反馈操作，检查网络连接并打开反馈窗口。
+        """
+        if server_connect.check_version(self.current_software_version) == -1:
+            QMessageBox.warning(self, '网络未连接', '网络未连接，请连接内网后再试')
+        else:
+            self.open_feedback_window()
+
+    def open_feedback_window(self):
+        """
+        打开问题反馈窗口。
+        """
+        self.feedback_window = FeedbackWindow()
+        self.feedback_window.show()
+
+    def closeEvent(self, event):
+        """
+        处理窗口关闭事件，确保所有资源被释放。
+
+        :param event: 关闭事件对象。
+        """
+        if self.working_thread and self.working_thread.isRunning():
+            self.working_thread.terminate()  # 终止线程
+            self.working_thread.wait()  # 等待线程完全结束
+        self.working_thread = None  # 置为 None
+
+        if self.rework_window:
+            self.rework_window.close()
+        if self.feedback_window:
+            self.feedback_window.close()
+        event.accept()

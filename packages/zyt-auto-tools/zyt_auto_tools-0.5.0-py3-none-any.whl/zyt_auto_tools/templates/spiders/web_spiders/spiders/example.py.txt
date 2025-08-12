@@ -1,0 +1,60 @@
+
+import json
+import re
+
+import scrapy
+from urllib.parse import urlencode
+
+from web_spiders.items import ImageItem
+
+
+class ExampleImageSpider(scrapy.Spider):
+    name = "example_image"
+    allowed_domains = ["www.example_image.com"]
+    custom_headers = {
+        "Referer": "https://www.example_image.com/",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6",
+    }
+
+    def __init__(self, keyword="food", pages=3, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.web_name = 'ExampleImage'
+        self.keyword = str(keyword)  # 搜索关键词
+        self.pages = int(pages)  # 爬取页数
+
+    def start_requests(self):
+        """生成分页请求"""
+        base_url = "https://www.example_image.com"/page?"
+        for pn in range(self.pages):
+            params = {
+                ""
+            }
+            url = base_url + urlencode(params)
+            self.logger.debug(f"using url: {url}")
+            yield scrapy.Request(url, headers=self.custom_headers, callback=self.parse)
+
+    def parse(self, response, **kwargs):
+        try:
+            # 定位JSON数据块
+            img_urls = []
+            html = response.text
+            self.logger.info(f"successfully get html from {response.url}")
+            self.logger.debug(f"get html: {html}")
+            img_urls_str = re.findall('"thumbUrl":"(.*?)",', html, re.S)
+            # 解析转义字符的URL
+            all_urls = [json.loads('"' + url + '"') for url in img_urls_str]
+            self.logger.debug(f"Found image URLs: {all_urls}")
+            img_urls.extend(all_urls)
+
+            for img_url in img_urls:
+                self.logger.info(f"successfully get image url: {img_url}")
+
+                item = ImageItem()
+                item['image_url'] = img_url  # 图片URL
+                item['keyword'] = self.keyword  # 搜索关键词
+                item['web_name'] = self.web_name
+                yield item
+
+        except Exception as e:
+            self.logger.error(f"Parse error: {str(e)} | URL: {response.url}")
