@@ -1,0 +1,143 @@
+[project]
+name = "jinja2-outputfile"
+version = "0.5.1"
+# PREPARED: dynamic = ["version"]
+description = "Jinja2 extension that redirects output to output file(s)"
+readme = "README.md"
+authors = [
+    {name = "Jens Engel", email = "jenisys@noreply.github.com"},
+]
+keywords = ["Jinja2", "jinja2", "template-extension"]
+license = "BSD-3-Clause" # https://spdx.org/licenses/BSD-3-Clause.html
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 2.7",
+    "Programming Language :: Python :: 3.5",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Code Generators",
+]
+requires-python = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+# PREPARED: uv sync -- WORKAROUND
+# requires-python = ">=3.6"
+dependencies = [
+    "jinja2 >= 3.0; python_version >= '3.6'",
+    "jinja2 <  3.0; python_version <  '3.6'",
+
+    # -- BACKPORTS: pathlib
+    "pathlib2; python_version <= '3.4'",
+]
+
+[project.urls]
+Homepage = "https://github.com/jenisys/jinja2-outputfile"
+Repository = "https://github.com/jenisys/jinja2-outputfile"
+Download = "https://pypi.org/project/jinja2-outputfile"
+Issues = "https://github.com/jenisys/jinja2-outputfile/issues/"
+# PREPARED: Changelog = "https://github.com/jenisys/jinja2-outputfile/blob/main/CHANGES.rst"
+# PREPARED: Documentation = "https://jinja2-outputfile.readthedocs.io/en/latest/"
+
+
+[dependency-groups]
+develop = [
+    "build",
+    "coverage >= 5.0",
+    # "tox>=4.26.0; python_version >= '3.0'",
+    # "tox>=3.28.0,<4.0; python_version < '3.0'",   # -- HINT: tox >= 4.0 has breaking changes.
+    "tox   >= 3.28.0,<4.0",   # -- HINT: tox >= 4.0 has breaking changes.
+    "virtualenv >= 20.26.6; python_version >= '3.7'",
+    "virtualenv <  20.22.0; python_version <  '3.7'",  # -- SUPPORT FOR: Python 2.7, Python <= 3.6
+    # ONLY PY3: { include-group = "test"},
+    "pytest >= 5.0; python_version >= '3.0'",
+    "pytest <  5.0; python_version <  '3.0'", # >= 4.2
+    "pytest-html >= 2.0; python_version >= '3.0'",
+    "pytest-html < 2.0;  python_version <  '3.0'",
+]
+test = [
+    "pytest >= 5.0; python_version >= '3.0'",
+    "pytest <  5.0; python_version <  '3.0'", # >= 4.2
+    "pytest-html >= 2.0; python_version >= '3.0'",
+    "pytest-html < 2.0;  python_version <  '3.0'",
+]
+
+[build-system]
+# NOT PY2: requires = ["setuptools>=64", "setuptools-scm>=8", "wheel"]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+# -----------------------------------------------------------------------------
+# PACAKING TOOL SPECIFIC PARTS:
+# -----------------------------------------------------------------------------
+[tool.setuptools]
+platforms = ["any"]
+zip-safe = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["jinja2_outputfile*"]
+exclude = ["tests*"]
+namespaces = false
+
+# -- DIABLED: SETUPTOOLS-SCM: Generate version info from git-tag(s).
+# [tool.setuptools_scm]
+# version_file = "jinja2_outputfile/_version.py"
+
+
+# -----------------------------------------------------------------------------
+# TOOL: uv
+# -----------------------------------------------------------------------------
+# SEE: https://docs.astral.sh/uv/concepts/cache/#dynamic-metadata
+[tool.uv]
+cache-keys = [{ file = "pyproject.toml" }, { git = { commit = true, tags = true } }]
+
+
+# -----------------------------------------------------------------------------
+# TOOL: coverage
+# -----------------------------------------------------------------------------
+# SEE: https://coverage.readthedocs.io/
+[tool.coverage.run]
+source = [
+    "jinja2_outputfile"
+]
+branch  = true
+parallel = true
+
+[tool.coverage.report]
+# Regexes for lines to exclude from consideration
+exclude_also = [
+    "pragma: no cover",
+
+    # Don't complain about missing debug-only code:
+    "def __repr__",
+    "if self\\.debug",
+
+    # Don't complain if tests don't hit defensive assertion code:
+    "raise AssertionError",
+    "raise NotImplementedError",
+
+    # Don't complain if non-runnable code isn't run:
+    "if 0:",
+    "if __name__ == .__main__.:",
+
+    # Don't complain about abstract methods, they aren't run:
+    "@(abc\\.)?abstractmethod",
+]
+
+ignore_errors = true
+
+[tool.coverage.html]
+directory = "build/coverage.html"
+
+[tool.coverage.xml]
+output = "build/coverage.xml"
+
+[tool.coverage.lcov]
+output = "build/coverage.lcov"
