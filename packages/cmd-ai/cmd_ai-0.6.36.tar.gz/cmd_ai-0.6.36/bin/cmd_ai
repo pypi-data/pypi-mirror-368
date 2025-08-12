@@ -1,0 +1,733 @@
+#!/usr/bin/env python3
+
+# to override print <= can be a big problem with exceptions
+from __future__ import print_function  # must be 1st
+import pandas as pd
+import builtins
+import datetime as dt
+import os
+import sys
+import time
+import json
+
+from console import bg, fg, fx
+from fire import Fire
+from openai import OpenAI
+from prompt_toolkit import PromptSession, prompt
+from prompt_toolkit.history import FileHistory
+
+
+import re
+
+
+from cmd_ai import config # , key_enter, topbar, unitname
+from cmd_ai import texts
+from cmd_ai.api_key import get_api_key, get_api_key_anthropic
+
+from cmd_ai import api_key
+#get_api_key, get_api_key_anthropic
+
+from cmd_ai import g_askme #
+from cmd_ai.g_askdalle import g_askdalle
+from cmd_ai.g_askvision import g_askvision
+from cmd_ai.syscom import process_syscom
+import cmd_ai.syscom as syscom
+from cmd_ai.version import __version__
+from cmd_ai import best_examples
+from cmd_ai import calc_budget
+from cmd_ai import operate_context_files
+# from cmd_ai import best_examples
+
+from cmd_ai.speak import str_to_mp3
+import select
+import click
+import requests
+# ===============================================================================================
+
+# MODEL_TO_USE = "gpt-4-turbo-2024-04-09"
+# MODEL_TO_USE = "gpt-4o-2024-05-13"
+# MODEL_TO_USE = "gpt-4o-2024-08-06"
+# MODEL_TO_USE = "claude-3-5-sonnet-20241022"
+config.MODEL_TO_USE = None
+
+
+
+def mark_code(text, colors, model="gpt"):
+    """
+    1.st it set cyan and default marks.
+    2.nd it saves the code to /tmp
+    """
+    global count
+    global code_buffer
+    global PIPER
+
+    #print(model, text)
+    #print(text)
+
+    # Define the pattern to match the pair of symbols
+    #pattern = "\s*```"
+    pattern = r"\s*```"
+
+    # Define a counter to keep track of occurrences
+    counter = 0
+
+    # # Define a function to handle the replacement
+    def replace(match ):
+        nonlocal counter
+        nonlocal colors  # from the mother function
+        #print("...MATCH                   ",counter)
+        counter+= 1
+        # ================= OUTPUT MODEL COLORS :  claude= caynish     gpt=yellowish    o1 light green; gemini violetish
+        #https://www.cgl.ucsf.edu/chimerax/docs/user/commands/colornames.html
+        if colors:
+            bs=f"\n{fx.italic}{bg.default}{fg.lightcyan}```"    # code is in cyan
+            es = None
+            es = f"\n```" + texts.color_of_model(model)
+            # if model.find("gpt") >= 0:
+            #     es=f"\n```{fx.default}{bg.default}{fg.lightyellow}" # response is in yellow
+            # elif model.find("o1") >= 0:
+            #     es=f"\n```{fx.default}{bg.default}{fg.gold}" # response is in
+            # elif model.find("o3") >= 0:
+            #     es=f"\n```{fx.default}{bg.default}{fg.khaki}" # response is in
+            # elif model.find("claude") >= 0:
+            #     es=f"\n```{fx.default}{bg.default}{fg.aquamarine}" # response is in
+            # elif model.find("gemini") >= 0:
+            #     es=f"\n```{fx.default}{bg.default}{fg.plum}" # response is in
+            # else:
+            #     es = f"\n```{fx.default}{bg.default}{fg.hotpink}" # response is in
+        else:
+            bs="\n#+begin_src "
+            es="\n#+end_src"
+        if counter % 2 == 1:
+            return f"{bs}"   # return beginsource
+
+            #return f"\n{fx.italic}{bg.default}{fg.lightcyan}{bs} "
+            #return f"{fx.italic}{bg.default}{fg.lightcyan}#+begin_src python :results replace output :session test :exports results "
+        else:
+            return f"{es}"  # return endsource
+            #return f"\n{es}{fx.default}{bg.default}{fg.lightyellow}"
+            #return "{bg.default}{fg.default}"
+
+    #.................................................................START
+    # Use re.sub() with the defined function to replace the occurrences
+    # strange error happend once...
+    if text is not None:
+        new_text = re.sub( pattern ,replace, text)
+    else:
+        new_text = text
+
+    if colors and text is not None:
+        #new_text = f"{fg.lightyellow}{new_text}{fg.default}"
+        #print("D... Model:", model, new_text)
+        qqqq = texts.color_of_model(model)
+
+        #print("D... qqq", qqqq)
+
+        new_text = qqqq + new_text + fg.default
+        # if model.find("gpt") >= 0:
+        #     new_text = f"{fg.lightyellow}{new_text}{fg.default}"
+        # elif model.find("o") >= 0:
+        #     new_text = f"{fg.lightyellow}{new_text}{fg.default}"
+        # else:
+        #     new_text = f"{fg.orchid}{new_text}{fg.default}"
+    else:
+        new_text = f"{new_text}"
+    return new_text
+
+
+# ===============================================================================================
+
+
+def display_response(res, model="gpt"):
+    """
+    not only display in yellow, but extract eventual code and sace conversations.
+    """
+    #print("D... *5*5*")
+    resip = mark_code(res, colors = True, model=model)  # colors for terminal
+    resiw = mark_code(res, colors = False, model=model) # good for emacs
+    #print("D... *6*6*")
+
+    # I always clear the script
+    config.PYSCRIPT_EXISTS = False
+    config.SHSCRIPT_EXISTS = False
+
+
+
+    # sourcecode ..........................................................
+    if resiw.find("#+begin_src")>=0 and  resiw.find("#+end_src")>10:
+        match = re.search(r"#\+begin_src (\w+)", resiw, flags=re.DOTALL)
+        if match:
+            config.CONFIG['sourcecodeext'] = match.group(1)
+            if "python"==config.CONFIG['sourcecodeext']:
+                config.CONFIG['sourcecodeext'] = "python"
+            #--
+        #------
+        resco = re.sub(  r'^.*#\+begin_src(.*?)\n', "",  resiw, flags=re.DOTALL ) # ignore \n
+        resco = re.sub( r'#\+end_src.*$',  "", resco , flags=re.DOTALL) # ignore \n
+        #print("***")
+        operate_context_files.save_source_code( resco )
+        config.SOURCECODE_EXISTS = True
+
+
+
+
+    print( resip ) # fg.yellow, res, fg.default)
+    #print( resiw ) # what will be in conversations.org
+    # print(fg.yellow, res, fg.default)
+
+    if config.CONFIG['current_role'] == 'pythonista' and config.PYSCRIPT_EXISTS:
+        print(f"i...                        {fg.lightgreen}  see1 {operate_context_files.get_filename_my_pyscript()}; run with .e {fg.default}")
+
+    # if config.CONFIG['current_role'] == 'sheller' and  config.SHSCRIPT_EXISTS:
+    #     print(f"i...                        {fg.lightgreen}  see2 {operate_context_files.get_filename_my_shscript()}; run with .e {fg.default}")
+
+    if config.CONFIG['current_role'] == 'piper' and  config.SHSCRIPT_EXISTS:
+        print(f"i...                        {fg.lightgreen}  see3 {operate_context_files.get_filename_my_shscript()}; run with .e {fg.default}")
+
+    if config.SOURCECODE_EXISTS:
+        print(f"i...                        {fg.lightgreen}  see4 {operate_context_files.get_filename_my_sourcecode()}; process with .e {fg.default}")
+
+
+    # CREATE ORG FILE WITH THE RECORD
+    if not os.path.exists(os.path.expanduser( config.CONFIG['conversations']) ):
+        with open( os.path.expanduser( config.CONFIG['conversations']),"a") as f:
+            f.write( texts.org_header )
+            f.write("\n")
+
+    # keep track with ORG
+    with open( os.path.expanduser( config.CONFIG['conversations']),"a") as f:
+        tnow = dt.datetime.strftime(dt.datetime.now(),'%Y/%m/%d %H:%M:%S')
+        f.write(f"*** {config.CONFIG['last_prompt']}\n")
+        # f.write(f" /{tnow} temperature={temp}/\n\n")
+        f.write(f" /{tnow} /\n\n")
+        f.write(resiw) # emacs oriented
+        f.write("\n\n")
+
+    # save last ( for mp3, speak)
+    operate_context_files.save_last_response(f"{resiw}\n")
+
+    ##########################################
+    # READ# ./vety.py one  "`cat /tmp/cmd_ai_last_response.txt`" 3 -r
+    modu = config.READALOUD%len(config.READALOUDSET)
+    #print(f"i...  {bg.green}{fg.white} Reading Aloud is {config.READALOUDSET[modu]} {bg.default}{fg.default}")
+    if config.READALOUDSET[modu] is not None:
+        if config.SOURCECODE_EXISTS or config.PYSCRIPT_EXISTS or config.SHSCRIPT_EXISTS:
+            print("x... CODE present .... no reading...sorry")
+        else:
+            str_to_mp3( resiw,  readme=True, lang=config.READALOUDSET[modu])
+
+
+
+def pipe_mode():
+    """
+    detect mode - pipe or not;    paraMETER IS JUST FOR THE DISPLAY
+    """
+    global MODEL_TO_USE
+    # this was blocking the detection of pipe...
+    #if question is None or question=="" or len(question)<5: return None
+    # LET US CONSIDER IT IS PIPE:
+    #print(f"D... {fg.lightgray}Pipe mode OR NOT???? {fg.default}")
+    if select.select([sys.stdin, ], [], [], 0.0)[0]:
+        #print(f"D... {fg.lightslategray}Pipe mode detected! {fg.default}")
+        mstdin = []
+        for line in sys.stdin:
+            mstdin.append( line.strip() )
+        return mstdin
+    # UNCLESS IT IS NOT
+    else:
+        if config.DEBUG: print(f"D... {fg.lightslategray}Pipe mode NOT detected .... producing more output ")
+        if config.DEBUG: print(f"D... running version  {__version__}  with  the model: /{config.MODEL_TO_USE}/ {fg.default}");
+        # print(f"D... {fg.lightgray} NO Pipe  {fg.default}")
+        return None #print("No pipe")
+
+
+###################################################################################
+#####################################################
+#               MAIN                    ###########################################
+######################################
+###################################################################################
+def check_for_new_version(package="cmd_ai"):
+    """Check the latest version of a package on PyPI."""
+    url = f"https://pypi.org/pypi/{package}/json"
+    response = requests.get(url)
+    if response.status_code == 200:
+        data = response.json()
+        latest_version = data['info']['version']
+        #print(f"{fg.darkslategray}Latest version of {package} on PyPI: {latest_version}{fg.default}")
+        if __version__ != latest_version:
+            print(f"{fg.green}NEW VERSION AVAILABLE: {latest_version} {fg.default}, current=={__version__}")
+    else:
+        print(f"Package {package} not found on PyPI.")
+
+def main(cmd=None,
+         assistant = None, # role, predefined assistant system prompt
+         budget=False, #  CLI ... show budget
+         debug=False,
+         csspeak=False, #
+         enspeak=False, #
+         examples = False, # show
+         g_switch=False, # google search function weather date calendar
+         image_path=None,
+         limit_tokens=None, # default is very small 300
+         model_to_use=None, # override model (see .m command)
+         name = None, # config['zulu'] default name of the AI
+         reset = False, #  for commandline PIPE - forget totaly the context
+         #u_switch = False, # weather function
+         ultilineinput = False, # multiline, enter will be newline, altenter? is enter
+         version = False,
+         zzz = None
+         ):
+    """
+chatGPT commandline interface
+
+ it can run
+ - interactive
+ - as a standalone command ( cmd_ai "Say Hi")
+ - in pipe ( echo "Say Hi" | cmd_ai -a  pythonista) ; default assistant is Ubuntu 22 expert
+Parameters
+  assistant :   ... assistant name: assistant or None | translator | secretary | pythonista | dalle | vision
+  limit_tokens : ...  limit  tokens. 300 is very basic -l
+  ultilineinput : ... tricky, use Alt-Enter instead of enter. Do not use in pipe
+  budget : ... print the budget on this pc, split by month and by day in the last month
+  g_switch : ... add tools - google search -  1st five results
+  version : ... ... just print the program version
+  examples : ... option for curiosity ... show some examples
+  model : ...  default model -  overrides config.
+"""
+    # nomore  u_switch : ... add the ability - include special utilitis - in testing - weather
+    config.DEBUG = debug
+    config.BUDGET = budget
+    #global MODEL_TO_USE
+    #                        HELP help
+    if examples:
+        best_examples.main()
+        return
+
+    if version:
+        print(__version__)
+        print(f"i... default(code) model: /{config.MODEL_TO_USE}/ # override model (-m): /{model_to_use}/ # config(.py) model /{config.CONFIG['model_to_use']}/ ")
+        return
+    # ======== DEFINE THE CONFIG FILE HERE ======== CONFIG FROM HERE
+
+    config.CONFIG["filename"] = "~/.config/cmd_ai/cfg.json"
+    config.load_config()
+
+    config.DEBUG = debug
+    if config.DEBUG:
+        print("D... version:", __version__)
+        print(f"D... default(code) model: /{config.MODEL_TO_USE}/ # override model (-m): /{model_to_use}/ # config(.py) model /{config.CONFIG['model_to_use']}/ ")
+
+
+
+    check_for_new_version()
+
+    if model_to_use is None:
+        config.MODEL_TO_USE = config.CONFIG['model_to_use'] # get from config
+    elif type(model_to_use) == bool:
+        config.client = OpenAI(api_key=api_key.get_api_key())
+        syscom.list_models()
+        print(f"i... default model:  {config.MODEL_TO_USE} #  # config model {config.CONFIG['model_to_use']} ")
+        return
+    else:
+        config.MODEL_TO_USE = model_to_use # commandline ovverride
+        print(f"i... override in model: {config.MODEL_TO_USE}")
+
+    if name is None:  # zulu is default in config
+        name = config.CONFIG['current_name']
+    else:
+        config.CONFIG['current_name'] = name
+
+    # ================================= changes to config FROM HERE ==========
+    if limit_tokens is not None:
+        config.CONFIG['limit_tokens'] = limit_tokens
+
+    # First - tell if pipe mode: ------------------------
+    config.pipeinput = pipe_mode()  # detect pipe mode         # system prompt must be linux expert
+    if config.pipeinput is None:
+        # this is either interactive or just a command ....
+
+        # PRICING AND BUDGET
+        # cmd is None => commandline but not pipe ..... skip this
+        if cmd is None:
+            if config.BUDGET:
+                calc_budget.show_budget( budget )
+                return
+
+        if config.DEBUG: print(f"D... {fg.lightslategray}initial  token limit: {config.CONFIG['limit_tokens']}    {fg.default}"   )
+        if config.DEBUG: print("                            ", bg.cyan, ".h for help;  .r for reset", bg.default)
+
+
+    # ======================================= recover api token and save to config
+    if config.CONFIG["api_key"] is None:
+        res = api_key.get_api_key()
+        if res is not None:
+            config.CONFIG["api_key"] = res
+            res = input("> save api_key to config?   y/n")
+            if res == "y":
+                print(config.CONFIG["api_key"])
+                config.save_config()
+            else:
+                print(" ... not now ...")
+
+    # =============== global variables
+    config.tokens = 0
+    config.started_task = dt.datetime.now()
+    config.started_total = dt.datetime.now()
+
+    # in CON config.PYSCRIPT = "/tmp/gpt_code.py"
+    config.PYSCRIPT_EXISTS = False
+    config.SHSCRIPT_EXISTS = False
+
+
+    config.client = OpenAI(api_key=api_key.get_api_key())
+    config.myPromptSession = PromptSession(
+        history=FileHistory(os.path.expanduser("~/.cmd_ai.history")) #, multiline=True
+    )
+
+    # config.load_config()
+    # config.save_config()
+
+    if cmd == "savecfg":
+        # i dont know why this???
+        config.save_config()
+        print("i... config saved")
+        sys.exit(0)
+
+
+    if config.pipeinput is not None and ultilineinput:
+        print(fg.red, "X... no multiline input allowed for PIPE mode") # it crashes
+        sys.exit(1)
+
+
+    # and if reset => destroy all
+    totsize,totlines = 0, 0
+    if reset:
+        print(f"i... {fg.lightslategray}I am reseting all history...  from the next question, all is forgotten {fg.default}")
+        config.messages = []  # i hope it automaticall assigns a role
+        config.PYSCRIPT_EXISTS = False
+        config.SHSCRIPT_EXISTS = False
+        totsize,totlines = 0, 0
+    else:
+        totsize,totlines = operate_context_files.load_all_config_messages()
+
+
+    # ***********************************************************************************  MAIN INTERACTIVE
+    # ***********************************************************************************  MAIN INTERACTIVE
+    # ***********************************************************************************  MAIN INTERACTIVE
+    if (config.pipeinput is None) and (cmd is None):
+        print(f"i... My name is {fg.orange}{config.CONFIG['current_name']}{fg.default}, I remember {fg.orange}{totlines}{fg.default} lines from previous conversation. Model is currently {fg.orange}{config.MODEL_TO_USE}{fg.default}")
+
+        #print("D... main ENTRY  None None...   also switches maybe activated....", assistant)
+        if assistant == "translator":
+            if len(config.messages)>0:
+                config.messages[0]={"role": "assistant", "content": texts.role_translator}
+            else:
+                config.messages.append({"role": "assistant", "content": texts.role_translator})
+        elif assistant == "assistant":
+            if len(config.messages)>0:
+                config.messages[0]={"role": "assistant", "content": texts.role_assistant} # replace role
+            else:
+                config.messages.append({"role": "assistant", "content": texts.role_assistant})
+        elif assistant == "secretary":
+            if len(config.messages)>0:
+                config.messages[0]={"role": "assistant", "content": texts.role_secretary} # replace role secretary
+            else:
+                config.messages.append({"role": "assistant", "content": texts.role_secretary})
+        # elif assistant == "sheller":
+        #     if len(config.messages)>0:
+        #         config.messages[0]={"role": "assistant", "content": texts.role_sheller}
+        #     else:
+        #         config.messages.append({"role": "assistant", "content": texts.role_sheller})
+        elif assistant == "pythonista":
+            if len(config.messages)>0:
+                config.messages[0]={"role": "assistant", "content": texts.role_pythonista}
+            else:
+                config.messages.append({"role": "assistant", "content": texts.role_pythonista})
+        elif assistant == "dalle":
+            if len(config.messages)>0:
+                config.messages[0]={"role": "assistant", "content": texts.role_dalle}
+            else:
+                config.messages.append({"role": "assistant", "content": texts.role_dalle})
+        elif assistant == "vision":
+            if len(config.messages)>0:
+                config.messages[0]={"role": "assistant", "content": texts.role_vision}
+            else:
+                config.messages.append({"role": "assistant", "content": texts.role_vision})
+        # ------------------- just the switch on CLI 0000000000000000000000000000000
+        if assistant is not None:
+            config.CONFIG["current_role"] = assistant
+        else:
+            print("i... current role is ", assistant, " ... I am using: ", config.CONFIG["current_role"])
+
+
+
+        # ? g
+        if g_switch: # for cmdline, I operate the switches here
+            process_syscom(".g")
+
+        # print("========================= NONE PIPE MODE ===================")
+        while True:
+
+            SYSCOM = False
+            inp = config.myPromptSession.prompt("> ", multiline=ultilineinput)
+            config.started_task = dt.datetime.now()
+
+            #print("D:1")
+            inp = inp.strip()
+            if config.CONFIG["current_role"] == "pythonista" and len(inp)>2  and  inp[0]!="." :
+                inp = f"{inp} (Write python code)."
+            # NOT USED ANYMORE -------------------------- NOT USED sheller
+            if config.CONFIG["current_role"] == "sheller" and len(inp)>2 and  inp[0]!="." :
+                inp = f"{inp} (Write bash code if needed)."
+
+            if inp.strip() == "":
+                continue
+            if len(inp.strip()) == 1:
+                print(f"!... {fg.red}  one letter prompt not allowed, use .h  {fg.default}")
+                continue
+
+            if len(inp) > 0 and inp[0] == ".":
+                # System command .... root style ...
+                SYSCOM = True
+                print(fg.palegreen, "...command: ",inp.strip(), end="")
+            else:
+                config.CONFIG['last_prompt'] = inp
+                #print(fg.white, inp)
+            print(fg.default)
+
+            if SYSCOM:
+                process_syscom(inp)
+            elif config.CONFIG["current_role"] == "dalle":
+                print("D... in DALLE role ...")
+                res = g_askdalle(inp)   # *************************************
+                print("D...  done:", res)
+            else:
+                # ================================================vision OR gpt
+                stoplength = False
+                if config.CONFIG["current_role"] == "vision":
+                    print("D... in VISION role ...")
+                    # prompt, -i image path -m model
+                    res, stoplength, model_used = g_askvision(inp, image_path=image_path, model=config.MODEL_TO_USE)   # **************
+                else:
+
+                    if config.DEBUG: print(f"D...                                  {config.MODEL_TO_USE} @2")
+                    #res,stoplength, model_used= g_askme.g_ask_chat(inp, model=config.MODEL_TO_USE)    # *************************************
+                    res,stoplength, model_used= g_askme.g_ask_anyone(inp, model=config.MODEL_TO_USE)    # *************************************
+                    if model_used is not None:
+                        config.MODEL_TO_USE = model_used
+
+                # --------------------- and I continue as normal--------------append response and SAVE
+                # 777 REMOVING
+                #config.messages.append( {"role":"assistant", "content":res} ) # always the pair:  user/assistant
+                operate_context_files.save_all_config_messages()
+
+                # not syscom not dalle; PROMPT SITUATION NOT CMDLINE
+                #print("D....p  ", config.MODEL_TO_USE)
+                display_response(res, model=config.MODEL_TO_USE)
+                if type(stoplength) == str and stoplength == "stop":
+                    pass#print(f"!... {fg.red} stopped because : {stoplength} ; To increase tokens, try .l {fg.default}")
+                elif type(stoplength) == str:
+                    print(f"!... {fg.red} stopped because : <<< {stoplength} >>> {fg.default}")
+                    if stoplength == "limit": #???
+                        print(f" ... {fg.maroon}          ; To increase tokens, try .l {fg.default}")
+                    else:
+                        print(f" ... {fg.maroon}          ; {stoplength} {fg.default}")
+                elif type(stoplength) ==dict:
+                    #if stoplength == "select":
+                    print(f" ... {fg.maroon}          ; KEYS= {stoplength.keys()}  {fg.default}")
+                    print(f" ... {fg.maroon}          ; To accept one response: PRESS  +KEY {fg.default}")
+                    mkey = input("Select what to accept or just ENTER >")
+                    mresult = [key for key in stoplength.keys() if key.startswith(mkey)]
+                    if len(mresult) > 0:
+                        mkey2 = mresult[0]
+                        config.messages.append(  {"role": "user", "content": inp } )
+                        config.messages.append(  {"role": "assistant", "content": stoplength[mkey2] } )
+                    else:
+                        print("this dialog is forgotten...")
+
+    else:# cmd is not None:  --------------------------------  PIPE ----------------
+         # cmd is not None:  --------------------------------  PIPE ----------------
+         # cmd is not None:  --------------------------------  PIPE ----------------
+         # cmd is not None:  --------------------------------  PIPE ----------------
+         # cmd is not None:  --------------------------------  PIPE ----------------
+         # print("========================= fire and forget mode ===================")
+         # commandline.  OR pipe on commandline ====================================
+         #  this gets more complex with --assistant  SWITCH
+         #
+        #print("D... ENTRY else...")
+
+        inp = cmd # inp is the text comming with the cmd ...... echo 'pipe_input' | cmd_ai 'inp'
+        if inp is None: inp = "" # protection for pipe and different assistant
+
+        pipe_input = ""
+        if config.pipeinput is not None:
+            pipe_input = '\n'.join(config.pipeinput)
+
+        config.silent = True # omit lot of messages
+
+        if g_switch: # for cmdline, I operate the switches here
+            process_syscom(".g")
+        # elif g_switch:
+        #     process_syscom(".g")
+
+        if csspeak:#_switch:
+            config.READALOUD = 2 #
+        elif enspeak:#_switch:
+            config.READALOUD = 1 #
+        #print("cs=",vcs,"en=",ven)
+        #str_to_mp3( "Žluťoučký kůň",  readme=True, lang=config.READALOUDSET[config.READALOUD%len(config.READALOUDSET)])
+
+        if assistant is None: # means default piper
+            #print(f"i...  {bg.green}{fg.white} Ubuntu expert {bg.default}{fg.default}")
+            if len(config.messages) == 0:
+                config.messages.append(  {"role": "assistant", "content": texts.role_piper} )
+                config.CONFIG["current_role"] = "piper"
+            #else:
+            #    config.messages.append({"role": "system", "content": texts.role_piper})
+            # inp = f"Here is a linux command output:\n```{pipe_input}```\n{inp}"
+        else:
+            print(f"i...  {bg.green}{fg.white} assistant role override: {assistant}  {bg.default}{fg.default}")
+            if assistant == "translator":
+                if len(config.messages)>0:
+                    config.messages[0]={"role": "assistant", "content": texts.role_translator}
+                else:
+                    config.messages.append({"role": "assistant", "content": texts.role_translator})
+            elif assistant == "assistant":
+                if len(config.messages)>0:
+                    config.messages[0]={"role": "assistant", "content": texts.role_assistant} # replace role
+                else:
+                    config.messages.append({"role": "assistant", "content": texts.role_assistant})
+            elif assistant == "secretary":
+                if len(config.messages)>0:
+                    config.messages[0]={"role": "assistant", "content": texts.role_secretary} # replace role secretary
+                else:
+                    config.messages.append({"role": "assistant", "content": texts.role_secretary})
+            # elif assistant == "sheller":
+            #     if len(config.messages)>0:
+            #         config.messages[0]={"role": "assistant", "content": texts.role_sheller}
+            #     else:
+            #         config.messages.append({"role": "assistant", "content": texts.role_sheller})
+            elif assistant == "pythonista":
+                if len(config.messages)>0:
+                    config.messages[0]={"role": "assistant", "content": texts.role_pythonista}
+                else:
+                    config.messages.append({"role": "assistant", "content": texts.role_pythonista})
+            elif assistant == "dalle":
+                if len(config.messages)>0:
+                    config.messages[0]={"role": "assistant", "content": texts.role_dalle}
+                else:
+                    config.messages.append({"role": "assistant", "content": texts.role_dalle})
+            elif assistant == "vision":
+                if len(config.messages)>0:
+                    config.messages[0]={"role": "assistant", "content": texts.role_vision}
+                else:
+                    config.messages.append({"role": "assistant", "content": texts.role_vision})
+            else:
+                print("X... NOT KNOWN ASSISTANT:  translator | assistant | secretary |  pythonista | piper | dalle | vision")
+                sys.exit(1)
+
+
+            config.CONFIG["current_role"] = assistant
+            if  pipe_input is None:
+                print(f"X... {fg.red} there is nothing in pipe, but I dont care...")
+            # SPECIFIC HANDLING:
+            if inp is None:  # strange no input
+                print(f"X... {fg.red} there is nothing in input ... !{fg.default}")
+                if  pipe_input is None:
+                    # crash if also not pipe
+                    sys.exit(1)
+                #or replace iinp with pipe !OK
+                inp = f"{pipe_input}"
+            else:# inp not none but ....
+                if  pipe_input is None or (len(pipe_input) == 0): # pipe is none, where is the problem?
+                    #
+                    #
+                    #print(f"D... {fg.yellow} pipe_input is None, going with {inp} ... !")
+                    #inp = inp
+                    pass #inp = f"{inp}"
+                else:# pipe not none , Prefer Pipe????
+                    # uv run ./bin_cmd_ai.py -r -a secretary "What is the time? TIME?" -g
+                    #print(f"D... {fg.yellow} pipe input ... !{fg.default}  /{pipe_input}/{inp}/")
+                    inp = pipe_input
+                    #f"Here is an input:\n```{pipe_input}```\n{inp}"
+
+
+
+
+        # if config.pipeinput is not None: # pipe + cmd
+        #     print(f"i...  {bg.green}{fg.white} Using PIPE {bg.default}{fg.default}")
+        #     # print(pipe_input)
+        #     if assistant is None:       # (Write bash code if required). ....  ??
+        #         inp = f"Here is some linux command output:\n```{pipe_input}```\n{inp}"
+        #     else:
+        #         # I hope that assistant knows what to do
+        #         if inp is not None or len(inp)> 0:
+        #             print(fg.red,f"i... disregarding text: /{inp}/", fg.default)
+        #         inp = pipe_input
+        # #print(fx.italic,inp, fx.default,"\n")
+
+        if assistant != "dalle":
+            res = ""
+            stoplength = False
+            # --------------------------------------------------------
+            if assistant == "vision":
+                res, stoplength, model_used = g_askvision(inp, image_path=image_path, model=config.MODEL_TO_USE)   # **************
+                #res,stoplength = g_askvision(inp)
+            else:
+                if config.DEBUG: print(f"D...                                  {config.MODEL_TO_USE} 3")
+                res,stoplength, model_used = g_askme.g_ask_anyone(inp, model=config.MODEL_TO_USE)
+                if model_used is not None:
+                    config.MODEL_TO_USE = model_used
+
+            #= ----------------------------------------------
+            # 777 REMOVING
+            #config.messages.append( {"role":"assistant", "content":res} ) # always user/assistant
+
+            curmessages = operate_context_files.get_filename_my_context()
+            try:
+                mmssgg = config.messages
+                mmssgg = [item for item in mmssgg if isinstance(item, dict)]
+                #print( mmssgg )
+                #print(json.dumps( mmssgg, indent=2, separators=(',', ': ')) )
+                with open( os.path.expanduser( curmessages ), "w" )  as f:
+                    f.write( json.dumps( mmssgg, indent=2, separators=(',', ': ')) )
+                    # f.write( config.messages ) #str(cmd) )
+            except:
+                print(f"X... problem to jsonify messages, {fg.red}corrupting{fg.default} {os.path.expanduser( curmessages )}")
+
+
+            # NOT DALLE, probably cmdline
+            #print("D....c ", config.MODEL_TO_USE)
+            display_response(res, model=config.MODEL_TO_USE)
+            if type(stoplength) == str:
+                if stoplength == "stop":
+                    pass
+                else:
+                    print(f"!... {fg.red} stopped because {stoplength} {fg.default}")
+            else:
+                print(f"!... {fg.red} stopped because : not enough tokens, try .l {fg.default}")
+
+            if config.SHSCRIPT_EXISTS:
+                click.echo('Run the code? [yn] ', nl=False)
+                c = click.getchar()
+                click.echo()
+                if c == 'y':
+                    click.echo('We will go on')
+                    process_syscom(".e")
+                elif c == 'n':
+                    click.echo('Abort!')
+                else:
+                    click.echo('not n nor y : Abort ')
+                #if click.confirm('Run the code?', abort=True, default=False):
+                #    process_syscom(".e")
+
+        else:
+
+            res = g_askdalle(inp)
+
+
+
+# ====================================================================
+
+if __name__ == "__main__":
+    Fire(main)
