@@ -1,0 +1,231 @@
+# Daily Lead Distribution Configuration - Test Campaign
+# Generated on: 2024-12-19 15:30:00
+# Template: custom
+# Campaign: Test Campaign
+# 
+# This configuration file controls the daily lead distribution system.
+# Please review and modify the settings below before running the distribution.
+#
+# Key sections:
+# - odoo_connection: Odoo database connection settings
+# - database_connection: MySQL database connection for tracking and analytics
+# - campaign: Campaign-specific settings
+# - salesperson_selection: How to select eligible salespeople
+# - lead_finding: Criteria for finding distributable leads
+# - distribution: Strategy for distributing leads
+# - tracking: Performance monitoring settings
+# - reporting: Report generation settings
+# - execution: Runtime behavior settings
+#
+# Environment Variables:
+# ODOO_HOST, ODOO_DB, ODOO_USERNAME, ODOO_PASSWORD - Odoo connection
+# TRACKING_DB_HOST, TRACKING_DB_NAME, TRACKING_DB_USER, TRACKING_DB_PASSWORD - MySQL tracking database
+#
+
+version: "1.0"
+name: "Daily Lead Distribution - Test Campaign"
+description: "Test configuration for new campaign distribution with 30-day window and round robin strategy"
+tags:
+  - "lead-distribution"
+  - "automation"
+  - "sales"
+  - "odoo"
+  - "test"
+author: "Sales Operations Team"
+created_date: "2024-12-19"
+last_modified: "2024-12-19"
+
+odoo_connection:
+  host: "${ODOO_HOST}"
+  port: 8069
+  database: "${ODOO_DB}"
+  username: "${ODOO_USERNAME}"
+  password: "${ODOO_PASSWORD}"
+
+database_connection:
+  host: "${TRACKING_DB_HOST}"
+  port: 3306
+  database: "${TRACKING_DB_NAME}"
+  username: "${TRACKING_DB_USER}"
+  password: "${TRACKING_DB_PASSWORD}"
+
+campaign:
+  name: "Test Campaign"
+  description: "Test campaign distribution with 30-day window"
+  target_campaign: "Test Campaign"
+  distribution_frequency: "daily"
+  active: true
+
+salesperson_selection:
+  source_type: "file"
+  source_config:
+    file_path: "config/voice_salespeople.txt"
+  default_target_leads: 220
+  default_level: "mid_level"
+  default_campaign: "Voice"
+  campaign_filtering:
+    enabled: false
+    target_campaign: "Test Campaign"
+    include_inactive_salespeople: false
+    exclude_specific_users: []
+  filters:
+    active_only: true
+    has_permissions: true
+    min_experience_level: 1
+    max_workload_percentage: 500
+
+lead_finding:
+  date_range:
+    older_than_days: 0
+    younger_than_days: 30
+    exclude_weekends: false
+    exclude_holidays: false
+  user_exclusion:
+    enabled: true
+    excluded_users: ["Administrator", "Patrick Adler"]
+    exact_match: true
+    description: "Exclude leads assigned to system/admin users"
+  web_sources:
+    enabled: true  # Enable web source filtering with real data
+    source_type: "file"
+    source_config:
+      file_path: "config/web_sources.txt"
+    case_sensitive: false
+    exact_match: false
+    match_mode: "exact"
+  campaigns:
+    enabled: false  # Disable campaign filtering
+    types: []  # Empty list - when enabled=false, campaign filtering is skipped
+    case_sensitive: false
+    exact_match: false
+    match_mode: "exact"
+  sales_filter:
+    enabled: true
+    opportunity_table: "crm.lead"
+    opportunity_partner_field: "partner_id"
+    lead_partner_field: "partner_id"
+    opportunity_type_filter: "opportunity"  # Filter for type='opportunity' in crm.lead
+    exclude_opportunity_stages: []
+    include_opportunity_stages: []
+    opportunity_date_range:
+      enabled: false
+      field_name: "date_open"
+      days_back: 365
+    log_excluded_leads: false
+    log_level: "info"
+  dropback_filter:
+    enabled: true
+    age_threshold:
+      days: 30
+      field_name: "source_date"
+      use_business_days: false
+    web_source_campaign_mapping:
+      voice_sources: []
+      apple_sources: []
+      default_campaign: "default"
+    campaign_assignments:
+      default: "Patrick Adler"
+    assignment_config:
+      web_source_field: "source_id"
+      web_source_field_type: "many2one"
+      assign_immediately: true
+      update_status: true
+      dropback_status: "dropback"
+      override_existing_assignments: true
+    logging:
+      log_dropback_assignments: true
+      log_level: "info"
+      include_lead_details: false
+  additional_filters:
+    status:
+      enabled: true  # Enable status filtering
+      values: ["fpfu", "utr", "fpnc", "mfpnc", "call_back", "in_program", "dont_call","dnc"]  # Include these statuses
+      exclude: ["new"]  # Exclude these statuses (takes precedence)
+      case_sensitive: false
+      exact_match: false
+      match_mode: "exact"
+    exclude_sale_statuses:
+      enabled: false
+      values:
+        - "sale_made"
+        - "sold"
+        - "completed"
+        - "won"
+        - "closed_won"
+        - "deal_closed"
+        - "sale_complete"
+        - "deal_done"
+      case_sensitive: false
+      match_mode: "partial"
+      description: "Exclude leads with statuses indicating a sale has been made"
+    exclude_dnc: true
+    dnc_statuses:
+      - "dnc"
+      - "do_not_call"
+      - "dont_call"
+      - "no_call"
+      - "blocked"
+      - "opt_out"
+    exclude_tags:
+      values:
+        - "do_not_distribute"
+        - "test"
+        - "archived"
+      case_sensitive: false
+      match_mode: "exact"
+    include_tags:
+      values: []
+      case_sensitive: false
+      match_mode: "exact"
+    required_fields: []
+    priority_range:
+      min: 1
+      max: 5
+    assignment_filters:
+      exclude_assigned: true
+      exclude_closed: true
+      exclude_inactive_users: true
+
+distribution:
+  strategy: "round_robin"
+  level_based:
+    levels:
+      senior:
+        target_leads: 820
+        priority: 1
+      mid_level:
+        target_leads: 820
+        priority: 2
+      junior:
+        target_leads: 820
+        priority: 3
+    fill_strategy: "highest_priority_first"
+    allow_overflow: false
+    overflow_limit: 10
+  round_robin_override:
+    enabled: true
+
+tracking:
+  enabled: true
+  track_individual_assignments: true
+  track_pre_post_counts: true
+  track_distribution_summary: true
+  retention_days: 365
+  archive_old_data: true
+  batch_size: 1000
+  async_tracking: false
+
+reporting:
+  generate_report: true
+  report_format: "csv"
+  report_location: "reports/"
+  include_analytics: true
+  email_notification: false
+
+execution:
+  dry_run: false
+  max_leads_per_run: 100
+  batch_size: 50
+  retry_failed: true
+  max_retries: 3
+  log_level: "INFO" 

@@ -1,0 +1,239 @@
+# Daily Lead Distribution Configuration
+# Generated on: 2025-08-10 16:45:09
+# Template: basic
+# 
+# This configuration file controls the daily lead distribution system.
+# Please review and modify the settings below before running the distribution.
+#
+# Key sections:
+# - odoo_connection: Odoo database connection settings
+# - database_connection: MySQL database connection for tracking and analytics
+# - campaign: Campaign-specific settings
+# - salesperson_selection: How to select eligible salespeople
+# - lead_finding: Criteria for finding distributable leads
+# - distribution: Strategy for distributing leads
+# - tracking: Performance monitoring settings
+# - reporting: Report generation settings
+# - execution: Runtime behavior settings
+#
+# Environment Variables:
+# ODOO_HOST, ODOO_DB, ODOO_USERNAME, ODOO_PASSWORD - Odoo connection
+# TRACKING_DB_HOST, TRACKING_DB_NAME, TRACKING_DB_USER, TRACKING_DB_PASSWORD - MySQL tracking database
+#
+
+"version": "1.0"
+"name": "Daily Lead Distribution"
+"description": "Automated daily lead distribution system"
+"tags":
+- "lead-distribution"
+- "automation"
+- "sales"
+- "odoo"
+"author": "Sales Operations Team"
+"created_date": "2024-01-15"
+"last_modified": "2024-01-15"
+"odoo_connection":
+  "host": "${ODOO_HOST}"
+  "port": 8069
+  "database": "${ODOO_DB}"
+  "username": "${ODOO_USERNAME}"
+  "password": "${ODOO_PASSWORD}"
+"database_connection":
+  "host": "${TRACKING_DB_HOST}"
+  "port": 3306
+  "database": "${TRACKING_DB_NAME}"
+  "username": "${TRACKING_DB_USER}"
+  "password": "${TRACKING_DB_PASSWORD}"
+"campaign":
+  "name": "Voice"
+  "description": "Voice/telephony sales campaign distribution"
+  "target_campaign": "Voice"
+  "distribution_frequency": "daily"
+  "active": true
+"salesperson_selection":
+  "source_type": "campaign_table"
+  "source_config":
+    "campaign_table":
+      "file_path": "config/salesperson_campaigns.csv"
+  "campaign_filtering":
+    "enabled": true
+    "target_campaign": "Voice"
+    "include_inactive_salespeople": false
+    "exclude_specific_users":
+    - "Drew Cox"
+    - "Patrick Adler"
+    - "Administrator"
+    - "Marc Spiegel"
+  "filters":
+    "active_only": true
+    "has_permissions": true
+    "min_experience_level": 1
+    "max_workload_percentage": 90
+    "team_filter": "Voice"
+"lead_finding":
+  "date_range":
+    "older_than_days": 0
+    "younger_than_days": 30
+    "exclude_weekends": false
+    "exclude_holidays": false
+  "web_sources":
+    "source_type": "file"
+    "source_config":
+      "file_path": "config/web_sources.txt"
+    "case_sensitive": false
+    "exact_match": false
+    "match_mode": "exact"
+  "campaigns":
+    "enabled": true
+    "types":
+    - "voice_campaign_2024"
+    "case_sensitive": false
+    "exact_match": false
+    "match_mode": "exact"
+  "sales_filter":
+    "enabled": true
+    "opportunity_table": "crm.opp"
+    "opportunity_partner_field": "partner_id"
+    "lead_partner_field": "partner_id"
+    "exclude_opportunity_stages":
+    - "cancelled"
+    - "lost"
+    - "closed_lost"
+    "include_opportunity_stages": []
+    "opportunity_date_range":
+      "enabled": false
+      "field_name": "date_open"
+      "days_back": 365
+    "log_excluded_leads": true
+    "log_level": "info"
+  "dropback_filter":
+    "enabled": true
+    "age_threshold":
+      "days": 30
+      "field_name": "source_date"
+      "use_business_days": false
+    "web_source_campaign_mapping":
+      "voice_sources":
+      - "facebook_voice"
+      - "google_ads_voice"
+      - "voice_landing_page"
+      - "voice_campaign_2024"
+      "apple_sources":
+      - "facebook_apple"
+      - "google_ads_apple"
+      - "apple_landing_page"
+      - "apple_campaign_2024"
+      "default_campaign": "default"
+    "campaign_assignments":
+      "Voice": "Pat Adler"
+      "Apple": "Kevin Levonas"
+      "default": "Administrator"
+    "assignment_config":
+      "web_source_field": "source_id"
+      "web_source_field_type": "many2one"
+      "assign_immediately": true
+      "update_status": true
+      "dropback_status": "dropback"
+      "override_existing_assignments": true
+    "logging":
+      "log_dropback_assignments": true
+      "log_level": "info"
+      "include_lead_details": false
+  "additional_filters":
+    "status":
+      "values":
+      - "new"
+      - "in_progress"
+      - "call_back"
+      - "utr"
+      "case_sensitive": false
+      "exact_match": false
+      "match_mode": "exact"
+    "exclude_sale_statuses":
+      "enabled": true
+      "values":
+      - "sale_made"
+      - "sold"
+      - "completed"
+      - "won"
+      - "closed_won"
+      - "deal_closed"
+      "case_sensitive": false
+      "match_mode": "partial"
+      "description": "Exclude leads with statuses indicating a sale has been made"
+    "exclude_dnc": true
+    "dnc_statuses":
+    - "dnc"
+    - "do_not_call"
+    - "dont_call"
+    - "no_call"
+    - "blocked"
+    - "opt_out"
+    "exclude_tags":
+      "values":
+      - "do_not_distribute"
+      - "test"
+      - "archived"
+      "case_sensitive": false
+      "match_mode": "exact"
+    "include_tags":
+      "values":
+      - "hot_lead"
+      - "vip"
+      - "priority"
+      "case_sensitive": false
+      "match_mode": "exact"
+    "required_fields":
+    - "name"
+    - "email"
+    "priority_range":
+      "min": 1
+      "max": 5
+    "assignment_filters":
+      "exclude_assigned": true
+      "exclude_closed": true
+      "exclude_inactive_users": true
+    "activity_deadline_filter":
+      "enabled": true
+      "exclude_with_deadline": true
+      "description": "Exclude leads that have a valid activity_date_deadline field"
+"distribution":
+  "strategy": "level_based"
+  "level_based":
+    "levels":
+      "senior":
+        "target_leads": 200
+        "priority": 1
+      "mid_level":
+        "target_leads": 150
+        "priority": 2
+      "junior":
+        "target_leads": 100
+        "priority": 3
+    "fill_strategy": "highest_priority_first"
+    "allow_overflow": false
+    "overflow_limit": 10
+  "round_robin_override":
+    "enabled": false
+"tracking":
+  "enabled": true
+  "track_individual_assignments": true
+  "track_pre_post_counts": true
+  "track_distribution_summary": true
+  "retention_days": 365
+  "archive_old_data": true
+  "batch_size": 1000
+  "async_tracking": false
+"reporting":
+  "generate_report": true
+  "report_format": "csv"
+  "report_location": "reports/"
+  "include_analytics": true
+  "email_notification": false
+"execution":
+  "dry_run": false
+  "max_leads_per_run": 50000
+  "batch_size": 50
+  "retry_failed": true
+  "max_retries": 3
+  "log_level": "INFO"

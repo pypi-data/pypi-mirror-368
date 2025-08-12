@@ -1,0 +1,42 @@
+# Test configuration for step-through mode
+version: "1.0"
+name: "Test Step-Through Distribution"
+description: "Test configuration for step-through mode demonstration"
+
+odoo_connection:
+  host: "localhost"
+  port: 8069
+  database: "test_db"
+  username: "test_user"
+  password: "test_password"
+
+campaign:
+  name: "Voice"
+  target_campaign: "Voice"
+  active: true
+
+salesperson_selection:
+  source_type: "list"
+  source_config:
+    salespeople_list:
+      - "alice_smith"
+      - "bob_johnson"
+      - "carol_williams"
+  filters:
+    active_only: true
+
+lead_finding:
+  date_range:
+    older_than_days: 0
+    younger_than_days: 30
+  additional_filters:
+    status: ["new", "in_progress"]
+    exclude_dnc: true
+    dnc_statuses: ["dnc", "do_not_call"]
+
+distribution:
+  strategy: "round_robin"
+
+execution:
+  dry_run: false
+  log_level: "INFO" 
