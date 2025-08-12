@@ -1,0 +1,93 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2023 Benjamin Thomas Schwertfeger
+# GitHub: https://github.com/btschwertfeger
+#
+# Template workflow to build the project for a specific os
+# and Python version.
+#
+
+name: Build
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        type: string
+        required: true
+      python-version:
+        type: string
+        required: true
+
+jobs:
+  Build:
+    runs-on: ${{ inputs.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0 # IMPORTANT: otherwise the current tag does not get fetched and the build version gets worse
+
+      - name: Set up Python ${{ inputs.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Check git status (not Windows)
+        if: runner.os != 'Windows'
+        run: |
+          if [[ -z "$(git status --porcelain)" ]]; then
+            echo "No changes found."
+          else
+            echo "Changes detected. Please commit or discard changes before publishing."
+            git status --porcelain
+            exit 1
+          fi
+
+      - name: Check git status (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          if (-not (git status --porcelain)) {
+              Write-Output "No changes found."
+          } else {
+              Write-Output "Changes detected. Please commit or discard changes before publishing."
+              git status --porcelain
+              exit 1
+          }
+
+      - name: Build Linux
+        if: runner.os == 'linux'
+        run: |
+          uv build .
+          uv tool install dist/kraken_rebalance_bot*.whl
+          uv run rebalance --help
+
+      - name: Build macOS
+        if: runner.os == 'macOS'
+        run: |
+          uv build .
+          uv tool install dist/kraken_rebalance_bot*.whl
+          uv run rebalance --help
+
+      - name: Build Windows
+        if: runner.os == 'Windows'
+        run: |
+          uv build .
+          try {
+              $WHEEL = Get-ChildItem -Path ./dist -Filter "kraken_rebalance_bot*.whl" -ErrorAction Stop
+              uv tool install $WHEEL#
+              uv run rebalance --help
+          } catch {
+              Write-Error "Error: .whl file not found in .\dist."
+              exit 1
+          }
+
+      - name: Store the distribution packages
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        # upload artifacts with the oldest supported version
+        if: runner.os == 'linux' && inputs.python-version == '3.11'
+        with:
+          name: python-package-distributions
+          path: dist/
