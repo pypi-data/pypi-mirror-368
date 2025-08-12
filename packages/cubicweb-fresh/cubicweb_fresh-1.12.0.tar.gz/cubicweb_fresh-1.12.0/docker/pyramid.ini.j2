@@ -1,0 +1,40 @@
+{% set secure = "yes" if CW_BASE_URL.startswith('https://') else "no" -%}
+[main]
+cubicweb.session.secret = {{ PYRAMID_SESSION_SECRET }}
+cubicweb.auth.authtkt.session.timeout = {{ COOKIE_LIFETIME }}
+cubicweb.auth.authtkt.session.reissue_time = {{ COOKIE_LIFETIME }}
+cubicweb.auth.authtkt.session.max_age = {{ COOKIE_LIFETIME }}
+cubicweb.auth.authtkt.session.secret = {{ PYRAMID_AUTHTKT_SESSION_SECRET }}
+cubicweb.auth.authtkt.session.secure = {{ secure }}
+cubicweb.auth.authtkt.session.path = {{ PYRAMID_AUTHTKT_SESSION_PATH or '/' }}
+cubicweb.auth.authtkt.persistent.timeout = {{ COOKIE_LIFETIME }}
+cubicweb.auth.authtkt.persistent.reissue_time = {{ COOKIE_LIFETIME }}
+cubicweb.auth.authtkt.persistent.max_age = {{ COOKIE_LIFETIME }}
+cubicweb.auth.authtkt.persistent.secret = {{ PYRAMID_AUTHTKT_PERSISTENT_SECRET }}
+cubicweb.auth.authtkt.persistent.secure = {{ secure }}
+cubicweb.auth.authtkt.persistent.path = {{ PYRAMID_AUTHTKT_SESSION_PATH or '/' }}
+{% if REDIS_SESSIONS_URL -%}
+redis.sessions.url = {{ REDIS_SESSIONS_URL }}
+redis.sessions.secret = {{ REDIS_SESSIONS_SECRET }}
+redis.sessions.timeout = {{ COOKIE_LIFETIME }}
+redis.sessions.prefix = {{ CW_INSTANCE }}:
+redis.sessions.cookie_path = {{ PYRAMID_AUTHTKT_SESSION_PATH or '/' }}
+pyramid.includes =
+  pyramid_session_redis
+cubicweb.includes =
+  cubicweb.pyramid.auth
+{% else %}
+cubicweb.includes =
+  cubicweb.pyramid.auth
+  cubicweb.pyramid.default_session
+{% endif %}
+pyramid.csrf_trusted_origins = {{ PYRAMID_CSRF_TRUSTED_ORIGINS }}
+
+
+[filter:cors]
+use = egg:wsgicors#middleware
+policy=free
+free_origin=*
+free_headers=*
+free_expose_headers=Allow,Link
+free_methods=HEAD, OPTIONS, GET, POST, PATCH, PUT, DELETE
