@@ -1,0 +1,52 @@
+# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+
+name: Pegasus CI
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ['3.10', '3.11', '3.12', '3.13']
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        sudo apt -q update
+        sudo apt install -y libfftw3-dev default-jdk git
+        python -m pip install --upgrade pip
+        python -m pip install flake8 pytest setuptools wheel cython
+        python -m pip install "zarr==2.*"
+        python -m pip install git+https://github.com/lilab-bcb/pegasusio@master
+        python -m pip install -e .[louvain,torch,forceatlas,pseudobulk]
+    - name: Lint with flake8
+      run: |
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+    - name: Fetch test data
+      run: |
+        sudo apt install -y git
+        git clone https://github.com/lilab-bcb/pegasus-test-data.git ./tests/data
+    - name: Pipeline test
+      run: |
+        bash tests/run_pipeline.sh
+        pytest tests/test_pipeline.py
+    - name: One sample input test
+      run: |
+        bash tests/run_one_sample.sh
+    - name: iNMF test
+      run: |
+        bash tests/run_inmf.sh
+        pytest tests/test_inmf.py
