@@ -1,0 +1,506 @@
+\chapter{HR related: employment data}
+
+This chapter documents the module [[nytid.signup.hr]].
+The module is constructed as follows.
+<<hr.py>>=
+import arrow
+import datetime
+from nytid.signup import sheets
+from nytid.signup.sheets import SIGNUP_SHEET_HEADER
+
+<<functions>>
+@
+
+\section{Rounding time and adding prep time correctly}
+
+The KTH policy on prep time for different kinds of events depends on what kind 
+of event it is, but also when the event was.
+The policy for prep time changed on 2022-10-01.
+It's also different depending on the TA being an amanuensis or not.
+
+We provide a function that computes the time for an event according to the 
+policy:
+\label{HRaddprep}
+<<functions>>=
+def time_for_event(event, amanuensis=False):
+  """
+  Input: an event of type ics.event.Event and an optional bool amanuensis 
+  specifying whether the computation is for an amanuensis or not.
+
+  Output: Returns a datetime.timedelta corresponding to the time including prep 
+  time for the event.
+  """
+  return add_prep_time(
+    round_time(event.end-event.begin), event.name, event.begin, amanuensis)
+@
+
+KTH uses some rounding procedure for worked time.
+We should round to half hours.
+\label{HRroundtime}
+<<functions>>=
+def round_time(time):
+  """
+  Input: A datetime.timedelta object time.
+
+  Output: The time object rounded according to KTH rules. Currently round up to 
+  nearest quarter of an hour.
+  """
+  HOUR = 60*60
+  QUARTER = 15*60
+
+  total_seconds = time.total_seconds()
+  full_hours = (total_seconds // HOUR) * HOUR
+  part_hour = total_seconds % HOUR
+
+  if part_hour > 3*QUARTER:
+    return datetime.timedelta(seconds=full_hours+HOUR)
+  elif part_hour > 2*QUARTER:
+    return datetime.timedelta(seconds=full_hours+3*QUARTER)
+  elif part_hour > QUARTER:
+    return datetime.timedelta(seconds=full_hours+2*QUARTER)
+  elif part_hour > 0:
+    return datetime.timedelta(seconds=full_hours+QUARTER)
+
+  return datetime.timedelta(seconds=full_hours)
+@
+
+We also should add some fixed preparation time that depends on the type of 
+event.
+We provide two functions, one to give the factor and one to compute the time 
+including prep time.
+<<functions>>=
+def add_prep_time(time, event_type,
+                  date=datetime.date.today(),
+                  amanuensis=False):
+  """
+  Input:
+  - a datetime.timedelta object time,
+  - a string containing the title of the event,
+  - an optional date (datetime or arrow object) indicating the date of the 
+    event. If no date is given, today's date is assumed, meaning the latest 
+    prep-time policy will be used.
+  - an optional bool indicating amanuensis employment or hourly.
+
+  Output: the time object rounded according to KTH rules.
+  """
+  time *= prep_factor(event_type, date=date, amanuensis=amanuensis)
+  return round_time(time)
+@
+
+Now we compute the prep time factor.
+This function must be adapted to current policy\footnote{%
+  See \url{https://www.kth.se/social/group/tcs-teaching/page/assistenter/}.
+}.
+Currently, lab session time should increase by 1.5 online and 1.8 on campus; 
+tutorial session time should double.
+<<functions>>=
+def prep_factor(event_type, date, amanuensis):
+  """
+  Computes the prep time factor for the event type and date.
+  This should implement the rules found at
+
+    https://www.kth.se/social/group/tcs-teaching/page/assistenter/.
+
+  Input:
+  - event_type: a string containing the type of event, e.g. "exercise",
+    "seminar", "laboration", etc.
+  - date: a datetime.date or arrow.Arrow object indicating the date of the 
+    event.
+  - amanuensis: a bool indicating whether the event is for an amanuensis or
+    hourly.
+  """
+  if isinstance(date, arrow.Arrow):
+    date = date.datetime
+  if isinstance(date, datetime.datetime):
+    date = date.date()
+
+  event_type = event_type.casefold()
+
+  if "övning" in event_type \
+     or "exercise" in event_type:
+    return 2
+
+  tutoring = ["laboration", "seminar", "redovisning", "presentation"]
+
+  if (
+       date < datetime.date(2023, 1, 1)
+       or (date < datetime.date(2022, 10, 1) and not amanuensis)
+     ):
+    if check_substrings(tutoring, event_type):
+      return 1.33
+  else:
+    if check_substrings(tutoring, event_type):
+      if "online" in event_type or amanuensis:
+        return 1.5
+      return 1.8
+
+  return 1
+
+def check_substrings(substrings, string):
+  """
+  Check if any of the substrings (list) is a substring of string.
+  Return bool.
+  """
+  for substring in substrings:
+    if substring in string:
+      return True
+
+  return False
+@
+
+
+\section{How many hours are spent on the course?}
+
+For this, we just want to go through all the events and multiply the time for 
+the event with the number of TAs.
+We also apply correct rounding and add the standard preparation times that the 
+TAs are paid.
+
+We start with a function to compute the number of hours spent per student.
+<<functions>>=
+def hours_per_student(csv_rows, round_time=round_time):
+  """
+  Input: The schedule as rows of CSV data as from csv.reader.
+
+  Output: A dictionary mapping event type to the total number of hours per 
+  student.
+  """
+
+  start_index = SIGNUP_SHEET_HEADER.index("Start")
+  end_index = SIGNUP_SHEET_HEADER.index("End")
+  event_index = SIGNUP_SHEET_HEADER.index("Event")
+
+  event_hours = dict()
+
+  for row in csv_rows:
+    time = round_time(arrow.get(row[end_index], "YYYY-MM-DD HH:mm") - \
+      arrow.get(row[start_index], "YYYY-MM-DD HH:mm"))
+    event_type = row[event_index]
+
+    if event_type not in event_hours:
+      event_hours[event_type] = time
+    else:
+      event_hours[event_type] += time
+
+  return event_hours
+@
+
+Now we can compute the hours per TA.
+This is similar to the computation above, except that it adds prep time.
+When we do this calculation, it's important to count booked slots, not slots 
+where the TA is booked as a reserve.
+\label{HoursPerTA}
+<<functions>>=
+def hours_per_TA(csv_rows, add_prep_time=add_prep_time, round_time=round_time):
+  """
+  Input:
+  - Rows of CSV data as from csv.reader.
+  - add_prep_time allows using a different function for adding prep time than 
+    the default.
+  - round_time allows using a different function for rounding that the default.
+
+  Output: a dictionary mapping a TA to the number of hours they signed up for 
+  (not counting slots where they're in reserve position) in the sign-up sheet, 
+  {TA: hours}. The hours as datetime.timedelta objects.
+  """
+  TA_hours = {}
+
+  start_index = SIGNUP_SHEET_HEADER.index("Start")
+  end_index = SIGNUP_SHEET_HEADER.index("End")
+  event_index = SIGNUP_SHEET_HEADER.index("Event")
+
+  for row in csv_rows:
+    start_date = arrow.get(row[start_index], "YYYY-MM-DD HH:mm")
+    time = arrow.get(row[end_index], "YYYY-MM-DD HH:mm") - start_date
+
+    time = round_time(time)
+    time = add_prep_time(time, row[event_index], start_date)
+
+    booked, _ = sheets.get_booked_TAs_from_csv(row)
+
+    for assistant in booked:
+      if assistant in TA_hours:
+        TA_hours[assistant] += time
+      else:
+        TA_hours[assistant] = time
+
+  return TA_hours
+@
+
+Now, from this data we can easily compute the total number of hours.
+<<functions>>=
+def total_hours(csv_rows, add_prep_time=add_prep_time, round_time=round_time):
+  """
+  Input:
+  - Rows of CSV data as from csv.reader.
+  - add_prep_time allows using a different function for adding prep time than 
+    the default.
+  - round_time allows using a different function for rounding that the default.
+
+  Output: Total number of hours spent on the course, as a datetime.timedelta 
+  object.
+  """
+  total = datetime.timedelta(0)
+  TA_hours = hours_per_TA(csv_rows, add_prep_time, round_time)
+
+  for _, hours in TA_hours.items():
+    total += hours
+
+  return total
+@
+
+We also want to compute the maximum number of hours.
+<<functions>>=
+def max_hours(csv_rows, add_prep_time=add_prep_time, round_time=round_time):
+  """
+  Input:
+  - takes the rows of CSV as output from csv.reader.
+  - add_prep_time allows using a different function for adding prep time than 
+    the default.
+  - round_time allows using a different function for rounding that the default.
+
+  Output: returns the maximum number of hours (using maximum TAs needed), as a 
+  detetime.timedelta object.
+  """
+  start_index = SIGNUP_SHEET_HEADER.index("Start")
+  end_index = SIGNUP_SHEET_HEADER.index("End")
+  event_index = SIGNUP_SHEET_HEADER.index("Event")
+  needed_TAs_index = SIGNUP_SHEET_HEADER.index("#Needed TAs")
+
+  max_hours = datetime.timedelta()
+
+  for row in csv_rows:
+    start_date = arrow.get(row[start_index], "YYYY-MM-DD HH:mm")
+    time = arrow.get(row[end_index], "YYYY-MM-DD HH:mm") - start_date
+
+    time = round_time(time)
+    time = add_prep_time(time, row[event_index], start_date)
+
+    max_num_TAs = int(row[needed_TAs_index])
+
+    max_hours += time * max_num_TAs
+
+  return max_hours
+@
+
+Finally, we are also interested in computing the number of hours spent on the 
+different types of events.
+This computation is similar to how computed the hours per TA above, it's just a 
+different column in the CSV.
+<<functions>>=
+def hours_per_event(csv_rows, round_time=round_time):
+  """
+  Input:
+  - Rows of CSV data as from csv.reader.
+  - round_time allows using a different function for rounding that the default.
+
+  Output: a dictionary mapping an event type to the number of hours assigned to 
+  that type of event in the sign-up sheet, {event: hours}. The hours as 
+  datetime.timedelta objects.
+  """
+  event_hours = {}
+
+  start_index = SIGNUP_SHEET_HEADER.index("Start")
+  end_index = SIGNUP_SHEET_HEADER.index("End")
+  event_index = SIGNUP_SHEET_HEADER.index("Event")
+
+  for row in csv_rows:
+    time = round_time(arrow.get(row[end_index], "YYYY-MM-DD HH:mm") - \
+      arrow.get(row[start_index], "YYYY-MM-DD HH:mm"))
+
+    if row[event_index] in event_hours:
+      event_hours[row[event_index]] += time
+    else:
+      event_hours[row[event_index]] = time
+
+  return event_hours
+@
+
+
+\section{Compute amanuensis employment data\protect\footnote{%
+  Based on the idea from Mazen Mardini to automatically compute the 
+  percentage.
+  However, we expand on the idea a bit here.
+}}
+
+We want to compute the data needed to start an amanuensis employment.
+We want to compute the following:
+\begin{itemize}
+\item the total number of hours for the employment period,
+\item the employment period and percentage for the employment.
+\end{itemize}
+
+The total number of hours for the TA is already solved above 
+(\cref{HoursPerTA}).
+The key is to compute the employment period and the percentage.
+We want to compute the period and percentage most beneficial for the TA.
+We will take the following appraoch:
+\begin{enumerate}
+\item Check which slots are signed up for.
+\item Round to the semester.
+\item Compute the percentage.
+  If the percentage is above the threshold, use these dates.
+  Otherwise continue.
+\item Round to the month.
+  If the first slot is on 29th August, we start the position at 1st August.
+  If the last slot is on 2nd December, use 31st December.
+\item Compute the percentage.
+  If the percentage is too low, lower than the threshold, we shrink the period 
+  to the actual first-slot date.
+\end{enumerate}
+This algorithm gives the following benefit.
+The students can have a maximum employment of 50 percent\footnote{%
+  This is regulated in the Higher Education Ordinance (Högskoleförordningen).
+}.
+They can work a minimum 5 percent\footnote{%
+  This is a policy set by EECS at KTH, not KTH as a whole.
+  However, we will use 4 percent, because the TAs usually to more time and we 
+  want to catch those borderline cases.
+}.
+If we stretch it, the students can do more hours in total during the period.
+If the percentage gets too low, we can use the exact dates to get the 
+percentage closer to the minimum.
+However, if the period is shorter than a month (25 days), we don't offer an 
+amanuensis contract.
+The rationale for this is that we only trade one time report for a signing the 
+amanuensis contract (which is more work), so it's a more temporary position 
+when it's that short period of time.
+
+This gives us the following function:
+<<functions>>=
+def compute_amanuensis_data(csv_rows, low_percentage=0.05, min_days=25,
+    add_prep_time=add_prep_time, round_time=round_time,
+    begin_date=None, end_date=None):
+  """
+  Input:
+  - csv_rows, the CSV rows as output from csv.reader.
+  - low_percentage, the lowest acceptable percentage of an amanuensis 
+    contract.
+  - min_days is the minimum number of days we accept for an amanuensis 
+    contract.
+  - add_prep_time allows using a different function for adding prep time than 
+    the default.
+  - round_time allows using a different function for rounding that the default.
+  - begin_date means that we will force this date as a start date, None means 
+    we will compute the start date.
+
+  Output: a dictionary {TA: (start, end, hours)} mapping the TA username to a 
+  tuple (start, end, hours) with the start and end time and the total number of 
+  hours.
+  """
+  start_index = SIGNUP_SHEET_HEADER.index("Start")
+  end_index = SIGNUP_SHEET_HEADER.index("End")
+  event_index = SIGNUP_SHEET_HEADER.index("Event")
+  needed_TAs_index = SIGNUP_SHEET_HEADER.index("#Needed TAs")
+
+  <<let [[amanuensis_prep_time]] be [[add_prep_time]] for amanuensis>>
+
+  ta_hours = hours_per_TA(csv_rows, amanuensis_prep_time, round_time)
+  ta_data = {}
+
+  <<compute the earliest and latest dates for each TA>>
+
+  return ta_data
+@
+
+\subsection{Fix prep time function for amanuensis}
+
+We need to adjust the default argument for [[add_prep_time]].
+By default [[amanuensis]] is set to false,
+but in this case we want it to true.
+<<let [[amanuensis_prep_time]] be [[add_prep_time]] for amanuensis>>=
+amanuensis_prep_time = lambda time, event_type, date: \
+                          add_prep_time(time, event_type,
+                                        date, amanuensis=True)
+@
+
+\subsection{Compute the earliest and latest dates}
+
+We start by finding all start and end dates for every TA.
+<<compute the earliest and latest dates for each TA>>=
+for ta in ta_hours.keys():
+  earliest_date = arrow.get(csv_rows[0][start_index], "YYYY-MM-DD")
+  latest_date = arrow.get(csv_rows[0][end_index], "YYYY-MM-DD")
+
+  for row in csv_rows:
+    start_date = arrow.get(row[start_index], "YYYY-MM-DD")
+    end_date = arrow.get(row[end_index], "YYYY-MM-DD")
+
+    if start_date < earliest_date:
+      earliest_date = start_date
+    if end_date > latest_date:
+      latest_date = end_date
+
+  hours = ta_hours[ta].total_seconds()/60/60
+
+  <<expand earliest and latest dates if beneficial>>
+
+  if latest_date - earliest_date < datetime.timedelta(days=min_days):
+    continue
+
+  ta_data[ta] = (earliest_date, latest_date, hours)
+@
+
+Now we want to try to use different start and end dates to optimize the period 
+for the student.
+We first try with the start and end dates expanded to the semester, then the 
+first and last of the months, finally the exact dates.
+For the start date, we also take today's date into consideration.
+If we're far into the semester we don't take the start of the semester into 
+account, then we use the actual start month instead.
+If we can't get above the [[low_percentage]] threshold, we continue to the next 
+TA.
+<<expand earliest and latest dates if beneficial>>=
+july = arrow.get(earliest_date.year, 7, 1)
+
+if earliest_date < july:
+  semester_start = arrow.get(earliest_date.year, 1, 1)
+  semester_end = arrow.get(earliest_date.year, 6, 30)
+else:
+  semester_start = arrow.get(earliest_date.year, 8, 1)
+  semester_end = arrow.get(earliest_date.year+1, 1, 31)
+
+earliest_month = arrow.get(earliest_date.year, earliest_date.month, 1)
+latest_month = arrow.get(
+  latest_date.year, latest_date.month, 1).shift(months=1, seconds=-1)
+
+if begin_date:
+  semester_start = earliest_date = earliest_month = begin_date
+if end_date:
+  semester_end = latest_date = latest_month = end_date
+
+if latest_date > semester_end:
+  semester_end = latest_month
+
+if compute_percentage(semester_start, semester_end, hours) >= low_percentage:
+  earliest_date = semester_start
+  latest_date = semester_end
+elif compute_percentage(semester_start, latest_month, hours) >= low_percentage:
+  earliest_date = earliest_month
+  latest_date = latest_month
+elif compute_percentage(earliest_month, semester_end, hours) >= low_percentage:
+  earliest_date = earliest_month
+  latest_date = latest_month
+elif compute_percentage(earliest_month, latest_month, hours) >= low_percentage:
+  earliest_date = earliest_month
+  latest_date = latest_month
+elif compute_percentage(earliest_date, latest_month, hours) >= low_percentage:
+  latest_date = latest_month
+elif compute_percentage(earliest_date, latest_date, hours) >= low_percentage:
+  pass
+else:
+  continue # skip to next TA
+@
+
+The [[compute_percentage]] function simply computes the average working time.
+<<functions>>=
+def compute_percentage(start, end, hours):
+  """
+  Input: start and end as arrow.arrow.Arrow or datetime.date objects,
+    hours as a float.
+
+  Output: a float in the interval [0, 1], which is the percentage of full time.
+  """
+  days = (end - start).total_seconds()/60/60/24
+  return (hours / 1600) * (365 / days)
+@

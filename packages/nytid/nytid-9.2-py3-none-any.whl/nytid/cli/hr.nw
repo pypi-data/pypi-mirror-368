@@ -1,0 +1,1774 @@
+\chapter{The \texttt{cli.hr} module and
+         the \texttt{hr} subcommands}%
+\label{cli.signupsheets}
+%\chnote{%
+%  Part of this chapter was developed in collaboration with GitHub Copilot.
+%  It provided autocompletion of text and code that I intended to write (mostly
+%  even verbatim) anyway.
+%  However, the code is mostly a rewrite (generalisation) of proof-of-concept 
+%  code written by myself last year (2022).
+%}
+
+In this chapter we introduce the subommands found under [[nytid signupsheets]],
+it's the [[cli.signupsheets]] module.
+<<hr.py>>=
+import arrow
+import csv
+import datetime
+from enum import Enum
+import ics.icalendar
+import json
+import logging
+import pathlib
+import os
+import sys
+import typer
+from typing_extensions import Annotated
+
+from nytid.signup import hr
+from nytid.signup import sheets
+import operator
+
+from nytid.cli import courses as coursescli
+from nytid.cli.signupsheets import SIGNUPSHEET_URL_PATH
+from nytid import courses as courseutils
+from nytid import schedules as schedutils
+from nytid.signup import hr
+from nytid.signup import sheets
+
+<<imports>>
+<<constants>>
+
+cli = typer.Typer(name="hr",
+                  help="Manage sign-up sheets for teaching")
+
+<<helper functions>>
+<<argument and option definitions>>
+<<subcommands>>
+@
+
+
+\section{Default arguments for matching courses and users}
+
+The first argument we need is to identify a set of courses.
+For this we might also have to identify a set of registers.
+We'll use the argument and option defined in the [[cli.courses]] module.
+We'll default to all courses ([[.*]]) in the register of the [[mine]] command.
+<<argument for matching courses>>=
+course_regex: Annotated[str, coursescli.course_arg_regex]
+<<option for matching registers, default to mine>>=
+register: Annotated[str, coursescli.register_opt_regex] = coursescli.MINE
+@
+
+Then we can create a list of course--configuration pairs like this.
+<<set list [[courses]] to ((course, register), config)-pairs>>=
+registers = coursescli.registers_regex(register)
+courses = {}
+for course_reg in coursescli.courses_regex(course_regex, registers):
+  try:
+    courses[course_reg] = courseutils.get_course_config(*course_reg)
+  <<handle errors for accessing course data>>
+<<handle errors for accessing course data>>=
+except KeyError as err:
+  logging.warning(err)
+except PermissionError as err:
+  course, register = course_reg
+  logging.warning(f"You don't have access to {course} in {register}: {err}")
+@
+
+Now, if that list is empty, we have no courses, then we exit with a non-zero 
+return code.
+<<set list [[courses]] to ((course, register), config)-pairs>>=
+if not courses:
+  sys.exit(1)
+@
+
+
+\section{Looking up TA personal data}
+
+We want to get TA personal data from LADOK.
+Sometimes it's sufficient with data from Canvas, but the Canvas data is a
+prerequisite for the LADOK data.
+We'll do this by using the [[ladok3]] and [[canvaslms]] modules.
+We'll also use their [[CLI]] configs to get the credentials.
+So if the user has set up the [[ladok]] and [[canvaslms]] commands, 
+we can use the configs there.
+<<imports>>=
+import appdirs
+<<import and set up Canvas>>
+<<import and set up ladok3>>
+@
+
+\subsection{Setting up LADOK}
+
+We'll set up a [[ladok_session]] object that we can use to query LADOK.
+Thus, in other parts of the code, if this doesn't exist, we can't use LADOK.
+<<import and set up ladok3>>=
+try:
+  import ladok3
+  import ladok3.cli
+
+  dirs_ladok = appdirs.AppDirs("ladok",
+                               "dbosk@kth.se")                                   
+
+  LADOK_INST, LADOK_VARS = ladok3.cli.load_credentials(
+                              "f{dirs_ladok.user_config_dir}/config.json")
+
+  if LADOK_INST and LADOK_VARS:
+    ladok_session = ladok3.LadokSession(LADOK_INST,
+                                        LADOK_VARS)
+  else:
+    ladok_session = None
+    logging.warning("Can't load LADOK credentials, run `ladok login`")
+<<handle ladok setup errors>>
+@
+
+There are two errors that can occur here.
+The first is that we can't import the [[ladok3]] module.
+The second is that we can't load the credentials.
+In either case, we can't create the [[ladok_session]] object.
+<<handle ladok setup errors>>=
+except ImportError as err:
+  logging.warning(f"Can't import ladok3, not using LADOK data: {err}")
+  ladok_session = None
+except Exception as err:
+  logging.warning(f"Can't load LADOK credentials: {err}")
+  ladok_session = None
+@
+
+\subsection{Setting up Canvas}
+
+We also need to query user information from Canvas to find the LADOK ID.
+So we should also set up Canvas.
+Similarly to LADOK, we'll set up a [[canvas_session]] object.
+<<import and set up Canvas>>=
+try:
+  import canvasapi
+  import canvaslms.cli
+
+  dirs_canvas = appdirs.AppDirs("canvaslms",
+                                "dbosk@kth.se")                                   
+
+  canvaslms_config = canvaslms.cli.read_configuration(
+                        f"{dirs_canvas.user_config_dir}/config.json")
+
+  CANVAS_SERVER, CANVAS_TOKEN = canvaslms.cli.login.load_credentials(
+                                    canvaslms_config)
+
+  if CANVAS_SERVER and CANVAS_TOKEN:
+    canvas_session = canvasapi.Canvas(os.environ["CANVAS_SERVER"], 
+                                      os.environ["CANVAS_TOKEN"])
+  else:
+    canvas_session = None
+    logging.warning("Can't load Canvas credentials, run `canvaslms login`")
+<<handle canvas setup errors>>
+@
+
+The first error that can occur here is that we can't import any of the modules
+[[canvasapi]] or [[canvaslms]].
+Any other exception concerns the credentials.
+<<handle canvas setup errors>>=
+except ImportError as err:
+  logging.warning(f"Can't import Canvas: {err}")
+  canvas_session = None
+except Exception as err:
+  logging.warning(f"Can't load Canvas credentials: {err}")
+  canvas_session = None
+@
+
+\subsection{Looking up usernames in Canvas and LADOK}
+
+Now that we have a (hopefully) working [[canvas_session]] and 
+[[ladok_session]], we can look up a username in Canvas and then from that user
+object we can look up the LADOK data.
+To do this, we'll introduce two helper functions:
+One to look up the username in Canvas, to get a Canvas user object.
+Another to look up the LADOK ID from the Canvas user object.
+
+Canvas is super slow, so we'll cache the results.
+Then we can cache big searches.
+We'll create several helper functions that we cache.
+We'll start with listing courses.
+<<helper functions>>=
+@cachetools.cached(cache={})
+def get_canvas_courses(course_regex):
+  """
+  Returns a list of Canvas course objects matching the given course_regex.
+  """
+  <<filter out [[courses]] in Canvas from [[course_regex]]>>
+  return courses
+<<imports>>=
+import cachetools
+@
+
+Now we introduce the helper function to look up a usernames in Canvas.
+We'll cache this one as well.
+Then we can add a function to search for specific users that can get all
+users using this function and cache the result.
+<<helper functions>>=
+@cachetools.cached(cache={})
+def get_canvas_users(username_regex, course_regex):
+  """
+  Returns a list of Canvas user objects matching the given username_regex.
+  Searches for username_regex in the courses matching course_regex.
+  """
+  courses = get_canvas_courses(course_regex)
+  <<filter [[users]] by looking for [[username_regex]] in [[courses]]>>
+  return users
+@
+
+All the filtering we want to do has already been implemented in [[canvaslms]].
+So we can simply call the right library functions.
+<<filter out [[courses]] in Canvas from [[course_regex]]>>=
+courses = list(canvaslms.cli.courses.filter_courses(canvas_session,
+                                                    course_regex))
+<<filter [[users]] by looking for [[username_regex]] in [[courses]]>>=
+users = list(canvaslms.cli.users.filter_users(courses,
+                                              username_regex))
+@
+
+Now, to fully use these caches, we'll introduce another helper function.
+This one will take a username and return the Canvas user object.
+However, it will use the above function to cache all the users in the courses.
+This way, we don't have to maintain the cache anywhere else in the code.
+<<helper functions>>=
+def get_canvas_user(username, course_regex):
+  """
+  Takes a username and returns a Canvas user object.
+  Searches for username in the courses matching course_regex.
+  """
+  users = get_canvas_users(".*", course_regex)
+  <<filter out [[user]] among [[users]] by looking for [[username]], return it>>
+  <<raise an error if the user wasn't found>>
+@
+
+Now that we have a list of all users, we simply have to iterate to find the
+username.
+Sometimes the TAs accidentally add a space here and there, so we strip the
+username just to be sure.
+
+In case a user doesn't have a login ID, we simply skip that user.
+However, if we can't find the user, we want to include those users without any 
+login ID in the error message.
+Because the desired user might be one of them.
+<<filter out [[user]] among [[users]] by looking for [[username]], return it>>=
+username = username.strip()
+users_without_login_id = []
+
+for user in users:
+  try:
+    if user.login_id.split("@")[0] == username or user.login_id == username:
+      return user
+  except AttributeError:
+    users_without_login_id.append(user)
+@
+
+Now we can include the users without a login ID in the error message if we 
+don't find any user.
+We want the users to be printed in a nice format, one line each and indented by 
+two spaces.
+<<raise an error if the user wasn't found>>=
+users_without_login_id_str = "\n  ".join(map(str, users_without_login_id))
+raise ValueError(f"Can't find {username} in Canvas, but the following users "
+                 f"don't have a login ID: {users_without_login_id_str}")
+@
+
+It's very straightforward to get a LADOK student object once we have the Canvas
+user object.
+We don't need to cache this function since LADOK already caches the results and
+is very fast.
+<<helper functions>>=
+def get_ladok_user(canvas_user):
+  """
+  Takes a Canvas user object and returns a LADOK student object.
+  """
+  try:
+    return ladok_session.get_student(canvas_user.integration_id)
+  except KeyError as err:
+    raise KeyError(f"can't look up {canvas_user} in LADOK: {err}")
+@
+
+
+\section{Staff booked on course}
+
+We want a list of the usernames of who is booked on the course.
+We'll simply read the sign-up sheet and extract all usernames.
+However, we'll add an option for detailed information that looks the username up
+in Canvas and LADOK to print more detailed information.
+<<subcommands>>=
+@cli.command()
+def users(<<argument for matching courses>>,
+          <<option for matching registers, default to mine>>,
+          <<option to output detailed user data>> = False):
+  """
+  Prints the list of all usernames booked on the course.
+  """
+  <<set list [[courses]] to ((course, register), config)-pairs>>
+  <<let [[booked]] be all bookings from [[courses]]>>
+
+  for user in hr.hours_per_TA(booked):
+    <<print detailed or non-detailed data about [[user]]>>
+<<let [[booked]] be all bookings from [[courses]]>>=
+booked = []
+for (course, register), config in courses.items():
+  <<add to [[booked]] from [[course]] in [[register]] using [[config]]>>
+@
+
+We'll return to
+[[<<set list [[courses]] to ((course, register), config)-pairs>>]] and
+[[<<add to [[booked]] from [[course]] in [[register]] using [[config]]>>]]
+later, in \cref{TeachingTime}.
+
+\subsection{Detailed user data}
+
+We want to have an option, that if specified it toggles that we output the
+user's name and other data in addition to only their username.
+<<option to output detailed user data>>=
+detailed: Annotated[bool, detailed_opt]
+<<argument and option definitions>>=
+detailed_opt = typer.Option(help="Output detailed user data.")
+<<print detailed or non-detailed data about [[user]]>>=
+if detailed:
+  <<set [[user_obj]] to most detailed version possible of [[user]]>>
+else:
+  user_obj = user
+<<set [[user_obj]] to most detailed version possible of [[user]]>>=
+user_obj = user
+try:
+  user_obj = get_canvas_user(user, course_regex)
+except Exception as err:
+  logging.warning(f"Can't look up {user} in Canvas: {err}")
+else:
+  try:
+    email = user_obj.email
+    user_obj = get_ladok_user(user_obj)
+    user_obj.email = email
+  except Exception as err:
+    logging.warning(f"Can't look up {user} ({user_obj}) in LADOK: {err}")
+    pass
+@
+
+We note that some versions of the [[user_obj]] might already have an email 
+included (the Canvas version).
+In that case, we don't want to include the email address again.
+<<print detailed or non-detailed data about [[user]]>>=
+try:
+  if detailed and "@" not in str(user_obj):
+    print(f"{user_obj} <{user_obj.email}>")
+  else:
+    print(user_obj)
+except AttributeError:
+  print(user_obj)
+@
+
+
+\section{Teaching time totals for a course}\label{TeachingTime}
+
+We provide a command [[time]] that summarizes the time spent on the course.
+<<subcommands>>=
+@cli.command()
+def time(<<argument for matching courses>>,
+         <<option for matching registers, default to mine>>,
+         <<option to output detailed user data>> = False,
+         <<options controlling what to print>>):
+  """
+  Summarizes the time spent on teaching the course(s).
+  """
+  <<set list [[courses]] to ((course, register), config)-pairs>>
+  <<let [[booked]] be all bookings from [[courses]]>>
+  <<print summary of [[booked]]>>
+@
+
+To add the bookings of a course to [[booked]], we simply get the URL of the 
+sign-up sheet and read the bookings.
+<<add to [[booked]] from [[course]] in [[register]] using [[config]]>>=
+try:
+  url = config.get(SIGNUPSHEET_URL_PATH)
+except KeyError as err:
+  logging.warning(f"Can't find sign-up sheet URL for {course} in {register}: "
+                  f"{err}")
+  continue
+<<convert [[url]] to Google Sheet CSV-export URL if necessary>>
+booked += sheets.read_signup_sheet_from_url(url)
+<<imports>>=
+from nytid.signup import sheets
+@
+
+If it's a Google Sheets sharing URL, we want to convert it to the export-CSV 
+URL.
+<<convert [[url]] to Google Sheet CSV-export URL if necessary>>=
+if "docs.google.com" in url:
+  url = sheets.google_sheet_to_csv_url(url)
+@
+
+\subsection{Printing the summaries}
+
+Once we have [[booked]] we can start to compute summaries and print them.
+We want to print them to screen using CSV format so that we can easily turn it 
+into a spreadsheet and use [[cut]] to get the data we want.
+<<print summary of [[booked]]>>=
+csvout = csv.writer(sys.stdout, delimiter="\t")
+<<print course summary, if desired>>
+<<print amanuensis summary, if desired>>
+<<print hourly summary, if desired>>
+@
+
+\subsubsection{Summary of the course}
+
+We want to print a summary of the course.
+This is so that we can get an overview of the total time spent and how much 
+time can be spent (if the sign-up sheet is booked to maximum).
+<<options controlling what to print>>=
+course_summary: Annotated[bool, course_summary_opt] = True,
+<<argument and option definitions>>=
+course_summary_opt = typer.Option(help="Print a summary of the course.")
+<<print course summary, if desired>>=
+if course_summary:
+  h_per_student = hr.hours_per_student(booked)
+
+  for event, hours in h_per_student.items():
+    csvout.writerow([event, to_hours(hours), "h/student"])
+
+  csvout.writerow(["Booked (h)",
+                   to_hours(hr.total_hours(booked)),
+                   to_hours(hr.max_hours(booked))])
+<<helper functions>>=
+def to_hours(td):
+  return td.total_seconds()/60/60
+<<imports>>=
+from nytid.signup import hr
+@
+
+\subsubsection{Summary of the amanuensis}
+
+We also want to print a summary of the amanuensis.
+Currently this one computes the hours for the amanuensis and the default dates.
+However, a future version should make use the existing contracts and compute 
+updates.
+<<options controlling what to print>>=
+amanuensis_summary: Annotated[bool, amanuensis_summary_opt] = True,
+<<argument and option definitions>>=
+amanuensis_summary_opt = typer.Option(help="Print a summary of the "
+                                           "amanuensis.")
+<<print amanuensis summary, if desired>>=
+if amanuensis_summary:
+  if course_summary:
+    csvout.writerow([])
+  if hourly_summary:
+    csvout.writerow(["# Amanuensis"])
+
+  amanuensis = hr.compute_amanuensis_data(booked)
+
+  for user, data in amanuensis.items():
+    if not user:
+      continue
+    if detailed:
+      <<set [[user_obj]] to most detailed version possible of [[user]]>>
+    else:
+      user_obj = user
+    csvout.writerow([user_obj,
+                     f"{data[2]:.2f} h",
+                     f"{100*hr.compute_percentage(*data):.1f}%",
+                     f"{data[0].format('YYYY-MM-DD')}",
+                     f"{data[1].format('YYYY-MM-DD')}"])
+@
+
+\subsubsection{Summary of the hourly TAs}
+
+We also want to print a summary of the hourly TAs.
+<<options controlling what to print>>=
+hourly_summary: Annotated[bool, hourly_summary_opt] = True,
+<<argument and option definitions>>=
+hourly_summary_opt = typer.Option(help="Print a summary of the hourly TAs.")
+<<print hourly summary, if desired>>=
+if hourly_summary:
+  if amanuensis_summary:
+    csvout.writerow([])
+    csvout.writerow(["# Hourly"])
+  elif course_summary:
+    csvout.writerow([])
+
+  for user, hours in hr.hours_per_TA(booked).items():
+    if not user or user in amanuensis:
+      continue
+    if detailed:
+      <<set [[user_obj]] to most detailed version possible of [[user]]>>
+    else:
+      user_obj = user
+
+    try:
+      user_text = f"{user_obj} <{user_obj.email}>" \
+                    if "@" not in str(user_obj) else str(user_obj)
+    except AttributeError:
+      user_text = str(user_obj)
+
+    csvout.writerow([user_text,
+                     to_hours(hours), "h"])
+@
+
+\section{Creating amanuensis contracts}
+
+We want the have a set of amanuensis commands that can generate, show and 
+update employment info for an amanuensis.
+<<subcommands>>=
+amanuensis = typer.Typer(name="amanuensis",
+                         help="Manage amanuensis employment")
+cli.add_typer(amanuensis)
+@
+
+We also want to automatically store the sessions that are included in that 
+employment.
+This way we can easily calculate what has changed later to track 
+\enquote{\foreignlanguage{swedish}{mertid}}.
+
+We let the [[create]] command generate a contract for an amanuensis.
+<<subcommands>>=
+@amanuensis.command(name="create")
+def cli_amanuens_create(<<option for TAs to filter for>>,
+                        <<default options for start, end dates>>,
+                        <<default option for pushing dates forward>>,
+                        <<default options for overriding dates>>,
+                        <<argument for matching courses>> = ".*",
+                        <<option for matching registers, default to mine>>,
+                        <<option to output detailed user data>> = True,
+                        <<option to include event summary>> = False,
+                        <<option [[draft]] to not store contract>>,
+                        <<option for CSV delimiter>>):
+  """
+  Computes amanuensis data for a TA.
+  """
+  <<make all dates timezone aware>>
+  <<set list [[courses]] to ((course, register), config)-pairs>>
+  <<let [[booked]] be all bookings from [[courses]]>>
+  <<filter events from [[booked]] based on start, end dates>>
+
+  amanuensis = hr.compute_amanuensis_data(booked,
+                                          begin_date=start,
+                                          end_date=end)
+
+  <<amanuensis iteration variables>>
+  for user in amanuensis:
+    <<skip if [[user_regex]] doesn't match [[user]]>>
+    <<print [[amanuensis]] data for [[user]]>>
+    if not draft:
+      <<store [[user_events]] in CSV format>>
+<<option [[draft]] to not store contract>>=
+draft: Annotated[bool, draft_opt] = False
+<<argument and option definitions>>=
+draft_opt = typer.Option(help="Create a draft, "
+                              "don't store the generated contract.")
+@
+
+\subsection{Default arguments for user regex}
+
+We just set up an option defaulting to match anything.
+<<option for TAs to filter for>>=
+user_regex: Annotated[str, user_regex_opt] = ".*"
+<<argument and option definitions>>=
+user_regex_opt = typer.Option("--user",
+                              help="Regex to match TAs' usernames that "
+                                   "should be included.")
+@
+
+This allows us to do the check using regexes.
+We compile the regex since we're going to make several matches.
+<<amanuensis iteration variables>>=
+user_pattern = re.compile(user_regex)
+<<imports>>=
+import re
+<<skip if [[user_regex]] doesn't match [[user]]>>=
+if not user_pattern.match(user):
+  continue
+@
+
+\subsection{Start and end dates}
+
+We'd like to force the start date in some situations, for instance, we need a 
+later start date due to the TA not applying for the amanuensis position on 
+time.
+The option simply takes a date, it defaults to [[None]].
+<<default options for start, end dates>>=
+start: Annotated[datetime.datetime, start_date_opt] = None,
+end: Annotated[datetime.datetime, end_date_opt] = None
+<<argument and option definitions>>=
+start_date_opt = typer.Option(help="The start date (inclusive, <=), "
+                                   "when unset includes "
+                                   "everything in the sign-up sheet. "
+                                   "Set this to decide what to include from "
+                                   "the sign-up sheet.",
+                              formats=["%Y-%m-%d"])
+end_date_opt = typer.Option(help="The end date (not inclusive, <), "
+                                 "when unset includes "
+                                 "everything in the sign-up sheet. "
+                                 "Set this to decide what to include from "
+                                 "the sign-up sheet.",
+                            formats=["%Y-%m-%d"])
+<<filter events from [[booked]] based on start, end dates>>=
+booked = sheets.filter_events_by_date(booked, start, end)
+@
+
+\subsection{Print the amanuensis data for a TA}
+
+We may want to print for several users.
+In that case, we want to separate the output with a newline.
+<<amanuensis iteration variables>>=
+first_print = True
+csvout = csv.writer(sys.stdout, delimiter=delimiter)
+<<option for CSV delimiter>>=
+delimiter: Annotated[str, delimiter_opt] = "\t"
+<<argument and option definitions>>=
+delimiter_opt = typer.Option(help="Delimiter to use in CSV output.")
+<<print [[amanuensis]] data for [[user]]>>=
+if first_print:
+  first_print = False
+else:
+  print("\n")
+
+data = amanuensis[user]
+
+<<print a summary of the hours for [[user]] in [[data]]>>
+
+<<filter out [[user_events]] for [[user]]>>
+if event_summary:
+  <<print summary for each event type in [[user_events]]>>
+@
+
+Now, we want to have an option to control [[event_summary]].
+We want this option, since HR might not want it, whereas we might.
+<<option to include event summary>>=
+event_summary: Annotated[bool, event_summary_opt]
+<<argument and option definitions>>=
+event_summary_opt = typer.Option(help="Print a summary of the hours per event "
+                                      "type.")
+@
+
+\subsubsection{Print a summary of the hours for a TA}
+
+[[data]] contains the start and end date as the first two elements.
+Then comes the hours.
+So we get them out to make the code more readable and to modify them.
+
+Next, this summary is what we want to send to HR.
+So we should not use the username, rather as detailed as possible (name and 
+personnummer).
+
+Finally, if we use [[event_summary]], we also want to include the total number 
+of hours including prep time.
+In that case, we add that column last.
+<<print a summary of the hours for [[user]] in [[data]]>>=
+start = data[0]
+end = data[1]
+hours = data[2]
+<<modify [[start]], [[end]] or dates in [[data]] if necessary>>
+
+if detailed:
+  <<set [[user_obj]] to most detailed version possible of [[user]]>>
+else:
+  user_obj = user
+
+try:
+  user_text = f"{user_obj} <{user_obj.email}>" \
+                if "@" not in str(user_obj) else str(user_obj)
+except AttributeError:
+  user_text = str(user_obj)
+
+row = [user_text,
+       start.date(),
+       end.date(),
+       f"{round(100*hr.compute_percentage(*data))}%"]
+
+if event_summary:
+  row.append(f"{hours:.2f} h")
+
+csvout.writerow(row)
+@
+
+\subsubsection{Modifying the contract dates}
+
+Sometimes the start date is too early, so we want to push it forward together 
+with the end date.
+This happens when the TA doesn't apply for the amanuensis position on time, or
+that we are too late in processing it.
+<<default option for pushing dates forward>>=
+push_start: Annotated[datetime.datetime, push_start_opt] = None
+<<argument and option definitions>>=
+push_start_opt = typer.Option(help="Push the dates of the contract so that it "
+                                   "starts at this date. "
+                                   "This keeps the same percentage.",
+                              formats=["%Y-%m-%d"])
+<<modify [[start]], [[end]] or dates in [[data]] if necessary>>=
+if push_start:
+  push_start = arrow.Arrow(push_start.year, push_start.month, push_start.day)
+  start, end = push_forward(start, end, push_start)
+<<helper functions>>=
+def push_forward(start, end, push_start):
+  """
+  Takes a start and end date and pushes them forward so that start becomes
+  push_start.
+  """
+  if push_start > start:
+    end += push_start - start
+    start = push_start
+
+  return start, end
+@
+
+And sometimes we want to set the start and end dates to specific dates.
+This will affect the percentage computation, so we must modify the dates in 
+[[data[0]]] and [[data[1]]].
+<<default options for overriding dates>>=
+set_start: Annotated[datetime.datetime, set_start_opt] = None,
+set_end: Annotated[datetime.datetime, set_end_opt] = None
+<<argument and option definitions>>=
+set_start_opt = typer.Option(help="Force the start date of the contract to "
+                                  "this date. Might modify percentage.",
+                             formats=["%Y-%m-%d"])
+set_end_opt = typer.Option(help="Force the end date of the contract to "
+                                "this date. Might modify percentage.",
+                           formats=["%Y-%m-%d"])
+@
+
+We note that if we must modify [[data[0]]] or [[data[1]]], we must also modify 
+[[start]] and [[end]] that have already been set.
+<<modify [[start]], [[end]] or dates in [[data]] if necessary>>=
+data = list(data)
+if set_start:
+  start = data[0] = set_start
+if set_end:
+  end = data[1] = set_end
+@
+
+\subsubsection{Make all dates timezone aware}
+
+We must make all these dates timezone aware as they're not created as such.
+According to the documentation, we can use the [[astimezone]] method to do 
+this\footnote{%
+  Thanks to this answer on StackOverflow:
+  \url{https://stackoverflow.com/a/52606421/1305099}.
+}.
+<<make all dates timezone aware>>=
+if start:
+  start = start.astimezone()
+if push_start:
+  push_start = push_start.astimezone()
+if set_start:
+  set_start = set_start.astimezone()
+if end:
+  end = end.astimezone()
+if set_end:
+  set_end = set_end.astimezone()
+@
+
+\subsection{Keeping a record of bookings}
+
+We also want the events that the TA booked to keep a record of how the hours
+were computed, so that we can keep track of changes and how that should affect
+the contract.
+<<filter out [[user_events]] for [[user]]>>=
+user_events = sheets.filter_events_by_TA(user, booked)
+user_events = filter(lambda x: user in sheets.get_booked_TAs_from_csv(x)[0],
+                     booked)
+user_events = list(map(lambda x: x[0:len(sheets.SIGNUP_SHEET_HEADER)] + [user],
+                       user_events))
+@
+
+Now we want to summarize the hours per event type.
+This helps us to get an overview of the changes.
+This also helps us to be compatible with the amanuensis spreadsheet used at the 
+department.
+<<print summary for each event type in [[user_events]]>>=
+for event, hours in hr.hours_per_event(user_events).items():
+  csvout.writerow([event, to_hours(hours), "h"])
+@
+
+Finally, we also store them in CSV format so that we can easily extract them to 
+make computations later, if needed.
+We also need any [[start]], [[set_start]] or [[end]], [[set_end]] parameters.
+This is so that we can recompute the contract when we use the [[show]] command.
+For instance, we need to give both [[end]] and [[set_end]] to not include 
+anything beyond this date.
+Just [[end]] tells us to not include any events later than this, but we can 
+still have a contract that goes beyond this date.
+Setting both ends both contract and events to the same date.
+So to include the same intention in the updated contract, we need the intention 
+from the original contract.
+
+We'll store the data in a file named after the TA and the current time.
+<<amanuensis iteration variables>>=
+path = pathlib.Path("./")
+<<set [[path]] to configured path for storing contracts>>
+<<store [[user_events]] in CSV format>>=
+filename = f"{user}.{datetime.datetime.now().isoformat()}.json"
+
+path.mkdir(parents=True, exist_ok=True)
+
+with open(path / filename, "w") as outfile:
+  json.dump({"user": user,
+             "start": start.isoformat() if start else None,
+             "set_start": set_start.isoformat() if set_start else None,
+             "push_start": push_start.isoformat() if push_start else None,
+             "end": end.isoformat() if end else None,
+             "set_end": set_end.isoformat() if set_end else None,
+             "course_regex": course_regex,
+             "events": user_events},
+            outfile,
+            indent=2)
+@
+
+\subsection{Configuring the path for storing contracts}
+
+We want to store the contracts that we generate somewhere.
+We'll let the user configure this location in the config.
+<<imports>>=
+import typerconf
+<<constants>>=
+AMANUENSIS_CONTRACT_PATH = "hr.amanuensis.contract_dir"
+<<set [[path]] to configured path for storing contracts>>=
+try:
+  path = pathlib.Path(typerconf.get(AMANUENSIS_CONTRACT_PATH))
+except KeyError as err:
+  logging.warning(f"Can't find {AMANUENSIS_CONTRACT_PATH} in config, "
+                  f"storing contract data in `{path}`. Set by running "
+                  f"`nytid config {AMANUENSIS_CONTRACT_PATH} -s <path>`.")
+@
+
+
+\section{Showing amanuensis contracts}
+
+Once we've generated the contracts, we want to be able to show them.
+Particularly, we might have generated several versions, we want to show the 
+currently valid one for each TA.
+<<subcommands>>=
+@amanuensis.command(name="show")
+def cli_amanuens_show(<<argument [[user_regex]] to match TAs>> = ".*",
+                      <<option to output detailed user data>> = False,
+                      <<option to include event summary>> = True,
+                      <<option for CSV delimiter>>,
+                      <<option [[updates]] to show updates>>,
+                      <<option [[events]] to include events>>):
+  """
+  Shows stored amanuesis contracts for TAs.
+  """
+  <<let [[contracts_path]] be the configured path for storing contracts>>
+  <<let [[contracts]] be the valid contracts matching [[user_regex]]>>
+
+  <<amanuensis iteration variables>>
+  for contract in contracts:
+    <<print [[contract]]>>
+    if events:
+      print()
+      <<print events in [[contract]]>>
+    if updates:
+      print()
+      <<show draft contract based on [[contract]] with all current hours>>
+<<argument [[user_regex]] to match TAs>>=
+user_regex: Annotated[str, user_regex_arg]
+<<argument and option definitions>>=
+user_regex_arg = typer.Argument(help="Regex to match TAs' usernames that "
+                                     "should be included.")
+@
+
+This is similar as above, we just give a different warning message.
+<<let [[contracts_path]] be the configured path for storing contracts>>=
+try:
+  contracts_path = pathlib.Path(typerconf.get(AMANUENSIS_CONTRACT_PATH))
+except KeyError as err:
+  logging.warning(f"Can't find {AMANUENSIS_CONTRACT_PATH} in config, "
+                  f"looking for contract data in `./`. Set by running "
+                  f"`nytid config {AMANUENSIS_CONTRACT_PATH} -s <path>`.")
+  contracts_path = pathlib.Path("./")
+@
+
+\subsection{Finding the valid contracts}
+
+<<let [[contracts]] be the valid contracts matching [[user_regex]]>>=
+contracts = get_valid_contracts(user_regex)
+<<helper functions>>=
+def get_valid_contracts(user_regex):
+  """
+  Returns a list of valid contracts matching `user_regex`.
+  """
+  contracts = []
+
+  <<let [[contracts_path]] be the configured path for storing contracts>>
+  <<let [[users]] be the set of users with contracts matching [[user_regex]]>>
+  for user in users:
+    <<add the valid contracts for [[user]] to [[contracts]]>>
+
+  return contracts
+@
+
+The contracts are named after the TA and the time they were generated, 
+[[user.time.json]].
+This way, we can filter out all users with contracts only by looking at the 
+filenames.
+<<let [[users]] be the set of users with contracts matching [[user_regex]]>>=
+users = set()
+user_pattern = re.compile(user_regex)
+for contract in contracts_path.glob("*.json"):
+  username = contract.name.split(".")[0]
+  if user_pattern.match(username):
+    users.add(username)
+@
+
+The valid contract is the latest contract in a series of overlapping contracts.
+This means that we can simply sort the contracts by name (as the sorted ISO 
+time is the same as alphabetical order) and go through them.
+As soon as we find a contract that doesn't overlap with the previous one, we 
+know that the previous one is the latest valid contract.
+Remember that a TA can have several valid contracts:
+they might have had a contract for the autumn semester and then got a new one 
+for the spring semester, both of those contracts are considered valid.
+<<add the valid contracts for [[user]] to [[contracts]]>>=
+user_contracts = []
+
+contract_files = sorted(contracts_path.glob(f"{user}.*.json"),
+                        key=lambda x: x.name)
+prev_contract = None
+for contract_file in contract_files:
+  try:
+    with open(contract_file) as infile:
+      contract = json.load(infile)
+  except Exception as err:
+    logging.warning(f"Can't read {contract_file}, skipping: {err}")
+    continue
+
+  if prev_contract:
+    if not contract_overlap(prev_contract, contract):
+      user_contracts.append(prev_contract)
+
+  prev_contract = contract
+
+user_contracts.append(contract)
+
+contracts += user_contracts
+<<helper functions>>=
+def contract_overlap(contract1, contract2):
+  """
+  Returns True if the contracts overlap, False otherwise.
+
+  We define overlap as having at least one event in common.
+  """
+  for event1 in contract1["events"]:
+    for event2 in contract2["events"]:
+      if event_overlap(event1, event2):
+        return True
+  return False
+@
+
+To compare the events, we need to compare the times of the events only.
+If they overlap in time, we consider them to be the same event.
+<<helper functions>>=
+def event_overlap(event1, event2):
+  """
+  Returns True if the events overlap, False otherwise.
+
+  We define overlap as overlapping in time.
+  """
+  start1 = datetime.datetime.fromisoformat(event1[1])
+  end1 = datetime.datetime.fromisoformat(event1[2])
+  start2 = datetime.datetime.fromisoformat(event2[1])
+  end2 = datetime.datetime.fromisoformat(event2[2])
+
+  return start1 < end2 and start2 < end1
+@
+
+\subsection{Printing the contract}
+
+To print the data, we can do the same as when we generated the contract.
+We just need to set up the same variables and then do
+[[<<print [[amanuesis]] data for [[user]]>>]].
+<<print [[contract]]>>=
+user = contract["user"]
+booked = contract["events"]
+
+start = datetime.datetime.fromisoformat(contract["start"]) \
+          if "start" in contract and contract["start"] else None
+push_start = datetime.datetime.fromisoformat(contract["push_start"]) \
+          if "push_start" in contract and contract["push_start"] else None
+set_start = datetime.datetime.fromisoformat(contract["set_start"]) \
+          if "set_start" in contract and contract["set_start"] else None
+end = datetime.datetime.fromisoformat(contract["end"]) \
+          if "end" in contract and contract["end"] else None
+set_end = datetime.datetime.fromisoformat(contract["set_end"]) \
+          if "set_end" in contract and contract["set_end"] else None
+
+amanuensis = hr.compute_amanuensis_data(booked,
+                                        begin_date=start,
+                                        end_date=end)
+
+try:
+  course_regex = contract["course_regex"]
+except KeyError:
+  <<find [[course_regex]] from [[contract]]>>
+
+<<print [[amanuensis]] data for [[user]]>>
+@
+
+We need [[course_regex]] to be able to look up the TA's details in Canvas and 
+LADOK.
+We can simply go through the events and find the first one that seems to 
+contain a course code.
+<<find [[course_regex]] from [[contract]]>>=
+code_pattern = re.compile(r"[A-Z]{2,4}\d{3,4}[A-Z]?")
+for event in booked:
+  match = code_pattern.search(event[0])
+  if match:
+    course_regex = match.group(0)
+    break
+else:
+  course_regex = ".*"
+@
+
+\subsection{Printing the events}
+
+In some cases we also want to print the events that were used to compute the 
+contract.
+We simply get the list of events from [[contract]] and print them as tab 
+separated CSV to stdout.
+<<print events in [[contract]]>>=
+csvout = csv.writer(sys.stdout, delimiter="\t")
+for event in contract["events"]:
+  csvout.writerow(event)
+<<option [[events]] to include events>>=
+events: Annotated[bool, events_opt] = False
+<<argument and option definitions>>=
+events_opt = typer.Option(help="Print the events used to compute the "
+                               "contract.")
+@
+
+\subsection{Showing updated draft contract}
+
+When we show the current contract, we also want to show what the contract would 
+have looked like using the current bookings.
+This way, we can see what has changed and how that affects the contract, for 
+\enquote{mertid} etc.
+
+We have the [[update]] option to control this.
+<<option [[updates]] to show updates>>=
+updates: Annotated[bool, updates_opt] = False
+<<argument and option definitions>>=
+updates_opt = typer.Option(help="Also show a draft contract based on the "
+                                "current bookings.")
+@
+
+We can reuse the [[create]] command ([[cli_amanuens_create]]) to generate the 
+draft contract.
+We use the dates from the contract as arguments to the [[create]] command.
+Finally, we must ensure to set [[draft]] to [[True]] to not store the contract.
+<<show draft contract based on [[contract]] with all current hours>>=
+try:
+  start = datetime.datetime.fromisoformat(contract["start"]) \
+            if contract["start"] else None
+except KeyError:
+  start = None
+
+try:
+  end = datetime.datetime.fromisoformat(contract["end"]) \
+          if contract["end"] else None
+except KeyError:
+  end = None
+
+try:
+  push_start = datetime.datetime.fromisoformat(contract["push_start"]) \
+            if contract["push_start"] else None
+except KeyError:
+  push_start = None
+
+try:
+  set_start = datetime.datetime.fromisoformat(contract["set_start"]) \
+            if contract["set_start"] else None
+except KeyError:
+  set_start = None
+
+try:
+  set_end = datetime.datetime.fromisoformat(contract["set_end"]) \
+            if contract["set_end"] else None
+except KeyError:
+  set_end = None
+
+cli_amanuens_create(
+  user_regex=contract["user"],
+  course_regex=".*",
+  start=start,
+  end=end,
+  push_start=push_start,
+  set_start=set_start,
+  set_end=set_end,
+  detailed=detailed,
+  event_summary=event_summary,
+  draft=True,
+  delimiter=delimiter
+)
+@
+
+\section{Working with time sheets}\label{WorkingWithTimesheets}
+
+We'll create a set of subcommands under [[timesheet]] to manage time sheets.
+<<subcommands>>=
+timesheets = typer.Typer(name="timesheets",
+                         help="Manage timesheets for TAs")
+cli.add_typer(timesheets)
+@
+
+\subsection{Generate time sheets for TAs}
+
+We want to generate time sheets for the TAs.
+We have a command [[generate]] that does this.
+We take similar options as the [[amenuensis create]] command, although we don't 
+need all of those options.
+Apart from the courses and users, we need the start and end dates to filter 
+what to include in the time sheet.
+<<subcommands>>=
+@timesheets.command(name="generate")
+def cli_generate_timesheets(<<option for TAs to filter for>>,
+      <<default options for start, end dates>>,
+      <<options for time sheet data>>,
+      <<argument for matching courses>> = ".*",
+      <<option for matching registers, default to mine>>,
+      <<option [[store]] to store the time sheet data>>,
+      <<option [[amanuensis]] to include amanuensis mertid>>,
+      <<option [[sign]] to include a signature>>,
+      <<option [[diff]] to generate only when there's a difference in salary>>,
+      <<option [[draft]] to print draft to stdout>>):
+  """
+  Generates time sheets for TAs in courses.
+  """
+  <<set list [[courses]] to ((course, register), config)-pairs>>
+  <<try to get [[manager]], [[organization]] and [[project]] from [[courses]]>>
+  <<let [[booked]] be all bookings from [[courses]]>>
+  <<filter events from [[booked]] based on start, end dates>>
+
+  user_pattern = re.compile(user_regex)
+  users = hr.hours_per_TA(booked)
+  <<timesheet generation user iteration variables>>
+  for user in users:
+    <<skip if [[user_regex]] doesn't match [[user]]>>
+    <<skip depending on [[amanuensis]] option>>
+    <<do timesheet processing for [[user]]>>
+@
+
+Let's start with all the processing for a user.
+We first want to compute [[added_events]] and [[removed_events]].
+<<do timesheet processing for [[user]]>>=
+ta_events = summarize_user(user, booked)
+all_prev_events = []
+
+<<add [[user]]'s amanuensis contracts to [[all_prev_events]]>>
+<<add [[user]]'s previously reported events to [[all_prev_events]]>>
+
+added_events = remove_events(ta_events, all_prev_events)
+removed_events = remove_events(all_prev_events, ta_events)
+@
+
+When we remove the events, we simply filter them.
+<<helper functions>>=
+def remove_events(events, events_to_remove):
+  """
+  Removes the events in `events_to_remove` from `events`.
+  """
+  return list(filter(lambda x: x not in events_to_remove, events))
+@
+
+We want to add different options to affect the rest of the processing.
+<<option [[diff]] to generate only when there's a difference in salary>>=
+diff: Annotated[bool, diff_opt] = True
+<<argument and option definitions>>=
+diff_opt = typer.Option(help="diff: Only generate time sheets when there's a "
+                             "difference in salary. "
+                             "no-diff: Always generate time sheets when there "
+                             "are changes, even if there is no change in "
+                             "salary to be paid. "
+                             "(E.g. it's a change of dates.) "
+                             "No time sheets will be generated if there "
+                             "are no new events.")
+<<option [[draft]] to print draft to stdout>>=
+draft: Annotated[bool, draft_opt] = False
+<<argument and option definitions>>=
+draft_opt = typer.Option(help="Print a draft of the time sheet to stdout. "
+                              "Don't generate any timesheet.")
+<<option [[store]] to store the time sheet data>>=
+store: Annotated[bool, store_opt] = True
+<<argument and option definitions>>=
+store_opt = typer.Option(help="Store the time sheet data as reported.")
+@
+
+This leaves the rest of the processing like this.
+<<do timesheet processing for [[user]]>>=
+salary_diff = salary_difference(added_events, removed_events)
+
+if (diff and salary_diff != 0) or not diff:
+  if draft:
+    <<output [[added_events]] and [[removed_events]] to stdout>>
+  else:
+    <<generate [[user]]'s timesheet from [[added_events]], [[removed_events]]>>
+
+if store and not draft:
+  <<store [[added_events]], [[removed_events]] for [[user]] as reported>>
+@
+
+To compute the difference in salary, we can simply sum up the salary in the 
+events.
+The function [[summarize_user]] lets [[belopp]] key of the event be the salary.
+<<helper functions>>=
+def salary_difference(added_events, removed_events):
+  """
+  Returns the difference in salary between the added and removed events.
+  """
+  return sum(map(lambda x: x["belopp"], added_events)) \
+           - sum(map(lambda x: x["belopp"], removed_events))
+@
+
+\subsection{Work with amanuensis or hourly TAs option}
+
+We want to be able to separate time sheets for amanuensis and hourly TAs.
+We want to check if the TA has a valid amanuensis contract that overlaps with 
+the period.
+If they have that, they should report extra hours as 
+\enquote{\foreignlanguage{swedish}{mertid}} instead.
+<<option [[amanuensis]] to include amanuensis mertid>>=
+amanuensis: Annotated[bool, amanuensis_opt] = False
+<<argument and option definitions>>=
+amanuensis_opt = typer.Option(help="Include only amanuenses, i.e. generate "
+                                   "mertid time sheets. no-amanuensis "
+                                   "include only hourly TAs.")
+<<skip depending on [[amanuensis]] option>>=
+contracts = get_valid_contracts(user)
+if amanuensis and not contracts:
+  continue
+elif not amanuensis and contracts:
+  continue
+@
+
+\subsection{Output draft to stdout}
+
+We want to be able to output a draft of the time sheet to stdout.
+This should be similar to what we want to do below in \cref{ShowTimesheet}.
+We should print the username and the added and removed events to stdout in 
+tab-separated CSV format.
+Note that we want to negate the hours for the removed events, this makes it 
+easier to read it correctly.
+<<timesheet generation user iteration variables>>=
+csvout = csv.writer(sys.stdout, delimiter="\t")
+first_print = True
+<<output [[added_events]] and [[removed_events]] to stdout>>=
+if not (added_events or removed_events):
+  continue
+
+if first_print:
+  first_print = False
+else:
+  csvout.writerow([])
+  csvout.writerow([])
+
+if added_events or removed_events:
+  csvout.writerow([user])
+
+if added_events and removed_events:
+  csvout.writerow(["Added events"])
+
+for event in added_events:
+  csvout.writerow(event.values())
+
+if removed_events:
+  csvout.writerow([])
+  csvout.writerow(["Removed events"])
+
+for event in removed_events:
+  event["timmar"] = -event["timmar"]
+  event["omr_tid"] = -event["omr_tid"]
+  event["belopp"] = -event["belopp"]
+  csvout.writerow(event.values())
+@
+
+\subsection{Generate a time sheet for a TA}
+
+To generate the time sheet for a TA we need to do the following:
+\begin{enumerate}
+  \item summarize the events for the TA;
+  \item look up the TA in Canvas and LADOK to get the personnummer;
+  \item put the data in the Excel format.
+\end{enumerate}
+<<generate [[user]]'s timesheet from [[added_events]], [[removed_events]]>>=
+if not added_events and not removed_events:
+  logging.warning(f"No events for {user}, skipping.")
+  continue
+
+<<set [[user_obj]] to most detailed version possible of [[user]]>>
+try:
+  personnummer = user_obj.personnummer
+  name = f"{user_obj.first_name} {user_obj.last_name}"
+except AttributeError as err:
+  logging.warning(f"can't access {user}'s LADOK data: {err}")
+  personnummer = "-"
+  name = str(user_obj)
+
+<<let [[output_filename]] be the filename for the time sheet>>
+
+timesheet.make_xlsx(personnummer,
+                    name,
+                    f"{user}@kth.se" if not "@" in user else user,
+                    added_events,
+                    removed_events=removed_events,
+                    course_leader=(course_responsible,
+                                   course_responsible_email),
+                    HoD=manager,
+                    org=organization, project=project,
+                    course_leader_signature=course_responsible_signature \
+                      if sign else None,
+                    output=output_filename)
+<<imports>>=
+from nytid.signup.hr import timesheet
+<<options for time sheet data>>=
+course_responsible: Annotated[str, course_responsible_opt]
+  = default_course_responsible,
+course_responsible_email: Annotated[str, course_responsible_email_opt]
+  = default_email,
+course_responsible_signature: Annotated[pathlib.Path,
+                                        course_responsible_signature_opt]
+  = default_signature_file,
+manager: Annotated[str, manager_opt] = default_manager,
+organization: Annotated[str, org_opt] = default_organization,
+project: Annotated[str, project_opt] = default_project
+<<option [[sign]] to include a signature>>=
+sign: Annotated[bool, sign_opt] = True
+<<argument and option definitions>>=
+sign_opt = typer.Option(help="Include the course responsible's signature.")
+@
+
+We construct the filename from the TA's username.
+We don't need to include any date, since we store each generated time sheet.
+(And this makes it easier to reuse
+[[<<generate timesheet for [[user]] based on [[booked]]>>]]
+later.)
+Thus we don't need to store the generated time sheet that we send.
+<<let [[output_filename]] be the filename for the time sheet>>=
+output_filename = f"timesheet-{user}.xlsx"
+@
+
+\subsection{Default values for the time sheet}
+
+The default values for all those parameters can be set in the configuration.
+We don't want to emit any warnings with hints to set the configuration, because 
+those would be all over the place (when autocompleting, when running the help, 
+etc.).
+So we'll add the hint for configuration to the help texts.
+<<argument and option definitions>>=
+course_responsible_opt = typer.Option(help="The course responsible's name; "
+                                           <<config default name>>)
+<<set [[default_course_responsible]]>>
+course_responsible_email_opt = typer.Option(help="The course responsible's "
+                                                 "email; "
+                                                 <<config default email>>)
+<<set [[default_email]]>>
+course_responsible_signature_opt = typer.Option(help="Path to a picture of "
+                                                     "the course "
+                                                     "responsible's "
+                                                     "signature; "
+                                                     <<config signature>>)
+<<set [[default_signature_file]]>>
+manager_opt = typer.Option(help="The manager's name; "
+                                <<config manager>>)
+<<set [[default_manager]]>>
+org_opt = typer.Option(help="The organization code for accounting; "
+                            <<config organization>>)
+<<set [[default_organization]]>>
+project_opt = typer.Option(help="The project number for accounting; "
+                                <<config project>>)
+<<set [[default_project]]>>
+@
+
+\subsubsection{The course responsible}
+
+It's the role of the course responsible to sign these time sheets.
+So the course responsible will be the current user and that's where we'll want 
+to get this information from: the personal config.
+<<how to set the value>>=
+If no default is set, we try to extract the value from the courses' config. "
+"You can set the default by running `nytid config ...` or "
+"`nytid courses config <course>
+<<config default name>>=
+"<<how to set the value>> me.name -s <name>`."
+<<config default email>>=
+"<<how to set the value>> me.email -s <email>`."
+<<config signature>>=
+"<<how to set the value>> me.signature -s <path>`."
+@
+
+This means that we can set the values by reading those values out of the 
+config, if they exist, otherwise we'll use [[None]].
+<<set [[default_course_responsible]]>>=
+try:
+  default_course_responsible = typerconf.get("me.name")
+except KeyError:
+  default_course_responsible = ""
+<<set [[default_email]]>>=
+try:
+  default_email = typerconf.get("me.email")
+except KeyError:
+  default_email = ""
+<<set [[default_signature_file]]>>=
+try:
+  default_signature_file = pathlib.Path(typerconf.get("me.signature"))
+except KeyError:
+  default_signature_file = None
+@
+
+\subsubsection{The manager and accounting}
+
+The manager and accounting depends on where the course is given.
+However, it's usually strongly related to where the course responsible works.
+So we can have a default value for the manager and accounting for the user in 
+their personal config.
+<<config manager>>=
+"<<how to set the value>> hr.manager -s <name>`."
+<<set [[default_manager]]>>=
+try:
+  default_manager = typerconf.get("hr.manager")
+except KeyError:
+  default_manager = ""
+<<config organization>>=
+"<<how to set the value>> hr.organization -s <code>`."
+<<set [[default_organization]]>>=
+try:
+  default_organization = typerconf.get("hr.organization")
+except KeyError:
+  default_organization = ""
+<<config project>>=
+"<<how to set the value>> hr.project -s <code>`."
+<<set [[default_project]]>>=
+try:
+  default_project = typerconf.get("hr.project")
+except KeyError:
+  default_project = ""
+@
+
+It doesn't make sense to extract these from the course, since the pattern might 
+match several courses and we can't specify several managers.
+The same for the accounting.
+However, we could extract that and if it turns out to be unique values, we can 
+use them.
+<<try to get [[manager]], [[organization]] and [[project]] from [[courses]]>>=
+managers = []
+orgs = []
+projects = []
+for _, course_config in courses.items():
+  try:
+    managers.append(course_config.get("hr.manager"))
+  except KeyError:
+    pass
+  try:
+    orgs.append(course_config.get("hr.organization"))
+  except KeyError:
+    pass
+  try:
+    projects.append(course_config.get("hr.project"))
+  except KeyError:
+    pass
+
+if len(set(managers)) == 1:
+  manager = managers[0]
+if len(set(orgs)) == 1:
+  organization = orgs[0]
+if len(set(projects)) == 1:
+  project = projects[0]
+@
+
+\subsection{Summarize the events for a TA}
+
+The [[summarize_user]] function will take a user and the course events and 
+return a list that can be put into the time sheet.
+This is essentially the bulk of the time sheet contents.
+<<helper functions>>=
+def summarize_user(user, course_events,
+                   salary=150):
+  """
+  Returns events where TA worked.
+  - `user` is the TA's username.
+  - `course_events` is a list of events.
+  - Optional `salary` is the hourly salary.
+  """
+  <<[[summarize_user]] variables>>
+  <<let [[hours]] be the hours of [[user]]>>
+  <<let [[events]] be a list of events for [[user]], sorted by date>>
+
+  xl_events = []
+
+  for event in events:
+    <<compute [[end]], [[start]], [[event_type]]>>
+    <<compute [[time]] and [[time_with_prep]] from [[start]] and [[end]]>>
+    <<compute [[course]] from [[event_type]]>>
+
+    xl_events.append({
+            "datum": str(start.date()),
+            "tid": str(start.time()),
+            "kurskod": course,
+            "typ": event_type,
+            "timmar": to_hours(time),
+            "koeff": hr.prep_factor(event_type, date=start.date(),
+                                    amanuensis=False),
+            "omr_tid": time_with_prep,
+            "belopp": time_with_prep * salary
+        })
+
+  return xl_events
+@
+
+We can simply compute [[hours]] using the [[hours_per_TA]] function.
+That function returns a dictionary with the TA as key and the total time as 
+value.
+So we just get the hours for the TA in question.
+However, if the TA doesn't have any hours, we'll get a [[KeyError]] since we 
+can't find any entry for the TA.
+In this case we simply set the hours to 0.
+<<let [[hours]] be the hours of [[user]]>>=
+try:
+  hours = to_hours(hr.hours_per_TA(course_events)[user])
+except KeyError:
+  hours = 0
+<<[[summarize_user]] variables>>=
+start_idx = sheets.SIGNUP_SHEET_HEADER.index("Start")
+@
+
+We want to filter the events for the TA, so we can use [[filter_events_by_TA]].
+We also want to sort them by date, so we sort them according to the start date.
+<<let [[events]] be a list of events for [[user]], sorted by date>>=
+events = sheets.filter_events_by_TA(user,
+                                    sorted(course_events,
+                                            key=operator.itemgetter(start_idx)))
+@
+
+Now, we also only want to include the events for which the TA was booked, not 
+the ones where they were reserve.
+<<let [[events]] be a list of events for [[user]], sorted by date>>=
+events = filter(lambda x: user in sheets.get_booked_TAs_from_csv(x)[0], 
+                events)
+@
+
+Finally, we want to remove the other TAs and just include this one TA in the 
+list of TAs.
+This allows us to reuse the list of events with all the usual library 
+functions.
+<<let [[events]] be a list of events for [[user]], sorted by date>>=
+events = list(map(lambda x:
+                    x[0:len(sheets.SIGNUP_SHEET_HEADER)] + [user],
+                  events))
+@
+
+We also need to extract the end date, start date and event type from the event.
+<<compute [[end]], [[start]], [[event_type]]>>=
+end = arrow.get(event[end_idx])
+start = arrow.get(event[start_idx])
+event_type = event[type_idx]
+<<[[summarize_user]] variables>>=
+end_idx = sheets.SIGNUP_SHEET_HEADER.index("End")
+type_idx = sheets.SIGNUP_SHEET_HEADER.index("Event")
+@
+
+Then we can compute the time spent on the event and the time spent on the event 
+including prep time.
+<<compute [[time]] and [[time_with_prep]] from [[start]] and [[end]]>>=
+time = end-start
+time_with_prep = to_hours(hr.round_time(
+                            hr.add_prep_time(time, event_type,
+                                              date=start.date())))
+@
+
+The course code is part of the [[event_type]].
+Usually events are named something along the lines of \enquote{Datorlaboration, 
+DD1310}.
+If there are several courses, they are separated by commas.
+We could simply find the start of the course code and extract all of them as 
+[[course]].
+However, that doesn't work in all cases, so we'll look for something that looks 
+like a course code using a regex instead.
+<<compute [[course]] from [[event_type]]>>=
+course = ""
+codes = re.findall(r"[A-Z]{2,4}\d{3,4}[A-Z]?", event_type)
+if codes:
+  course = ", ".join(codes)
+@
+
+
+\subsection{Find events from amanuensis contracts}
+
+Now we want to fetch the valid amanuensis contracts for the TA and filter out 
+all events included there from [[ta_events]].
+<<add [[user]]'s amanuensis contracts to [[all_prev_events]]>>=
+user_contracts = get_valid_contracts(user)
+for contract in user_contracts:
+  contract_events = summarize_user(user,
+                        sheets.filter_events_by_date(contract["events"],
+                                                     start, end))
+  all_prev_events += contract_events
+@
+
+\subsection{Store and retrieve the time sheet data for a TA}%
+\label{StoreRetrieveTimesheetData}
+
+When we generate the time sheet, we want to store the events that we used to 
+generate it.
+We will store the diffs ([[added_events]] and [[removed_events]]), that way 
+we'll build up the set of all events by adding them.
+
+For each time sheet we'll store [[added_events]] and [[removed_events]] in a 
+JSON file.
+This is similar to how we store the amanuensis contracts.
+<<store [[added_events]], [[removed_events]] for [[user]] as reported>>=
+timesheets_dir = pathlib.Path(typerconf.get(TIMESHEETS_DIR_PATH))
+filename = f"{user}.{datetime.datetime.now().isoformat()}.json"
+with open(timesheets_dir / filename, "w") as outfile:
+  json.dump({"user": user,
+             "added_events": added_events,
+             "removed_events": removed_events},
+            outfile,
+            indent=2)
+<<constants>>=
+TIMESHEETS_DIR_PATH = "hr.timesheets.timesheets_dir"
+@
+
+This means that we can read the data back as follows.
+We simply read each time sheet file and add [[added_events]] to 
+[[all_prev_events]] and then remove [[removed_events]] from 
+[[all_prev_events]].
+This way [[all_prev_events]] represents the correctly reported history.
+<<add [[user]]'s previously reported events to [[all_prev_events]]>>=
+timesheets_dir = pathlib.Path(typerconf.get(TIMESHEETS_DIR_PATH))
+for timesheet_file in timesheets_dir.glob(f"{user}.*.json"):
+  try:
+    with open(timesheet_file) as infile:
+      timesheet_data = json.load(infile)
+  except Exception as err:
+    logging.warning(f"Can't read {timesheet_file}, skipping: {err}")
+    continue
+
+  all_prev_events += timesheet_data["added_events"]
+  all_prev_events = remove_events(all_prev_events,
+                                  timesheet_data["removed_events"])
+@
+
+
+\section{Show the latest time sheet}\label{ShowTimesheet}
+
+Now that we have \cref{StoreRetrieveTimesheetData}, we can easily show the 
+generated time sheets for a TA.
+We let this command just print a summary of each time sheet.
+<<subcommands>>=
+@timesheets.command(name="show")
+def cli_show_timesheets(<<argument [[user_regex]] to match TAs>> = ".*",
+                        <<option [[reverse]] to adjust sort order>>,
+                        <<option [[all]] to show all timesheets>>,
+                        <<option for CSV delimiter>>,
+                        <<option for [[date_regex]] to filter by date>>,):
+  """
+  Shows stored time sheets for TAs.
+  """
+  timesheets_dir = pathlib.Path(typerconf.get(TIMESHEETS_DIR_PATH))
+
+  <<timesheets iteration variables>>
+  <<set [[timesheets]] depending on [[all]]>>
+  for timesheet in timesheets:
+    <<skip if [[user_regex]] doesn't match [[timesheet]]>>
+    <<skip if [[date_regex]] doesn't match [[timesheet]]>>
+    <<skip if we've already printed a timesheet for [[user]]>>
+    <<print [[timesheet]]>>
+<<option [[reverse]] to adjust sort order>>=
+reverse: Annotated[bool, reverse_opt] = False
+<<argument and option definitions>>=
+reverse_opt = typer.Option(help="Reverse the sort order.")
+<<option [[all]] to show all timesheets>>=
+all: Annotated[bool, all_opt] = False
+<<argument and option definitions>>=
+all_opt = typer.Option("--all/--newest",
+                       help="Show all time sheets or just the newest.")
+@
+
+If we want all time sheets, then we let the user decide on the sort order.
+If we only want the newest one, then we sort in reverse order and simply use 
+the first one.
+<<set [[timesheets]] depending on [[all]]>>=
+if not all:
+  reverse = True
+
+timesheets = sorted(timesheets_dir.glob(f"*.json"),
+                    key=lambda x: x.name,
+                    reverse=reverse)
+@
+
+We can check if the time sheet file matches the user's username.
+For example, the file name might be
+[[dbosk.2024-09-26T14:28:39.434834.json]].
+<<skip if [[user_regex]] doesn't match [[timesheet]]>>=
+username = timesheet.name.split(".")[0]
+if not user_pattern.match(username):
+  continue
+<<timesheets iteration variables>>=
+user_pattern = re.compile(user_regex)
+@
+
+In the same fashion, we want to filter on dates.
+<<skip if [[date_regex]] doesn't match [[timesheet]]>>=
+if date_regex and not date_pattern.match(timesheet.name.split(".")[1]):
+  continue
+<<timesheets iteration variables>>=
+if date_regex:
+  date_pattern = re.compile(date_regex)
+<<option for [[date_regex]] to filter by date>>=
+date_regex: Annotated[str, date_regex_opt] = None
+<<argument and option definitions>>=
+date_regex_opt = typer.Option(help="Filter time sheets by date. This is a "
+                                   "regex matching the date of the time "
+                                   "sheet.")
+@
+
+
+In the same fashion, we can check if we've already printed a time sheet for the 
+user.
+If we haven't printed one, we add the user to the set of printed users and 
+proceed to the printing step.
+We need to do like this since we might want to print the newest time sheet of 
+several matching users.
+Consequently, we don't want to skip when we want to print all time sheets for 
+the TAs.
+<<skip if we've already printed a timesheet for [[user]]>>=
+if username in printed_users and not all:
+  continue
+else:
+  printed_users.add(username)
+<<timesheets iteration variables>>=
+printed_users = set()
+@
+
+Now, to print the time sheet, we simply print the name of the file and the 
+added and removed events.
+We'll print it in CSV format.
+<<timesheets iteration variables>>=
+csvout = csv.writer(sys.stdout, delimiter=delimiter)
+first_print = True
+<<print [[timesheet]]>>=
+if first_print:
+  first_print = False
+else:
+  csvout.writerow([])
+  csvout.writerow([])
+
+csvout.writerow([timesheet.name])
+
+with open(timesheet) as infile:
+  timesheet_data = json.load(infile)
+
+added_events = timesheet_data["added_events"]
+removed_events = timesheet_data["removed_events"]
+
+if added_events and removed_events:
+  csvout.writerow(["Added events"])
+
+for event in added_events:
+  csvout.writerow(event.values())
+
+if removed_events:
+  csvout.writerow([])
+  csvout.writerow(["Removed events"])
+
+for event in removed_events:
+  csvout.writerow(event.values())

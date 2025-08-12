@@ -1,0 +1,2002 @@
+\chapter{CLI design overview, the \texttt{cli} module}\label{CLIoverview}
+
+In this chapter we outline the design of the CLI.
+<<nytid description>>=
+"""
+A CLI for managing TAs and courses.
+"""
+@ The target audience for this chapter is twofold:
+It's supposed to give an overview of the what we want to achieve.
+This is useful for maintainers and contributors, so that they know what we want 
+to do and why.
+But it also serves as a how-to-use manual for the end users.
+
+The [[nytid]] CLI has a similar design as Git, it consists of various 
+subcommands with different options.
+For instance, [[nytid hr timesheets --help]] will print the help of the 
+[[timesheets]] command.
+In this chapter, we outline the design (useful for users) and document the base 
+of the CLI (not so useful for users).
+At the end of the chapter, in \cref{climodule}, we outline the code itself of 
+the [[nytid.cli]] module.
+Each subcommand is a submodule of [[nytid.cli]], for instance the [[timesheet]] 
+command above is located in [[nytid.cli.hr]].
+Each subcommand is documented in one of the subsequent chapters.
+So the end-user can read until \cref{climodule}.
+
+\section{Usage: what problems we can solve and how}
+
+In this section we describe the workflow of various scenarios.
+We describe them in chronological order.
+So in essence, this section serves as a how-to-use manual.
+
+Now, [[nytid]] is designed with automation in mind.
+There should be as little manual work as possible.
+Of course, we can do these things manually as well, but the author\footnote{%
+  \label{author}%
+  That is, Daniel Bosk.
+} deems that very unnecessary: a human shouldn't do what a computer can do 
+better, with less errors.
+
+For this reason, we will create a few scripts to illustrate how to use 
+[[nytid]] to automate what can be automated.
+(These scripts are indeed used by the author.)
+<<nytid.hourly.sh>>=
+<<cronjob header>>
+<<nytid.daily.sh>>=
+<<cronjob header>>
+<<nytid.weekly.sh>>=
+<<cronjob header>>
+<<nytid.premonthly.sh>>=
+<<cronjob header>>
+<<nytid.monthly.sh>>=
+<<cronjob header>>
+<<cronjob header>>=
+#!/bin/bash
+
+source ${HOME}/.profile
+
+year=$(date +%y)
+@ We will expand on the details of these scripts as we proceed.
+The intension is to add them to Cron to run the automation.
+\begin{minted}{text}
+# m h  dom   mon dow   command
+  0 *  *     *   *     ${HOME}/bin/nytid.hourly.sh
+  0 4  *     *   *     ${HOME}/bin/nytid.daily.sh
+  0 5  *     *   1     ${HOME}/bin/nytid.weekly.sh
+  0 6  2-5   *   *     ${HOME}/bin/nytid.monthly.sh
+\end{minted}
+So we run
+\begin{itemize}
+\item [[<<nytid.hourly.sh>>]] every hour,
+\item [[<<nytid.daily.sh>>]] every morning at 4,
+\item [[<<nytid.weekly.sh>>]] every Monday at 5, and
+\item [[<<nytid.monthly.sh>>]] on the 2nd to 5th of every month at 6 in the 
+morning.
+We do this in case it's on a weekend and the laptop is off\footnote{%
+  If we run it on our laptop.
+  Optimally, we could run it on a Raspberry Pi or a server.
+}.
+\end{itemize}
+
+\subsection{Setting up a course}
+
+The course responsible must first set up a course.
+Essentially, we just need to provide the URL to the ICS from TimeEdit 
+(\cref{TimeEditICS}) and the number of students and groups 
+(\cref{TimeEditPref}).
+In this series of examples, we'll set up two courses: [[prgi24]] and 
+[[prgm24]], given at the TCS department.
+
+\subsubsection{Where to store course data}
+
+When we create a course, we need to store the data somewhere.
+Depending on where we store it, different people can access it.
+Nytid supports this in terms of course registers.
+A course register is simply a directory where we store the data for a set of 
+courses.
+
+The default is to use a register called [[mine]], which by default is located 
+in your home directory.
+This works for most purposes.
+It means that you can use [[nytid]] on your local machine.
+
+If you want to set the location of the [[mine]] register, you can do so by 
+adding it\footnote{%
+  Otherwise it's created in the default location when you add your first 
+  course.
+}:
+\begin{minted}{bash}
+nytid courses registry add mine ~/.nytid/mine
+\end{minted}
+I run the above on the KTH systems that have my home directory mounted over 
+AFS.
+On my systems, I instead point it to that directory in AFS.
+In my home directory on those systems, I have a directory [[~/afs]] pointing to 
+my home directory in AFS.
+\begin{minted}{bash}
+nytid courses registry add mine ~/afs/.nytid/mine
+\end{minted}
+This way, both systems can access the same data.
+
+If this works for you, you can skip to the next section, 
+\cref{CreatingCourses}.
+
+If it's a shared course, you'd better put the data so that all teachers can 
+access it.
+In my case, I have a shared directory for the TCS department.
+So I add a register for TCS.
+\begin{minted}{bash}
+nytid courses registry add tcs /afs/kth.se/misc/projects/eecs/tcs/nytid
+\end{minted}
+
+An advantage of using registers like this is that \emph{one} person could run 
+the automation outlined in the next few sections for \emph{all} TCS courses.
+
+\subsubsection{Creating the courses}\label{CreatingCourses}
+
+As mentioned above, we want to create the courses [[prgi24]] and [[prgm24]].
+The crucial data we need is the ICS URL from TimeEdit and the number of 
+students and groups.
+Then we can just run the following commands.
+\begin{minted}{bash}
+nytid courses new prgi24 \
+  --code DD1317 \
+  --related DD1310 \
+  --ics https://cloud.timeedit.net/... \
+  --num-students 160 --num-groups 6
+nytid courses new prgm24 \
+  --code DD1310 \
+  --related DD1317 \
+  --ics https://cloud.timeedit.net/... \
+  --num-students 200 --num-groups 6
+\end{minted}
+We use the course code to relate a course to other courses.
+Both prgm24 and prgi24 cover introductory Python, despite not sharing the same 
+course code, but they are related and can share TAs.
+Hence, we set the related course to the other course.
+
+If we want to put those courses in the TCS register\footnote{%
+  If you skipped the part on registers above, you can skip here too.
+  Skip to the last paragraph of this section.
+}, we can do so by adding the [[--register]] option.
+The command for [[prgi24]] would then be as follows.
+\begin{minted}[highlightlines=6]{bash}
+nytid courses new prgi24 \
+  --code DD1317 \
+  --related DD1310 \
+  --ics https://cloud.timeedit.net/... \
+  --num-students 160 --num-groups 6 \
+  --register tcs
+\end{minted}
+
+Nytid uses by default the [[mine]] register.
+That's to filter out interesting courses instead of all available courses.
+We can add interesting courses to the [[mine]] register from all kinds of 
+different registers.
+In our case here, we only have the [[tcs]] register.
+Since [[prgm24]] and [[prgi24]] are both my courses, I add them to the [[mine]] 
+register.
+\begin{minted}{bash}
+nytid courses mine add prgi24
+nytid courses mine add prgm24
+\end{minted}
+This way, commands like the [[nytid schedule show]] command (discussed later) 
+will show the schedule for all my courses, \ie courses in the [[mine]] 
+register, by default.
+
+This is all done manually once per year, once the schedule is established in 
+TimeEdit.
+Although, it should be possible to automate.
+We only need to read out the needed data from TimeEdit, as seen in 
+\cref{TimeEditICS,TimeEditPref}\footnote{%
+  We should be able to get that data using the [[weblogin]] package.
+  At least to get the ICS URL.
+  We don't need [[weblogin]] for TimeEdit Preferences, as that is so badly 
+  coded that we simply pass the \enquote{PIN-code} through the URL.
+}.
+
+\begin{figure}
+  \includegraphics[width=\columnwidth]{figs/timeedit-ics-prgm24.png}
+  \caption{\label{TimeEditICS}%
+    The ICS export for prgm24 from TimeEdit.
+    Note that we use the Swedish language TimeEdit to export, this actually 
+    affects how the data is formatted in the events of the schedule.
+  }
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\columnwidth]{figs/timeedit-pref-prgm24.png}
+  \caption{\label{TimeEditPref}%
+    The grouping for different events for prgm24 in TimeEdit Preferences.
+    We want the number of groups.
+  }
+\end{figure}
+
+\subsection{Generating the sign-up sheet}
+
+The course responsible must then generate the sign-up sheet.
+This is done by running the following command.
+\begin{minted}{bash}
+nytid signupsheets generate prg[im]24 --edit
+\end{minted}
+The \mintinline{bash}{--edit} option opens the generated sign-up sheet (or 
+sheets in our case, since we do this for two courses at the same time) in the 
+default editor (LibreOffice Calc in my case, see \cref{SignupLOPrgm24}).
+Then we can tweak each sign-up sheet and save it.
+\Cref{SignupPrgm23} shows part of the sign-up sheet for [[prgm23]], where TAs 
+have signed up.
+
+\begin{figure}
+  \includegraphics[width=\columnwidth]{figs/signup-libreoffice-prgm24.png}
+  \caption{\label{SignupLOPrgm24}%
+    The newly generated sign-up sheet for prgm24, opened up in LibreOffice for 
+    editing.
+  }
+\end{figure}
+
+The regex [[prg[im]24]] will match both [[prgi24]] and [[prgm24]], so we 
+generate both sign-up sheets at the same time.
+They will still be written to two different files though.
+
+The generation will automatically compute the needed number of TAs based on the 
+number of students and groups passed to the [[new]] command above.
+It reads the schedule and the group information to see how many rooms and 
+expected number of students in the rooms.
+
+For this to work, however, we need the Swedish language export of the schedule 
+from TimeEdit (see \cref{TimeEditICS}).
+The English version does things differently.
+For instance, the Swedish version includes [[grupp A]], [[grupp B]] and [[grupp 
+C]]; whereas the English version includes [[group A-C]].
+That messes with us counting the number of groups.
+
+The default location for the sign-up sheet is in the course's data path.
+We can access this by running
+\begin{minted}{bash}
+nytid courses data shell prgi24
+\end{minted}
+This will spawn a shell in the data directory of [[prgi24]].
+Currently, that directory contains the sign-up sheet we generated above.
+Actually, it contains two, because I ran the command twice: I had entered the 
+wrong TimeEdit URL and had to update it\footnote{%
+  See \cref{TweakConfig} for how to update the config.
+}.
+\begin{minted}{text}
+$ nytid courses data shell prgi24
+--- prgi24/data shell ---
+data $ ls
+signup-prgi24-20240517-0925.csv  signup-prgi24-20240517-0926.csv
+data $ exit
+--- prgi24/data shell terminated ---
+$
+\end{minted}
+Every generated sign-up sheet will be kept.
+
+Next step is to upload the sign-up sheet to Google Sheets (we must do that 
+manually) and let [[nytid]] know the URL.
+The URL is the one we get when we share the document, it must be set to 
+everyone with the link can read\footnote{%
+  For Nytid to be able to read it.
+  Normally, we want it set so that the TAs can edit it too, so that they can 
+  book themselves for events.
+}.
+\begin{minted}{bash}
+nytid signupsheets set-url prgi24 \
+  https://docs.google.com/spreadsheets/...
+\end{minted}
+
+\begin{figure}
+  \includegraphics[width=\columnwidth]{figs/signup-prgm23.png}
+  \caption{\label{SignupPrgm23}%
+    Part of the sign-up sheet for prgm23.
+    We can see that TAs have signed up.
+  }
+\end{figure}
+
+\subsection{Tweaking the config}\label{TweakConfig}
+
+If we want to tweak the config that we just did, we can read and modify it 
+using the config commands.
+\begin{minted}{bash}
+nytid config
+nytid courses config prgi24
+\end{minted}
+The first command will work with the personal config,
+the second with the [[prgi24]]-specific course config.
+
+Let's have a look at the outputs.
+We'll start with the personal config: [[nytid config]] will output something 
+along the following:
+\begin{pycode}
+import subprocess
+output = subprocess.run(["nytid", "config"],
+                        capture_output=True).stdout.decode()
+print(r'\begin{minted}{text}')
+print(output.strip())
+print(r'\end{minted}')
+\end{pycode}
+
+Now, let's have a look at the course config for [[prgi24]] by running
+[[nytid courses config prgi24]]:
+\begin{minted}{text}
+contact = Daniel Bosk <dbosk@kth.se>
+code = DD1317
+related_codes = ['DD1310']
+ics = https://cloud.timeedit.net/kth/web/staff01/...
+data_path = /afs/kth.se/misc/projects/eecs/tcs/nytid/courses/prgi24/data
+num_students = 160
+num_groups = 6
+signupsheet.url = https://docs.google.com/spreadsheets/...
+\end{minted}
+We can see that the values used above with the [[nytid courses new]] command 
+are stored here.
+
+If we need to change something, we can also use the same command.
+Say that we want to update the ICS URL for [[prgi24]] (as I mentioned I did 
+above).
+We can do that as follows.
+\begin{minted}{bash}
+nytid courses config prgi24 ics -s https://cloud.timeedit.net/...
+\end{minted}
+Note the [[-s]] option, it sets the value to the one we provide.
+We can also just print that value.
+\begin{minted}{text}
+$ nytid courses config prgi24 ics
+ics = https://cloud.timeedit.net/...
+\end{minted}
+The same applies to all other values in the config, also the personal config.
+\begin{minted}{text}
+$ nytid config me
+me.name = Daniel Bosk
+me.email = dbosk@kth.se
+me.signature = /home/dbosk/Pictures/signature.png
+\end{minted}
+
+\subsection{Generating data interesting for HR}
+
+% hr               Manage sign-up sheets for teaching                          
+
+HR wants to know who is working on the course.
+They need to do this to create an employment contract, either for hourly 
+employment or for amanuensis contracts.
+However, it takes time to get that info out of the TAs,
+so it's hard to automate it fully.
+And HR doesn't want to know about it until we know what contract they should 
+have.
+Also, HR doesn't care about which courses the TAs are working on.
+But we can automate part of the process.
+
+We can list the TAs using the [[nytid hr users]] command.
+Let's consider the output from [[prgi23]].
+\begin{minted}{text}
+$ nytid hr users prgi23
+dbosk
+teachinga
+assarsd
+[...]
+$
+\end{minted}
+There is an option [[--detailed]] that is more useful for what we want to do 
+here.
+Let's consider the output from [[prgi23]] again.
+\begin{minted}{text}
+$ nytid hr users prgi23 --detailed
+[ personnr ] Daniel Bosk <dbosk@kth.se>
+[ personnr ] Teaching Assistantsson <teachinga@kth.se>
+nytid: WARNING: Can't look up assarsd (TA Assarsdotter <assarsd@kth.se>) in 
+LADOK: expected string or bytes-like object
+TA Assarsdotter <assarsd@kth.se>
+[...]
+$
+\end{minted}
+The [[--detailed]] option will try to look up more detailed data about the TA 
+that HR wants.
+In the best case, we look up each TA in LADOK to find their name and 
+personnummer.
+In the example, TA Assarsdotter is an external TA, she has no results in LADOK 
+from KTH.
+This means that we can't look up her personnummer, but use her email instead so 
+that HR can ask her themselves.
+
+But this means that we can use this command to generate a list of TAs for HR on 
+a weekly basis.
+We want to do it on a weekly basis so that we have the time to add amanuensis 
+contracts for TAs who qualify and prefer that type of employment.
+Also, so that the TAs have time to add themselves to more sessions.
+
+But we'll do this by indirection.
+We'll send the email to ourselves.
+Then, we can process it and forward the result to HR.
+<<nytid.weekly.sh>>=
+# Report new TAs as working to HR
+
+<<TA reporting variables>>
+<<set up [[ta_mail]] function>>
+
+for course in ${HR_REPORTING_COURSES}; do
+  <<output new TAs for [[course]]>>
+done | <<call [[ta_mail]]>>
+@
+
+Now, we must keep track of those we've already reported.
+We'll do this by storing the list of TAs that we've reported to HR.
+Since this is a personal list, HR only wants to know which teacher the TA is 
+working for, we'll create a configuration variable for it:
+\begin{minted}{bash}
+nytid config hr.reported_TAs -s ~/afs/.nytid/reported_TAs
+\end{minted}
+(HR keep track if the TA is working for several teachers.)
+
+If we add all reported TAs to that file, when we want to report new ones,
+we can add all TAs again and count them.
+All TAs that occur only once are the new ones.
+
+We note that we must keep such a file for every [[course]] in 
+[[HR_REPORTING_COURSES]].
+Technically, the [[course]] is a regex for several courses.
+In most cases, we'll cover all our courses at once.
+But in the case of [[datintro]], the TAs are exempted from taking the mandatory 
+TA course, so we want to keep them separate.
+<<TA reporting variables>>=
+HR_REPORTING_COURSES="prg[im]${year} datintro${year}"
+<<output new TAs for [[course]]>>=
+tmp_list=$(mktemp)
+reported_TAs=$(nytid config hr.reported_TAs \
+                | sed "s/^.* = //")/${course}.txt
+mkdir -p $(dirname ${reported_TAs})
+test -e "${reported_TAs}" && cp ${reported_TAs} ${tmp_list}
+
+current_users=$(nytid hr users ${course} --detailed)
+echo "${current_users}" >> ${tmp_list}
+new_TAs=$(sort ${tmp_list} | uniq -c | egrep "^\s*1\s" | sed "s/^\s*1\s//")
+
+<<skip if no new TAs>>
+
+echo -n "Nya assar på ${course}"
+if [[ "$course" == *"datintro"* ]]; then
+  echo ", dessa är undantagna kravet på assistentkurs" \
+    "(om de inte assar i någon annan kurs också):"
+else
+  echo ":"
+fi
+echo
+<<format list [[new_TAs]] for mail to HR>>
+echo
+echo
+echo "${current_users}" > "${reported_TAs}"
+@
+
+Each line contains personnummer, name and email.
+Except for users for whom we couldn't look up more detailed information.
+For them, we only have their username (or possibly an email address).
+This is usually due to them not being added to UG and Canvas yet, so we filter 
+out those lines.
+<<format list [[new_TAs]] for mail to HR>>=
+echo "$new_TAs" \
+| egrep -v "^\w+((\.\w+)?@(\w+\.)+\w+)?$" \
+@ (We add the [[\]] because we'll return to this later,
+in \cref{AutomaticallyCreateAmanuensis}.)
+
+We'll use the [[ta_mail]] function to send the email.
+Here we can prep the message we want to have in the email body.
+We read the list of TAs from stdin.
+<<set up [[ta_mail]] function>>=
+ta_mail() {
+  course="$1"
+  list_of_TAs="$(cat)"
+
+  <<skip if there are no new TAs in any course>>
+
+  echo "
+Hej, hej!
+
+Här kommer en lista med nya assar.
+
+        Daniel
+
+${list_of_TAs}
+  " | mutt -s "nya assar ${course}" ${TA_MAIL_ADDR} \
+    || echo "error: can't send nya assar email to ${TA_MAIL_ADDR}"
+}
+<<TA reporting variables>>=
+TA_MAIL_ADDR=dbosk@kth.se
+@
+
+This means that we should make the call to [[ta_mail]] as follows.
+<<call [[ta_mail]]>>=
+ta_mail "${HR_REPORTING_COURSES}"
+@
+
+Now, if there are no new TAs, we don't want to send the email to HR.
+So we check if the list is empty.
+The trick here is to [[grep]] for lines with any character to remove empty 
+lines that [[wc]] would count.
+<<skip if no new TAs>>=
+test $(echo "${new_TAs}" | grep "." | wc -l) -gt 0 || continue
+<<skip if there are no new TAs in any course>>=
+test $(echo "${list_of_TAs}" | grep "." | wc -l) -gt 0 || return
+@
+
+Now, we only want to send TAs to HR, not colleagues who also sign up on the 
+course.
+We should add them manually first to be ignored in the automation.
+<<nytid-ignore.sh>>=
+#!/bin/bash
+# Ignore TAs in HR reporting
+# Usage: nytid-ignore.sh <course> <user> [<user> ...]
+
+course="$1"
+shift
+users="$*"
+
+reported_TAs=$(nytid courses config $course data_path \
+                | sed "s/data_path = //")/reported_TAs
+
+for user in $users; do
+  nytid hr users $course --detailed | grep "$user" >> ${reported_TAs}
+done
+@ An alternative is to immediately create an amanuensis contract for colleagues 
+(see \cref{CreateAmanuensis}).
+
+\subsection{Generating amanuensis contracts for HR}\label{CreateAmanuensis}
+
+HR also wants data to set up amanuensis contracts for the TAs that qualify.
+We can do this by running the following command.
+(This is also usually done manually.)
+\begin{minted}{bash}
+nytid hr amanuensis create prg[im]24 > amanuensis.csv
+\end{minted}
+That command would create the contracts for all the TAs in [[prgi24]] and 
+[[prgm24]] that achieves a minimum workload of 5\% of full time.
+The detailed contracts will be stored on disk\footnote{%
+  The location depends on the personal [[nytid]] config.
+  It will ask you to set it up the first time.
+  Until you've set it up, the detailed contracts will be written to the current 
+  working directory.
+}, a summary for HR will be written to [[amanuensis.csv]] (in the example 
+above).
+
+As an example, I've added myself to the [[prgi24]] schedule.
+My contract would look like this.
+\begin{minted}{text}
+$ nytid hr amanuensis create prgi24 --user dbosk > amanuensis.csv
+$ cat amanuensis.csv
+[ peronnr ] Daniel Bosk	2024-08-01	2024-12-17	19%
+\end{minted}
+If I want to have a look at the detailed contract\footnote{%
+  Note that the total hours and, consequently, the percentage are wrong for 
+  faculty.
+  The lectures are counted with a prep factor of 1, instead of 4.
+  That's because when TAs sign up for lectures, they assist and get no prep 
+  time.
+  Nytid treats everyone as TAs for now.
+  Fortunately, this problem is limited to lectures, for all other types of 
+  events, the prep time is the same for everyone.
+  See \cref{HRaddprep}.
+}, I can do the following.
+\begin{minted}{text}
+$ nytid hr amanuensis show dbosk
+dbosk	2024-08-01	2024-12-17	19%	115.00 h
+Föreläsning, DD1317	24.0	h
+Övning, DD1317	38.0	h
+Datorlaboration, DD1317	8.0	h
+
+Föreläsning, DD1317	2024-08-26 10:00	2024-08-26 12:00	Digital, E1	2	dbosk
+Föreläsning, DD1317	2024-09-17 15:00	2024-09-17 17:00	5V3Vit (Vit), U21, U31, U41	4	dbosk
+Föreläsning, DD1317	2024-09-18 08:00	2024-09-18 10:00	Digital	1	dbosk
+Övning, DD1317	2024-09-18 15:00	2024-09-18 17:00	U21	2	dbosk
+Övning, DD1317	2024-09-19 08:00	2024-09-19 10:00	U21	2	dbosk
+Datorlaboration, DD1317	2024-09-19 15:00	2024-09-19 17:00	4V2Röd (Röd), 4V4Gul (Gul), 4V5Grö (Grön), Digital	7	dbosk
+Datorlaboration, DD1317	2024-09-20 08:00	2024-09-20 10:00	4V2Röd (Röd), 4V4Gul (Gul), 4V5Grö (Grön), Digital	7	dbosk
+Övning, DD1317	2024-09-20 13:00	2024-09-20 15:00	U21	1	dbosk
+Föreläsning, DD1317	2024-09-23 10:00	2024-09-23 12:00	Digital	1	dbosk
+Övning, DD1317	2024-09-24 15:00	2024-09-24 17:00	U21	2	dbosk
+Övning, DD1317	2024-09-25 08:00	2024-09-25 10:00	U21	2	dbosk
+Datorlaboration, DD1317	2024-09-25 13:00	2024-09-25 15:00	4V2Röd (Röd), 4V4Gul (Gul), 4V5Grö (Grön), Digital	7	dbosk
+Datorlaboration, DD1317	2024-09-26 15:00	2024-09-26 17:00	4V2Röd (Röd), 4V4Gul (Gul), 4V5Grö (Grön), Digital	7	dbosk
+Övning, DD1317	2024-09-27 10:00	2024-09-27 12:00	U21	2	dbosk
+Föreläsning, DD1317	2024-10-01 15:00	2024-10-01 17:00	Digital	1	dbosk
+Övning, DD1317	2024-10-02 10:00	2024-10-02 12:00	U21	2	dbosk
+Övning, DD1317	2024-10-03 08:00	2024-10-03 10:00	U21	2	dbosk
+Övning, DD1317	2024-10-04 13:00	2024-10-04 15:00	U21	2	dbosk
+Föreläsning, DD1317	2024-10-08 15:00	2024-10-08 17:00	Digital	1	dbosk
+Övning, DD1317	2024-10-09 08:00	2024-10-09 10:00	U21	2	dbosk
+Övning, DD1317	2024-10-11 13:00	2024-10-11 15:00	U21	2	dbosk
+Föreläsning, DD1317	2024-10-28 10:00	2024-10-28 12:00	Digital	1	dbosk
+Övning, DD1317	2024-10-29 13:00	2024-10-29 15:00	U21	2	dbosk
+Övning, DD1317	2024-11-01 15:00	2024-11-01 17:00	U21	2	dbosk
+Föreläsning, DD1317	2024-11-04 16:00	2024-11-04 18:00	Digital	1	dbosk
+Övning, DD1317	2024-11-05 15:00	2024-11-05 17:00	U21	2	dbosk
+Övning, DD1317	2024-11-08 13:00	2024-11-08 15:00	U21	2	dbosk
+Föreläsning, DD1317	2024-11-11 15:00	2024-11-11 17:00	Digital	1	dbosk
+Övning, DD1317	2024-11-12 08:00	2024-11-12 10:00	U21	2	dbosk
+Övning, DD1317	2024-11-14 15:00	2024-11-14 17:00	U21	2	dbosk
+Föreläsning, DD1317	2024-11-15 15:00	2024-11-15 17:00	5V3Vit (Vit), E1	2	dbosk
+Föreläsning, DD1317	2024-11-18 15:00	2024-11-18 17:00	Digital	1	dbosk
+Övning, DD1317	2024-11-19 15:00	2024-11-19 17:00	U21	2	dbosk
+Övning, DD1317	2024-11-21 13:00	2024-11-21 15:00	U21	2	dbosk
+Föreläsning, DD1317	2024-11-25 13:00	2024-11-25 15:00	5V3Vit (Vit), U21, U31, U41	4	dbosk
+$
+\end{minted}
+
+We note that the sum of the hours \(24 + 38 + 8 = 70\) is not the same as the 
+total hours \(115\).
+That's because the hours given by type is the clock hours.
+The sum also includes the correct prep time:
+\(24 + 38\times 2 + 8\times 1.8\), which is rounded to 115\footnote{%
+  See \cref{HRaddprep,HRroundtime} for details.
+}.
+
+As mentioned above, all contracts are stored on disk.
+We can have a look at my config again, particularly the [[hr]] part.
+\begin{minted}{text}
+hr.amanuensis.contract_dir = /afs/kth.se/misc/projects/eecs/tcs/nytid/contracts
+hr.timesheets.timesheets_dir = /afs/kth.se/misc/projects/eecs/tcs/nytid/timesheets
+hr.manager = Karl Meinke
+hr.project = 1102
+hr.organization = JH
+\end{minted}
+The contracts and time sheets are stored in [[/afs]].
+Let's have a peek into the contracts directory.
+\begin{minted}{text}
+$ ls /afs/kth.se/misc/projects/eecs/tcs/nytid/contracts
+dbosk.2024-05-23T10:37:09.928706.json
+$
+\end{minted}
+Any later contracts are also added to this directory, nothing is ever removed.
+But the show command we used, will only show the latest non-overlapping 
+contract.
+If two contracts overlap, the latter is assumed to replace the previous.
+None-overlapping contracts complement each other.
+
+Back to the generated contract, the start date depends on when the TA submitted 
+the application for the position.
+So usually, we must create contracts with specific dates for each TA.
+We can see that the automatically generated start date in my contract above is 
+2024-08-01.
+Let's assume that I submitted my application on 2024-08-27.
+Now we generate the contract with the correct start date.
+\begin{minted}{bash}
+$ nytid hr amanuensis create prgi24 \
+  --user dbosk --set-start 2024-08-27 >> amanuensis.csv
+$ cat amanuensis.csv
+[ peronnr ] Daniel Bosk	2024-08-01	2024-12-17	19%
+[ peronnr ] Daniel Bosk	2024-08-27	2024-12-17	23%
+\end{minted}
+We use [[--set-start]] to force the start date of the contract.
+The end date will be computed automatically.
+We also keep all events that the TA signed up for, event if those are before 
+the start date of the contract.
+If we want to ignore any events before the start date, maybe becasue the TA has 
+already been paid hourly for those, we instead use [[--start]].
+Finally, there is also [[--push-start]] that also pushes the end by equally 
+much, to keep the percentage intact.
+
+We can also see now that there are two contracts for me in the directory, but 
+that show will only show the latest.
+\begin{minted}{text}
+$ ls /afs/kth.se/misc/projects/eecs/tcs/nytid/contracts
+dbosk.2024-05-23T10:37:09.928706.json
+dbosk.2024-05-23T10:50:07.721221.json
+$ nytid hr amanuensis show dbosk
+dbosk	2024-08-27	2024-12-17	23%	115.00 h
+Föreläsning, DD1317	24.0	h
+Övning, DD1317	38.0	h
+Datorlaboration, DD1317	8.0	h
+
+Föreläsning, DD1317	2024-08-26 10:00	2024-08-26 12:00	Digital, E1	2	dbosk
+Föreläsning, DD1317	2024-09-17 15:00	2024-09-17 17:00	5V3Vit (Vit), U21, U31, U41	4	dbosk
+Föreläsning, DD1317	2024-09-18 08:00	2024-09-18 10:00	Digital	1	dbosk
+Övning, DD1317	2024-09-18 15:00	2024-09-18 17:00	U21	2	dbosk
+Övning, DD1317	2024-09-19 08:00	2024-09-19 10:00	U21	2	dbosk
+Datorlaboration, DD1317	2024-09-19 15:00	2024-09-19 17:00	4V2Röd (Röd), 4V4Gul (Gul), 4V5Grö (Grön), Digital	7	dbosk
+Datorlaboration, DD1317	2024-09-20 08:00	2024-09-20 10:00	4V2Röd (Röd), 4V4Gul (Gul), 4V5Grö (Grön), Digital	7	dbosk
+Övning, DD1317	2024-09-20 13:00	2024-09-20 15:00	U21	1	dbosk
+Föreläsning, DD1317	2024-09-23 10:00	2024-09-23 12:00	Digital	1	dbosk
+Övning, DD1317	2024-09-24 15:00	2024-09-24 17:00	U21	2	dbosk
+Övning, DD1317	2024-09-25 08:00	2024-09-25 10:00	U21	2	dbosk
+Datorlaboration, DD1317	2024-09-25 13:00	2024-09-25 15:00	4V2Röd (Röd), 4V4Gul (Gul), 4V5Grö (Grön), Digital	7	dbosk
+Datorlaboration, DD1317	2024-09-26 15:00	2024-09-26 17:00	4V2Röd (Röd), 4V4Gul (Gul), 4V5Grö (Grön), Digital	7	dbosk
+Övning, DD1317	2024-09-27 10:00	2024-09-27 12:00	U21	2	dbosk
+Föreläsning, DD1317	2024-10-01 15:00	2024-10-01 17:00	Digital	1	dbosk
+Övning, DD1317	2024-10-02 10:00	2024-10-02 12:00	U21	2	dbosk
+Övning, DD1317	2024-10-03 08:00	2024-10-03 10:00	U21	2	dbosk
+Övning, DD1317	2024-10-04 13:00	2024-10-04 15:00	U21	2	dbosk
+Föreläsning, DD1317	2024-10-08 15:00	2024-10-08 17:00	Digital	1	dbosk
+Övning, DD1317	2024-10-09 08:00	2024-10-09 10:00	U21	2	dbosk
+Övning, DD1317	2024-10-11 13:00	2024-10-11 15:00	U21	2	dbosk
+Föreläsning, DD1317	2024-10-28 10:00	2024-10-28 12:00	Digital	1	dbosk
+Övning, DD1317	2024-10-29 13:00	2024-10-29 15:00	U21	2	dbosk
+Övning, DD1317	2024-11-01 15:00	2024-11-01 17:00	U21	2	dbosk
+Föreläsning, DD1317	2024-11-04 16:00	2024-11-04 18:00	Digital	1	dbosk
+Övning, DD1317	2024-11-05 15:00	2024-11-05 17:00	U21	2	dbosk
+Övning, DD1317	2024-11-08 13:00	2024-11-08 15:00	U21	2	dbosk
+Föreläsning, DD1317	2024-11-11 15:00	2024-11-11 17:00	Digital	1	dbosk
+Övning, DD1317	2024-11-12 08:00	2024-11-12 10:00	U21	2	dbosk
+Övning, DD1317	2024-11-14 15:00	2024-11-14 17:00	U21	2	dbosk
+Föreläsning, DD1317	2024-11-15 15:00	2024-11-15 17:00	5V3Vit (Vit), E1	2	dbosk
+Föreläsning, DD1317	2024-11-18 15:00	2024-11-18 17:00	Digital	1	dbosk
+Övning, DD1317	2024-11-19 15:00	2024-11-19 17:00	U21	2	dbosk
+Övning, DD1317	2024-11-21 13:00	2024-11-21 15:00	U21	2	dbosk
+Föreläsning, DD1317	2024-11-25 13:00	2024-11-25 15:00	5V3Vit (Vit), U21, U31, U41	4	dbosk
+\end{minted}
+
+As final note, the course that we gave in the examples, [[prgi24]], can 
+actually be a regular expression matching any course.
+For instance, as the courses [[prgi24]] and [[prgm24]] are given together we 
+could have generated my contract with [[prg[im]24]].
+Even further, we could simply generate contracts for all courses in the TCS 
+register, that way the TA will get one contract for all their courses in TCS.
+And even more further, we could generate the contracts for several registers, 
+to give the TA a contract for the entire EECS school for instance\footnote{%
+  This is also useful from the perspective in keeping track of the amanuensis 
+  not working more than the upper bound \SI{50}{\%} set by the Higher Education 
+  Ordinance.
+}.
+
+
+\subsection{Automatically creating amanuensis 
+contracts}\label{AutomaticallyCreateAmanuensis}
+
+Now we can return to
+[[<<format list [[new_TAs]] for mail to HR>>]].
+When we format the list of new TAs, we can actually try to create amanuensis 
+contracts for them.
+If we get a contract, we use it.
+Otherwise we just include the line as it is and indicate hourly employment.
+
+When we extract the username, we must remember that some TAs are external.
+They have their external email as their username.
+We want to use their full email, but for KTH TAs we don't want to include their 
+[[@kth.se]] part.
+<<format list [[new_TAs]] for mail to HR>>=
+| (while read line; do\
+     email=$(echo "$line" | sed -E "s/^.*<(.*)>.*$/\1/"); \
+     user=$(echo "$email" | sed "s/@kth.se//"); \
+     contract=$(<<generate amanuensis contract draft for [[user]]>>); \
+     if [[ -z "${contract}" ]]; then echo "${line}"; \
+     else echo "${contract}"; fi; \
+   done)
+@
+
+Now, let's see how we can generate the amanuensis contract draft.
+We can do this by running [[nytid hr amanuensis create]], but there are some 
+things we need to consider.
+We want it detailed (not default for drafts), because that makes it easer to 
+see who it is.
+We want to look up by name in the recruitment system.
+We also get the email (which also includes the username) anyways, which can be 
+used to generate a non-draft contract if we need it.
+<<generate amanuensis contract draft for [[user]]>>=
+nytid hr amanuensis create --draft --user "${user}" --detailed
+@
+
+An improvement would be to check if the TA has submitted an application in 
+Varbi.
+And if so, we can create the contract with the correct start date.
+(And create a real contract, not a draft as above.)
+
+
+\subsection{Generating time sheets for hourly TAs}
+
+Now with the new HR system, HR+ 8, the TAs should report their hours directly 
+in that system.
+Then the course responsible should approve them.
+This means that we no longer need the [[nytid hr timesheets generate]] 
+functionality as it was originally intended.
+But we can describe how it works, and it we can use it to send time sheets to 
+ourselves instead of the head of department---because then we can use those 
+emails when approving times in the new HR+.
+
+The idea is as follows.
+The TAs that are paid by the hour previously had to submit time sheets 
+according to HR.
+However, then we must check them.
+It's better that we generate them automatically from the sign-up sheet, then we 
+know they're correct as long as the sign-up sheet is correct.
+Now we can use them to check the data that the TA has entered in HR+.
+Or rather, we know that there is something to check in HR+.
+
+We can generate time sheets for [[prgi24]] and [[prgm24]] as follows.
+\begin{minted}{bash}
+nytid hr timesheets generate prg[im]24 --end 2024-10-01
+nytid hr timesheets generate prg[im]24 --end 2024-10-01 --amanuensis
+\end{minted}
+The first line will generate time sheets for all hourly TAs and include events 
+until end of September (it's not inclusive, so \(<\) 2024-10-01).
+The second line does the same, but for amanuensis.
+
+Let's have a look at an example.
+I've added a few more lab sessions on [[prgi24]] after I generated my contract 
+in the examples above.
+\begin{minted}{text}
+$ nytid hr timesheets generate prgi24 --end 2024-11-01 \
+  --user dbosk --amanuensis --draft
+dbosk
+2024-10-09	10:00:00	DD1317	Datorlaboration, DD1317	2.0	1.8	3.75	562.5
+2024-10-09	15:00:00	DD1317	Datorlaboration, DD1317	2.0	1.8	3.75	562.5
+2024-10-10	13:00:00	DD1317	Datorlaboration, DD1317	2.0	1.8	3.75	562.5
+$ nytid hr timesheets generate prgi24 \
+  --user dbosk --amanuensis --draft
+dbosk
+2024-10-09	10:00:00	DD1317	Datorlaboration, DD1317	2.0	1.8	3.75	562.5
+2024-10-09	15:00:00	DD1317	Datorlaboration, DD1317	2.0	1.8	3.75	562.5
+2024-10-10	13:00:00	DD1317	Datorlaboration, DD1317	2.0	1.8	3.75	562.5
+2024-11-20	08:00:00	DD1317	Datorlaboration, DD1317	2.0	1.8	3.75	562.5
+2024-11-21	10:00:00	DD1317	Datorlaboration, DD1317	2.0	1.8	3.75	562.5
+\end{minted}
+We see in the second example that we get all new events if we don't specify an 
+end date.
+
+Another thing to note is that we used the [[--draft]] option.
+This will generate a draft time sheet directly in the terminal.
+Without the draft option, we would get a file with the signed time sheet, you 
+can see the signed time sheet in \cref{FigTimesheet}.
+
+\begin{figure}
+  \centering
+  \framebox{\includegraphics[width=\textwidth]{figs/timesheet-dbosk.pdf}}
+  \caption{%
+    The generated time sheet for extra lab sessions that I added to my 
+    contract.
+  }
+  \label{FigTimesheet}
+\end{figure}
+
+This generation requires the following settings in the config.
+\begin{minted}{text}
+me.name = Daniel Bosk
+me.email = dbosk@kth.se
+me.signature = /home/dbosk/Pictures/signature.png
+hr.amanuensis.contract_dir = /afs/kth.se/misc/projects/eecs/tcs/nytid/contracts
+hr.timesheets.timesheets_dir = /afs/kth.se/misc/projects/eecs/tcs/nytid/timesheets
+hr.manager = Karl Meinke
+hr.project = 1102
+hr.organization = JH
+\end{minted}
+Those values are used to fill in the time sheet (\cref{FigTimesheet}).
+
+The time sheets are stored in the directory specified in the config.
+\begin{minted}{text}
+$ ls /afs/kth.se/misc/projects/eecs/tcs/nytid/timesheets
+dbosk.2024-05-23T13:38:06.684006.json
+$
+\end{minted}
+Note that we don't store the generated PDF or XLSX files, we store the data 
+that they were generated from.
+This way we can do calculations on the data, which we need to do (see 
+\cref{WorkingWithTimesheets} for details).
+
+With this construction, we can automate the generation of time sheets on a 
+monthly basis.
+However, we no longer need this, this is just for reference.
+<<sending signed time sheets>>=
+<<timesheets variables>>
+
+for course in ${TIMESHEETS_COURSES}
+do
+  <<generate time sheets for [[course]]>>
+  <<send time sheets for [[course]]>>
+done
+@
+
+We will create time sheets for [[datintro24]], [[prgi24]] and [[prgm24]].
+How we bundle these together matter.
+The hours that a TA works is not a per-course matter, it's per TA.
+That's why the contracts and time sheets are stored in a course-independent 
+location (and config).
+Every hour that the TA has worked should be considered---on \emph{all} courses.
+
+If the intersection of the set of TAs for [[datintro24]], [[prgi24]] and 
+[[prgm24]] is empty, it doesn't matter.
+But if a TA is in more than one of the courses, they must be treated together.
+If we report [[datintro24]] separately; then when we later report [[prg[im]24]] 
+separately, Nytid will think that the hours for [[datintro24]] have been 
+removed.
+
+Mostly, the set of TAs of [[prgi24]] and [[prgm24]] intersect by quite a lot.
+Most TAs are in both.
+It's rare that any of those TAs are also in [[datintro24]], but it has 
+happened.
+
+We'll send one email for all three courses; [[datintro24]], [[prgi24]] and 
+[[prgm24]] (hence the regex).
+Another consequence of the design is that we must run this over all years as 
+well, in case a TA has worked in any of these courses previous years 
+too\footnote{%
+  The advantage of this is that we can keep track of how hours from year to 
+  year.
+  For instance, one TA worked fewer hours than they were contracted for.
+  When they start adding hours for the next year, these \enquote{negative} 
+  hours will balance out with the new \enquote{positive} hours.
+  But that is a rare case.
+
+  A way to work around this is to balance every year by summer and then archive 
+  the data somewhere else.
+  As if the TAs had never worked before (from Nytid's perspective).
+}.
+<<timesheets variables>>=
+TIMESHEETS_COURSES="(datintro|prg[im])"
+@
+
+We note that, if we use regexes like this, then we can't
+[[<<skip if [[course]] has no sign-up sheet>>]].
+But on the other hand, if we give such regexes, we'll only include courses for 
+which there are sign-up sheets anyway.
+
+Now, generating the time sheets will create a lot of files in the current 
+working directory (two for each TA, one XLSX and one PDF).
+To keep the courses separate\footnote{%
+  Well, in our case we just have one bundle of courses,
+  so it'll just be a one-lap for loop and one directory.
+  But in the general case anyway.
+}, we'll create a temporary directory for each course and create the files 
+there.
+<<generate time sheets for [[course]]>>=
+tmpdir=$(mktemp -d)
+cd ${tmpdir}
+@
+
+Then we generate the time sheets there.
+That will create a [[.xlsx]] file for each TA.
+We'll then convert all of them to PDF.
+However, if no files were generated, we'll skip the rest:
+no need to do anything more if there are no results to report anyway.
+
+We include events until the end of the previous month.
+Since we expect to run this script on the first of every month, we can use the 
+start of the current month as the end time (remember, it's non-inclusive, 
+\(<\)).
+<<timesheets variables>>=
+start_of_month=$(date +%Y-%m-01)
+@
+
+Since we do this for ourselves now, we can also include the amanuensis 
+\enquote{mertid}.
+<<generate time sheets for [[course]]>>=
+nytid hr timesheets generate ${course} --end ${start_of_month}
+nytid hr timesheets generate ${course} --end ${start_of_month} --amanuensis
+if test -z "$(ls)"; then
+  echo "No time sheets generated for ${course}"
+  continue
+fi
+loffice --headless --convert-to pdf *.xlsx
+@
+
+Next step is to send all the PDF time sheets for processing.
+However, we send it to ourselves rather than the head of department.
+<<send time sheets for [[course]]>>=
+echo "${TIMESHEETS_MSG}" | \
+  timesheets_mail "${TIMESHEETS_ADDR}" "${course}" *.pdf
+<<timesheets variables>>=
+TIMESHEETS_ADDR=dbosk@kth.se
+TIMESHEETS_MSG="
+Hej, hej!
+
+This month's time sheets are attached.
+
+          Daniel
+"
+@
+
+Now we'll adapt the [[timesheets_mail]] function to our mail client.
+In my case, I use [[mutt]].
+<<timesheets variables>>=
+timesheets_mail() {
+  addr="$1"
+  course="$2"
+  shift 2
+  files="$*"
+
+  mutt -s "time sheets for ${course}" \
+       -a ${files} -- ${addr} \
+    || echo "error: failed to send time sheets" \
+            "to ${addr} for ${course}: ${files}"
+}
+@
+
+However, for [[mail]] the command is slightly different:
+\begin{minted}{bash}
+mail -s "time sheets for ${course}" \
+     $(for f in "*.pdf"; do echo "-A ${f}"; done) \
+     ${addr}
+\end{minted}
+
+The key thing regarding the email client is to use one that is set up to use 
+our normal email.
+We want this to have the generated time sheets in the sent folder, for future 
+reference.
+
+
+\subsection{Send time-sheet drafts to the TAs}
+
+One thing we can continue doing, despite the new HR+ 8 system, is to send 
+drafts of the time sheets to the TAs.
+Then the TAs can use them as a base to report their hours in HR+ 8.
+
+The TAs will sometimes have things to update due to changes, even though all 
+changes should be made in advance.
+So we want them to update the sheet before they submit to HR+.
+The same goes for the amanuensis, we want to send them a draft of the mertid 
+that they've done.
+We want them to keep track of how many hours too many or too few they've 
+worked.
+And give them the option to report the hours to get paid.
+
+The structure of the code is similar to that of
+[[<<sending signed time sheets>>]].
+<<nytid.premonthly.sh>>=
+<<timesheet draft variables>>
+<<timesheet draft functions>>
+
+for course in ${TIMESHEETS_COURSES}
+do
+  <<send draft timesheets for [[course]]>>
+done
+@
+
+We note that we have to do all courses at the same time.
+Any TA who is in more than one course need all the courses to be included at 
+once.
+Otherwise the report in one course will say they have removed hours from the 
+other course.
+This means that we must have one regex for all courses.
+
+We also note that we don't want to do this on all courses.
+On some courses we don't have TAs, but rather colleagues.
+We don't care about their hours, they deal with those themselves.
+
+Finally, we use this regex to match the courses in the default register, the 
+[[mine]] register.
+These are the active courses.
+So we don't need to provide the year---which helps to deal with the shift in 
+year around new year, when the autumn courses' year is off by one.
+<<timesheet draft variables>>=
+TIMESHEETS_COURSES="(datintro|prgi|prgm)"
+@
+
+We can send drafts as follows.
+We need to send a draft for each user, so we must iterate through them.
+<<send draft timesheets for [[course]]>>=
+for user in $(nytid hr users ${course}); do
+  <<send the draft to [[user]]>>
+done
+@
+
+When sending the draft, there are three cases to consider:
+\begin{enumerate}
+\item The user is an hourly TA.
+\item The user is an amanuensis.
+\item The user has no hours in the draft.
+\end{enumerate}
+When we generate the draft with [[nytid hr timesheets generate]], it will only 
+include hourly TAs.
+This means that if the output is non-zero, we know it's an hourly TA.
+If the output is zero, then either the user has zero hours, or they're an 
+amanuensis.
+<<send the draft to [[user]]>>=
+report=$(nytid hr timesheets generate ${course} --draft \
+          --user ${user} --end ${next_month})
+if test -z "${report}"; then
+  <<generate draft amanuensis report, send if non-zero>>
+else
+  send_draft_hourly "${course}" "${user}" "${report}"
+fi
+<<timesheet draft variables>>=
+next_month=$(date +%Y-%m-01 -d "next month")
+<<timesheet draft functions>>=
+send_draft_hourly() {
+  course="$1"
+  user="$2"
+  email=<<construct email from [[user]]>>
+  report="$3"
+
+  <<write [[report]] to tmpfile [[reportfile]]>>
+  <<compute [[sum_hours]] from [[reportfile]]>>
+
+  TIMESHEETS_DRAFT_MSG="
+<<timesheet draft message>>
+"
+
+  (echo "${TIMESHEETS_DRAFT_MSG}"; echo "${report}") \
+    | mutt -s "preliminär tidrapport ${course}" ${email} \
+      -a "${reportfile}" \
+    || echo "error: failed to send draft time sheet to ${email} for ${course}"
+}
+<<timesheet draft message>>=
+Hej, hej!
+
+Du har ${sum_hours} timmar i bokningsarket för ${course}.
+
+$(if <<[[sum_hours]] > 0>>; then
+    echo "
+Du kan rapportera in timmarna nedan i KTH HR. Gör det innan
+${next_month} för att få betalt ${next_pay}. Tiderna finns
+även bifogat som CSV-fil. Svara på detta mail när du gjort
+har rapporterat in timmarna i KTH HR (Medvind).
+" | fmt
+  elif <<[[sum_hours]] < 0>>; then
+    echo "
+Du har just nu fått mer betalt än du har jobbat. Du behöver
+jobba in de timmar som saknas för att inte behöva betala
+tillbaka lön. Se nedan.
+" | fmt
+  else
+    echo "
+Du har ändrat pass, men alla timmar går jämnt ut.
+" | fmt
+  fi)
+
+Om något är fel, korrigera i bokningsarket och svara på detta
+mail!
+
+          Daniel
+
+<<timesheet draft variables>>=
+next_pay=$(date +%Y-%m-25 -d "next month")
+@
+
+For the amanuensis case, we do the same thing, but add the [[--amanuensis]] 
+flag and send using the function [[send_draft_amanuensis]].
+<<generate draft amanuensis report, send if non-zero>>=
+report=$(nytid hr timesheets generate ${course} --draft \
+          --user ${user} --end ${next_month} --amanuensis)
+test -n "${report}" || continue
+send_draft_amanuensis "${course}" "${user}" "${report}"
+@
+
+The function [[send_draft_amanuensis]] is essentially the same as
+[[send_draft_hourly]].
+Only the subject and message are different.
+<<timesheet draft functions>>=
+send_draft_amanuensis() {
+  course="$1"
+  user="$2"
+  email=<<construct email from [[user]]>>
+  report="$3"
+
+  <<write [[report]] to tmpfile [[reportfile]]>>
+  <<compute [[sum_hours]] from [[reportfile]]>>
+
+  MERTID_DRAFT_MSG="
+<<mertid draft message>>
+"
+
+  (echo "${MERTID_DRAFT_MSG}"; echo "${report}") \
+    | mutt -s "jobbade timmar ${course}" ${email} \
+      -a "${reportfile}" \
+    || echo "error: failed to send draft time sheet to ${email} for ${course}"
+}
+<<mertid draft message>>=
+Hej, hej!
+
+Du har ändringar i bokningsarket för ${course} som skiljer sig
+från tiderna som finns i ditt amanuensavtal. Just nu summerar det
+till ${sum_hours} timmar. (Detaljerna finns nedan och i den bifogade
+CSV-filen.)
+$(if <<[[sum_hours]] > 0>>; then
+    echo "
+Du ligger på plus och kan rapportera in ${sum_hours} timmar som
+mertid i KTH HR. Men svara då på detta mail och meddela att du gör det.
+Bra jobbat!
+" | fmt
+  elif <<[[sum_hours]] < 0>>; then
+    echo "
+Du ligger på minus (fler avbokingar än nya bokningar), du måste se
+till att boka in dig på fler pass så att du kommer upp i de timmar
+som står i ditt avtal.
+" | fmt
+  else
+    echo "
+Ändringarna går jämnt ut, bra jobbat!
+" | fmt
+  fi)
+
+Om något är fel, korrigera i bokningsarket och svara på detta mail!
+
+            Daniel
+
+@
+
+Those comparisons can't be done with [[test ${sum_hours} -gt 0]],
+because the variable [[sum_hours]] is is a float.
+We must thus resort to using [[bc]]\footnote{%
+  The origin of this trick is an answer from a discussion on Stack Overflow, 
+  titled \enquote{How can I compare two floating point numbers in Bash?} and 
+  it's top answer at the time of writing:
+  \url{https://stackoverflow.com/a/31087503/1305099}.
+  We've adapted it slightly though, we don't seem to need the [[-l]] option.
+}.
+<<[[sum_hours]] > 0>>=
+(( $(echo "${sum_hours} > 0" | bc) ))
+<<[[sum_hours]] < 0>>=
+(( $(echo "${sum_hours} < 0" | bc) ))
+@ [[bc]] will output 0 or 1 as in false and true, respectively, while 
+[[((..))]] will convert it to correct error codes for the shell.
+
+For the TAs' convenience, we'll also add the data as a CSV file.
+It's the same contents as in the body of the email, but it's easier for them to 
+open it in a spreadsheet program to sum up the hours.
+(This is also useful for us so that we can use the file for computations, 
+rather than having to echo the data.)
+<<write [[report]] to tmpfile [[reportfile]]>>=
+reportfile=$(mktemp --tmpdir ${user}.XXXX.csv)
+echo "${report}" > ${reportfile}
+@
+
+Now we'll try to sum the hours.
+Let's first look at an example report.
+In this report I've added some events, but I have also removed some 
+events\footnote{%
+  I haven't actually removed them.
+  Nytid thinks they're removed since I haven't included the [[datintro24]] 
+  course in the regex that matches the courses.
+  I just used [[prg[im]24]], but should have used [[(datintro|prg[im])24]].
+  Or simply used the default regex [[.*]], which includes all courses in 
+  [[mine]].
+}.
+\begin{minted}{text}
+dbosk
+Added events
+2024-08-26	10:00:00	DD1317	Föreläsning, DD1317	2.0	1	2.0	300.0
+2024-08-26	13:00:00	DD1310	Föreläsning, DD1310	2.0	1	2.0	300.0
+2024-08-26	15:00:00	DD1310	Föreläsning, DD1310	2.0	1	2.0	300.0
+2024-08-27	08:00:00	DD1310	Övning, DD1310	2.0	2	4.0	600.0
+2024-08-28	10:00:00	DD1310	Övning, DD1310	2.0	2	4.0	600.0
+2024-08-29	13:00:00	DD1310	Övning, DD1310	2.0	2	4.0	600.0
+2024-09-02	08:00:00	DD1310	Föreläsning, DD1310	2.0	1	2.0	300.0
+2024-09-03	13:00:00	DD1310	Övning, DD1310	2.0	2	4.0	600.0
+2024-09-03	15:00:00	DD1310	Övning, DD1310	2.0	2	4.0	600.0
+2024-09-05	15:00:00	DD1310	Övning, DD1310	2.0	2	4.0	600.0
+2024-09-09	08:00:00	DD1310	Föreläsning, DD1310	2.0	1	2.0	300.0
+2024-09-11	10:00:00	DD1310	Övning, DD1310	2.0	2	4.0	600.0
+2024-09-16	15:00:00	DD1310	Föreläsning, DD1310	2.0	1	2.0	300.0
+2024-09-17	12:15:00		Möte, online	0.75	1	0.75	112.5
+2024-09-17	15:00:00	DD1317	Föreläsning, DD1317	2.5	1	2.5	375.0
+2024-09-18	08:00:00	DD1317	Föreläsning, DD1317	2.0	1	2.0	300.0
+2024-09-18	10:00:00	DD1310	Övning, DD1310	2.0	2	4.0	600.0
+2024-09-18	15:00:00	DD1317	Övning, DD1317	2.0	2	4.0	600.0
+2024-09-19	08:00:00	DD1317	Övning, DD1317	2.0	2	4.0	600.0
+2024-09-20	13:00:00	DD1310	Datorlaboration, DD1310 redovisning online	2.0	1.5	3.0	450.0
+2024-09-20	13:00:00	DD1317	Övning, DD1317	2.0	2	4.0	600.0
+2024-09-20	15:00:00	DD1310	Övning, DD1310	2.0	2	4.0	600.0
+2024-09-23	10:00:00	DD1317	Föreläsning, DD1317	2.0	1	2.0	300.0
+2024-09-24	12:15:00		Möte, online	0.75	1	0.75	112.5
+2024-09-25	10:00:00	DD1310	Föreläsning, DD1310	2.0	1	2.0	300.0
+2024-09-26	08:00:00	DD1310	Övning, DD1310	2.0	2	4.0	600.0
+2024-09-27	10:00:00	DD1317	Övning, DD1317	2.0	2	4.0	600.0
+2024-09-30	08:00:00	DD1310	Föreläsning, DD1310	2.0	1	2.0	300.0
+
+Removed events
+2024-08-26	08:00:00	DD1301, DD1301, DD1301, DD1301, DD1337	Föreläsning, DD1301, DD1301, DD1301, DD1301, DD1337	-2.0	1	-2.0	-300.0
+2024-08-27	10:00:00	DD1301	Övning, DD1301	-2.0	2	-4.0	-600.0
+2024-08-27	13:00:00	DD1301, DD1337	Övning, DD1301, DD1337	-2.0	2	-4.0	-600.0
+2024-08-27	15:00:00	DD1301	Övning, DD1301	-2.0	2	-4.0	-600.0
+2024-08-28	13:00:00	DD1301	Övning, DD1301	-2.0	2	-4.0	-600.0
+2024-08-28	15:00:00	DD1337	Föreläsning, DD1337	-2.0	1	-2.0	-300.0
+2024-08-29	15:00:00	DD1301, DD1337	Övning, DD1301, DD1337	-2.0	2	-4.0	-600.0
+2024-08-30	08:00:00	DD1301	Övning, DD1301	-2.0	2	-4.0	-600.0
+2024-09-02	10:00:00	DD1301, DD1337	Övning, DD1301, DD1337	-2.0	2	-4.0	-600.0
+2024-09-02	13:00:00	DD1301	Övning, DD1301	-2.0	2	-4.0	-600.0
+2024-09-03	08:00:00	DD1301	Övning, DD1301	-2.0	2	-4.0	-600.0
+\end{minted}
+To compute the sum of the hours, we can add the correct column (7) of the CSV 
+file.
+We only want the hour data, which are lines with dates.
+On other lines, column 7 might not even exist.
+Then we sum them up using [[bc]].
+<<compute [[sum_hours]] from [[reportfile]]>>=
+sum_hours=0
+for hours in $(cat "${reportfile}" \
+                | <<filter lines with dates>> \
+                | cut -f 7)
+do
+  sum_hours=$(echo $sum_hours + $hours | bc)
+done
+<<filter lines with dates>>=
+grep -E "^[0-9]{4}-[0-9]{2}-[0-9]{2}"
+@
+
+Finally, we need to construct the email address.
+The email is constructed from the username.
+We have two cases, either the username already contains an [[@]], in which case 
+it is an email already.
+This happens when we have external TAs.
+Otherwise, we add the KTH domain, for who we use only the KTH username.
+<<construct email from [[user]]>>=
+$(if echo "${user}" | grep -q "@"; then
+    echo "${user}"
+  else
+    echo "${user}@kth.se"
+  fi)
+@
+
+
+
+
+\subsection{Tracking possible updates to contracts}
+
+If a TA has a lot of \enquote{mertid}, then reporting those extra hours will be 
+tedious---both for the TA and everyone who must verify them.
+In those cases it's easier to simply update the percentage on the contract.
+
+We'll send an email to ourselves monthly with possible updates to the 
+amanuensis contracts.
+We have the command
+\begin{minted}{bash}
+nytid hr amanuensis show kiaa --updates --no-event-summary --no-events
+\end{minted}
+that will give the following output:
+\begin{minted}{text}
+kiaa	2024-08-26	2024-10-27	22%
+
+kiaa	2024-08-26	2024-10-27	42%
+\end{minted}
+We can send an email containing these lines to ourselves every month to keep an 
+eye on changes.
+<<nytid.monthly.sh>>=
+nytid hr amanuensis show --updates --no-event-summary --no-events \
+  | <<filter blank lines between updates>> \
+  | mutt -s "status amanuensanställningar" dbosk@kth.se \
+  || echo "error: failed to send amanuensis status"
+@
+
+We see in the example above that there is a space between the current contract 
+and the possible update.
+What we don't see above is that there are two blank lines between TAs in that 
+list.
+We want to reduce the space: no space between the current contract and the 
+possible update, but a space between the different TAs.
+This improves overview by grouping.
+So we'll use multi-line regexes with [[sed]].
+We'll rewrite any [[\n\n]] to [[\n]].
+<<filter blank lines between updates>>=
+sed -Ez "s/\n\n/\n/g"
+@
+
+
+
+\subsection{Viewing the schedule}
+
+Next thing we might be interested in is the schedule.
+This can be done using the [[nytid schedule]] subcommands.
+We have two commands:
+\begin{minted}{bash}
+nytid schedule show prgi24
+nytid schedule ics prgi24
+\end{minted}
+
+The first command will show the schedule in the terminal in a readable format.
+By default it will show the schedule for today and a week ahead.
+Let's have a look at my first week of the autumn 2024 semester:
+\begin{pycode}
+import subprocess
+
+output = subprocess.run(["nytid", "schedule", "show",
+                         "--start", "2024-08-26",
+                         "--end", "2024-09-01"],
+                        capture_output=True)
+print(r"\begin{minted}{text}")
+print(r"$ nytid schedule show --start 2024-08-26 --end 2024-09-01")
+print(output.stdout.decode("utf-8").strip())
+print(r"$")
+print(r"\end{minted}")
+\end{pycode}
+By default, it uses the current user (based on username) to show the schedule.
+This can be overridden using the [[--user]] flag.
+\begin{minted}{text}
+$ nytid schedule show --start 2024-08-26 --end 2024-09-01 --user joelsm
+26/08 10:00 Föreläsning, DD1317 Needed TAs: 2; Booked TAs: dbosk joelsm
+27/08 13:00 Föreläsning, DD1317 Needed TAs: 1; Booked TAs: joelsm
+29/08 15:00 Handledning, DD1317 Needed TAs: 3; Booked TAs: joelsm
+30/08 10:00 Datorlaboration, DD1317 Needed TAs: 7; Booked TAs: joelsm
+30/08 13:00 Datorlaboration, DD1317 Needed TAs: 7; Booked TAs: joelsm
+$
+\end{minted}
+We can see that during the first week of the autumn semester, Joel ([[joelsm]]) 
+has more activity on DD1317 ([[prgi24]]) than me.
+
+We could also specify a specific course.
+\begin{minted}{text}
+$ nytid schedule show prgi24 --start 2024-08-26 --end 2024-09-01
+26/08 10:00 Föreläsning, DD1317 Needed TAs: 2; Booked TAs: dbosk joelsm
+$
+\end{minted}
+We see that indeed, on [[prgi24]], I only have that introductory lecture with 
+Joel during the first week.
+
+The second command ([[ics]]) does the same, except the output is in ICS format.
+This allows us to export the schedule to our calendar.
+If we write the ICS to a file, say [[dbosk.ics]], in [[~/public_html/nytid]], 
+then we can access it from the web through
+\begin{center}
+[[https://people.kth.se/~dbosk/nytid/dbosk.ics]].
+\end{center}
+This means that we can import it to a calendar client, like Google Calendar or 
+Outlook.
+
+In [[<<nytid.hourly.sh>>]] we can automate this and do it for all TAs in our 
+courses.
+We want to group the courses so that we can include everything in one [[.ics]] 
+file for each TA.
+Now, we only want to do this for courses with sign-up sheets.
+For courses without a sign-up sheet, [[nytid schedule]] adds all events in the 
+schedule for every user.
+We don't want to do that to our TAs, but we can do it for ourselves.
+
+The idea here is to find all courses with sign-up sheets.
+Then we create one regex matching all those courses, but no other courses.
+Then we generate the schedule for all TAs in those courses.
+<<nytid.hourly.sh>>=
+### Generate schedules for TAs ###
+
+<<define [[get_courses_with_signupsheets]]>>
+<<define [[get_all_users]]>>
+<<define [[make_regex]]>>
+
+ICS_COURSES=$(get_courses_with_signupsheets)
+ICS_COURSES_REGEX=$(make_regex ${ICS_COURSES})
+ICS_USERS=$(get_all_users ${ICS_COURSES})
+ICS_DIR=/afs/kth.se/home/d/b/dbosk/public_html/nytid
+
+mkdir -p ${ICS_DIR}
+
+for user in ${ICS_USERS}
+do
+  nytid schedule ics "${ICS_COURSES_REGEX}" --user ${user} \
+    > ${ICS_DIR}/${user}.ics
+done
+@
+
+Now, I also want to generate a schedule for myself that includes all courses.
+Note that we don't supply any regex for the courses, using the default [[.*]], 
+matching everything.
+(Here I want to add the schedule for all courses, not just those with sign-up 
+sheets.)
+<<nytid.hourly.sh>>=
+# Update my schedule again with all courses this time
+nytid schedule ics --user dbosk \
+  > ${ICS_DIR}/dbosk.ics \
+  2> >(grep -v WARNING)
+@
+
+When a course has a sign-up sheet, that one will be used.
+Otherwise, the course's schedule will be used.
+This is the ICS-schedule that we supplied to the [[new]] command above (the one 
+from TimeEdit).
+If that happens, [[nytid]] will issue warnings.
+Since we want to run this script using Cron, we don't want any output unless a 
+real error occurs, so we filter out all warnings.
+
+Finally, we also want to generate a schedule for the entire course, just to get 
+an overview.
+We don't want to access the sign-up sheet to check all the time.
+Nor do we have terminal access, \eg when we're on our phone.
+
+We do this for all courses (that are mine).
+We want to suppress warnings that just say that there is no sign-up sheet.
+In those cases, we just reproduce the schedule.
+<<nytid.hourly.sh>>=
+### Generate schedules for courses ###
+
+for course in $(nytid courses mine ls); do
+  nytid schedule ics ${course} --user "" \
+    > ${ICS_DIR}/${course}.ics \
+    2> >(grep -v WARNING)
+done
+@
+
+\subsubsection{The helper functions}
+
+Now we'll return to the helper functions.
+Let's start with the one that gets all courses with sign-up sheets.
+We simply check in each course's config if there is a sign-up sheet.
+<<define [[get_courses_with_signupsheets]]>>=
+get_courses_with_signupsheets() {
+  nytid courses mine ls | \
+    while read course; do
+      nytid courses config ${course} signupsheet.url 2>/dev/null | \
+        grep -q "signupsheet.url = " \
+          && echo ${course}
+    done
+}
+@
+
+Next, we want to get all users in the courses.
+The same user can be in several courses, so we want to remove duplicates.
+<<define [[get_all_users]]>>=
+get_all_users() {
+  courses="$*"
+  for course in ${courses}; do
+    nytid hr users ${course}
+  done | sort | uniq
+}
+@
+
+Finally, we want to make a regex out of the courses.
+We simply create one big group of disjunctions: [[(course1|...|courseN)]].
+<<define [[make_regex]]>>=
+make_regex() {
+  courses="$*"
+  echo -n "("
+  for course in ${courses}; do
+    echo -n "${course}|"
+  done | sed "s/|$//"
+  echo -n ")"
+}
+@
+
+\subsection{Detecting double bookings}
+
+Sometimes the TAs book themselves for two events at the same time but in 
+different courses.
+This is easily done, but really bad.
+We'll now add a small script to detect this and notify the concerned TA.
+We can run this check daily.
+
+The idea is this:
+We check the TA's schedule and look for the same start time occurring more than 
+once.
+Then we notify the TA about these times.
+<<nytid.daily.sh>>=
+### Detect double booking ###
+
+<<helper functions for doublebooking>>
+
+for user in $(nytid hr users ""); do
+  <<let [[schedule]] be the schedule for [[user]]>>
+  <<let [[doublebooked]] be the times that are double booked>>
+  if <<[[schedule]] has double bookings>>; then
+    <<extract double booked events from [[schedule]]>> \
+      | notify_doublebooking ${user}
+  fi
+done
+@
+
+We need the schedule for [[user]].
+We want to look ahead, so we change the end date to one year ahead instead of 
+one week ahead (the default).
+Since we don't give any course, we get [[user]]'s schedule for all courses that 
+we manage (in the [[mine]] register).
+<<let [[schedule]] be the schedule for [[user]]>>=
+schedule=$(nytid schedule show --user ${user} \
+            --end $(date +%Y-%m-%d -d "next year"))
+@
+
+To test if a schedule has double bookings, we can check for the same start time 
+(first column) occurring in more than once line.
+We must also remove the empty lines that will be part of the output.
+<<let [[doublebooked]] be the times that are double booked>>=
+doublebooked=$(echo "${schedule}" | cut -f 1 | sort | uniq -d | grep -v "^$")
+@
+
+To check if we got a match, we check that the [[doublebooked]] contains more 
+than one character.
+The reason for this test is that, if we don't have any match, we'll still get a 
+newline character.
+<<[[schedule]] has double bookings>>=
+[[ $(echo "${doublebooked}" | wc -c) -gt 1 ]]
+@
+
+To extract the double booked events, not just the times, we can grep for those 
+times.
+<<extract double booked events from [[schedule]]>>=
+echo "${schedule}" | grep -f <(echo "${doublebooked}")
+@
+
+The function~[[notify_doublebooking]] simply sends an email to [[user]] with 
+the times that are double booked.
+The username (from which the mail is constructed) is the only argument and the 
+double booked events are read from standard input.
+<<helper functions for doublebooking>>=
+notify_doublebooking() {
+  user="$1"
+  email=<<construct email from [[user]]>>
+  events=$(cat)
+  echo "
+<<construct the message for the double bookings>>
+" | mutt -s "dubbelbokningar i arbetsschemat" ${email} \
+  || echo "error: failed to send double booking notification to ${email}"
+}
+@
+
+The message is simply a short message and then ending with the double booked 
+events.
+<<construct the message for the double bookings>>=
+Hej, hej!
+
+Det ser ut som att du har dubbelbokat dig i ditt schema. Se listan nedan och 
+åtgärda så snart som möjligt: boka av dig från det pass ligger bäst till med 
+antal assar.
+
+          Daniel
+
+${events}
+@
+
+\subsection{Adding TAs to UG}
+
+We also want the TAs to have access to the course in Canvas.
+That is, we want to add all users added to a course in Nytid to be added to UG 
+to get access to the course in Canvas.
+
+To do this we want to do the following for all of our courses.
+<<nytid.hourly.sh>>=
+### Set up TAs in UG ###
+
+for course in $(nytid courses mine ls)
+do
+  <<skip if [[course]] has no sign-up sheet>>
+  <<look up [[ug_path]] for [[course]], or skip if none exists>>
+  <<look up [[TAs]] for [[course]]>>
+  <<add TAs in [[TAs]] to UG at [[ug_path]]>>
+done
+@
+
+This only makes sense for courses with sign-up sheets.
+If a course doesn't have any sign-up sheet, we skip it since there will not be 
+any TAs who could sign up.
+One way to check if a course has a sign-up sheet is the following.
+<<skip if [[course]] has no sign-up sheet>>=
+nytid courses config ${course} signupsheet.url 2>/dev/null | \
+  grep -q "signupsheet.url = " \
+    || continue
+@ However, we can't do this if [[${course}]] is a regex matching several 
+courses.
+The config command must match a course exactly, not by regex.
+Fortunately, that's what we doo in the loop above.
+
+We need the UG group for the TAs in the course, in the case of [[prgi24]] it's
+\begin{center}
+[[edu.courses.DD.DD1317.20242.1.assistants]].
+\end{center}
+We store this in the config of [[prgi24]]:
+\begin{minted}{bash}
+nytid courses config prgi24 ug.assistants \
+  -s edu.courses.DD.DD1317.20232.1.assistants
+\end{minted}
+That way, we can read it from the config.
+If there is no UG group specified in the cours config, we skip the course.
+The same if the UG group is empty (since that would regex match any course in 
+UG).
+<<look up [[ug_path]] for [[course]], or skip if none exists>>=
+ug_path=$(nytid courses config ${course} ug.assistants 2>/dev/null \
+          | sed "s/.*= //")
+test "$?" -eq 0 || continue
+test -n "${ug_path}" || continue
+@
+
+Note that we could've named [[ug.assistants]] anything, it's just a name we 
+chose in the config.
+It has no special meaning to Nytid, only to our scripts.
+The point is, however, that we can add our own things to the config.
+Same thing with storing files in a course's data directory.
+
+Let's continue.
+We can look up the TAs in the same way as we did above.
+However, we want to only add TAs who need it.
+TAs who don't have any future events in the schedule don't need to be added.
+Most likely they're already added, but in some cases we want them 
+removed---without having to remove them from the sign-up sheet entirely, they 
+should remain on the times they had booked.
+<<look up [[TAs]] for [[course]]>>=
+TAs=$(<<read out TAs from future schedule of [[course]]>>)
+if test "$?" -ne 0; then
+  echo "error: can\'t read users for ${course} in nytid"
+  continue
+fi
+@
+
+Remember the output from the [[nytid schedule show]] command.
+We can extract the TAs from that output.
+Fortunately, it's structured as columns, mostly:
+\begin{minted}{text}
+$ nytid schedule show --start 2024-08-26 --end 2024-09-01 | cut -f 4-
+Needed TAs: 5; Booked TAs: dbosk carlhans glassey
+Needed TAs: 2; Booked TAs: dbosk joelsm
+Needed TAs: 2; Booked TAs: dbosk yasmines
+Needed TAs: 1; Booked TAs: dbosk
+Needed TAs: 2; Booked TAs: dbosk kiaa
+Needed TAs: 1; Booked TAs: dbosk
+Needed TAs: 1; Booked TAs: dbosk
+Needed TAs: 1; Booked TAs: dbosk
+Needed TAs: 2; Booked TAs: dbosk kiaa
+Needed TAs: 1; Booked TAs: dbosk
+Needed TAs: 2; Booked TAs: dbosk glassey
+Needed TAs: 2; Booked TAs: dbosk kiaa
+Needed TAs: 1; Booked TAs: dbosk
+Needed TAs: 1; Booked TAs: dbosk
+\end{minted}
+There can also be reserves, in which case it says \enquote{Reserve TAs:} also, 
+on the same line.
+\begin{minted}{text}
+$ nytid schedule show --user "" --end 2025-01-15 | grep Reserv | cut -f 4-
+Needed TAs: 5; Booked TAs: balter yasmines elliotst oejderby guanlong; Reserve TAs: alexape
+Needed TAs: 6; Booked TAs: balter yasmines elliotst oejderby jinghuay kiaa; Reserve TAs: guanlong
+Needed TAs: 6; Booked TAs: kiaa yasmines oejderby fkam jinghuay sritter; Reserve TAs: nadjaw
+Needed TAs: 0; Booked TAs: None; Reserve TAs: edvintr elliotst fkam fmaras kiaa loveno malike mweng oejderby yasmines dbosk
+Needed TAs: 3; Booked TAs: yasmines oejderby kiaa; Reserve TAs: edvintr
+\end{minted}
+So we want to extract the TAs from these lines.
+We want one TA per line in the output.
+<<read out TAs from future schedule of [[course]]>>=
+nytid schedule show "${course}" --user "" \
+  --end $(date +%Y-%m-%d -d "next year") \
+| cut -f 4- \
+| grep "^Needed TAs:" \
+| <<[[sed]] out the TAs from each line>> \
+| tr " " "\n" | tr -d "\r" \
+| sort -u
+@
+
+To extract the TAs, we simply remove the extra text.
+We want to remove the \enquote{Needed TAs:} and \enquote{Booked TAs:} parts.
+We also want to remove everything before \enquote{Booked TAs:}.
+And if there are no TAs booked, it will output \enquote{None}---which we also 
+want to remove.
+<<[[sed]] out the TAs from each line>>=
+sed -E "s/.*Booked TAs: (None)?//g" \
+| sed -E "s/; Reserve TAs://g"
+@
+
+Finally, we can add the TAs to the UG group.
+We add one by one, in case of errors.
+If we set all at once, any error will cause no TA to be added.
+One at a time, then only the TA causing the error will not be added.
+<<add TAs in [[TAs]] to UG at [[ug_path]]>>=
+if test -n "${TAs}"; then
+  for ta in ${TAs}; do
+    <<continue to next if [[ta]] is not a KTH user>>
+    kthutils ug members add "${ug_path}" "${ta}"
+  done
+fi
+@
+
+Sometimes we get external TAs in the course.
+They have no KTH account, so we can't add them to UG.
+But IT adds them to Canvas manually, we don't have to do that.
+These external users should be skipped.
+IT uses their external email as username for Canvas, so we can check for 
+[[@]]-signs in the username.
+(And if someone has added [[@kth.se]] or [[@ug.kth.se]], we'll rewrite them.)
+<<continue to next if [[ta]] is not a KTH user>>=
+if echo "${ta}" | grep -q "@"; then
+  ta=$(echo "${ta}" | sed -E "s/@(ug\.)?kth\.se//")
+fi
+if echo "${ta}" | grep -q "@"; then
+  continue
+fi
+@
+
+
+\section{Future usage: design plans}
+
+What follows is an outline of the design ideas for the interface and workflow.
+
+\subsection{Adding more teachers to a course}
+
+If there are several teachers, the others can add it after the course 
+responsible has added them as teachers.
+\begin{description}
+\item[Course responsible] \mintinline{bash}{nytid courses teachers prgi24 --add alba}
+\item[alba] \mintinline{bash}{nytid courses add prgi24}
+\end{description}
+
+\subsection{Recruiting TAs}
+
+We want to recruit new TAs to help out on a course.
+We do this is several ways.
+
+We note that a student makes a good presentation, explains well and performs 
+well during the course.
+Then we can add a recommendation.
+\begin{description}
+  \item[Teacher]
+    \mintinline{bash}{nytid recruit recommend --course "prg.*[0-9]{2}" --user student@kth.se}
+\end{description}
+The second scenario is that a student sends an email to the teacher expressing 
+an interest.
+In this case we can also add a recommendation.
+
+The students should also be able to express interest.
+In this case the TA can add courses they're interested in.
+\begin{description}
+  \item[TA]
+    \mintinline{bash}{nytid recruit add-interest --course prgm24 prgcl24}
+\end{description}
+
+Finally, when it's time for to recruit TAs for the course, the teacher can open 
+the recruitment process and send an announcement to the TAs in the pool for the 
+course.
+\begin{description}
+  \item[Teacher]  \mintinline{bash}{nytid recruit open --course "prgi24"}
+  \item[Teacher]  \mintinline{bash}{nytid recruit send --course "prgi24"}
+\end{description}
+
+\subsection{TA schedule and sign-up}
+
+\begin{description}
+  \item[TA]  \mintinline{bash}{nytid schedule mine --set  https://timeedit...}
+  \item[TA]
+    \mintinline{bash}{nytid schedule signed --set ~/public_html/TA.ics}
+  \item[TA] \mintinline{bash}{nytid signup -c "prgi24"}
+\end{description}
+
+\subsection{Managing TA time}
+
+We need to manage the TAs during the course.
+For instance, we must track bookings and who actually worked.
+This way, we can automatically generate time reports.
+
+\begin{description}
+  \item[Teacher] \mintinline{bash}{nytid checkin -c prgi24 --next }
+  \item TimeEdit to automate running check-in.
+  \item Email or Zulip (or Slack) API to send reminders to check in.
+  \item[Teacher] \mintinline{bash}{nytid confirm -c prgi24 --now TA1 TA2 TA3}
+  \item[Teacher]
+    \mintinline{bash}{nytid confirm -c prgi24 --time "2023-09-31 13:15"}
+  \item[Teacher] \mintinline{bash}{nytid report}
+\end{description}
+
+
+\section{The structure of the \texttt{cli} module}\label{climodule}
+
+We use the Typer package to create the CLI.
+This means that each command module will have the same structure as the main 
+CLI module.
+That structure looks like this:
+<<init.py>>=
+"""The CLI of nytid"""
+
+import typer
+<<additional imports>>
+
+<<constants>>
+
+<<configure logging>>
+
+cli = typer.Typer(help=<<nytid description>>,
+                  epilog="Copyright (c) 2022--2025 Daniel Bosk, "
+                         "2022 Alexander Baltatzis.")
+
+<<helper functions>>
+<<add submodules' [[cli]] to [[cli]]>>
+
+if __name__ == "__main__":
+  cli()
+@
+
+One nice side effect of this design is that each such module can be run on its 
+own and will then work as an independent program.
+For instance, running
+[[python3 -m nytid.cli --help]]
+will be the same as running
+[[nytid --help]].
+
+To add a command, there are two options.
+If a command has several subcommands, we can do as above.
+For instance, the [[courses]] command (and module).
+We simply import the module and add its Typer instance.
+This requires that each command in turn consist of subcommands, which is the 
+case for all modules, for example [[courses]].
+
+We could do this manually for every subcommand and module.
+But that would mean that we have to manually add them here, when we've added 
+them elsewhere.
+It's much nicer if we use Python's built-in import system to do this for us.
+We can traverse all submodules in the [[nytid.cli]] package and add them to the 
+[[cli]] instance.
+
+The first attempts fails.
+<<add submodules' [[cli]] to [[cli]], failed attempt>>=
+cli_module = sys.modules[__name__]
+cli_submodules = [(name, obj) for name, obj in inspect.getmembers(cli_module,
+                                                          inspect.ismodule) \
+                  if name != "__main__" and name != "cli"]
+
+for name, submodule in cli_submodules:
+  try:
+    cli.add_typer(submodule.cli, name=name)
+  except AttributeError:
+    continue
+<<additional imports, failed attempt>>=
+import sys
+import inspect
+@
+
+Unfortunately, this gives a recursion error.
+The reason is that we get also the imported modules from each module.
+But the idea is correct.
+The following solution is based on a proposed solution on Stack 
+Overflow\footnote{%
+  \url{https://stackoverflow.com/a/46721794/1305099}
+}.
+
+The idea is to walk through the package and find all modules by finding their 
+files.
+<<constants>>=
+MODULE_EXTENSIONS = importlib.machinery.SOURCE_SUFFIXES
+<<additional imports>>=
+import importlib
+@
+
+Files are modules, directories are packages.
+So for each file, we check if it is a module (by extension) and add it if it 
+is.
+If it's a directory, we recursively call the function to find all modules in 
+that directory.
+<<helper functions>>=
+def package_contents(package_name, recurse=False):
+  """
+  Find all modules in a package. Recurse through subpackages if recurse is True 
+  (defualt False).
+  """
+  spec = importlib.util.find_spec(package_name)
+  if spec is None:
+      return set()
+
+  pathname = pathlib.Path(spec.origin).parent
+
+  modules = set()
+  with os.scandir(pathname) as entries:
+    for entry in entries:
+      if entry.name.startswith('__'):
+        continue
+      current = '.'.join((package_name, entry.name.partition('.')[0]))
+      if entry.is_file():
+        if any([entry.name.endswith(extension) \
+                for extension in MODULE_EXTENSIONS]):
+          modules.add(current)
+      elif entry.is_dir():
+        modules.add(current)
+        if recurse:
+          modules |= package_contents(current, recurse=True)
+
+  return modules
+<<additional imports>>=
+import pathlib
+import os
+@
+
+This let's us add the modules like this.
+We just iterate through the modules, import them and add them to the [[cli]] 
+instance.
+This requires that the modules have a [[cli]] attribute, which is a Typer 
+instance that has the name set.
+If the module doesn't have a [[cli]] attribute, we skip it (thanks to the 
+exception).
+<<add submodules' [[cli]] to [[cli]]>>=
+modules = package_contents(__name__)
+for module_name in modules:
+  try:
+    module = importlib.import_module(module_name)
+    cli.add_typer(module.cli)
+  except Exception as err:
+    logging.warning(f"Trying to add {module_name} yields: {err}")
+    continue
+@
+
+For the [[config]] command, we will use the [[typerconf]] package.
+This doesn't have subcommands, so it doesn't have a [[cli]] object, we must 
+thus do it slightly differently.
+The [[typerconf]] package has added a function [[add_config_cmd]] that takes 
+the Typer instance as argument, and uses that when it create the function for 
+the command.
+See [[pydoc3 typerconf]] for details.
+<<additional imports>>=
+import typerconf
+<<add submodules' [[cli]] to [[cli]]>>=
+typerconf.add_config_cmd(cli)
+@
+
+
+\section{Configure logging}
+
+We want to use Python's built-in [[logging]] module to emit errors.
+<<configure logging>>=
+import logging
+import sys
+
+logging.basicConfig(format=f"nytid: %(levelname)s: %(message)s")
+@

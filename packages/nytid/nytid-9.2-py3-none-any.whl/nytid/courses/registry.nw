@@ -1,0 +1,302 @@
+\chapter{The course registry, managing course registers}\label{registry}
+
+%\section{Back-end design overview}
+
+In this chapter we will provide a course registry, a management module for 
+different course registers.
+
+We cover the overall storage structure used for data.
+The idea is that we have a dictionary containing configurations for several 
+courses, we call this a course register.
+This way, we can access all existing courses through this register.
+These configurations will point to a course's data directory, \ie where the 
+actual course data is stored.
+\Cref{storage-overview} gives an overview of a config using two course 
+registers, one on AFS and one on GitHub.
+We note that the locations can be mixed: root on AFS, data on GitHub and the 
+other way around.
+
+\begin{figure}
+  \includegraphics[width=\columnwidth]{figs/nytid-storage.pdf}
+  \caption{\label{storage-overview}%
+    An overview of the storage structure.
+    The config points to different course registers (one on AFS, basename 
+    [[nytid]]; one on GitHub, basename [[nytid.git]]).
+    The registers in turn point to different course data directories 
+    ([[prgx23]], [[datintro23]], [[dasak.nytid.git]] and [[inda-23/nytid]]).
+    The course data directories are located both on AFS, GitHub and gits-15.
+  }
+\end{figure}
+
+By this design, we'll let AFS and GitHub do the access control for us.
+We will use the [[storage]] module (\cref{storage}) to access the directories 
+and manage them.
+
+Since we can have several course registers, we will refer to them by name in 
+other commands.
+The idea is similar to that of \enquote{remotes} in Git.
+
+
+\section{Code outline of \texttt{nytid.courses.registry}}
+
+Here we provide a module to manage course registers 
+([[<<registry.py>>]]), that will be the [[nytid.courses.registry]] 
+module.
+<<registry.py>>=
+"""The nytid course registry"""
+
+import typerconf
+
+import pathlib
+from nytid import storage
+
+<<constants>>
+<<functions>>
+@
+
+We also add tests.
+These are all prepended [[test_]] to the function name.
+We will run them using [[pytest]].
+We will set a default course and path to use.
+(Note that the path will not be created).
+<<test registry.py>>=
+from typerconf import Config
+import pathlib
+import tempfile
+
+from nytid.courses.registry import *
+
+test_name = "test_register"
+test_path = tempfile.mkdtemp()
+
+<<test functions>>
+@
+
+We will now manage the course registers, where we can find all available 
+courses.
+We want to be able to
+\begin{itemize}
+\item add,
+\item remove,
+\item list, and
+\item get the path of
+\end{itemize}
+course registers.
+
+We want to be able to override the default configuration by supplying a value 
+to the [[config]] argument of these functions.
+This also helps with testing.
+<<config arg>>=
+config: typerconf.Config = typerconf
+<<config arg doc>>=
+The default `config` is the default config of the `typerconf` package.
+@
+
+
+\section{Adding a course register}
+
+<<functions>>=
+def add(<<add register args>>
+        <<config arg>>):
+  """
+  Adds a course register.
+
+  <<add register args doc>>
+
+  <<config arg doc>>
+  """
+  <<add course register>>
+@
+
+As mentioned above, we want each course register to be named, so that we can 
+reference it easily.
+This means that we need those two arguments.
+<<add register args>>=
+name: str,
+register_path: pathlib.Path,
+<<add register args doc>>=
+- `name` is the name to refer to this course register
+- `register_path` is the actual path to the directory
+@
+
+Finally, to add the course register, we simply enter it into the config.
+We store course registers at the path [[REGISTERS]] in the config, suffixed by 
+the name of the course register (to make [[REGISTERS]] a dictionary of 
+courses).
+When setting this, we replace any existing entry with the same name.
+<<add course register>>=
+<<check that name is valid, raise ValueError otherwise>>
+config.set(f"{REGISTERS}.{name}", str(register_path))
+<<constants>>=
+REGISTERS = "registers"
+@
+
+Now, we need to check that the [[name]] is valid, \ie that it doesn't contain 
+any periods.
+<<check that name is valid, raise ValueError otherwise>>=
+if "." in name:
+  raise ValueError(f"`{name}` can't contain a period due to config addressing")
+@
+
+Let's test this function.
+<<test functions>>=
+def test_add():
+  config = Config()
+  add(test_name, test_path, config=config)
+  assert config.get(f"{REGISTERS}.{test_name}") == test_path
+
+  new_config = Config()
+  add(test_name, pathlib.Path(test_path), config=new_config)
+  assert new_config.get(f"{REGISTERS}.{test_name}") == test_path
+@
+
+
+\section{Listing all course registers}
+
+<<functions>>=
+def ls(<<config arg>>):
+  """
+  Lists course registers added to configuration `config`. Returns a list of all 
+  register names.
+
+  <<config arg doc>>
+  """
+  <<list course registers>>
+@
+
+This means that we can list all course registers by listing the contents of 
+the [[REGISTERS]] path in the config.
+If there is no [[REGISTERS]] in the config, we simply return an empty list.
+<<list course registers>>=
+try:
+  return list(config.get(REGISTERS).keys())
+except KeyError:
+  return []
+@
+
+Let's test this.
+We know that if the test of the [[add]] function worked, we will find a course 
+register named by the value of [[test_name]].
+We add the course register to test for in the listing by using [[add]] since we 
+want to test the relationship between [[add]] and [[list]], not implementation 
+details.
+<<test functions>>=
+def test_list():
+  config = Config()
+  add(test_name, test_path, config=config)
+  assert test_name in ls(config=config)
+
+  assert ls(config=Config()) == []
+@
+
+
+\section{Getting the path of a course register}
+
+In a similar fashion as the [[list]] function, we want to get the path of a 
+single course register.
+<<functions>>=
+def get(name: str, <<config arg>>) -> pathlib.Path:
+  """
+  Returns the path of the course register named by `name`.
+
+  <<config arg doc>>
+  """
+  try:
+    return pathlib.Path(config.get(REGISTERS)[name])
+  except KeyError as err:
+    raise KeyError(f"Can't find register named `{name}`: {err}")
+@
+
+Let's test this.
+We know that if the test of the [[add]] function worked, we will find a course 
+register named by the value of [[test_name]].
+We add the course register to test for in the listing by using [[add]] since we 
+want to test the relationship between [[add]] and [[get]], not implementation 
+details.
+<<test functions>>=
+def test_get():
+  conf = Config()
+  add(test_name, test_path, config=conf)
+  assert get(test_name, config=conf) == pathlib.Path(test_path)
+
+  try:
+    value = get(test_name, config=Config())
+  except:
+    assert True
+  else:
+    assert value and False
+@
+
+
+\section{Removing a course register}
+
+<<functions>>=
+def remove(<<directory rm args>>
+           <<config arg>>):
+  """
+  Removes a course register.
+
+  <<directory rm args doc>>
+
+  <<config arg doc>>
+  """
+  <<remove course register>>
+@
+
+Finally, to remove an entry, we simply need the name.
+Then we can drop that entry from the config.
+<<directory rm args>>=
+name,
+<<directory rm args doc>>=
+- `name` is the name of the course register entry
+
+@
+
+To remove the entry; we must fetch the dictionary containing all name--register 
+pairs from the config, then we remove this particular name--register pair and, 
+finally, we can set the resulting dictionary to replace that entire tree in the 
+config.
+<<remove course register>>=
+<<check that name is valid, raise ValueError otherwise>>
+current_dirs = config.get(REGISTERS)
+try:
+  del current_dirs[name]
+except KeyError:
+  raise KeyError(f"There is no such register: {name}")
+else:
+  config.set(REGISTERS, current_dirs)
+@
+
+Let's test this.
+We know that if the test of the [[add]] function worked, we will find a course 
+register named by the value of [[test_name]].
+We add the course register to test for in the listing by using [[add]] since we 
+want to test the relationship between [[add]], [[remove]] and [[list]], not 
+implementation details.
+<<test functions>>=
+def test_rm():
+  config = Config()
+
+  add(test_name, test_path, config=config)
+  try:
+    get(test_name, config=config)
+  except KeyError:
+    assert False
+  else:
+    assert True
+
+  remove(test_name, config=config)
+  try:
+    get(test_name, config=config)
+  except KeyError:
+    assert True
+  else:
+    assert False
+
+  try:
+    remove(test_name, config=Config())
+  except KeyError:
+    assert True
+  else:
+    assert False
+

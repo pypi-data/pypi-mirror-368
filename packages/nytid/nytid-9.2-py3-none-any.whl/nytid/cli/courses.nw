@@ -1,0 +1,1133 @@
+\chapter{The \texttt{cli.courses} module and the \texttt{courses} subcommands}%
+\label{courses}\label{cli.courses}
+
+In this chapter we cover the [[nytid.cli.courses]] module and the subcommands 
+of the [[courses]] command.
+We want to be able to list all courses in the configuration, create new courses 
+and add courses to the configuration.
+
+We have the local user configuration keeping track of which courses the user is 
+interested in.
+This is the default configuration that the [[typerconf]] package manages.
+
+We also have the global configuration keeping track of a course's 
+configuration.
+This configuration file should be located in shared storage, so that all 
+teachers and TAs can read it.
+We link to this configuration in the user's local configuration when we add the 
+course.
+
+We will simply use the access control of the shared file system to do access 
+control to the course configuration files.
+
+
+\section{Code outline}
+
+We use the structure outlined in \cref{CLIoverview}.
+That structure looks like this:
+<<courses.py>>=
+"""The nytid courses command and subcommands"""
+
+import typerconf
+
+from nytid import courses
+import logging
+import os
+import pathlib
+from nytid.courses import registry
+import re
+from nytid import storage
+import subprocess
+import sys
+import typer
+import typing
+from typing_extensions import Annotated
+
+<<subcommand imports>>
+<<constants>>
+
+cli = typer.Typer(name="courses",
+                  help="Manage courses")
+
+<<helper functions>>
+<<argument and option definitions>>
+<<subcommands>>
+
+if __name__ == "__main__":
+  cli()
+@
+
+We also add tests.
+These are all prepended [[test_]] to the function name.
+We will run them using [[pytest]].
+<<test clicourses.py>>=
+from nytid.cli.courses import *
+
+<<test imports>>
+
+<<test setup>>
+
+<<test functions>>
+@
+
+
+\section{Back-end design overview}
+
+In this chapter we will cover the overall storage structure used for data.
+The idea is that we have a dictionary containing configurations for several 
+courses, we call this a register (or directory of courses).
+This way, we can access all existing courses through this directory.
+These configurations will point to the course data directories, \ie where the 
+actual course data is located.
+\Cref{storage-overview} gives an overview of a config using two courses 
+directories, one on AFS and one on GitHub.
+We note that the locations can be mixed: root on AFS, data on GitHub and the 
+other way around.
+
+\begin{figure}
+  \includegraphics[width=\columnwidth]{figs/nytid-storage.pdf}
+  \caption{\label{storage-overview}%
+    An overview of the storage structure.
+    The config points to different course root directories (one on AFS, 
+    basename [[nytid]]; one on GitHub, basename [[nytid.git]]).
+    The root directories in turn point to different course data directories.
+    The course data directories are located both on AFS, GitHub and gits-15.
+  }
+\end{figure}
+
+By this design, we'll let AFS and GitHub do the access control for us.
+We will use the [[storage]] module (\cref{storage}) to access the directories 
+and manage them.
+
+Since we can have several registers, we will refer to them by name in 
+other commands.
+The idea is similar to that of \enquote{remotes} in Git.
+
+
+\section{Managing registers, the \texttt{registry} subcommands}
+
+We will now manage the registers, where we can find all available 
+courses.
+We want the subcommands [[add]], [[rm]] and [[ls]].
+We will add a new Typer instance for the [[registry]] command and add the three 
+subcommands above.
+<<subcommands>>=
+registrycli = typer.Typer(name="registry",
+                          help="Manage course registers")
+
+cli.add_typer(registrycli)
+
+@registrycli.command(name="ls")
+def registry_ls():
+  """
+  Lists registers added to the configuration.
+  """
+  <<list registers>>
+
+@registrycli.command(name="add")
+def registry_add(<<registry add args>>):
+  """
+  Adds a register to the configuration.
+  """
+  <<add register>>
+
+@registrycli.command(name="rm")
+def registry_rm(<<registry rm args>>):
+  """
+  Removes a register from the configuration.
+  """
+  <<remove register>>
+@
+
+As mentioned above, we want each register to be named, so that we can reference 
+each easily.
+This means that we need those two arguments.
+<<registry add args>>=
+name: Annotated[str, new_register_arg],
+register_path: Annotated[pathlib.Path, register_path_arg]
+<<argument and option definitions>>=
+new_register_arg = typer.Argument(help="A name to refer to the register.")
+register_path_arg = typer.Argument(help="The absolute path to the register "
+                                        "directory.")
+@
+
+Finally, to add the register, we simply make the proper call to the 
+[[registry]] module.
+We replace any existing entry with the same name.
+<<add register>>=
+try:
+  registry.add(name, register_path)
+except KeyError as err:
+  logging.error(f"Can't add {name}: {err}")
+  sys.exit(1)
+@
+
+This means that we can list all registers by using the [[registry]] module 
+again.
+This requires no arguments.
+<<list registers>>=
+for register in registry.ls():
+  print(f"{register}\t{registry.get(register)}")
+@
+
+Finally, to remove an entry, we simply need the name.
+In this case it makes sense to autocomplete, since this is an existing 
+register.
+<<registry rm args>>=
+name: Annotated[str, register_arg]
+<<argument and option definitions>>=
+register_arg = typer.Argument(help="The name of the register.",
+                                   autocompletion=complete_register_arg)
+@
+
+To complete the register name, we provide the 
+function~[[complete_register]].
+This function simply lists all registers ([[registry.ls()]]) and filters based 
+on what the user has provided ([[incomplete]]).
+<<helper functions>>=
+def complete_register_arg(incomplete):
+  """
+  Returns all matching register names that can complete `incomplete`.
+  """
+  return filter(lambda x: x.startswith(incomplete),
+                registry.ls())
+@
+
+To remove the entry; we simply make the appropriate call to the [[registry]] 
+module.
+<<remove register>>=
+try:
+  registry.remove(name)
+except KeyError as err:
+  logging.error(f"Can't remove {name}: {err}")
+  sys.exit(1)
+@
+
+
+\section{Adding a new course, the \texttt{courses new} command}
+
+We will add a [[new]] command to create a new course.
+<<subcommands>>=
+<<new arguments and options>>
+
+@cli.command()
+def new(<<new command args>>):
+  """
+  Creates a new course.
+  """
+  <<new command body>>
+@ We will write the help section (docstring) along with the arguments and how 
+they are used by the command.
+
+To finally create the courses, we'll use the [[new]] function from the 
+[[nytid.courses]] module.
+
+\subsection{Creating the course}\label{CreatingTheCourse}
+
+To create a course, we need a name for the course.
+<<new command args>>=
+name: Annotated[str, course_arg],
+<<new arguments and options>>=
+course_arg = typer.Argument(help="A name used to refer to the course.")
+@
+
+We would first like to create the course in one of the registers available.
+If there is only one register, we'll create the course there.
+If there are more, however, we need the user to decide which one to use.
+<<new command args>>=
+register: Annotated[str, register_option] = MINE,
+<<new arguments and options>>=
+register_option = typer.Option(help="Name of register to use. "
+                                    "Must be used if there are more than "
+                                    "one register in the config.",
+                               shell_complete=complete_register)
+@ See \cref{mine} for the [[MINE]] constant.
+
+We also want to have a function for autocompletion in the shell.
+We simply filter out the matching names available in the registry.
+<<helper functions>>=
+def complete_register(ctx, param, incomplete: str):
+  """
+  Returns list of matching register names available.
+  """
+  return filter(lambda x: x.startswith(incomplete),
+                registry.ls())
+@
+
+
+\section{Setting the course settings}
+
+We want to be able to set the course settings at two times:
+first, when we create the course; second, when we want to see or modify the 
+course settings afterwards.
+
+We will have a similar design as the [[config]] command of the [[typerconf]] 
+package\footnote{%
+  See URL \url{https://pypi.org/project/typerconf/} or
+  the latest PDF from URL \url{https://github.com/dbosk/typerconf/releases}.
+}.
+When we create the course, we will set all options to some value (possibly 
+[[None]]).
+Then we can let the [[courses config]] command read the available options from 
+the course config.
+
+Let's add the settings.
+We'll add them to a dictionary~[[kwdata]] that we'll later pass to the function 
+that creates the course.
+<<new command body>>=
+kwdata = {
+  <<course settings>>
+}
+courses.new(name, register, kwdata)
+@
+
+\subsection{Contact information}
+
+We want to include the contact information for whoever is responsible for the 
+course.
+
+Usually, it's the course responsible who will run the [[courses new]] command.
+We will let the user adjust the default values through the main config file, in 
+the same fashion as Git.
+<<new command args>>=
+contact: Annotated[str, contact_opt] = None,
+<<new arguments and options>>=
+contact_opt = typer.Option(help="The course responsible's contact info. "
+                                "Default can be set using "
+                                "`nytid config me.name --set 'First Last'"
+                                " and "
+                                "`nytid config me.email --set x@y.z.")
+<<course settings>>=
+"contact": contact,
+@
+
+Note that we don't have to set those values to anything but [[None]] here, the 
+call to [[courses.new]] will do that for us.
+
+\subsection{Course code}
+
+Each course has a course code.
+We need one to identity the course from year to year and to identify similar 
+courses.
+The reason we're interested in this is because then we can recruit TAs from 
+similar enough courses.
+<<new command args>>=
+code: Annotated[str, code_opt] = None,
+<<new arguments and options>>=
+code_opt = typer.Option(help="The course code, "
+                             "to relate it to similar courses using "
+                             "`related`.")
+<<course settings>>=
+"code": code,
+<<new command args>>=
+related: Annotated[typing.List[str], related_opt] = [],
+<<new arguments and options>>=
+related_opt = typer.Option(help="List of related course codes, "
+                                "courses with any of these codes can "
+                                "share TAs.")
+<<course settings>>=
+"related_codes": related,
+@
+
+\subsection{The schedule}
+
+All courses need a schedule for their teaching.
+We add a URL to the ICS file, \eg TimeEdit.
+<<new command args>>=
+ics: Annotated[str, ics_opt] = None,
+<<new arguments and options>>=
+ics_opt = typer.Option(help="A URL to an ICS file containing the "
+                            "schedule. E.g. an export/subscription from "
+                            "TimeEdit.")
+<<course settings>>=
+"ics": ics,
+@
+
+\subsection{The data directory}
+
+Each course also needs a data directory.
+The data directory is a directory that only members can access.
+It can contain a more detailed config or TA bookings.
+The default path is simply to append [[data]] to the course's config path.
+<<new command args>>=
+data_path: Annotated[pathlib.Path, data_path_opt] = None,
+<<new arguments and options>>=
+data_path_opt = typer.Option(help="Path to the course's data directory, "
+                                  "default is to append `/data` to the "
+                                  "course's config directory.")
+<<course settings>>=
+"data_path": data_path,
+@
+
+If the user didn't specify a data directory, then [[data_path]] will be 
+[[None]].
+The [[courses.new]] function will set the default.
+
+\subsection{The number of students and groups}
+
+When we create the course we'd like to know the number of students and the 
+number of groups.
+These are the same numbers as used when scheduling the course.
+We will use them to compute the number of needed TAs etc.
+<<new command args>>=
+num_students: Annotated[int, num_students_opt] = None,
+num_groups: Annotated[int, num_groups_opt] = None,
+<<new arguments and options>>=
+num_students_opt = typer.Option(help="The total number of students "
+                                     "in the course.")
+num_groups_opt = typer.Option(help="The number of groups that the class "
+                                   "will be divided into.")
+<<course settings>>=
+"num_students": num_students,
+"num_groups": num_groups,
+@
+
+
+\section{Revising the config of a course, the \texttt{courses config} command}
+
+We'll add a [[courses config]] command to show and change the settings of an 
+existing course.
+This command should be similar to [[typerconf]]'s config command\footnote{%
+  This section is an adapted version of that of [[typerconf]].
+}, however, we can't reuse that one since we must specify the course; only once 
+we have the course can we fetch which config file to use.
+
+The config command should work as follows.
+\begin{minted}{text}
+nytid courses config course path --set value
+\end{minted}
+We need to know which course's config to operate on.
+This is the only difference to the config command of [[typerconf]].
+However, since we can have multiple registers, the user must be able 
+to specify, in case the same name occurs in more than one.
+But if the user doesn't specify, we search through all of them.
+
+If we get a path, but the user didn't use [[--set]] and provide a value, we 
+simply print the value at the end of the path.
+If we get a value through [[--set]], we'll update the value at the end of the 
+path (or create it if it doesn't exist).
+This corresponds to how the [[.set]] method of [[Config]] works.
+<<subcommands>>=
+<<default values for [[config_cmd]]>>
+
+@cli.command(name="config")
+def config_cmd(course: Annotated[str, course_arg_autocomplete],
+               register: Annotated[str, register_option] = MINE,
+               path: Annotated[str, path_arg] = "",
+               values: Annotated[typing.List[str], value_arg] = None):
+  """
+  Reads values from or writes `values` to the config of `course` at `path`.
+  """
+  <<set [[course]]'s config file as [[conf]]>>
+  if values:
+    <<change [[values]] to non-list if one-element list>>
+    <<if [[values]] is empty string, replace it with [[None]]>>
+    conf.set(path, values)
+  else:
+    try:
+      print_config(conf.get(path), path)
+    except KeyError as err:
+      logging.error(f"{path} doesn't exist in the config: {err}")
+      sys.exit(1)
+@ See \cref{mine} for the [[MINE]] constant.
+
+We will now cover [[course_arg_autocomplete]], [[register_option]] \etc in
+[[<<default values for [[config_cmd]]>>]]
+as we cover the relevant parts of the algorithm.
+
+\subsection{Testing the \texttt{courses config} command}
+
+Before we delve into the details, let's first device the testing.
+Typer makes this very easy.
+<<test setup>>=
+runner = CliRunner()
+
+register = "test register"
+register_path = tempfile.mkdtemp()
+runner.invoke(cli, ["registry", "add", register, register_path])
+
+target_course = "test course"
+target_path = "contact"
+target_value = "Test Tester"
+
+runner.invoke(cli, ["new", target_course])
+<<test imports>>=
+import tempfile
+from typer.testing import CliRunner
+@
+
+\subsection{Finding the course}
+
+Let's start with the course.
+We need the name of the course ([[course_name]]) so that we can look it up in 
+the register ([[register]]) to get its config file.
+
+We'll reuse the [[register_option]] from earlier, see 
+\cref{CreatingTheCourse}.
+We don't want to reuse [[course_arg]], since that one lacks autocompletion.
+<<default values for [[config_cmd]]>>=
+course_arg_autocomplete = typer.Argument(help="Name (nickname) of the target "
+                                              "course.",
+                                         autocompletion=complete_course_name)
+@
+
+To complete the course name we simply need to look up all matching courses in 
+the registers.
+We want to improve the autocompletion for the user by including from which 
+register each course is.
+Hence, we need both the register name and its path.
+<<helper functions>>=
+def complete_course_name(ctx: typer.Context, incomplete: str):
+  """
+  Returns a list of course names matching `incomplete`.
+  """
+  <<populate [[registers]] with the registers to use>>
+  for register, register_path in registers:
+    <<yield (course name, register name) tuples that matches [[incomplete]]>>
+@
+
+As mentioned above, if the user doesn't specify a register, we search through 
+all of them.
+Remember that we want the name--path tuple for each register.
+<<populate [[registers]] with the registers to use>>=
+registers = register_pairs(ctx.params.get("register"))
+<<helper functions>>=
+def register_pairs(register=None):
+  """
+  Returns a list of (name, path)-tuples (pairs) for registers to use.
+
+  If `register` is None, we use all existing registers found 
+  in the config. Otherwise, we look up the path of the one specified and return 
+  a list containing only that name--path-tuple.
+  """
+  if register:
+    return [(register,
+             registry.get(register))]
+  else:
+    return [(register,
+             registry.get(register))
+            for register in registry.ls()]
+@
+
+In the register, each course has its own subdirectory.
+So we simply need to return the subdirectories of [[register_path]] matching 
+[[incomplete]] together with [[register]].
+<<yield (course name, register name) tuples that matches [[incomplete]]>>=
+courses_in_reg = courses.all_courses(register_path)
+matching_courses = filter(lambda x: x.startswith(incomplete), courses_in_reg)
+return map(lambda x: (x, f"from {register}"),
+           matching_courses)
+@
+
+Now let's turn back to the main problem:
+we want to find the configuration of the given course.
+<<set [[course]]'s config file as [[conf]]>>=
+try:
+  conf = courses.get_course_config(course, register)
+<<handle errors for accessing course data>>
+<<handle errors for accessing course data>>=
+except KeyError as err:
+  logging.error(err)
+  sys.exit(1)
+except PermissionError as err:
+  logging.error(f"You don't have access to {course} in {register}: {err}")
+  sys.exit(1)
+@
+
+\subsection{Navigating the course config}
+
+We can autocomplete the path since we can predict the possible values.
+<<default values for [[config_cmd]]>>=
+path_arg = typer.Argument(help="Path in config, e.g. 'courses.datintro22'. "
+                               "Empty string is root of config. Defaults to "
+                               "the empty string.",
+                          autocompletion=complete_config_path)
+@
+
+The [[complete_config_path]] function returns the possible completions for an 
+incomplete path from the command line.
+<<helper functions>>=
+def complete_config_path(ctx: typer.Context, incomplete: str):
+  """
+  Returns all valid paths in the config starting with `incomplete`.
+  """
+  register = ctx.params.get("register")
+  course = ctx.params.get("course")
+  try:
+    conf = courses.get_course_config(course, register)
+  except:
+    return []
+
+  return filter(lambda x: x.startswith(incomplete),
+                conf.paths())
+@
+
+\subsection{Setting a value in course config}
+
+We let the user supply a list of values to set on the target path.
+<<default values for [[config_cmd]]>>=
+value_arg = typer.Option("-s", "--set",
+                         help="Values to store. "
+                              "More than one value makes a list. "
+                              "Values are treated as JSON if possible.")
+@
+
+If the user supplies only one argument on the command line, we don't want it to 
+be interpreted as a one-element list, but rather as a value that is not a list.
+Hence, we check and convert if necessary.
+<<change [[values]] to non-list if one-element list>>=
+if len(values) == 1:
+  values = values[0]
+@
+
+Additionally, if that one element is an empty string, we replace it with 
+[[None]] to trigger a delete.
+<<if [[values]] is empty string, replace it with [[None]]>>=
+if values == "":
+  values = None
+@
+
+\subsection{Testing setting values}
+
+Let's look at the actual tests.
+We want to set a value, this should yield no error.
+We also check that this worked by looking for the target value when we print 
+the whole config.
+<<test functions>>=
+def test_set():
+  result = runner.invoke(cli, ["config", target_course,
+                               target_path, "--set", target_value])
+  assert result.exit_code == 0
+
+  result = runner.invoke(cli, ["config", target_course, target_path])
+  assert target_value in result.stdout
+@
+
+We also want to remove the target again.
+This should work by setting it to the empty string.
+<<test functions>>=
+def test_clear():
+  result = runner.invoke(cli, ["config", target_course,
+                              target_path, "--set", ""])
+  assert result.exit_code == 0
+
+  result = runner.invoke(cli, ["config", target_course])
+  assert target_path not in result.stdout
+@
+
+\subsection{Printing the config}
+
+That [[print_config]] function should print the remaining levels of the config 
+tree.
+And we want it to print on the format of
+[[courses.datintro22.url = https://...]].
+This function will do a depth-first traversal through the config to print all 
+values.
+The idea is that the config path will move from the dictionary representation 
+in [[conf]] to the string representation in [[path]].
+When at the leaf, [[conf]] will contain the value and [[path]] the entire path.
+<<helper functions>>=
+def print_config(conf: typerconf.Config, path: str = ""):
+  """
+  Prints the config tree contained in `conf` to stdout.
+  Optional `path` is prepended.
+  """
+  try:
+    for key in conf.keys():
+      <<recurse deeper into the config tree>>
+  <<print the leaf of config tree and return>>
+@
+
+The recursive step is quite straight-forward, we just call [[print_config]] 
+with the subtree ([[conf[key]]]) as an argument.
+However, we must check whether to prepend anything ([[path]]).
+The deeper we progress, the more we want to prepend.
+For instance, at the [[courses.datintro22]] level, [[print_config]] only knows 
+[[datintro22]], not the [[courses]] parent.
+Hence, we must supply [[courses]] to prepend to [[datintro22]] to get 
+[[courses.datintro22]].
+<<recurse deeper into the config tree>>=
+if path:
+  print_config(conf[key], f"{path}.{key}")
+else:
+  print_config(conf[key], key)
+@
+
+Finally, we get the base-case by exception.
+When a node ([[conf]]) doesn't have an attribute [[.keys()]], we know we're at 
+a leaf, so we print it.
+Then the complete path is in [[path]], the value in [[conf]].
+<<print the leaf of config tree and return>>=
+except AttributeError:
+  print(f"{path} = {conf}")
+@
+
+\subsection{Testing the printing of the config}
+
+There are two cases that we want to test.
+The first is to specify a non-existing path of the config, that should result 
+in an error.
+In the second case, we should try to get a part of the config that actually 
+does exist.
+The same should happen if we don't specify any part of the config, then we 
+should get the whole config; in which case, we also get the target value.
+<<test functions>>=
+def test_get():
+  result = runner.invoke(cli, ["config", target_course,
+                               f"{target_path}.nonexisting"])
+  assert result.exit_code == 1
+
+  result = runner.invoke(cli, ["config", target_course,
+                               target_path, "--set", target_value])
+  result = runner.invoke(cli, ["config", target_course,
+                               target_path])
+  assert target_value in result.stdout
+
+  result = runner.invoke(cli, ["config", target_course])
+  assert target_value in result.stdout
+@
+
+
+\section{Listing all courses}
+
+We also want to be able to list all available courses over all available 
+registers.
+
+For this command, we can reuse a lot from above.
+We already have the option settings in [[register_option]].
+We also already have a function to list all courses, [[all_courses]].
+<<subcommands>>=
+@cli.command()
+def ls(register: Annotated[str, register_option] = MINE):
+  """
+  Lists all available courses in all registers in the registry. Output format: 
+
+    register<tab>course
+
+  If `register` (a register name) is provided, only courses from that register 
+  are listed.
+  """
+  if register:
+    try:
+      <<list all courses in [[register]]>>
+    except KeyError as err:
+      logging.error(err)
+      sys.exit(1)
+  else:
+    for register in registry.ls():
+      <<list all courses in [[register]]>>
+<<list all courses in [[register]]>>=
+for course in courses.all_courses(registry.get(register)):
+  print(f"{register}\t{course}")
+@ See \cref{mine} for the [[MINE]] constant.
+
+
+\section{Accessing the course data}
+
+We would like an easy way to access the data of a course to debug.
+We will add a set of subcommands under the command [[data]].
+<<subcommands>>=
+datacli = typer.Typer(name="data",
+                      help="Access the raw course data")
+
+cli.add_typer(datacli)
+
+<<data subcommands>>
+@
+
+\subsection{Spawning a shell in the data directory}
+
+The first subcommand will spawn a shell in the data directory so that we can 
+explore it freely.
+
+We will change the current working directory to the data directory of the 
+course, then spawn a shell.
+When the shell is done, we'll change back the current working directory.
+
+The shell we'll use will be the same as the one the user is currently running, 
+\ie what we find in the [[SHELL]] environment variable.
+<<data subcommands>>=
+@datacli.command()
+def shell(course: Annotated[str, course_arg_autocomplete],
+          register: Annotated[str, register_arg] = MINE):
+  """
+  Spawns a shell in the data directory of a course.
+  """
+  try:
+    data_dir = courses.get_course_data(course, register)
+  <<handle errors for accessing course data>>
+  try:
+    print(f"--- {course}/data shell ---")
+    <<spawn shell in [[data_dir]]>>
+  <<handle shell exceptions>>
+  <<handle errors for accessing course data>>
+  finally:
+    print(f"--- {course}/data shell terminated ---")
+<<subcommand imports>>=
+import os
+import subprocess
+@ See \cref{mine} for the [[MINE]] constant.
+
+To spawn the shell, we modify the prompt environment variable~[[PS1]].
+We want to add a note so that the user knows we're in this shell.
+In addition to that, it's just to map stdin, stdout and stderr so that we can 
+get an interactive shell.
+We also set the current working directory~[[cwd]] to the directory we want to 
+be in.
+<<spawn shell in [[data_dir]]>>=
+env = os.environ.copy()
+if "PS1" in env:
+  env["PS1"] = f"{course}/data {env['PS1']}"
+else:
+  env["PS1"] = f"{course}/data \w\n$ "
+
+subprocess.run([os.environ["SHELL"]],
+                cwd=data_dir.path, env=env,
+                stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
+@
+
+If the course is just created, the data directory might not have been created 
+just yet.
+However, in that case, we'd like to try to create the directory if the user 
+wants to spawn a shell.
+(Since they might want to create something there manually.)
+Once we've created it, we simply try again.
+<<handle shell exceptions>>=
+except FileNotFoundError as err:
+  logging.warning(f"The data directory doesn't exist: {err}")
+  try:
+    os.makedirs(data_dir.path)
+    logging.warning(f"Created {data_dir.path}")
+    <<spawn shell in [[data_dir]]>>
+  except Exception as err:
+    logging.error(f"Can't create directory: {err}")
+    sys.exit(1)
+@
+
+
+\section{My courses, the \texttt{mine} subcommands}\label{mine}
+
+We will now create a kind of meta-register called [[mine]] that will include 
+all courses we consider ours.
+The use-case is this:
+A register might contain all courses of a department,
+but we want to only keep track our own courses.
+Then we add (link) them to the [[mine]] register.
+<<subcommands>>=
+minecli = typer.Typer(name=MINE,
+                      help="Manage my courses")
+
+cli.add_typer(minecli)
+
+<<mine subcommands>>
+<<constants>>=
+MINE = "mine"
+@
+
+The subcommands of [[mine]] will be similar to those of [[registry]].
+We want to list them, add them and remove them.
+We will do this by maintaining a special register named [[MINE]] that will 
+contain symlinks to courses in other registers.
+
+\subsection{Adding a course to my courses}
+
+Adding a course to my courses is quite straight-forward.
+We simply create a symlink to the original course directory.
+If we want to add two courses of the same name (from different registers 
+perhaps), then we can separate them by providing an alias that will be used 
+instead of the original course name.
+<<mine subcommands>>=
+@minecli.command(name="add")
+def mine_add(course: Annotated[str, course_arg_autocomplete],
+             register: Annotated[str, register_arg] = None,
+             alias: Annotated[str, alias_opt] = None):
+  """
+  Adds a course to my courses.
+  """
+  if not register:
+    <<set [[register]] to which register [[course]] is in>>
+
+  if not alias:
+    alias = course
+
+  <<set [[mine_path]] to the path of the mine register>>
+  <<exit if [[alias]] is already in [[mine_path]]>>
+
+  <<set [[course_path]] to [[course]]'s path>>
+  try:
+    os.symlink(course_path, mine_path / alias)
+  <<handle errors for adding a course to mine>>
+<<argument and option definitions>>=
+alias_opt = typer.Option(help="Alias to use instead of "
+                              "the original course name")
+@
+
+If we try to add a course that we've already added to [[mine]], then we'll get 
+a [[FileExistsError]].
+<<handle errors for adding a course to mine>>=
+except FileExistsError:
+  logging.error(f"{alias} is already in {MINE}")
+  sys.exit(1)
+@
+
+\subsection{Create the default mine register if it doesn't exist}
+
+When we attempt to get the [[mine_path]] from [[registry]], it might not exist 
+if it's the first time we use it.
+This means we want to create it in the default location.
+<<set [[mine_path]] to the path of the mine register>>=
+try:
+  mine_path = registry.get(MINE)
+except KeyError:
+  <<create the default mine register>>
+  mine_path = registry.get(MINE)
+@
+
+Now, if the register doesn't exist, we want to create it in [[~/.nytid/mine]] 
+and add it to the registry.
+<<create the default mine register>>=
+home_path = pathlib.Path(os.environ["HOME"])
+registry.add(MINE, home_path / ".nytid/mine")
+mine_path = registry.get(MINE)
+os.makedirs(mine_path)
+logging.warning(f"Added register {MINE} and created its path {mine_path}.")
+@
+
+\subsection{Check if the course is already among my courses}
+
+To check if the alias already exists among our courses, we simply iterate 
+through and look for such a filename.
+<<exit if [[alias]] is already in [[mine_path]]>>=
+for my_course in mine_path.iterdir():
+  if my_course == alias:
+    logging.error(f"{alias} is already among your courses.")
+    sys.exit(1)
+@
+
+If the user didn't specify the register, we must look it up.
+This means that we must search through all registers for the course and hope to 
+find a unique match.
+<<set [[register]] to which register [[course]] is in>>=
+register_map = {register: registry.get(register)
+                for register in registry.ls()}
+
+<<variables for search for [[course]] in [[register_map]]>>
+for register, register_path in register_map.items():
+  <<search for matches to [[course]] in [[register_path]]>>
+
+<<check for ending criteria and set [[register]] to [[course]]'s>>
+@
+
+Now, we just need to check if [[course]] is part of [[register]].
+If so, we add [[register]] to the list of matches.
+<<search for matches to [[course]] in [[register_path]]>>=
+matching_courses = filter(lambda x: x == course,
+                          courses.all_courses(register_path))
+if len(list(matching_courses)) > 0:
+  matching_registers.append(register)
+<<variables for search for [[course]] in [[register_map]]>>=
+matching_registers = []
+@
+
+Finally, if there is a unique match, we can use it as [[register]].
+Otherwise, we print an error since the user must provide the [[register]] 
+argument to get a unique match.
+<<check for ending criteria and set [[register]] to [[course]]'s>>=
+num_matches = len(matching_registers)
+if num_matches == 1:
+  register = matching_registers[0]
+elif num_matches < 1:
+  logging.error(f"Can't find course {course} in any register")
+  sys.exit(1)
+elif num_matches > 1:
+  logging.error(f"Too many matches for {course}, "
+                f"specify one of the registers {matching_registers}.")
+  sys.exit(1)
+@
+
+Now, we must determine the course's path.
+That is simply the register's path with the course's name appended to it.
+<<set [[course_path]] to [[course]]'s path>>=
+course_path = registry.get(register) / course
+@
+
+\subsection{Listing my courses}
+
+<<mine subcommands>>=
+@minecli.command(name="ls")
+def mine_ls():
+  """
+  Lists my courses.
+  """
+  mine_path = registry.get(MINE)
+  for course in mine_path.iterdir():
+    print(course.name)
+@
+
+\subsection{Removing a course from my courses}
+
+<<mine subcommands>>=
+@minecli.command(name="rm")
+def mine_rm(course: Annotated[str, my_course_arg]):
+  """
+  Removes a course from my courses.
+  """
+  mine_path = registry.get(MINE)
+  try:
+    os.unlink(mine_path / course)
+  <<handle errors for trying to remove a course from mine>>
+<<argument and option definitions>>=
+my_course_arg = typer.Argument(help="The course in my courses.",
+                               autocompletion=complete_my_course_arg)
+<<helper functions>>=
+def complete_my_course_arg(incomplete: str) -> typing.List[str]:
+  """
+  Returns a list of courses in my courses that match `incomplete`.
+  """
+  mine_path = registry.get(MINE)
+  for course in courses.all_courses(mine_path):
+    if course.startswith(incomplete):
+      yield course
+@
+
+There are several errors that can occur.
+The first one is that the user typed in a course that doesn't exist.
+Then we won't be able to find the file.
+<<handle errors for trying to remove a course from mine>>=
+except FileNotFoundError as err:
+  logging.error(f"Couldn't find {course}: {err}")
+  sys.exit(1)
+@
+
+The second error is that there is a directory, not a symlink.
+In [[mine]], all courses should be symlinks pointing to the course data in 
+their respective register.
+However, if the course is created with [[mine]] as the default register, it's 
+directory will be created in the [[mine]] directory.
+Then we can't unlink it.
+This is actually a feature.
+<<handle errors for trying to remove a course from mine>>=
+except IsADirectoryError as err:
+  logging.error(f"{course} is a directory, not a symlink: "
+                f"We can't remove the directory without permanent data loss; "
+                f"this seems to be actual course data, not just a link to it! "
+                f"So you'll have to remove it manually to proceed. "
+                f"The directory you want to remove is {mine_path / course}.")
+  sys.exit(1)
+@
+
+\section{Matching courses and register using regex}
+
+In other modules we might like to use other versions of these arguments.
+For instance, matching the course on regex rather than exactly.
+The same for the register option.
+Here we'll provide the arguments and options together with the autocompletion.
+
+\subsection{Matching registers using regex}
+
+We'd sometimes like to match courses from several registers.
+Then we'd like to filter them based on regex.
+<<argument and option definitions>>=
+register_opt_regex = typer.Option(help="Regex for register names to use.",
+                                     shell_complete=registers_regex)
+@
+
+The autocomplete function should take the regex and match all registers that 
+matches the current regex.
+This function can be used for other purposes too, like when to get all 
+registers that match the regex.
+<<helper functions>>=
+def registers_regex(regex: str) -> typing.List[str]:
+  """
+  Returns a list of registers matching the `regex`.
+
+  Matching is done `re.match`.
+  """
+  pattern = re.compile(regex)
+
+  registers = registry.ls()
+  for register in registers:
+    if pattern.match(register):
+      yield register
+@
+
+Let's test this.
+The [[<<test setup>>]] adds a register \enquote{test register}.
+We'll add one more to matching.
+<<test functions>>=
+def test_registers_regex():
+  add_register = "test"
+  add_reg_path = tempfile.mkdtemp()
+
+  runner.invoke(cli, ["registry", "add", add_register, add_reg_path])
+
+  matches = list(registers_regex("test"))
+  assert add_register in matches and register in matches
+
+  matches = list(registers_regex(".* .*"))
+  assert add_register not in matches and register in matches
+@
+
+\subsection{Matching courses using regex}
+
+Now we'll provide a course argument similar to [[register_opt_regex]].
+<<argument and option definitions>>=
+course_arg_regex = typer.Argument(help="Regex matching courses.",
+                                  autocompletion=complete_course_regex)
+@
+
+The [[complete_course_regex]] is a bit more complex than the one for the 
+register option.
+Here we must take context into consideration.
+So we'll have to create two functions, the second being 
+[[complete_course_regex]].
+
+We want a function that takes a regex and a list of registers and returns a 
+list of all courses matching.
+To separate courses from different registers we must return a tuples of 
+course--register pairs.
+<<helper functions>>=
+def courses_regex(regex: str, registers: typing.List[str] = None) \
+    -> typing.List[typing.Tuple[str, str]]:
+  """
+  Returns a list of course--register pairs matching the `regex`.
+
+  Matching is done `re.match`.
+  """
+  pattern = re.compile(regex)
+
+  if not registers:
+    registers = registry.ls()
+
+  for register in registers:
+    the_courses = courses.all_courses(registry.get(register))
+    for course in the_courses:
+      if pattern.match(course):
+        yield (course, register)
+@
+
+Let's test this function.
+We already have a course [[target_course]] added in [[<<test setup>>]].
+We'll use that one.
+<<test functions>>=
+def test_courses_regex():
+  matches = list(courses_regex(".* .*"))
+  for course, _ in matches:
+    if target_course == course:
+      assert True
+      break
+  else:
+    assert False
+@
+
+Now it's time to write the [[complete_course_regex]] function.
+We'll use [[courses_regex]] to get all courses matching based on the registers 
+we get from the context.
+<<helper functions>>=
+def complete_course_regex(ctx: typer.Context, regex: str) -> typing.List[str]:
+  """
+  """
+  register_regex = ctx.params.get("register")
+  registers = registers_regex(register_regex)
+
+  return courses_regex(regex, registers)

@@ -1,0 +1,57 @@
+\chapter{Sign-up utilities}
+
+In this chapter we cover the module [[nytid.signup.utils]].
+The outline of the module is as follows:
+<<utils.py>>=
+<<functions>>
+@
+
+
+\section{Computing the number of needed TAs}
+
+We need to compute the number of TAs that we need for various sessions.
+We compute this number from the parameter [[event]], which is an 
+[[ics.event.Event]] object from the schedule.
+The base algorithm counts on one TA per group.
+If there are no groups, we use one TA per room.
+<<functions>>=
+def needed_TAs(event, <<[[needed_TAs]] args>>):
+  """
+  Takes an event and returns the number of TAs needed
+  """
+  num_groups = event.description.split().count("grupp")
+  if num_groups == 0:
+    num_groups = event.description.split().count("group")
+
+  num_rooms = len(event.location.split(","))
+
+  if "laboration" in event.name or "Laboration" in event.name:
+    <<compute [[num_TAs]] for lab>>
+  elif "Övning" in event.name or "Exercise" in event.name \
+       or "Tutorial" in event.name:
+    <<compute [[num_TAs]] for tutorial>>
+  else:
+    num_TAs = max(num_rooms, num_groups)
+
+  return num_TAs
+@
+
+For tutorials, we usually want one TA per room.
+<<compute [[num_TAs]] for tutorial>>=
+num_TAs = num_rooms
+@
+
+For labs, we want 12 students per TA.
+For this we need to know the size of the groups listed in the schedule.
+This is based on what is set in Kopps.
+We'll use 12 as default as we assume people try to get as close as possible to 
+12 students per group in Kopps.
+<<compute [[num_TAs]] for lab>>=
+if num_groups:
+  num_students = num_groups * group_size
+else:
+  num_students = group_size
+
+num_TAs = round(num_students / 12)
+<<[[needed_TAs]] args>>=
+group_size=12
