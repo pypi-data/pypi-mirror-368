@@ -1,0 +1,317 @@
+id: "manager-template"
+name: "manager"
+friendly_name: "Project Manager Agent Template"
+description: "Template for creating a project management-focused AI agent"
+template_type: "agent"
+version: "1.0.0"
+author: "Lackey System"
+created: "2025-08-07T02:00:00Z"
+updated: "2025-08-07T02:00:00Z"
+tags:
+  - "agent"
+  - "manager"
+  - "project-management"
+  - "coordination"
+
+variables:
+  - name: "agent_name"
+    type: "string"
+    description: "Name of the project manager agent"
+    required: true
+    validation_pattern: "^[a-zA-Z0-9\\s\\-_]+$"
+
+  - name: "management_style"
+    type: "choice"
+    description: "Management approach and style"
+    choices: ["agile", "waterfall", "hybrid", "lean", "kanban"]
+    default: "agile"
+    required: false
+
+  - name: "team_size"
+    type: "integer"
+    description: "Expected team size to manage"
+    default: 5
+    min_value: 1
+    max_value: 50
+    required: false
+
+  - name: "project_duration"
+    type: "string"
+    description: "Expected project duration"
+    default: "3 months"
+    required: false
+
+  - name: "industry_focus"
+    type: "choice"
+    description: "Industry or domain focus"
+    choices: ["technology", "healthcare", "finance", "education", "retail", "manufacturing", "general"]
+    default: "technology"
+    required: false
+
+content:
+  project:
+    friendly_name: "{{manager_name}} Project Management"
+    description: "Project management initiative led by {{manager_name}}, using {{management_style}} methodology for a team of {{team_size}} members in the {{industry_focus}} sector"
+    objectives:
+      - "Establish project governance and processes"
+      - "Coordinate team activities and communication"
+      - "Monitor progress and manage risks"
+      - "Ensure successful project delivery"
+    tags:
+      - "project-management"
+      - "{{management_style}}"
+      - "{{industry_focus}}"
+      - "coordination"
+    metadata:
+      manager_name: "{{manager_name}}"
+      management_style: "{{management_style}}"
+      team_size: "{{team_size}}"
+      project_duration: "{{project_duration}}"
+      industry_focus: "{{industry_focus}}"
+
+  tasks:
+    - title: "Project Initiation and Planning"
+      objective: "Establish project foundation and comprehensive planning"
+      steps:
+        - "Define project charter and scope"
+        - "Identify stakeholders and their requirements"
+        - "Create work breakdown structure (WBS)"
+        - "Develop project timeline and milestones"
+        - "Establish communication protocols"
+        - "Set up project tracking tools"
+        - "Conduct risk assessment and planning"
+      success_criteria:
+        - "Project charter approved by stakeholders"
+        - "Comprehensive project plan created"
+        - "Team roles and responsibilities defined"
+        - "Communication plan established"
+        - "Risk register created and reviewed"
+        - "Project tools configured and accessible"
+      complexity: "high"
+      assigned_to: "{{manager_name}}"
+      tags: ["planning", "initiation", "governance"]
+
+    - title: "Team Formation and Onboarding"
+      objective: "Build and onboard the project team"
+      steps:
+        - "Recruit and select team members"
+        - "Conduct team onboarding sessions"
+        - "Establish team working agreements"
+        - "Set up collaboration tools and access"
+        - "Create team communication channels"
+        - "Define performance expectations"
+      success_criteria:
+        - "Team fully staffed with required skills"
+        - "All team members onboarded"
+        - "Working agreements established"
+        - "Collaboration tools operational"
+        - "Communication channels active"
+        - "Performance metrics defined"
+      complexity: "medium"
+      dependencies: ["project-initiation-and-planning"]
+      assigned_to: "{{manager_name}}"
+      tags: ["team", "onboarding", "collaboration"]
+
+    - title: "Execution Coordination and Monitoring"
+      objective: "Coordinate project execution and monitor progress"
+      steps:
+        - "Facilitate regular team meetings and standups"
+        - "Track progress against project milestones"
+        - "Manage project budget and resources"
+        - "Coordinate cross-team dependencies"
+        - "Monitor and mitigate project risks"
+        - "Ensure quality standards are met"
+        - "Communicate status to stakeholders"
+      success_criteria:
+        - "Regular team meetings conducted"
+        - "Progress tracked and reported"
+        - "Budget managed within constraints"
+        - "Dependencies coordinated effectively"
+        - "Risks actively managed"
+        - "Quality standards maintained"
+        - "Stakeholders informed regularly"
+      complexity: "high"
+      dependencies: ["team-formation-and-onboarding"]
+      assigned_to: "{{manager_name}}"
+      tags: ["execution", "monitoring", "coordination"]
+
+    - title: "Project Closure and Retrospective"
+      objective: "Complete project closure activities and capture lessons learned"
+      steps:
+        - "Conduct final project review"
+        - "Complete project deliverables handover"
+        - "Document lessons learned"
+        - "Conduct team retrospective"
+        - "Archive project documentation"
+        - "Celebrate team achievements"
+        - "Prepare final project report"
+      success_criteria:
+        - "All deliverables completed and accepted"
+        - "Project formally closed"
+        - "Lessons learned documented"
+        - "Team retrospective completed"
+        - "Documentation archived"
+        - "Final report delivered"
+      complexity: "medium"
+      dependencies: ["execution-coordination-and-monitoring"]
+      assigned_to: "{{manager_name}}"
+      tags: ["closure", "retrospective", "documentation"]
+
+files:
+  "{{agent_name}}.json": |
+    {
+      "name": "{{agent_name}}",
+      "description": "Project manager agent for Lackey task management system",
+      "prompt": "You are {{agent_name}}, a project manager agent specializing in coordinating teams and ensuring successful project delivery. Your role is to facilitate collaboration, manage resources, and guide projects from initiation to completion while maintaining stakeholder satisfaction. Key responsibilities: Establish project governance and management processes, coordinate team activities and facilitate communication, monitor progress and manage project timelines, identify and mitigate risks and blockers, ensure stakeholder satisfaction and manage expectations, facilitate meetings and collaborative sessions, manage project resources and budgets, track deliverables and quality metrics. You have expertise in: project management methodologies and frameworks, team leadership and coordination techniques, stakeholder management and communication strategies, risk assessment and mitigation planning, resource allocation and budget management, project planning and scheduling tools, performance tracking and reporting methods, conflict resolution and problem-solving approaches. Always focus on clear communication, team empowerment, and delivering value to stakeholders. Adapt your approach based on team needs, project requirements, and organizational context.",
+      "mcpServers": {
+        "lackey": {
+          "command": "lackey",
+          "args": ["serve", "--workspace", ".lackey"],
+          "disabled": false,
+          "autoApprove": []
+        }
+      },
+      "tools": [
+        "fs_read",
+        "fs_write",
+        "execute_bash",
+        "knowledge",
+        "thinking",
+        "@lackey"
+      ],
+      "toolAliases": {},
+      "allowedTools": [
+        "fs_read",
+        "@lackey"
+      ],
+      "resources": [
+        "file://.amazonq/rules/general-rules.md",
+        "file://.amazonq/rules/manager-rules.md"
+      ],
+      "hooks": {},
+      "toolsSettings": {},
+      "useLegacyMcpJson": true
+    }
+
+  "manager-profile.md": |
+    # {{manager_name}} - Project Manager Agent Profile
+
+    ## Manager Details
+
+    - **Name**: {{manager_name}}
+    - **Management Style**: {{management_style}}
+    - **Team Size**: {{team_size}} members
+    - **Project Duration**: {{project_duration}}
+    - **Industry Focus**: {{industry_focus}}
+
+    ## Management Philosophy
+
+    This agent follows {{management_style}} project management principles, focusing on:
+    - Clear communication and transparency
+    - Collaborative team environment
+    - Continuous improvement and adaptation
+    - Stakeholder satisfaction and value delivery
+
+    ## Key Responsibilities
+
+    - Project planning and governance
+    - Team coordination and leadership
+    - Risk management and mitigation
+    - Stakeholder communication
+    - Quality assurance and delivery
+
+    ## Tools and Techniques
+
+    - {{management_style}} methodology
+    - Regular team meetings and standups
+    - Progress tracking and reporting
+    - Risk assessment and management
+    - Stakeholder engagement strategies
+
+  "project-charter.md": |
+    # Project Charter - {{manager_name}} Initiative
+
+    ## Project Overview
+
+    **Project Manager**: {{manager_name}}
+    **Methodology**: {{management_style}}
+    **Duration**: {{project_duration}}
+    **Team Size**: {{team_size}}
+
+    ## Project Objectives
+
+    - Establish effective project governance
+    - Build and lead high-performing team
+    - Deliver project outcomes on time and within budget
+    - Ensure stakeholder satisfaction
+
+    ## Success Criteria
+
+    - All project deliverables completed
+    - Budget and timeline adherence
+    - Team satisfaction and engagement
+    - Stakeholder approval and sign-off
+
+    ## Key Stakeholders
+
+    - Project Sponsor
+    - Team Members
+    - End Users
+    - Business Stakeholders
+
+    ## Risks and Assumptions
+
+    - Team availability and skill alignment
+    - Stakeholder engagement and support
+    - Resource allocation and budget approval
+    - Technology and infrastructure readiness
+
+  "communication-plan.md": |
+    # Communication Plan
+
+    ## Communication Principles
+
+    - Regular, transparent communication
+    - Appropriate level of detail for audience
+    - Timely updates on progress and issues
+    - Open channels for feedback and questions
+
+    ## Meeting Schedule
+
+    ### Daily Standups ({{management_style}} style)
+    - **Frequency**: Daily
+    - **Duration**: 15 minutes
+    - **Participants**: Core team
+    - **Purpose**: Progress updates, blockers, coordination
+
+    ### Weekly Status Meetings
+    - **Frequency**: Weekly
+    - **Duration**: 60 minutes
+    - **Participants**: Full team
+    - **Purpose**: Detailed progress review, planning
+
+    ### Monthly Stakeholder Updates
+    - **Frequency**: Monthly
+    - **Duration**: 30 minutes
+    - **Participants**: Stakeholders, PM
+    - **Purpose**: High-level progress, decisions needed
+
+    ## Reporting Structure
+
+    - Daily: Team standup notes
+    - Weekly: Progress dashboard update
+    - Monthly: Stakeholder report
+    - Ad-hoc: Issue escalation and resolution
+
+    ## Communication Channels
+
+    - Team chat for daily coordination
+    - Email for formal communications
+    - Video calls for meetings and discussions
+    - Project dashboard for status visibility
+
+metadata:
+  category: "agent"
+  difficulty: "intermediate"
+  management_styles: ["agile", "waterfall", "hybrid", "lean", "kanban"]
+  suitable_for: ["project coordination", "team leadership", "stakeholder management"]
