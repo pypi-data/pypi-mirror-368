@@ -1,0 +1,164 @@
+name: release-main
+
+on:
+  release:
+    types: [published, prereleased, edited]
+
+permissions:
+  contents: write
+  id-token: write # Required for trusted publishing to PyPI
+
+jobs:
+  detect-release-type:
+    runs-on: ubuntu-latest
+    outputs:
+      release_type: ${{ steps.detect.outputs.release_type }}
+      is_prerelease: ${{ steps.detect.outputs.is_prerelease }}
+      tag: ${{ steps.vars.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Export tag
+        id: vars
+        run: echo tag=${GITHUB_REF#refs/*/} >> $GITHUB_OUTPUT
+        if: ${{ github.event_name == 'release' }}
+
+      - name: Detect release type
+        id: detect
+        run: |
+          TAG="${{ steps.vars.outputs.tag }}"
+          echo "Analyzing tag: $TAG"
+
+          # Remove 'v' prefix if present
+          VERSION=${TAG#v}
+
+          if [[ "$TAG" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "release_type=production" >> $GITHUB_OUTPUT
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+            echo "Detected: Production release"
+          elif [[ "$TAG" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+(a|b|rc)[0-9]+$ ]]; then
+            echo "release_type=beta" >> $GITHUB_OUTPUT
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+            echo "Detected: Beta/Pre-release"
+          elif [[ "$TAG" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+\.dev[0-9]+$ ]]; then
+            echo "release_type=dev" >> $GITHUB_OUTPUT
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+            echo "Detected: Development release"
+          else
+            echo "release_type=unknown" >> $GITHUB_OUTPUT
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+            echo "Detected: Unknown release type"
+          fi
+        if: ${{ github.event_name == 'release' }}
+
+  set-version:
+    runs-on: ubuntu-24.04
+    needs: [detect-release-type]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update project version
+        run: |
+          # Remove 'v' prefix from tag for version
+          VERSION=${RELEASE_VERSION#v}
+          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" pyproject.toml
+          echo "Set version to: $VERSION"
+        env:
+          RELEASE_VERSION: ${{ needs.detect-release-type.outputs.tag }}
+        if: ${{ github.event_name == 'release' }}
+
+      - name: Upload updated pyproject.toml
+        uses: actions/upload-artifact@v4
+        with:
+          name: pyproject-toml
+          path: pyproject.toml
+
+  publish-to-testpypi:
+    runs-on: ubuntu-latest
+    needs: [detect-release-type, set-version]
+    if: ${{ needs.detect-release-type.outputs.is_prerelease == 'true' }}
+    environment: testpypi
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up the environment
+        uses: ./.github/actions/setup-python-env
+
+      - name: Download updated pyproject.toml
+        uses: actions/download-artifact@v4
+        with:
+          name: pyproject-toml
+
+      - name: Build package
+        run: uv build
+
+      - name: Publish to TestPyPI
+        run: uv publish --publish-url https://test.pypi.org/legacy/
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.TEST_PYPI_TOKEN }}
+
+  publish-to-pypi-production:
+    runs-on: ubuntu-latest
+    needs: [detect-release-type, set-version]
+    if: ${{ needs.detect-release-type.outputs.release_type == 'production' }}
+    environment: pypi
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up the environment
+        uses: ./.github/actions/setup-python-env
+
+      - name: Download updated pyproject.toml
+        uses: actions/download-artifact@v4
+        with:
+          name: pyproject-toml
+
+      - name: Build package
+        run: uv build
+
+      - name: Publish to PyPI
+        run: uv publish
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
+
+  publish-to-pypi-beta:
+    runs-on: ubuntu-latest
+    needs: [detect-release-type, set-version, publish-to-testpypi]
+    if: ${{ needs.detect-release-type.outputs.release_type == 'beta' }}
+    environment: pypi-beta
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up the environment
+        uses: ./.github/actions/setup-python-env
+
+      - name: Download updated pyproject.toml
+        uses: actions/download-artifact@v4
+        with:
+          name: pyproject-toml
+
+      - name: Build package
+        run: uv build
+
+      - name: Publish beta to PyPI
+        run: uv publish
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
+
+  deploy-docs:
+    needs:
+      [detect-release-type, publish-to-pypi-production, publish-to-pypi-beta]
+    if: ${{ always() && (needs.publish-to-pypi-production.result == 'success' || needs.publish-to-pypi-beta.result == 'success') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up the environment
+        uses: ./.github/actions/setup-python-env
+
+      - name: Deploy documentation
+        run: uv run mkdocs gh-deploy --force
