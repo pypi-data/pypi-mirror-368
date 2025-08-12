@@ -1,0 +1,231 @@
+Metadata-Version: 2.4
+Name: rebotics_sdk
+Version: 0.31.1
+Summary: API client and CLI tools for working with SymphonyAI Store Intelligence platform
+Home-page: http://retechlabs.com/rebotics/
+Author: Malik Sulaimanov
+Author-email: malik.sulaimanov@symphonyai.com
+Keywords: rebotics_sdk
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: Natural Language :: English
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+License-File: AUTHORS.rst
+Requires-Dist: requests
+Requires-Dist: dataclasses; python_version < "3.7"
+Requires-Dist: more-itertools
+Requires-Dist: tqdm
+Requires-Dist: chardet
+Requires-Dist: py7zr<1.0.0
+Requires-Dist: pydantic
+Provides-Extra: hook
+Requires-Dist: django; extra == "hook"
+Requires-Dist: djangorestframework; extra == "hook"
+Provides-Extra: shell
+Requires-Dist: ipython; extra == "shell"
+Requires-Dist: pandas; extra == "shell"
+Requires-Dist: pytz; extra == "shell"
+Requires-Dist: ptable; extra == "shell"
+Requires-Dist: python-dateutil; extra == "shell"
+Requires-Dist: humanize; extra == "shell"
+Requires-Dist: click>8.0; extra == "shell"
+Requires-Dist: pyyaml; extra == "shell"
+Requires-Dist: requests-toolbelt; extra == "shell"
+Requires-Dist: requests-to-curl==1.1.0; extra == "shell"
+Provides-Extra: async
+Requires-Dist: httpx>=0.24.0; extra == "async"
+Provides-Extra: test
+Requires-Dist: pytest; extra == "test"
+Requires-Dist: requests-mock; extra == "test"
+Requires-Dist: pytest-mock; extra == "test"
+Requires-Dist: pytest-cov; extra == "test"
+Requires-Dist: pytest-runner; extra == "test"
+Provides-Extra: all
+Requires-Dist: python-dateutil; extra == "all"
+Requires-Dist: pyyaml; extra == "all"
+Requires-Dist: requests-to-curl==1.1.0; extra == "all"
+Requires-Dist: httpx>=0.24.0; extra == "all"
+Requires-Dist: pytest; extra == "all"
+Requires-Dist: requests-toolbelt; extra == "all"
+Requires-Dist: requests-mock; extra == "all"
+Requires-Dist: pytest-cov; extra == "all"
+Requires-Dist: django; extra == "all"
+Requires-Dist: pytest-mock; extra == "all"
+Requires-Dist: humanize; extra == "all"
+Requires-Dist: pytest-runner; extra == "all"
+Requires-Dist: ipython; extra == "all"
+Requires-Dist: pandas; extra == "all"
+Requires-Dist: pytz; extra == "all"
+Requires-Dist: djangorestframework; extra == "all"
+Requires-Dist: ptable; extra == "all"
+Requires-Dist: click>8.0; extra == "all"
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: home-page
+Dynamic: keywords
+Dynamic: license-file
+Dynamic: provides-extra
+Dynamic: requires-dist
+Dynamic: summary
+
+============
+rebotics_sdk
+============
+
+Rebotics SDK for communicating with Rebotics Services, API CLI client.
+
+Features
+--------
+
+* Communication between Rebotics Services through provider client classes
+* Two django applications for external communications through web-hooks
+* CLI clients for Rebotics Services
+
+Prerequisites
+-------------
+
+You need to have Python 3.7+ installed in your system for current system user.
+
+Installation
+------------
+
+Linux & MacOS
+~~~~~~~~~~~~~
+
+Can be installed with pip:
+
+.. code:: sh
+
+   pip3 install --user --upgrade rebotics_sdk
+
+You should have directory ~/.local/bin/ in your PATH variable in
+~/.bashrc or ~/.bash_profile.
+
+Windows
+~~~~~~~
+
+Is installed without –user flag:
+
+.. code:: sh
+
+   pip install --upgrade rebotics_sdk
+
+Open environment variable settings and find PATH variable.
+
+After installation rebotics-scripts should be located inside python3
+directory.
+
+Append the following path ``%APPDATA%\Local\Python<version>\bin\`` to
+PATH variable, then log out from your system or restart your PC.
+
+CLI Installation
+~~~~~~~~~~~~~~~~
+
+To run the commands in shell:
+
+.. code:: sh
+
+   pip install --upgrade --quiet --no-input rebotics_sdk[shell]
+
+Usage
+-----
+
+After successful installation the CLI for following services should be
+accessible:
+
+-  admin
+-  dataset
+-  retailer
+-  rebm
+-  rebotics
+-  fvm
+-  hawkeye
+-  hawkeye_camera
+
+The “role” could be configured for these services except rebotics and hawkeye_camera.
+
+Retailer setup
+~~~~~~~~~~~~~~
+
+For setup you need to configure role to access retailer instance with
+specifying retailer server:
+
+.. code:: sh
+
+   retailer -r alpha configure --help
+
+This command will prompt you to set retailer host, your username and
+password.
+
+For role you can specify anything for your own convenience.
+
+Retailer CLI client
+~~~~~~~~~~~~~~~~~~~
+
+Usage:
+
+.. code:: sh
+
+   retailer [OPTIONS] COMMAND [ARGS]...
+
+Options:
+
+::
+
+     -f, --format [table|id|json]
+
+     -v, --verbose                 Enables verbose mode
+
+     -c, --config PATH             Specify what config.json to use
+
+     -r, --role TEXT               Key to specify what retailer to use
+
+                                   [required]
+
+     --api-verbosity INT           Display request detail
+
+     --version                     Show the version and exit.
+
+     --help                        Show this message and exit.
+
+*Note: The same CLI structure could be used for other services. Check
+the documentation on available commands at*\  `Confluence
+page <https://retech.atlassian.net/wiki/spaces/REB3/pages/2703097931/Rebotics+SDK+CLI+client>`__\ *.*
+
+Hawkeye Camera CLI client
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Admin CLI tool to communicate with Public Hawkeye API for cameras
+without authorization does not require to configure role in
+rebotics_sdk. Instead, it accepts the target server url.
+
+Example usage:
+
+.. code:: sh
+
+   hawkeye_camera -h https://hawkeye.rebotics.net create-capture "path_to_image.jpg" -c "camera_token"
+
+Credits
+-------
+
+This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypackage`_ project template.
+
+.. _Cookiecutter: https://github.com/audreyr/cookiecutter
+.. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
+
+
+=======
+History
+=======
+
+0.1.0 (2019-05-22)
+------------------
+
+* First release on PyPI.
