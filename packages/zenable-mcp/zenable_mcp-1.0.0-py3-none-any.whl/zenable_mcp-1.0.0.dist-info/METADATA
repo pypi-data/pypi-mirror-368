@@ -1,0 +1,135 @@
+Metadata-Version: 2.4
+Name: zenable_mcp
+Version: 1.0.0
+Summary: MCP client for Zenable conformance checking
+Author-email: Zenable <Python@zenable.io>
+License: Proprietary
+Project-URL: Homepage, https://zenable.io
+Project-URL: Documentation, https://docs.zenable.io/mcp
+Project-URL: Repository, https://github.com/zenable/zenable-mcp
+Project-URL: Issues, https://github.com/zenable/zenable-mcp/issues
+Keywords: mcp,claude,hooks,conformance,zenable,code-quality
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: License :: Other/Proprietary License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: fastmcp
+Requires-Dist: click>=8.0.0
+Dynamic: license-file
+
+# Zenable MCP Server
+
+MCP (Model Context Protocol) server for code conformance checking. Integrates with AI development tools to validate generated code against organizational
+policies and best practices.
+
+## Features
+
+- Real-time code validation against configurable policies
+- Automatic file detection from IDE hooks
+- Glob pattern support for checking multiple files (`**/*.py`)
+- Integration with MCP-compatible agentic IDEs
+- Command-line interface for standalone checking
+- Lightweight Python package with minimal dependencies
+
+## Installation
+
+```bash
+# Set API key
+export ZENABLE_API_KEY="your-api-key-here"
+
+# Install and run zenable-mcp against your python files
+uvx zenable-mcp check '**/*.py'
+```
+
+## Usage
+
+### Command Line
+
+Check files using glob patterns or automatic detection:
+
+```bash
+# Automatic detection from IDE hooks
+zenable-mcp check
+
+# Check a single file
+zenable-mcp check example.py
+
+# Check all Python files recursively
+zenable-mcp check '**/*.py'
+
+# Check multiple patterns
+zenable-mcp check 'src/**/*.js' 'tests/**/*.js'
+
+# Exclude test files
+zenable-mcp check '**/*.py' --exclude '**/test_*.py'
+
+# Specify a base directory for pattern matching
+zenable-mcp check '**/*.py' --base-path ./src
+```
+
+#### Automatic File Detection
+
+When running from IDE hooks, `zenable-mcp check` automatically detects files for Claude; if other IDEs support deterministic hook-based script calling and you'd
+like support, [let us know](https://zenable.io/feedback)!
+
+This means hooks can simply run `zenable-mcp check` without specifying files.
+
+### IDE Integration
+
+Zenable MCP integrates seamlessly with modern AI-powered development tools through hooks and automation.
+
+#### Quick Setup
+
+**Claude Code** - Add to `.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uvx zenable-mcp check"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+## How It Works
+
+1. **File Analysis**: Submits code to Zenable's conformance engine
+2. **Policy Validation**: Checks against configured organizational policies
+3. **Result Reporting**: Returns validation results with specific issues and suggestions
+
+See our [MCP Server Documentation](https://docs.zenable.io/integrations/mcp) for more details.
+
+## API Reference
+
+### Commands
+
+- `check <patterns...>` - Validate files against conformance policies
+  - Supports glob patterns (e.g., `**/*.py`, `src/**/*.js`)
+  - Options:
+    - `--exclude`: Patterns to exclude from checking
+    - `--base-path`: Base directory for pattern matching
+    - `--verbose`: Show files being checked
+  - Returns: JSON response with validation results
+  - Exit codes: 0 (pass), 1 (fail), 2 (error)
+
+## Documentation
+
+- [MCP Server Documentation](https://docs.zenable.io/integrations/mcp)
+- [Configure custom requirements](https://www.zenable.app)
+- [Add automated PR reviews](https://docs.zenable.io/integrations/github)
