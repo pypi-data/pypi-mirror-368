@@ -1,0 +1,137 @@
+from __future__ import annotations
+
+import contextlib
+import logging
+import os
+import shutil
+import subprocess
+import tempfile
+from collections.abc import Iterable
+from pathlib import Path
+from typing import Generator, Protocol
+from urllib.parse import urlparse
+
+log = logging.getLogger("mkdocs.plugins.jupyterlite")
+
+
+class WheelSource(Protocol):
+    command: str
+    url: str
+
+
+def build_site(
+    *,
+    docs_dir: Path,
+    notebook_relative_paths: Iterable[Path],
+    wheel_sources: Iterable[WheelSource],
+    output_dir: Path,
+) -> None:
+    shutil.rmtree(output_dir, ignore_errors=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    with _get_src_dir() as working_dir:
+        log.debug(f"[jupyterlite] using working dir: {working_dir}")
+        wheels_dir = working_dir / "wheels"
+        wheel_urls = _get_wheel_urls(wheels_dir, wheel_sources)
+        for notebook in notebook_relative_paths:
+            src = docs_dir / notebook
+            dst = working_dir / "files" / notebook
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            log.debug(f"[jupyterlite] copying {src} to build {dst}")
+            shutil.copy(src, dst)
+        wheel_args = []
+        for wheel_url in wheel_urls:
+            wheel_args.extend(["--piplite-wheels", wheel_url])
+        cmd = [
+            "jupyter",
+            "lite",
+            "build",
+            "--debug",
+            "--contents",
+            "files",
+            *wheel_args,
+            "--no-libarchive",
+            "--apps",
+            "notebooks",
+            "--no-unused-shared-packages",
+            "--output-dir",
+            str(output_dir),
+        ]
+        log.info("[jupyterlite] running build command")
+        _run_command(cmd, cwd=working_dir)
+        assert output_dir.exists(), "Output directory was not created"
+
+
+def _run_command(cmd: list[str], **kwargs):
+    cmd_str = cmd if isinstance(cmd, str) else " ".join(cmd)
+    log.info("[jupyterlite] running command: " + cmd_str)
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            check=True,
+            text=True,
+            **kwargs,
+        )
+        if result.stdout:
+            log.debug("[jupyterlite] command output:\n" + result.stdout)
+        if result.stderr:
+            log.debug("[jupyterlite] command stderr:\n" + result.stderr)
+    except subprocess.CalledProcessError as e:
+        log.error("[jupyterlite] command failed with error code: " + str(e.returncode))
+        if e.stdout:
+            log.error("[jupyterlite] command stdout:\n" + e.stdout)
+        if e.stderr:
+            log.error("[jupyterlite] command stderr:\n" + e.stderr)
+        raise
+
+
+def _get_wheel_urls(
+    working_dir: Path, wheel_sources: Iterable[WheelSource]
+) -> list[str]:
+    """Returns a list of wheel paths for the given wheel sources."""
+    wheel_urls = []
+    wheels_dir = working_dir.absolute() / "wheels"
+    wheels_dir.mkdir(parents=True, exist_ok=True)
+    for source in wheel_sources:
+        if source.url and source.command:
+            raise ValueError("Wheel source cannot have both URL and command", source)
+        if not source.url and not source.command:
+            raise ValueError("Wheel source must have either URL or command", source)
+        if source.url:
+            log.info(f"[jupyterlite] including wheel URL: {source.url}")
+            url = urlparse(source.url)
+            if not url.scheme or url.scheme == "file":
+                # Local file URL
+                wheel_file = Path(url.path).name
+                dst = shutil.copy(source.url, wheels_dir / wheel_file)
+                wheel_urls.append(str(dst.absolute()))
+            else:
+                wheel_urls.append(source.url)
+        elif source.command:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                actual_command = source.command.format(wheels_dir=tmpdir)
+                log.info("[jupyterlite] running wheel command")
+                _run_command(actual_command, shell=True)
+                wheel_files = list(Path(tmpdir).glob("*.whl"))
+                if not wheel_files:
+                    # This is explicitly OK.
+                    pass
+                for wheel in wheel_files:
+                    file_name = wheel.name
+                    dst = shutil.copy(wheel, wheels_dir / file_name)
+                    log.debug(f"[jupyterlite] including wheel URL: {file_name}")
+                    wheel_urls.append(str(dst.absolute()))
+    return wheel_urls
+
+
+@contextlib.contextmanager
+def _get_src_dir() -> Generator[Path, None, None]:
+    # For debugging, allow setting the build directory
+    if (src_dir_str := os.environ.get("MKDOCS_JUPYTERLITE_SRC_DIR")) is not None:
+        p = Path(src_dir_str)
+        shutil.rmtree(p, ignore_errors=True)
+        p.mkdir(parents=True, exist_ok=True)
+        yield p
+    else:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            yield Path(tmpdir)
