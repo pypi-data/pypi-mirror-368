@@ -1,0 +1,104 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pedon"
+dynamic = ["version"]
+authors = [{ name = "Martin Vonk", email = "vonk.mart@gmail.com" }]
+description = "Python package for (unsaturated) soil properties including pedotransfer functions"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+dependencies = ["numpy", "matplotlib", "pandas", "scipy"]
+classifiers = [
+        'Programming Language :: Python :: 3 :: Only',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
+        'Programming Language :: Python :: 3.13',
+        'Topic :: Scientific/Engineering :: Hydrology',
+        'Intended Audience :: Science/Research',
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+        "Typing :: Typed",
+]
+
+[project.urls]
+homepage = "https://github.com/martinvonk/pedon"
+repository = "https://github.com/martinvonk/pedon"
+
+[project.optional-dependencies]
+ruffing = ["ruff"]
+typing = ["mypy", "pandas-stubs"]
+rosetta = ["httpx"]
+pytesting = ["pytest>=7", "pytest-cov", "pytest-sugar", "pedon[rosetta]"]
+coveraging = ["coverage"]
+dev = ["pedon[ruffing,typing,pytesting]", "tox"]
+
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.dynamic]
+version = { attr = "pedon._version.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"pedon.datasets" = ["*.csv"]
+
+[tool.mypy]
+mypy_path = "src"
+plugins = "numpy.typing.mypy_plugin"
+
+[[tool.mypy.overrides]]
+module = ["matplotlib.*", "scipy.stats.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ['matplotlib.*', 'scipy.*']
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
+[tool.ruff]
+extend-include = ["*.ipynb"]
+lint.extend-select = ["I"]
+show-fixes = true
+fix = true
+
+[tool.tox]
+requires = ["tox>=4"]
+env_list = ["py310", "py311", "py312", "py313", "type", "ruff"]
+
+[tool.tox.env_run_base]
+description = "run unit tests"
+extras = ["pytesting"]
+commands = [["pytest", "tests"]]
+
+[tool.tox.env.ruff]
+description = "run ruff checks"
+extras = ["ruffing"]
+commands = [
+        [
+                "ruff",
+                "check",
+                "--extend-select",
+                "I",
+                "--preview",
+        ],
+        [
+                "ruff",
+                "format",
+                "--check",
+        ],
+]
+
+
+[tool.tox.env.type]
+description = "run type checks"
+extras = ["typing"]
+commands = [["mypy", "src"]]
