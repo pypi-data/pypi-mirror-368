@@ -1,0 +1,381 @@
+{
+  "name": "simple-analyzer-template",
+  "version": "1.0.0",
+  "displayName": "Simple Peptide Analyzer Template",
+  "description": "A comprehensive template for developing HLA-Compass modules. Analyzes peptide sequences to calculate molecular weight, isoelectric point, hydrophobicity, charge distribution, and stability metrics. Perfect starting point for custom peptide analysis modules.",
+  "longDescription": "This template provides a complete, production-ready foundation for developing HLA-Compass modules. It demonstrates best practices including comprehensive input validation, error handling, performance optimization, and detailed result reporting. The module calculates essential biophysical properties: molecular weight (accounting for peptide bonds), isoelectric point (using Henderson-Hasselbalch equation), net charge at different pH values, hydrophobicity (Kyte-Doolittle scale), aromaticity, instability index (Guruprasad method), and amino acid composition. Includes batch processing for up to 1000 peptides, configurable analysis options, summary statistics, and extensive logging. Ideal for immunoinformatics, drug discovery, and structural biology applications.",
+  "keywords": ["peptide", "analysis", "biophysics", "template", "immunoinformatics", "molecular-weight", "isoelectric-point", "hydrophobicity", "stability"],
+  "category": "analysis",
+  "subcategory": "peptide-properties",
+  "author": {
+    "name": "External Developer Template",
+    "email": "template@example.com",
+    "organization": "HLA-Compass Community",
+    "url": "https://github.com/YOUR_USERNAME/simple-analyzer-template"
+  },
+  "license": "MIT",
+  "type": "no-ui",
+  "computeType": "lambda",
+  "computeRequirements": {
+    "memory": 512,
+    "timeout": 300,
+    "environment": "python3.11",
+    "cpu": 0.5,
+    "ephemeralStorage": 512
+  },
+  "scalingPolicy": {
+    "maxConcurrentExecutions": 10,
+    "reservedConcurrency": null,
+    "provisionedConcurrency": null
+  },
+  "inputs": {
+    "peptide_sequences": {
+      "type": "array",
+      "required": true,
+      "description": "Array of peptide sequences to analyze (single-letter amino acid codes)",
+      "validation": {
+        "items": {
+          "type": "string",
+          "pattern": "^[ACDEFGHIKLMNPQRSTVWY]+$",
+          "minLength": 1,
+          "maxLength": 10000
+        },
+        "minItems": 1,
+        "maxItems": 1000,
+        "uniqueItems": false
+      },
+      "examples": [
+        ["SIINFEKL", "GILGFVFTL"],
+        ["MLLSVPLLL"],
+        ["YLQPRTFLL", "FLPSDFFPSV", "GLCTLVAML"]
+      ]
+    },
+    "include_hydropathy": {
+      "type": "boolean",
+      "required": false,
+      "default": true,
+      "description": "Include hydropathy analysis (hydrophobicity, GRAVY score, hydropathy classification)",
+      "examples": [true, false]
+    },
+    "include_charge_distribution": {
+      "type": "boolean", 
+      "required": false,
+      "default": false,
+      "description": "Calculate net charge at multiple pH values (3.0, 5.0, 7.0, 9.0, 11.0) and charge analysis",
+      "examples": [true, false]
+    }
+  },
+  "outputs": {
+    "peptide_properties": {
+      "type": "array",
+      "description": "Detailed analysis results for each peptide sequence",
+      "items": {
+        "type": "object",
+        "properties": {
+          "sequence": {
+            "type": "string",
+            "description": "Original peptide sequence"
+          },
+          "length": {
+            "type": "integer",
+            "description": "Number of amino acids in the sequence"
+          },
+          "molecular_weight": {
+            "type": "number",
+            "description": "Molecular weight in Daltons (Da), accounting for peptide bond formation"
+          },
+          "isoelectric_point": {
+            "type": "number",
+            "description": "Isoelectric point (pI) - pH at which net charge is zero"
+          },
+          "net_charge_ph7": {
+            "type": "number",
+            "description": "Net charge at physiological pH 7.0"
+          },
+          "aromaticity": {
+            "type": "number",
+            "description": "Fraction of aromatic amino acids (F, W, Y) in the sequence"
+          },
+          "instability_index": {
+            "type": "number",
+            "description": "Instability index (values > 40 indicate unstable peptides)"
+          },
+          "stability_classification": {
+            "type": "string",
+            "enum": ["stable", "unstable"],
+            "description": "Stability classification based on instability index"
+          },
+          "hydrophobicity": {
+            "type": "number",
+            "description": "Total hydrophobicity (Kyte-Doolittle scale) - only if include_hydropathy=true"
+          },
+          "gravy": {
+            "type": "number", 
+            "description": "Grand Average of Hydropathy (GRAVY) score - only if include_hydropathy=true"
+          },
+          "hydropathy_class": {
+            "type": "string",
+            "enum": ["hydrophobic", "hydrophilic", "neutral"],
+            "description": "Hydropathy classification - only if include_hydropathy=true"
+          },
+          "charge_distribution": {
+            "type": "object",
+            "description": "Net charge at different pH values - only if include_charge_distribution=true",
+            "properties": {
+              "pH_3.0": {"type": "number"},
+              "pH_5.0": {"type": "number"},
+              "pH_7.0": {"type": "number"},
+              "pH_9.0": {"type": "number"},
+              "pH_11.0": {"type": "number"}
+            }
+          },
+          "charge_analysis": {
+            "type": "object",
+            "description": "Charge analysis summary - only if include_charge_distribution=true",
+            "properties": {
+              "most_positive_ph": {"type": "number"},
+              "most_negative_ph": {"type": "number"},
+              "zero_charge_ph_range": {"type": "array", "items": {"type": "number"}}
+            }
+          },
+          "composition": {
+            "type": "object",
+            "description": "Amino acid composition as percentages",
+            "additionalProperties": {"type": "number"}
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message if peptide analysis failed"
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "description": "Aggregate statistics and summary across all analyzed peptides",
+      "properties": {
+        "total_peptides": {
+          "type": "integer",
+          "description": "Total number of peptides submitted for analysis"
+        },
+        "valid_peptides": {
+          "type": "integer", 
+          "description": "Number of peptides successfully analyzed"
+        },
+        "error_count": {
+          "type": "integer",
+          "description": "Number of peptides that failed analysis"
+        },
+        "success_rate": {
+          "type": "number",
+          "description": "Fraction of peptides successfully analyzed (0.0 to 1.0)"
+        },
+        "length_statistics": {
+          "type": "object",
+          "description": "Length distribution statistics",
+          "properties": {
+            "min": {"type": "integer"},
+            "max": {"type": "integer"},
+            "mean": {"type": "number"},
+            "median": {"type": "integer"},
+            "distribution": {"type": "object", "additionalProperties": {"type": "integer"}}
+          }
+        },
+        "molecular_weight_statistics": {
+          "type": "object",
+          "description": "Molecular weight distribution statistics",
+          "properties": {
+            "min": {"type": "number"},
+            "max": {"type": "number"},
+            "mean": {"type": "number"},
+            "median": {"type": "number"}
+          }
+        },
+        "average_properties": {
+          "type": "object",
+          "description": "Average biophysical properties across all peptides",
+          "properties": {
+            "isoelectric_point": {"type": "number"},
+            "net_charge_ph7": {"type": "number"},
+            "aromaticity": {"type": "number"},
+            "instability_index": {"type": "number"}
+          }
+        },
+        "stability_analysis": {
+          "type": "object",
+          "description": "Stability analysis summary",
+          "properties": {
+            "stable_count": {"type": "integer"},
+            "unstable_count": {"type": "integer"},
+            "percent_unstable": {"type": "number"}
+          }
+        },
+        "amino_acid_frequency": {
+          "type": "object",
+          "description": "Overall amino acid frequency as percentages",
+          "additionalProperties": {"type": "number"}
+        },
+        "hydropathy_statistics": {
+          "type": "object",
+          "description": "Hydropathy statistics - only if include_hydropathy=true",
+          "properties": {
+            "min": {"type": "number"},
+            "max": {"type": "number"}, 
+            "mean": {"type": "number"},
+            "hydrophobic_count": {"type": "integer"},
+            "hydrophilic_count": {"type": "integer"}
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Execution metadata and performance metrics",
+      "properties": {
+        "module_name": {"type": "string"},
+        "module_version": {"type": "string"},
+        "execution_time": {"type": "number", "description": "Execution time in seconds"},
+        "execution_timestamp": {"type": "string", "format": "date-time"},
+        "job_id": {"type": "string"},
+        "parameters": {
+          "type": "object",
+          "description": "Input parameters used for analysis"
+        },
+        "performance": {
+          "type": "object",
+          "description": "Performance metrics",
+          "properties": {
+            "sequences_per_second": {"type": "number"},
+            "errors_count": {"type": "integer"},
+            "success_rate": {"type": "number"}
+          }
+        }
+      }
+    }
+  },
+  "errorHandling": {
+    "retryPolicy": {
+      "enabled": true,
+      "maxRetries": 3,
+      "backoffStrategy": "exponential"
+    },
+    "errorTypes": {
+      "ValidationError": "Input validation failed - check peptide sequences and parameters",
+      "AnalysisError": "Peptide analysis calculation failed - may indicate invalid sequence",
+      "TimeoutError": "Analysis exceeded time limit - try reducing batch size",
+      "MemoryError": "Insufficient memory - try reducing batch size or sequence length"
+    }
+  },
+  "dependencies": {
+    "python": ">=3.8,<4.0",
+    "packages": {
+      "numpy": ">=1.21.0,<2.0.0",
+      "pandas": ">=1.3.0,<2.0.0"
+    },
+    "optional": {
+      "biopython": ">=1.79,<2.0.0",
+      "scipy": ">=1.7.0,<2.0.0"
+    }
+  },
+  "permissions": {
+    "dataAccess": {
+      "scientific": [],
+      "platform": [],
+      "analytics": []
+    },
+    "storage": {
+      "results": ["write"],
+      "temporary": ["read", "write"]
+    },
+    "network": [],
+    "compute": {
+      "maxExecutionTime": 300,
+      "maxMemoryMB": 512,
+      "allowGpuAccess": false
+    }
+  },
+  "performance": {
+    "benchmarks": {
+      "typical_throughput": "100-200 peptides/second",
+      "max_batch_size": 1000,
+      "memory_usage": "~0.5MB per peptide",
+      "cold_start_time": "2-5 seconds"
+    },
+    "optimizations": [
+      "Vectorized numerical calculations",
+      "Batch processing with progress logging", 
+      "Memory-efficient sequence processing",
+      "Early validation to prevent unnecessary computation"
+    ]
+  },
+  "testing": {
+    "coverage": 95,
+    "testSuites": [
+      "unit_tests",
+      "integration_tests", 
+      "performance_benchmarks",
+      "error_handling_tests"
+    ],
+    "cicd": {
+      "enabled": true,
+      "platforms": ["ubuntu-latest"],
+      "pythonVersions": ["3.8", "3.9", "3.10", "3.11"],
+      "testCommands": [
+        "pytest backend/tests/ -v --cov=backend",
+        "python backend/main.py"
+      ]
+    }
+  },
+  "documentation": {
+    "readme": "README.md",
+    "api": "docs/API.md", 
+    "development": "docs/DEVELOPMENT.md",
+    "examples": "examples/",
+    "changelog": "CHANGELOG.md"
+  },
+  "support": {
+    "documentation": "https://github.com/YOUR_USERNAME/simple-analyzer-template/blob/main/README.md",
+    "issues": "https://github.com/YOUR_USERNAME/simple-analyzer-template/issues",
+    "discussions": "https://github.com/YOUR_USERNAME/simple-analyzer-template/discussions",
+    "email": "support@example.com"
+  },
+  "compatibility": {
+    "hlaCompassVersion": ">=1.0.0",
+    "moduleApiVersion": "1.0",
+    "backwardCompatible": true
+  },
+  "deployment": {
+    "environments": ["dev", "staging", "prod"],
+    "containerized": true,
+    "healthCheck": {
+      "enabled": true,
+      "endpoint": "/health",
+      "timeout": 30
+    }
+  },
+  "security": {
+    "inputSanitization": true,
+    "outputValidation": true,
+    "secretsManagement": false,
+    "auditLogging": true
+  },
+  "pricing": {
+    "model": "per-execution",
+    "basePrice": 0.01,
+    "currency": "USD",
+    "freeTier": {
+      "enabled": true,
+      "monthlyLimit": 1000
+    }
+  },
+  "tags": [
+    "peptide-analysis",
+    "biophysics", 
+    "molecular-properties",
+    "immunoinformatics",
+    "template",
+    "production-ready",
+    "well-documented",
+    "high-performance"
+  ]
+}
