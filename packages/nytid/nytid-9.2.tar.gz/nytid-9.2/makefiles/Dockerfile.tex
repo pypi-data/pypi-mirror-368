@@ -1,0 +1,102 @@
+We need an environment to run in.% ===> this file was generated automatically by noweave --- better not edit it
+The makefiles should work on most systems without any problem.
+However, here we will create a Docker Image with an environment that is 
+guaranteed to work and can be used for, \eg, continuous integration.
+This image is built using a {\Tt{}\LA{}Dockerfile~{\nwtagstyle{}\subpageref{NWMSZ2s-4YMQMm-1}}\RA{}\nwendquote}.
+
+The {\Tt{}\LA{}Dockerfile~{\nwtagstyle{}\subpageref{NWMSZ2s-4YMQMm-1}}\RA{}\nwendquote} will have the following structure:
+\nwfilename{Dockerfile.nw}\nwbegincode{1}\sublabel{NWMSZ2s-4YMQMm-1}\nwmargintag{{\nwtagstyle{}\subpageref{NWMSZ2s-4YMQMm-1}}}\moddef{Dockerfile~{\nwtagstyle{}\subpageref{NWMSZ2s-4YMQMm-1}}}\endmoddef\nwstartdeflinemarkup\nwenddeflinemarkup
+\LA{}base image to use~{\nwtagstyle{}\subpageref{NWMSZ2s-4JbY4s-1}}\RA{}
+\LA{}image info~{\nwtagstyle{}\subpageref{NWMSZ2s-3bfhpm-1}}\RA{}
+\LA{}install packages~{\nwtagstyle{}\subpageref{NWMSZ2s-46txF6-1}}\RA{}
+\LA{}copy makefiles~{\nwtagstyle{}\subpageref{NWMSZ2s-4K9o3x-1}}\RA{}
+\nwnotused{Dockerfile}\nwendcode{}\nwbegindocs{2}\nwdocspar
+
+We will base the environment on Ubuntu.
+\nwenddocs{}\nwbegincode{3}\sublabel{NWMSZ2s-4JbY4s-1}\nwmargintag{{\nwtagstyle{}\subpageref{NWMSZ2s-4JbY4s-1}}}\moddef{base image to use~{\nwtagstyle{}\subpageref{NWMSZ2s-4JbY4s-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NWMSZ2s-4YMQMm-1}}\nwenddeflinemarkup
+FROM ubuntu:latest
+ENV DEBIAN_FRONTEND noninteractive
+\nwused{\\{NWMSZ2s-4YMQMm-1}}\nwendcode{}\nwbegindocs{4}\nwdocspar
+
+We will provide some basic information about who maintains this image and where 
+more information can be found.
+\nwenddocs{}\nwbegincode{5}\sublabel{NWMSZ2s-3bfhpm-1}\nwmargintag{{\nwtagstyle{}\subpageref{NWMSZ2s-3bfhpm-1}}}\moddef{image info~{\nwtagstyle{}\subpageref{NWMSZ2s-3bfhpm-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NWMSZ2s-4YMQMm-1}}\nwenddeflinemarkup
+MAINTAINER Daniel Bosk <dbosk@kth.se>
+LABEL se.bosk.daniel.makefiles.version="$Id$"
+LABEL se.bosk.daniel.makefiles.url="https://github.com/dbosk/makefiles"
+\nwused{\\{NWMSZ2s-4YMQMm-1}}\nwendcode{}\nwbegindocs{6}\nwdocspar
+
+We install the basic packages needed.
+To make as small a Docker image as we can, we will do as much as possible with 
+as few RUN commands as possible\footnote{%
+  See \url{https://hackernoon.com/tips-to-reduce-docker-image-sizes-876095da3b34} 
+  for a discussion on how to reduce the size of images.
+}.
+We will put TeXLive in its own layer, to avoid redoing that whenever we update 
+this image.
+\nwenddocs{}\nwbegincode{7}\sublabel{NWMSZ2s-46txF6-1}\nwmargintag{{\nwtagstyle{}\subpageref{NWMSZ2s-46txF6-1}}}\moddef{install packages~{\nwtagstyle{}\subpageref{NWMSZ2s-46txF6-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NWMSZ2s-4YMQMm-1}}\nwprevnextdefs{\relax}{NWMSZ2s-46txF6-2}\nwenddeflinemarkup
+RUN apt-get update -y && \\
+  apt-get install --no-install-recommends -y \\
+    texlive-* \\
+    latexmk \\
+    xindy \\
+    biber \\
+    bibtool \\
+  && \\
+  apt-get purge -fy *-doc && \\
+  apt-get autoremove -y && \\
+  rm -Rf /var/lib/apt/lists/* && \\
+  rm -Rf /usr/share/doc && \\
+  rm -Rf /usr/share/man
+\nwalsodefined{\\{NWMSZ2s-46txF6-2}}\nwused{\\{NWMSZ2s-4YMQMm-1}}\nwendcode{}\nwbegindocs{8}\nwdocspar
+
+We will now concentrate smaller packages to a separate RUN command.
+\nwenddocs{}\nwbegincode{9}\sublabel{NWMSZ2s-46txF6-2}\nwmargintag{{\nwtagstyle{}\subpageref{NWMSZ2s-46txF6-2}}}\moddef{install packages~{\nwtagstyle{}\subpageref{NWMSZ2s-46txF6-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NWMSZ2s-4YMQMm-1}}\nwprevnextdefs{NWMSZ2s-46txF6-1}{\relax}\nwenddeflinemarkup
+RUN apt-get update -y && \\
+  apt-get install --no-install-recommends -y \\
+    curl \\
+    git \\
+    gnuplot \\
+    imagemagick \\
+    inkscape \\
+    make \\
+    noweb \\
+    pandoc \\
+    python3-matplotlib \\
+    python3-numpy \\
+    python3-pygments \\
+    python3-scipy \\
+    python3-pip \\
+    qrencode \\
+    unzip \\
+  && \\
+  apt-get purge -fy *-doc && \\
+  rm -Rf /var/lib/apt/lists/* && \\
+  rm -Rf /usr/share/doc && \\
+  rm -Rf /usr/share/man
+\nwused{\\{NWMSZ2s-4YMQMm-1}}\nwendcode{}\nwbegindocs{10}\nwdocspar
+
+We copy every makefile into the image's directory {\Tt{}/usr/local/include\nwendquote} to 
+make them generally available inside the environment.
+\nwenddocs{}\nwbegincode{11}\sublabel{NWMSZ2s-4K9o3x-1}\nwmargintag{{\nwtagstyle{}\subpageref{NWMSZ2s-4K9o3x-1}}}\moddef{copy makefiles~{\nwtagstyle{}\subpageref{NWMSZ2s-4K9o3x-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NWMSZ2s-4YMQMm-1}}\nwenddeflinemarkup
+COPY doc.mk /usr/local/include
+COPY exam.mk /usr/local/include
+COPY haskell.mk /usr/local/include
+COPY latexmkrc /usr/local/include
+COPY noweb.mk /usr/local/include
+COPY pkg.mk /usr/local/include
+COPY portability.mk /usr/local/include
+COPY pub.mk /usr/local/include
+COPY results.mk /usr/local/include
+COPY subdir.mk /usr/local/include
+COPY tex.mk /usr/local/include
+COPY transform.mk /usr/local/include
+\nwused{\\{NWMSZ2s-4YMQMm-1}}\nwendcode{}
+
+\nwixlogsorted{c}{{base image to use}{NWMSZ2s-4JbY4s-1}{\nwixu{NWMSZ2s-4YMQMm-1}\nwixd{NWMSZ2s-4JbY4s-1}}}%
+\nwixlogsorted{c}{{copy makefiles}{NWMSZ2s-4K9o3x-1}{\nwixu{NWMSZ2s-4YMQMm-1}\nwixd{NWMSZ2s-4K9o3x-1}}}%
+\nwixlogsorted{c}{{Dockerfile}{NWMSZ2s-4YMQMm-1}{\nwixd{NWMSZ2s-4YMQMm-1}}}%
+\nwixlogsorted{c}{{image info}{NWMSZ2s-3bfhpm-1}{\nwixu{NWMSZ2s-4YMQMm-1}\nwixd{NWMSZ2s-3bfhpm-1}}}%
+\nwixlogsorted{c}{{install packages}{NWMSZ2s-46txF6-1}{\nwixu{NWMSZ2s-4YMQMm-1}\nwixd{NWMSZ2s-46txF6-1}\nwixd{NWMSZ2s-46txF6-2}}}%
+\nwbegindocs{12}\nwdocspar
+\nwenddocs{}

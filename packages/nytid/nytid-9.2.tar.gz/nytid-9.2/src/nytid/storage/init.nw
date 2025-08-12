@@ -1,0 +1,383 @@
+\chapter{Storage overview, the \texttt{storage} module}\label{storage}
+
+In this chapter we will describe the design of the backend storage system, the 
+module [[nytid.storage]].
+We will provide a general design.
+We want to have several possible backends with the same interface:
+\begin{itemize}
+\item the local file system,
+\item the AFS file system (which is very similar to the former, except for 
+permissions),
+\item Git version management, \eg GitHub;
+\item Google Sheets (which we'll ignore for now).
+\end{itemize}
+
+We want to use the [[with]] protocol and hide the storage backend.
+For example, the following two cases should yield the same.
+We access the file [[bookings.csv]] for the course [[prgm23]] using the AFS 
+backend.
+\begin{minted}{python}
+import nytid.storage.afs as storage
+
+course_storage = storage.StorageRoot("/afs/kth.se/home/d/b/dbosk/.config/nytid/prgm23")
+
+with course_storage.open("bookings.csv") as bookings:
+  # do something with bookings
+  pass
+\end{minted}
+Now we do the same with the Git backend.
+We see that there are only two differences: the [[import]] statement and the 
+location/path/URL for the storage.
+\begin{minted}[highlightlines={1,3}]{python}
+import nytid.storage.git as storage
+
+course_storage = storage.StorageRoot("git@github.com/dbosk/prgm23.nytid")
+
+with course_storage.open("bookings.csv") as bookings:
+  # do something with bookings
+  pass
+\end{minted}
+Whenever we close the file after writing, the Git storage will commit and push 
+it.
+
+In each storage module we want a class [[StorageRoot]] that allows us to use 
+files in that particular storage.
+In this chapter we implement the one for the local file system.
+This one can be reused and we just need to overload some methods to implement 
+AFS and Git in subsequent chapters.
+(Currently, only local file system, this module, and AFS are implemented, the 
+[[afs]] module.)
+
+However, we also implement a function [[open_root]] that can determine which 
+module to use.
+This would change the above examples into the following.
+To use AFS:
+\begin{minted}[highlightlines={1,3}]{python}
+from nytid import storage
+
+course_storage = storage.open_root("/afs/kth.se/home/d/b/dbosk/.config/nytid/prgm23")
+
+with course_storage.open("bookings.csv") as bookings:
+  # do something with bookings
+  pass
+\end{minted}
+To use GitHub:
+\begin{minted}[highlightlines={1,3}]{python}
+from nytid import storage
+
+course_storage = storage.open_root("git@github.com/dbosk/prgm23.nytid")
+
+with course_storage.open("bookings.csv") as bookings:
+  # do something with bookings
+  pass
+\end{minted}
+We see that the only differences are the import (only import main storage 
+module) and the path (supplied to [[open_root]]).
+[[open_root]] determines from the path which [[StorageRoot]] to use, 
+[[afs.StorageRoot]] or [[git.StorageRoot]].
+
+
+\section{Code outline}
+
+We want a class [[StorageRoot]] that encapsulates a directory and allows us to 
+open files inside that directory or subdirectories.
+<<init.py>>=
+import os
+import pathlib
+
+class StorageRoot:
+  """
+  Abstracts the storage system. This allows us to use paths relative to a root. 
+  This of this as a simple chroot jail (just not for security).
+  """
+
+  def __init__(self, path: pathlib.Path):
+    """
+    Uses `path` as the root. All files opened are in subdirectories of `path`.
+    """
+    self.__path = pathlib.Path(path)
+    <<StorageRoot constructor body>>
+
+  @property
+  def path(self) -> pathlib.Path:
+    """
+    `pathlib.Path` representation of the storage root.
+    """
+    return pathlib.Path(self.__path)
+
+  <<StorageRoot methods>>
+
+def open_root(*args, **kwargs) -> StorageRoot:
+  """
+  Takes arguments (`*args` and `**kwargs`), determines which submodule is the 
+  best and passes the arguments onto the `StorageRoot` constructor of that 
+  module.
+  """
+  <<determine which storage module to use>>
+  <<create and return a suitable [[StorageRoot]] object>>
+@
+
+We also add the tests in a test file that will be used by [[pytest]].
+We need a temporary directory that we can use as the root.
+<<test storage.py>>=
+import pathlib
+import tempfile
+
+from nytid.storage import *
+
+root_dir = tempfile.TemporaryDirectory()
+
+<<test functions>>
+@
+
+This way we can test the class above.
+<<test functions>>=
+def test_StorageRoot():
+  root = StorageRoot(root_dir.name)
+  assert root.path == pathlib.Path(root_dir.name)
+@
+
+
+\section{Opening a file in storage}
+
+We want to open a file relative to a particular directory.
+We will use Python's [[os.open]] to open a directory and then open files 
+relative to it using an opener.
+<<StorageRoot methods>>=
+def open(self, *args, **kwargs):
+  """
+  Takes the same arguments as built-in `open`.
+  """
+  return open(*args, **kwargs, opener=self.__opener)
+@
+
+The opener is a particular function that the [[open]] built-in will call to 
+open the file.
+This opener will ensure that the filename is relative to the root.
+Now, this requires the directory to be opened.
+We will ensure it's opened.
+<<StorageRoot methods>>=
+def __opener(self, path, flags):
+  """The opener, used internally"""
+  if not self.__dir_fd:
+    self.open_dir()
+  return os.open(path, flags, dir_fd=self.__dir_fd)
+@
+<<StorageRoot constructor body>>=
+self.__dir_fd = None
+@
+
+We want to be able to open and close the directory file descriptor.
+<<StorageRoot methods>>=
+def open_dir(self):
+  """
+  Open the storage root directory. Note that this is done automatically when 
+  opening a file using the `open` method.
+  """
+  try:
+    <<open root directory file descriptor>>
+  except FileNotFoundError:
+    <<handle root directory not existing>>
+<<open root directory file descriptor>>=
+self.__dir_fd = os.open(self.path, os.O_RDONLY)
+@
+
+Since this causes the directory file descriptor to be open, we need some way to 
+close it as well.
+<<StorageRoot methods>>=
+def close(self):
+  """Close the storage root"""
+  os.close(self.__dir_fd)
+  self.__dir_fd = None
+@
+
+We test this as follows.
+<<test functions>>=
+def test_open_close():
+  test_string = "StorageRoot test"
+  root = StorageRoot(root_dir.name)
+
+  with root.open("test.txt", "w") as f:
+    f.write(test_string)
+
+  with root.open("test.txt") as f:
+    assert f.read() == test_string
+
+  with open(f"{root_dir.name}/test.txt") as f:
+    assert f.read() == test_string
+
+  root.close()
+@
+
+Now, let's return to opening the root directory file descriptor, particularly 
+the case when the root directory doesn't exist.
+When this happens, we prefer to create the directory for the user.
+Why?
+Because it's the most usable for the user.
+Particularly, when it comes to AFS, we want to configure the root directory 
+with the correct permissions.
+<<handle root directory not existing>>=
+os.makedirs(self.path)
+<<open root directory file descriptor>>
+@
+
+We also want to test when the storage root doesn't exist.
+<<test functions>>=
+def test_non_existing():
+  test_string = "StorageRoot test"
+  new_root_dir = f"{root_dir}/non-existing-subdirectory"
+
+  with StorageRoot(new_root_dir) as root:
+    with root.open("test.txt", "w") as f:
+      f.write(test_string)
+
+    with root.open("test.txt") as f:
+      assert f.read() == test_string
+
+    with open(f"{new_root_dir}/test.txt") as f:
+      assert f.read() == test_string
+@
+
+
+\section{The \texttt{with} statement}
+
+We also want to be able to use the storage in a [[with]] statement.
+This means that we need the [[__enter__]] and [[__exit__]] methods.
+
+Although the directory file descriptor will be automatically opened on a call 
+to open a file, it makes sense to try to open it (call [[.open_dir]]) during 
+the enter phase of the [[with]] statement.
+Also, we shouldn't forget to call [[.close]] on exit.
+<<StorageRoot methods>>=
+def __enter__(self):
+  """Enter of with statement"""
+  self.open_dir()
+  return self
+
+def __exit__(self, *args):
+  """Exit of with statement"""
+  self.close()
+@
+
+We test this as follows.
+<<test functions>>=
+def test_with_StorageRoot():
+  test_string = "StorageRoot test"
+
+  with StorageRoot(root_dir.name) as root:
+    with root.open("test.txt", "w") as f:
+      f.write(test_string)
+
+    with root.open("test.txt") as f:
+      assert f.read() == test_string
+
+  with StorageRoot(root_dir.name) as root:
+    with root.open("test.txt") as f:
+      assert f.read() == test_string
+@
+
+
+\section{Permissions}
+
+We also add the possibility to change permissions, \ie to grant more users 
+access or revoke access.
+We want to do this on the storage root level since this is how it works with 
+both AFS and Git (and can be done with Sheets too):
+AFS does permissions on directory level;
+Git does permissions on repository level.
+
+For the local file system, we will not implement permissions.
+The reason is that we must work with groups.
+We must add a group and then modify users by adding them to the group.
+This requires root permissions.
+Thus, we'll add the methods, but raise [[NotImplementedError]] when called.
+<<StorageRoot methods>>=
+def grant_access(user):
+  <<StorageRoot method not implemented>>
+
+def revoke_access(user):
+  <<StorageRoot method not implemented>>
+<<StorageRoot method not implemented>>=
+"""
+This method is not implemented for `nytid.cli.storage.StorageRoot`.
+"""
+raise NotImplementedError
+@
+
+
+\section{Create a suitable \texttt{StorageRoot} object}
+
+Now, let's return to the [[storage.open_root]] function.
+The idea is that it will take arguments and determine which submodule to use, 
+\eg~[[storage.afs]] or [[storage.git]].
+
+To avoid the endless recursive import of importing the submoudles (as they must 
+include the storage module), we will only include them in the function call.
+Thus, we will determine which module to use, then import only that module.
+That module can later be used in
+[[<<create and return a suitable [[StorageRoot]] object>>]].
+
+We look for characteristic values in [[*args]] and [[**kwargs]] to determine 
+which module to use.
+If the path ([[args[0]]]) starts with [[/afs]], then we should use the AFS 
+module.
+<<determine which storage module to use>>=
+if args[0].startswith("/afs"):
+  import nytid.storage.afs as storage_module
+@
+
+If the URL ([[args[0]]]) ends with [[.git]] then we should use the Git module.
+However, the Git repo can be hosted in the AFS file system.
+It could also be hosted on GitHub.
+In both these cases, permission management is different.
+This means that the [[git.StorageRoot]] must be able to handle a parent 
+[[StorageRoot]] for permissions.
+But we defer that handling to the [[storage.git]] module.
+Thus we don't use [[elif]], but rather replace any existing [[storage_module]].
+<<determine which storage module to use>>=
+if args[0].endswith(".git"):
+  import nytid.storage.git as storage_module
+@
+
+Once we've determined the storage module to use, we use it.
+However, if we couldn't determine which storage module to use, the 
+[[storage_module]] object doesn't exist.
+In try pythonic way, we simply try to use it.
+If it fails, we use the [[StorageRoot]] of the this module (the [[storage]] 
+module, \ie a simple file system root) instead.
+<<create and return a suitable [[StorageRoot]] object>>=
+try:
+  root = storage_module.StorageRoot(*args, **kwargs)
+except NameError:
+  root = StorageRoot(*args, **kwargs)
+
+return root
+@
+
+Let's test this.
+Note that the Git test should fail since that module doesn't exist yet.
+Also, the test for the local root is flawed; since any of the others inherit 
+from that class, all will be an instance of it.
+But we can test that it's not an instance of the AFS class at least.
+<<test functions>>=
+def test_open_root():
+  from nytid.storage import afs
+
+  afs_dir = "/afs/kth.se/home/d/b/dbosk/nytid-nonexisting-test-directory"
+  local_dir = "/home/dbosk/nytid-nonexisting-test-directory"
+  git_repo = "git@github.com:dbosk/nytid.git"
+
+  afs_root = open_root(afs_dir)
+  assert isinstance(afs_root, afs.StorageRoot)
+
+  local_root = open_root(local_dir)
+  assert isinstance(local_root, StorageRoot)
+  assert not isinstance(local_root, afs.StorageRoot)
+
+  try:
+    git_root = open_root(git_repo)
+  except ModuleNotFoundError:
+    assert True
+  else:
+    assert False
+@

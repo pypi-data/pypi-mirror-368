@@ -1,0 +1,228 @@
+\section{Introduction and usage}% ===> this file was generated automatically by noweave --- better not edit it
+
+The idea of this include file is to provide an easy way to package files 
+together for publication.
+It can be for packaging the source code of a document or package a script with 
+automatic installation instructions.
+
+The first thing we need for a package is a name.
+This is controlled by the {\Tt{}PKG{\_}NAME\nwendquote} variable.
+\nwfilename{pkg.mk.nw}\nwbegincode{1}\sublabel{NW3DMP9t-29jjeg-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3DMP9t-29jjeg-1}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3DMP9t-29jjeg-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3DMP9t-2DdQUo-1}}\nwprevnextdefs{\relax}{NW3DMP9t-29jjeg-2}\nwenddeflinemarkup
+PKG_NAME?=          $\{PACKAGE\}
+\nwalsodefined{\\{NW3DMP9t-29jjeg-2}\\{NW3DMP9t-29jjeg-3}\\{NW3DMP9t-29jjeg-4}\\{NW3DMP9t-29jjeg-5}\\{NW3DMP9t-29jjeg-6}\\{NW3DMP9t-29jjeg-7}\\{NW3DMP9t-29jjeg-8}\\{NW3DMP9t-29jjeg-9}}\nwused{\\{NW3DMP9t-2DdQUo-1}}\nwendcode{}\nwbegindocs{2}Its default value is set for backwards compatibility, so that makefiles using 
+the old variable names will still work.
+The package name will, by default, determine the name of the tarball that is 
+generated.
+\nwenddocs{}\nwbegincode{3}\sublabel{NW3DMP9t-29jjeg-2}\nwmargintag{{\nwtagstyle{}\subpageref{NW3DMP9t-29jjeg-2}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3DMP9t-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3DMP9t-2DdQUo-1}}\nwprevnextdefs{NW3DMP9t-29jjeg-1}{NW3DMP9t-29jjeg-3}\nwenddeflinemarkup
+PKG_TARBALL?=       $\{PKG_NAME\}.tar.gz
+\nwused{\\{NW3DMP9t-2DdQUo-1}}\nwendcode{}\nwbegindocs{4}\nwdocspar
+
+The next thing we need is to control which files are included.
+There are two types of files: files that should be installed and files that 
+should not.
+\nwenddocs{}\nwbegincode{5}\sublabel{NW3DMP9t-29jjeg-3}\nwmargintag{{\nwtagstyle{}\subpageref{NW3DMP9t-29jjeg-3}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3DMP9t-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3DMP9t-2DdQUo-1}}\nwprevnextdefs{NW3DMP9t-29jjeg-2}{NW3DMP9t-29jjeg-4}\nwenddeflinemarkup
+PKG_INSTALL_FILES?= $\{INSTALL_FILES\}
+PKG_TARBALL_FILES?= $\{PACKAGE_FILES\} $\{PKG_INSTALL_FILES\}
+\nwused{\\{NW3DMP9t-2DdQUo-1}}\nwendcode{}\nwbegindocs{6}The tarball files will only be included in the tarball, but the install files
+will be installed if the {\Tt{}install\nwendquote} target is made.
+For example, a {\Tt{}Makefile\nwendquote} should be included (since it contains the 
+installation target), but it should not be installed.
+When the file lists include directories it might be interesting to ignore 
+certain files, \eg version management.
+This can be done with the following.
+\nwenddocs{}\nwbegincode{7}\sublabel{NW3DMP9t-29jjeg-4}\nwmargintag{{\nwtagstyle{}\subpageref{NW3DMP9t-29jjeg-4}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3DMP9t-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3DMP9t-2DdQUo-1}}\nwprevnextdefs{NW3DMP9t-29jjeg-3}{NW3DMP9t-29jjeg-5}\nwenddeflinemarkup
+IGNORE_FILES?=      \\(\\.svn\\|\\.git\\|CVS\\)
+PKG_IGNORE?=        $\{IGNORE_FILES\}
+\nwused{\\{NW3DMP9t-2DdQUo-1}}\nwendcode{}\nwbegindocs{8}\nwdocspar
+
+The installation path is controlled by the following variables.
+\nwenddocs{}\nwbegincode{9}\sublabel{NW3DMP9t-29jjeg-5}\nwmargintag{{\nwtagstyle{}\subpageref{NW3DMP9t-29jjeg-5}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3DMP9t-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3DMP9t-2DdQUo-1}}\nwprevnextdefs{NW3DMP9t-29jjeg-4}{NW3DMP9t-29jjeg-6}\nwenddeflinemarkup
+PKG_PREFIX?=        $\{PREFIX\}
+PKG_INSTALL_DIR?=   $\{INSTALLDIR\}
+\nwused{\\{NW3DMP9t-2DdQUo-1}}\nwendcode{}\nwbegindocs{10}\nwdocspar
+
+Sometimes different parts of a package must be installed to different places, 
+\eg a script to {\Tt{}/usr/local/bin\nwendquote} and a manual page to 
+{\Tt{}/usr/local/share/man\nwendquote}.
+For this purpose, a package can be divided into several sub-packages.
+By default we have one package called {\Tt{}main\nwendquote}.
+\nwenddocs{}\nwbegincode{11}\sublabel{NW3DMP9t-29jjeg-6}\nwmargintag{{\nwtagstyle{}\subpageref{NW3DMP9t-29jjeg-6}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3DMP9t-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3DMP9t-2DdQUo-1}}\nwprevnextdefs{NW3DMP9t-29jjeg-5}{NW3DMP9t-29jjeg-7}\nwenddeflinemarkup
+PKG_PACKAGES?=            main
+\nwused{\\{NW3DMP9t-2DdQUo-1}}\nwendcode{}\nwbegindocs{12}For each such package we can set a specialized version of the variables we 
+discussed above.
+By default, they will inherit the global values set above.
+\nwenddocs{}\nwbegincode{13}\sublabel{NW3DMP9t-29jjeg-7}\nwmargintag{{\nwtagstyle{}\subpageref{NW3DMP9t-29jjeg-7}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3DMP9t-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3DMP9t-2DdQUo-1}}\nwprevnextdefs{NW3DMP9t-29jjeg-6}{NW3DMP9t-29jjeg-8}\nwenddeflinemarkup
+define variables
+PKG_NAME-$(1)?=           $\{PKG_NAME\}
+PKG_INSTALL_FILES-$(1)?=  $\{PKG_INSTALL_FILES\}
+PKG_PREFIX-$(1)?=         $\{PKG_PREFIX\}
+PKG_INSTALL_DIR-$(1)?=    $\{PKG_INSTALL_DIR\}
+
+PKG_TARBALL-$(1)?=        $\{PKG_NAME-$(1)\}.tar.gz
+PKG_TARBALL_FILES-$(1)?=  $\{PKG_TARBALL_FILES\}
+PKG_IGNORE-$(1)?=         $\{PKG_IGNORE\}
+endef
+\nwused{\\{NW3DMP9t-2DdQUo-1}}\nwendcode{}\nwbegindocs{14}Then we use this as a function to set the variables for each sub-package.
+\nwenddocs{}\nwbegincode{15}\sublabel{NW3DMP9t-29jjeg-8}\nwmargintag{{\nwtagstyle{}\subpageref{NW3DMP9t-29jjeg-8}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3DMP9t-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3DMP9t-2DdQUo-1}}\nwprevnextdefs{NW3DMP9t-29jjeg-7}{NW3DMP9t-29jjeg-9}\nwenddeflinemarkup
+$(foreach pkg,$\{PKG_PACKAGES\},$(eval $(call variables,$\{pkg\})))
+\nwused{\\{NW3DMP9t-2DdQUo-1}}\nwendcode{}\nwbegindocs{16}\nwdocspar
+
+\subsection{Portability}
+
+For portability, this include file requires the following programs to be 
+available.
+\nwenddocs{}\nwbegincode{17}\sublabel{NW3DMP9t-29jjeg-9}\nwmargintag{{\nwtagstyle{}\subpageref{NW3DMP9t-29jjeg-9}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3DMP9t-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3DMP9t-2DdQUo-1}}\nwprevnextdefs{NW3DMP9t-29jjeg-8}{\relax}\nwenddeflinemarkup
+ifneq ($\{MAKE\},gmake)
+INSTALL?=     $\{SUDO\} install -Dp
+else
+INSTALL?=     $\{SUDO\} install -CSp
+endif
+\nwused{\\{NW3DMP9t-2DdQUo-1}}\nwendcode{}\nwbegindocs{18}\nwdocspar
+
+
+\section{Implementation}
+
+This is an include file, so we will use a C-style header construction to 
+prevent it from being included more than once.
+Then the overview of the structure is as follows.
+\nwenddocs{}\nwbegincode{19}\sublabel{NW3DMP9t-2DdQUo-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3DMP9t-2DdQUo-1}}}\moddef{pkg.mk~{\nwtagstyle{}\subpageref{NW3DMP9t-2DdQUo-1}}}\endmoddef\nwstartdeflinemarkup\nwenddeflinemarkup
+ifndef PACKAGE_MK
+PACKAGE_MK=true
+
+INCLUDE_MAKEFILES?=.
+include $\{INCLUDE_MAKEFILES\}/portability.mk
+
+\LA{}variables~{\nwtagstyle{}\subpageref{NW3DMP9t-29jjeg-1}}\RA{}
+\LA{}an all-like target~{\nwtagstyle{}\subpageref{NW3DMP9t-2MPZQk-1}}\RA{}
+\LA{}targets for packaging~{\nwtagstyle{}\subpageref{NW3DMP9t-19q7UA-1}}\RA{}
+\LA{}targets for cleaning~{\nwtagstyle{}\subpageref{NW3DMP9t-LrkAl-1}}\RA{}
+\LA{}targets for installation~{\nwtagstyle{}\subpageref{NW3DMP9t-186wP-1}}\RA{}
+
+endif
+\nwnotused{pkg.mk}\nwendcode{}\nwbegindocs{20}\nwdocspar
+
+We want to have an all-like target, we call it {\Tt{}package\nwendquote}.
+The {\Tt{}package\nwendquote} target should, of course, have all tarballs as prerequisites.
+The reason for not using {\Tt{}all\nwendquote} is that we leave the {\Tt{}all\nwendquote} target for the 
+user, with its prerequisites defined in the main makefile.
+\nwenddocs{}\nwbegincode{21}\sublabel{NW3DMP9t-2MPZQk-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3DMP9t-2MPZQk-1}}}\moddef{an all-like target~{\nwtagstyle{}\subpageref{NW3DMP9t-2MPZQk-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3DMP9t-2DdQUo-1}}\nwenddeflinemarkup
+.PHONY: package
+package: $(foreach pkg,$\{PKG_PACKAGES\},$\{PKG_TARBALL-$\{pkg\}\})
+\nwused{\\{NW3DMP9t-2DdQUo-1}}\nwendcode{}\nwbegindocs{22}\nwdocspar
+
+\subsection{Packaging}
+
+The packaging step shall take the files specified and create a tarball 
+containing them.
+What we will do is to create a target for the tarball.
+We will do this by using the archive functionality of make(1) and the 
+compression functionality we added in \cref{portability:Archives}.
+\nwenddocs{}\nwbegincode{23}\sublabel{NW3DMP9t-19q7UA-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3DMP9t-19q7UA-1}}}\moddef{targets for packaging~{\nwtagstyle{}\subpageref{NW3DMP9t-19q7UA-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3DMP9t-2DdQUo-1}}\nwenddeflinemarkup
+define tarball
+$(foreach f,$\{PKG_TARBALL_FILES-$(1)\},\\
+  $(eval $\{PKG_TARBALL-$(1)\}($\{f\}): $\{f\}))
+$\{PKG_TARBALL-$(1)\}: $\{PKG_TARBALL-$(1)\}($\{PKG_TARBALL_FILES-$(1)\})
+endef
+$(foreach pkg,$\{PKG_PACKAGES\},$(eval $(call tarball,$\{pkg\})))
+\nwused{\\{NW3DMP9t-2DdQUo-1}}\nwendcode{}\nwbegindocs{24}\nwdocspar
+
+\subsection{Cleaning}
+
+The kind of cleaning we are interested in is to remove the tarballs that we 
+generate.
+The other files, install and tarball files, should be cleaned using other 
+cleaning targets --- if they need cleaning at all.
+
+The technique we use is to provide a {\Tt{}clean-package\nwendquote} target which we add as 
+a prerequisite to the general target {\Tt{}clean\nwendquote}.
+This way the user can have a recipe for {\Tt{}clean\nwendquote} in the main makefile without 
+us interfering.
+\nwenddocs{}\nwbegincode{25}\sublabel{NW3DMP9t-LrkAl-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3DMP9t-LrkAl-1}}}\moddef{targets for cleaning~{\nwtagstyle{}\subpageref{NW3DMP9t-LrkAl-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3DMP9t-2DdQUo-1}}\nwprevnextdefs{\relax}{NW3DMP9t-LrkAl-2}\nwenddeflinemarkup
+.PHONY: clean clean-package
+clean: clean-package
+\nwalsodefined{\\{NW3DMP9t-LrkAl-2}}\nwused{\\{NW3DMP9t-2DdQUo-1}}\nwendcode{}\nwbegindocs{26}\nwdocspar
+
+We now create a cleaning target for each sub-package and add those as 
+prerequisites for the {\Tt{}clean-package\nwendquote} target.
+The recipe is to remove the tarball of that particular sub-package.
+\nwenddocs{}\nwbegincode{27}\sublabel{NW3DMP9t-LrkAl-2}\nwmargintag{{\nwtagstyle{}\subpageref{NW3DMP9t-LrkAl-2}}}\moddef{targets for cleaning~{\nwtagstyle{}\subpageref{NW3DMP9t-LrkAl-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3DMP9t-2DdQUo-1}}\nwprevnextdefs{NW3DMP9t-LrkAl-1}{\relax}\nwenddeflinemarkup
+define clean-package
+.PHONY: clean-package-$(1)
+clean-package: clean-package-$(1)
+clean-package-$(1):
+  $\{RM\} $\{PKG_TARBALL-$(1)\}
+endef
+$(foreach pkg,$\{PKG_PACKAGES\},$(eval $(call clean-package,$\{pkg\})))
+\nwused{\\{NW3DMP9t-2DdQUo-1}}\nwendcode{}\nwbegindocs{28}\nwdocspar
+
+\subsection{Installation}
+
+The {\Tt{}install\nwendquote} target will install the files that are configured to be 
+installed where they are configured to be installed.
+The installation process proceeds in the following steps.
+\nwenddocs{}\nwbegincode{29}\sublabel{NW3DMP9t-4WrEJg-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3DMP9t-4WrEJg-1}}}\moddef{installation process~{\nwtagstyle{}\subpageref{NW3DMP9t-4WrEJg-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3DMP9t-186wP-1}}\nwenddeflinemarkup
+.PHONY: pre-install do-install post-install
+post-install: do-install
+do-install:   pre-install
+pre-install:  $\{PKG_INSTALL_FILES\}
+\nwused{\\{NW3DMP9t-186wP-1}}\nwendcode{}\nwbegindocs{30}This will ensure that the targets' recipes are run in the desired order 
+(since the prerequisites' recipes are run first, if needed).
+This means that the files to be installed are made before {\Tt{}pre-install\nwendquote} is 
+run.
+To start the process with the {\Tt{}install\nwendquote} target, we add the following.
+\nwenddocs{}\nwbegincode{31}\sublabel{NW3DMP9t-186wP-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3DMP9t-186wP-1}}}\moddef{targets for installation~{\nwtagstyle{}\subpageref{NW3DMP9t-186wP-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3DMP9t-2DdQUo-1}}\nwprevnextdefs{\relax}{NW3DMP9t-186wP-2}\nwenddeflinemarkup
+.PHONY: install
+install: post-install
+\LA{}installation process~{\nwtagstyle{}\subpageref{NW3DMP9t-4WrEJg-1}}\RA{}
+\nwalsodefined{\\{NW3DMP9t-186wP-2}}\nwused{\\{NW3DMP9t-2DdQUo-1}}\nwendcode{}\nwbegindocs{32}\nwdocspar
+
+Now we need to provide package dependent versions of these targets.
+We achieve this by simply adding the package dependent versions as 
+prerequisites for the general targets, and in the same order as we did for the 
+general targets.
+\nwenddocs{}\nwbegincode{33}\sublabel{NW3DMP9t-186wP-2}\nwmargintag{{\nwtagstyle{}\subpageref{NW3DMP9t-186wP-2}}}\moddef{targets for installation~{\nwtagstyle{}\subpageref{NW3DMP9t-186wP-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3DMP9t-2DdQUo-1}}\nwprevnextdefs{NW3DMP9t-186wP-1}{\relax}\nwenddeflinemarkup
+define post-install
+.PHONY: post-install-$(1)
+post-install: post-install-$(1)
+post-install-$(1): do-install-$(1)
+endef
+$(foreach pkg,$\{PKG_PACKAGES\},$(eval $(call post-install,$\{pkg\})))
+
+define do-install
+.PHONY: do-install-$(1)
+do-install: do-install-$(1)
+do-install-$(1): pre-install-$(1)
+  \LA{}default do-install recipe~{\nwtagstyle{}\subpageref{NW3DMP9t-2CDbER-1}}\RA{}
+endef
+$(foreach pkg,$\{PKG_PACKAGES\},$(eval $(call do-install,$\{pkg\})))
+
+define pre-install
+.PHONY: pre-install-$(1)
+pre-install: pre-install-$(1)
+pre-install-$(1): $\{PKG_INSTALL_FILES-$(1)\}
+endef
+$(foreach pkg,$\{PKG_PACKAGES\},$(eval $(call pre-install,$\{pkg\})))
+\nwused{\\{NW3DMP9t-2DdQUo-1}}\nwendcode{}\nwbegindocs{34}\nwdocspar
+
+Finally, we need a default recipe for the {\Tt{}do-install\nwendquote} target, otherwise the 
+user would have to write one every time --- and that would counter the purpose 
+of this include file.
+The procedure is straight-forward.
+We first create the target directory, with a possible prefix.
+Then, for every non-directory, we install using the {\Tt{}install\nwendquote} command.
+\nwenddocs{}\nwbegincode{35}\sublabel{NW3DMP9t-2CDbER-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3DMP9t-2CDbER-1}}}\moddef{default do-install recipe~{\nwtagstyle{}\subpageref{NW3DMP9t-2CDbER-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3DMP9t-186wP-2}}\nwenddeflinemarkup
+for f in $\{PKG_INSTALL_FILES-$(1)\}; do \\
+  [ -d "$$$$f" ] || $\{INSTALL\} -t $\{PKG_PREFIX-$(1)\}$\{PKG_INSTALL_DIR-$(1)\}/ "$$$$f"; \\
+done
+\nwused{\\{NW3DMP9t-186wP-2}}\nwendcode{}
+
+\nwixlogsorted{c}{{an all-like target}{NW3DMP9t-2MPZQk-1}{\nwixu{NW3DMP9t-2DdQUo-1}\nwixd{NW3DMP9t-2MPZQk-1}}}%
+\nwixlogsorted{c}{{default do-install recipe}{NW3DMP9t-2CDbER-1}{\nwixu{NW3DMP9t-186wP-2}\nwixd{NW3DMP9t-2CDbER-1}}}%
+\nwixlogsorted{c}{{installation process}{NW3DMP9t-4WrEJg-1}{\nwixd{NW3DMP9t-4WrEJg-1}\nwixu{NW3DMP9t-186wP-1}}}%
+\nwixlogsorted{c}{{pkg.mk}{NW3DMP9t-2DdQUo-1}{\nwixd{NW3DMP9t-2DdQUo-1}}}%
+\nwixlogsorted{c}{{targets for cleaning}{NW3DMP9t-LrkAl-1}{\nwixu{NW3DMP9t-2DdQUo-1}\nwixd{NW3DMP9t-LrkAl-1}\nwixd{NW3DMP9t-LrkAl-2}}}%
+\nwixlogsorted{c}{{targets for installation}{NW3DMP9t-186wP-1}{\nwixu{NW3DMP9t-2DdQUo-1}\nwixd{NW3DMP9t-186wP-1}\nwixd{NW3DMP9t-186wP-2}}}%
+\nwixlogsorted{c}{{targets for packaging}{NW3DMP9t-19q7UA-1}{\nwixu{NW3DMP9t-2DdQUo-1}\nwixd{NW3DMP9t-19q7UA-1}}}%
+\nwixlogsorted{c}{{variables}{NW3DMP9t-29jjeg-1}{\nwixd{NW3DMP9t-29jjeg-1}\nwixd{NW3DMP9t-29jjeg-2}\nwixd{NW3DMP9t-29jjeg-3}\nwixd{NW3DMP9t-29jjeg-4}\nwixd{NW3DMP9t-29jjeg-5}\nwixd{NW3DMP9t-29jjeg-6}\nwixd{NW3DMP9t-29jjeg-7}\nwixd{NW3DMP9t-29jjeg-8}\nwixd{NW3DMP9t-29jjeg-9}\nwixu{NW3DMP9t-2DdQUo-1}}}%
+\nwbegindocs{36}\nwdocspar
+\nwenddocs{}

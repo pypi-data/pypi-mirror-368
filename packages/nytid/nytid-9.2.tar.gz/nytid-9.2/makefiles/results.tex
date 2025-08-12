@@ -1,0 +1,353 @@
+\section{Introduction and usage}% ===> this file was generated automatically by noweave --- better not edit it
+\label{Intro}
+
+The problem case is the following.
+We have a Moodle system where we do grading and everything related to a course, 
+\ie we have individual assignments.
+Then we must report the grades to a national database.
+The entries in this database is according to parts set in the course syllabus, 
+each part can contain one or more assignments.
+This makefile uses the data that can be extracted from Moodle and some 
+settings, then it converts the data to a form which is reportable to the 
+student office, where the report is \emph{manually} entered into the national 
+database.
+
+Since the data must be manually entered into the database, we require that the 
+reports we send are not overlapping.
+E.g.\ if we report all grades by the end of a course, but some students 
+complete their assignments late and are graded after the first report, then we 
+must generate a second report which only contains the new results.
+
+The input is a file which is exported from Moodle (a tab-separated CSV-file).
+The output is also a tab-separated CSV-file, reflecting the current state of 
+what has been reported to the national database.
+The output could thus simply be a copy of the input, it will be used for 
+comparison the next time we generate a report.
+Finally, we will output a temporary file, the report to be sent to the student 
+office for registration.
+For this we will use three variables that can be set on the command-line:
+\nwfilename{results.mk.nw}\nwbegincode{1}\sublabel{NW1vYGPv-29jjeg-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-29jjeg-1}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW1vYGPv-29jjeg-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-4UwcQh-1}}\nwprevnextdefs{\relax}{NW1vYGPv-29jjeg-2}\nwenddeflinemarkup
+in?=      new.csv
+out?=     reported.csv
+report?=  report.pdf
+\nwalsodefined{\\{NW1vYGPv-29jjeg-2}\\{NW1vYGPv-29jjeg-3}\\{NW1vYGPv-29jjeg-4}\\{NW1vYGPv-29jjeg-5}\\{NW1vYGPv-29jjeg-6}\\{NW1vYGPv-29jjeg-7}}\nwused{\\{NW1vYGPv-4UwcQh-1}}\nwendcode{}\nwbegindocs{2}\nwdocspar
+
+The structure will be that of a makefile used for inclusion in a main 
+Makefile.
+The structure is thus similar to most makefiles, we first need 
+{\Tt{}\LA{}variables~{\nwtagstyle{}\subpageref{NW1vYGPv-29jjeg-1}}\RA{}\nwendquote}, then {\Tt{}\LA{}targets~{\nwtagstyle{}\subpageref{NW1vYGPv-2InVV3-1}}\RA{}\nwendquote}.
+Since this will be a file to include, we do not want to include the same 
+contents twice, in any form of accidental recursive inclusion, so we use 
+a C-like construction.
+\nwenddocs{}\nwbegincode{3}\sublabel{NW1vYGPv-4UwcQh-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-4UwcQh-1}}}\moddef{results.mk~{\nwtagstyle{}\subpageref{NW1vYGPv-4UwcQh-1}}}\endmoddef\nwstartdeflinemarkup\nwenddeflinemarkup
+ifndef MIUN_RESULTS_MK
+MIUN_RESULTS_MK=true
+
+\LA{}variables~{\nwtagstyle{}\subpageref{NW1vYGPv-29jjeg-1}}\RA{}
+\LA{}targets~{\nwtagstyle{}\subpageref{NW1vYGPv-2InVV3-1}}\RA{}
+
+INCLUDE_MAKEFILES?= .
+include $\{INCLUDE_MAKEFILES\}/miun.depend.mk
+
+endif
+\nwnotused{results.mk}\nwendcode{}\nwbegindocs{4}So to use this file, simply input it in your Makefile by adding the line 
+{\Tt{}include\ results.mk\nwendquote} at the end of the file, in the same fashion as the 
+inclusion of {\Tt{}miun.depend.mk\nwendquote} above.
+
+For the purpose of reporting the results, we need to provide some identifiers.
+Usually this comes in the form of a course identifier.
+We also need to know where to send the results, so we can automate as much as 
+possible.
+We will dedicate two variables for this, which can be set in a Makefile.
+\nwenddocs{}\nwbegincode{5}\sublabel{NW1vYGPv-29jjeg-2}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-29jjeg-2}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW1vYGPv-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-4UwcQh-1}}\nwprevnextdefs{NW1vYGPv-29jjeg-1}{NW1vYGPv-29jjeg-3}\nwenddeflinemarkup
+RESULTS_COURSE?=    course identifier
+RESULTS_EMAIL?=     iksexp@miun.se
+\nwused{\\{NW1vYGPv-4UwcQh-1}}\nwendcode{}\nwbegindocs{6}These variables are later used to form the command for sending the results to
+the student office.
+By default we use Mutt\footnote{%
+  We could also use Thunderbird by setting {\Tt{}RESULTS{\_}MAILER?=\ thunderbird\ -compose\ "to={\$}{\nwlbrace}RESULTS{\_}EMAIL{\nwrbrace},subject='resultat\ {\$}{\nwlbrace}RESULTS{\_}COURSE{\nwrbrace}',attachment='file://{\$}{\nwlbrace}report{\nwrbrace}'"\nwendquote}.
+}.
+\nwenddocs{}\nwbegincode{7}\sublabel{NW1vYGPv-29jjeg-3}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-29jjeg-3}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW1vYGPv-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-4UwcQh-1}}\nwprevnextdefs{NW1vYGPv-29jjeg-2}{NW1vYGPv-29jjeg-4}\nwenddeflinemarkup
+RESULTS_MAILER?=  mutt -s "resultat $\{RESULTS_COURSE\}" -a $\{report\} -- $\{RESULTS_EMAIL\}
+\nwused{\\{NW1vYGPv-4UwcQh-1}}\nwendcode{}\nwbegindocs{8}\nwdocspar
+
+We provide a target {\Tt{}report\nwendquote} which processes the input, generates the new 
+report and emails it to the designated address above.
+\nwenddocs{}\nwbegincode{9}\sublabel{NW1vYGPv-2InVV3-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-2InVV3-1}}}\moddef{targets~{\nwtagstyle{}\subpageref{NW1vYGPv-2InVV3-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-4UwcQh-1}}\nwprevnextdefs{\relax}{NW1vYGPv-2InVV3-2}\nwenddeflinemarkup
+.PHONY: report
+report:
+  \LA{}report recipe~{\nwtagstyle{}\subpageref{NW1vYGPv-1bP5sY-1}}\RA{}
+\nwalsodefined{\\{NW1vYGPv-2InVV3-2}\\{NW1vYGPv-2InVV3-3}\\{NW1vYGPv-2InVV3-4}\\{NW1vYGPv-2InVV3-5}\\{NW1vYGPv-2InVV3-6}\\{NW1vYGPv-2InVV3-7}\\{NW1vYGPv-2InVV3-8}\\{NW1vYGPv-2InVV3-9}\\{NW1vYGPv-2InVV3-A}\\{NW1vYGPv-2InVV3-B}}\nwused{\\{NW1vYGPv-4UwcQh-1}}\nwendcode{}\nwbegindocs{10}\nwdocspar
+
+Finally, we also provide a way to clean up all temporary files.
+We provide a target {\Tt{}clean-results\nwendquote} which we add as a dependency to the 
+{\Tt{}clean\nwendquote} target, which is left to the user to use for whatever other cleaning 
+is specified in the {\Tt{}Makefile\nwendquote}.
+\nwenddocs{}\nwbegincode{11}\sublabel{NW1vYGPv-2InVV3-2}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-2InVV3-2}}}\moddef{targets~{\nwtagstyle{}\subpageref{NW1vYGPv-2InVV3-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-4UwcQh-1}}\nwprevnextdefs{NW1vYGPv-2InVV3-1}{NW1vYGPv-2InVV3-3}\nwenddeflinemarkup
+.PHONY: clean clean-results
+clean: clean-results
+clean-results:
+  \LA{}clean recipe~{\nwtagstyle{}\subpageref{NW1vYGPv-mtljB-1}}\RA{}
+\nwused{\\{NW1vYGPv-4UwcQh-1}}\nwendcode{}\nwbegindocs{12}We will populate the {\Tt{}\LA{}clean recipe~{\nwtagstyle{}\subpageref{NW1vYGPv-mtljB-1}}\RA{}\nwendquote} as we go.
+
+\subsection{Portability}
+
+To improve the portability of the code, we use the following variables instead 
+of the respective commands directly:
+\nwenddocs{}\nwbegincode{13}\sublabel{NW1vYGPv-29jjeg-4}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-29jjeg-4}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW1vYGPv-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-4UwcQh-1}}\nwprevnextdefs{NW1vYGPv-29jjeg-3}{NW1vYGPv-29jjeg-5}\nwenddeflinemarkup
+LOCALC?=  localc --norestore
+RM?=      /bin/rm -Rf
+MV?=      /bin/mv
+DIFF?=    diff
+JOIN?=    join
+CUT?=     cut
+SORT?=    sort
+HEAD?=    head
+TAIL?=    tail
+SED?=     sed
+GREP?=    grep
+CAT?=     cat
+CP?=      cp -R
+PAGER?=   less
+PASTE?=   paste
+LN?=      ln
+\nwused{\\{NW1vYGPv-4UwcQh-1}}\nwendcode{}\nwbegindocs{14}There is currently an unknown bug causing the join command to not work with 
+tabs, although that exact code has worked previously, so the resulting report 
+file will be \emph{space separated}.
+
+
+\section{Processing Moodle's output}
+
+This section covers the technical details of how to process the data exported 
+from Moodle.
+We have the input file, given as {\Tt{}{\$}{\nwlbrace}in{\nwrbrace}\nwendquote}, then we want the a report of 
+changes to send to the student office (\cref{FindingChanges}).
+There are different identifiers used in the national database and in Moodle.
+So we need to extract the identifiers in Moodle and convert to those in the 
+national database (\cref{ChangingIdentifiers}).
+Then we can send the report and update our local representation of what is 
+reported to the national database, \ie {\Tt{}{\$}{\nwlbrace}out{\nwrbrace}\nwendquote}.
+
+\subsection{Transforming Moodle's output}
+
+The first thing we need to do is to transform Moodle's output.
+The output format varies a lot, it changes with the mood of the system 
+administrator.
+So the code in this section changes the most.
+
+We will now create a temporary file {\Tt{}{\$}{\nwlbrace}out{\nwrbrace}.diff\nwendquote} based on {\Tt{}{\$}{\nwlbrace}in{\nwrbrace}\nwendquote}.
+\nwenddocs{}\nwbegincode{15}\sublabel{NW1vYGPv-2InVV3-3}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-2InVV3-3}}}\moddef{targets~{\nwtagstyle{}\subpageref{NW1vYGPv-2InVV3-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-4UwcQh-1}}\nwprevnextdefs{NW1vYGPv-2InVV3-2}{NW1vYGPv-2InVV3-4}\nwenddeflinemarkup
+$\{out\}.new: $\{in\}
+  \LA{}new recipe~{\nwtagstyle{}\subpageref{NW1vYGPv-HUskc-1}}\RA{}
+\nwused{\\{NW1vYGPv-4UwcQh-1}}\nwendcode{}\nwbegindocs{16}This means we should also add {\Tt{}{\$}{\nwlbrace}out{\nwrbrace}.diff\nwendquote} to the recipe of clean.
+\nwenddocs{}\nwbegincode{17}\sublabel{NW1vYGPv-mtljB-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-mtljB-1}}}\moddef{clean recipe~{\nwtagstyle{}\subpageref{NW1vYGPv-mtljB-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-2InVV3-2}}\nwprevnextdefs{\relax}{NW1vYGPv-mtljB-2}\nwenddeflinemarkup
+$\{RM\} $\{out\}.new
+\nwalsodefined{\\{NW1vYGPv-mtljB-2}\\{NW1vYGPv-mtljB-3}}\nwused{\\{NW1vYGPv-2InVV3-2}}\nwendcode{}\nwbegindocs{18}\nwdocspar
+
+We are now going to process the data, we will do this by piping the data 
+through a series of commands.
+The columns we are interested in are 1--3 and 6 to the end.
+\nwenddocs{}\nwbegincode{19}\sublabel{NW1vYGPv-HUskc-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-HUskc-1}}}\moddef{new recipe~{\nwtagstyle{}\subpageref{NW1vYGPv-HUskc-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-2InVV3-3}}\nwprevnextdefs{\relax}{NW1vYGPv-HUskc-2}\nwenddeflinemarkup
+$\{CUT\} -f 1-3,6- $\{in\} | \\
+\nwalsodefined{\\{NW1vYGPv-HUskc-2}\\{NW1vYGPv-HUskc-3}}\nwused{\\{NW1vYGPv-2InVV3-3}}\nwendcode{}\nwbegindocs{20}For some reason the students' usernames are appended to their lastnames --- 
+in addition to having a separate column for usernames.
+Obviously we want to filter this away.
+\nwenddocs{}\nwbegincode{21}\sublabel{NW1vYGPv-HUskc-2}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-HUskc-2}}}\moddef{new recipe~{\nwtagstyle{}\subpageref{NW1vYGPv-HUskc-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-2InVV3-3}}\nwprevnextdefs{NW1vYGPv-HUskc-1}{NW1vYGPv-HUskc-3}\nwenddeflinemarkup
+$\{SED\} "s/ (\\([a-z]\\\{4\\\}[0-9]\\\{4\\\}\\))//" \\
+\nwused{\\{NW1vYGPv-2InVV3-3}}\nwendcode{}\nwbegindocs{22}\nwdocspar
+
+Some of the data in Moodle are quite long, so we would like to do some 
+rewrites.
+For this purpose we will add a list of regular expressions that will be 
+applied.
+We store this list as a space separated list of regular expressions in 
+{\Tt{}{\$}{\nwlbrace}RESULTS{\_}REWRITES{\nwrbrace}\nwendquote}.
+This means that we also must avoid spaces in the regular expressions, thus the 
+first thing we do is to remove all spaces in the data.
+\nwenddocs{}\nwbegincode{23}\sublabel{NW1vYGPv-HUskc-3}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-HUskc-3}}}\moddef{new recipe~{\nwtagstyle{}\subpageref{NW1vYGPv-HUskc-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-2InVV3-3}}\nwprevnextdefs{NW1vYGPv-HUskc-2}{\relax}\nwenddeflinemarkup
+$(if $\{RESULTS_REWRITES\},| $\{SED\} "s/ //g", ) \\
+$(foreach regex,$\{RESULTS_REWRITES\},| $\{SED\} $\{regex\}) \\
+> $@
+\nwused{\\{NW1vYGPv-2InVV3-3}}\nwendcode{}\nwbegindocs{24}We let the default rewrites be
+\nwenddocs{}\nwbegincode{25}\sublabel{NW1vYGPv-29jjeg-5}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-29jjeg-5}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW1vYGPv-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-4UwcQh-1}}\nwprevnextdefs{NW1vYGPv-29jjeg-4}{NW1vYGPv-29jjeg-6}\nwenddeflinemarkup
+RESULTS_REWRITES+=  "s/Godkänd(G)/G/g" "s/Underkänd(U)/U/g"
+RESULTS_REWRITES+=  "s/Komplettering(Fx)/Fx/g"
+RESULTS_REWRITES+=  "s/\\"//g"
+\nwused{\\{NW1vYGPv-4UwcQh-1}}\nwendcode{}\nwbegindocs{26}\nwdocspar
+
+\subsection{Extracting the changes}
+\label{FindingChanges}
+
+Now we want to find what has changed since the last time we exported the 
+grades.
+For this we will create a file {\Tt{}{\$}{\nwlbrace}out{\nwrbrace}.diff\nwendquote} which contains only the changed 
+rows.
+\nwenddocs{}\nwbegincode{27}\sublabel{NW1vYGPv-2InVV3-4}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-2InVV3-4}}}\moddef{targets~{\nwtagstyle{}\subpageref{NW1vYGPv-2InVV3-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-4UwcQh-1}}\nwprevnextdefs{NW1vYGPv-2InVV3-3}{NW1vYGPv-2InVV3-5}\nwenddeflinemarkup
+$\{out\}.diff: $\{out\}.new
+  \LA{}diff recipe~{\nwtagstyle{}\subpageref{NW1vYGPv-257BvH-1}}\RA{}
+\nwused{\\{NW1vYGPv-4UwcQh-1}}\nwendcode{}\nwbegindocs{28}\nwdocspar
+
+We are not interested in the headers of the table, so we skip that
+line.
+\nwenddocs{}\nwbegincode{29}\sublabel{NW1vYGPv-257BvH-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-257BvH-1}}}\moddef{diff recipe~{\nwtagstyle{}\subpageref{NW1vYGPv-257BvH-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-2InVV3-4}}\nwprevnextdefs{\relax}{NW1vYGPv-257BvH-2}\nwenddeflinemarkup
+$\{GREP\} -v "^.\\?First \\?name" $\{out\}.new | \\
+\nwalsodefined{\\{NW1vYGPv-257BvH-2}\\{NW1vYGPv-257BvH-3}}\nwused{\\{NW1vYGPv-2InVV3-4}}\nwendcode{}\nwbegindocs{30}We are not interested in reporting students' failed results, so we filter out 
+those.
+In {\Tt{}{\$}{\nwlbrace}RESULTS{\_}FAILED{\nwrbrace}\nwendquote} we keep a regular expression for the grades that shall
+be removed.
+We then use {\Tt{}{\$}{\nwlbrace}RESULTS{\_}FAILED{\_}regex{\nwrbrace}\nwendquote} to match against the data.
+\nwenddocs{}\nwbegincode{31}\sublabel{NW1vYGPv-29jjeg-6}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-29jjeg-6}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW1vYGPv-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-4UwcQh-1}}\nwprevnextdefs{NW1vYGPv-29jjeg-5}{NW1vYGPv-29jjeg-7}\nwenddeflinemarkup
+RESULTS_FAILED?=      -\\|Fx\\?\\|U
+RESULTS_FAILED_regex= "\\( \\|  \\|,\\)\\"\\?\\($\{RESULTS_FAILED\}\\)\\"\\?\\(  .*\\)*$$"
+\nwused{\\{NW1vYGPv-4UwcQh-1}}\nwendcode{}\nwbegindocs{32}The code to filter the data will thus be:
+\nwenddocs{}\nwbegincode{33}\sublabel{NW1vYGPv-257BvH-2}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-257BvH-2}}}\moddef{diff recipe~{\nwtagstyle{}\subpageref{NW1vYGPv-257BvH-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-2InVV3-4}}\nwprevnextdefs{NW1vYGPv-257BvH-1}{NW1vYGPv-257BvH-3}\nwenddeflinemarkup
+$(if $\{RESULTS_FAILED\},$\{GREP\} -v $\{RESULTS_FAILED_regex\} |,) \\
+\nwused{\\{NW1vYGPv-2InVV3-4}}\nwendcode{}\nwbegindocs{34}\nwdocspar
+
+Finally, we want to compare this result with the old result and keep only the 
+modified lines.
+For the convenience of the secretaries we will also sort the data on the third 
+column (\ie family name).
+\nwenddocs{}\nwbegincode{35}\sublabel{NW1vYGPv-257BvH-3}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-257BvH-3}}}\moddef{diff recipe~{\nwtagstyle{}\subpageref{NW1vYGPv-257BvH-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-2InVV3-4}}\nwprevnextdefs{NW1vYGPv-257BvH-2}{\relax}\nwenddeflinemarkup
+$\{DIFF\} $\{@:.diff=\} - | $\{SED\} -n "/^> /s/^> //p" | $\{SORT\} -k 3 > $@
+\nwused{\\{NW1vYGPv-2InVV3-4}}\nwendcode{}\nwbegindocs{36}Due to the difference comparison we require that the new file depends on the 
+old file, and that the old file actually exists, so we add this as 
+a dependency.
+\nwenddocs{}\nwbegincode{37}\sublabel{NW1vYGPv-2InVV3-5}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-2InVV3-5}}}\moddef{targets~{\nwtagstyle{}\subpageref{NW1vYGPv-2InVV3-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-4UwcQh-1}}\nwprevnextdefs{NW1vYGPv-2InVV3-4}{NW1vYGPv-2InVV3-6}\nwenddeflinemarkup
+$\{out\}.diff: $\{out\}
+\nwused{\\{NW1vYGPv-4UwcQh-1}}\nwendcode{}\nwbegindocs{38}We will have to ensure that the old file exists, \ie create it if it does 
+not exist.
+We need it for comparisons, an empty file perfectly represents previously
+non-existent results, so we create a symbolic link to {\Tt{}/dev/null\nwendquote}.
+\nwenddocs{}\nwbegincode{39}\sublabel{NW1vYGPv-2InVV3-6}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-2InVV3-6}}}\moddef{targets~{\nwtagstyle{}\subpageref{NW1vYGPv-2InVV3-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-4UwcQh-1}}\nwprevnextdefs{NW1vYGPv-2InVV3-5}{NW1vYGPv-2InVV3-7}\nwenddeflinemarkup
+$\{out\}:
+  [ -r $@ ] || $\{LN\} -s /dev/null $@
+\nwused{\\{NW1vYGPv-4UwcQh-1}}\nwendcode{}\nwbegindocs{40}\nwdocspar
+
+\subsection{Extracting identifiers for reporting}
+\label{ChangingIdentifiers}
+
+In Moodle, every student is identified by a unique username.
+In the national database of grades, every student is uniquely identified by 
+their civic registration number.
+What we want to do here is to extract the username from the exported data, then
+supply the corresponding civic registration numbers.
+We are only interested in the usernames of those students for whom the results 
+changed, so we can use the {\Tt{}{\$}{\nwlbrace}out{\nwrbrace}.diff\nwendquote} file from above.
+
+In this case we can use one of make's suffix-based constructions.
+We will take a file with suffix \enquote{.csv.diff} and create a file 
+\enquote{.csv.diff.id}.
+\nwenddocs{}\nwbegincode{41}\sublabel{NW1vYGPv-2InVV3-7}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-2InVV3-7}}}\moddef{targets~{\nwtagstyle{}\subpageref{NW1vYGPv-2InVV3-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-4UwcQh-1}}\nwprevnextdefs{NW1vYGPv-2InVV3-6}{NW1vYGPv-2InVV3-8}\nwenddeflinemarkup
+.SUFFIXES: .csv .csv.diff .csv.diff.id
+.csv.diff.csv.diff.id:
+  \LA{}identifier recipe~{\nwtagstyle{}\subpageref{NW1vYGPv-3Cm36S-1}}\RA{}
+\nwused{\\{NW1vYGPv-4UwcQh-1}}\nwendcode{}\nwbegindocs{42}Now we want to extract the usernames and get the identifiers from the 
+national database.
+We simply extract the list of usernames (the third column in the data) and pipe
+it to a pager.
+\nwenddocs{}\nwbegincode{43}\sublabel{NW1vYGPv-3Cm36S-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-3Cm36S-1}}}\moddef{identifier recipe~{\nwtagstyle{}\subpageref{NW1vYGPv-3Cm36S-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-2InVV3-7}}\nwprevnextdefs{\relax}{NW1vYGPv-3Cm36S-2}\nwenddeflinemarkup
+@echo "---- userids showed in $\{PAGER\} ----"
+$\{CAT\} $< | $\{CUT\} -f 3 | $\{PAGER\}
+\nwalsodefined{\\{NW1vYGPv-3Cm36S-2}}\nwused{\\{NW1vYGPv-2InVV3-7}}\nwendcode{}\nwbegindocs{44}Now we let the user paste the list of both identifiers.
+\nwenddocs{}\nwbegincode{45}\sublabel{NW1vYGPv-3Cm36S-2}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-3Cm36S-2}}}\moddef{identifier recipe~{\nwtagstyle{}\subpageref{NW1vYGPv-3Cm36S-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-2InVV3-7}}\nwprevnextdefs{NW1vYGPv-3Cm36S-1}{\relax}\nwenddeflinemarkup
+@echo "---- paste username <tab> personnummer, end with C-d on a blank line (EOF) ----"
+$\{CAT\} > $@
+\nwused{\\{NW1vYGPv-2InVV3-7}}\nwendcode{}\nwbegindocs{46}\nwdocspar
+
+\subsection{Generating the report}
+\label{GeneratingReport}
+
+Now we have the changes in {\Tt{}{\$}{\nwlbrace}out{\nwrbrace}.diff\nwendquote} and a mapping from usernames to 
+civic registration numbers in {\Tt{}{\$}{\nwlbrace}out{\nwrbrace}.diff.id\nwendquote}.
+To create the report, we only have to join these files and convert the result 
+to PDF format.
+
+To convert a CSV-file to PDF we will use LibreOffice and one of make's suffix 
+rules.
+\nwenddocs{}\nwbegincode{47}\sublabel{NW1vYGPv-2InVV3-8}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-2InVV3-8}}}\moddef{targets~{\nwtagstyle{}\subpageref{NW1vYGPv-2InVV3-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-4UwcQh-1}}\nwprevnextdefs{NW1vYGPv-2InVV3-7}{NW1vYGPv-2InVV3-9}\nwenddeflinemarkup
+.SUFFIXES: .csv .pdf
+.csv.pdf:
+  $\{LOCALC\} $<
+\nwused{\\{NW1vYGPv-4UwcQh-1}}\nwendcode{}\nwbegindocs{48}Now we can add a target using this conversion.
+\nwenddocs{}\nwbegincode{49}\sublabel{NW1vYGPv-2InVV3-9}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-2InVV3-9}}}\moddef{targets~{\nwtagstyle{}\subpageref{NW1vYGPv-2InVV3-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-4UwcQh-1}}\nwprevnextdefs{NW1vYGPv-2InVV3-8}{NW1vYGPv-2InVV3-A}\nwenddeflinemarkup
+$\{report:.csv=.pdf\}: $\{report:.pdf=.csv\}
+\nwused{\\{NW1vYGPv-4UwcQh-1}}\nwendcode{}\nwbegindocs{50}\nwdocspar
+
+The above target lets us create a PDF-formatted report from a CSV-file, so now 
+we have to create that CSV-file using {\Tt{}{\$}{\nwlbrace}out{\nwrbrace}.diff\nwendquote} and {\Tt{}{\$}{\nwlbrace}out{\nwrbrace}.diff.id\nwendquote}.
+We also need the table headers from {\Tt{}{\$}{\nwlbrace}in{\nwrbrace}\nwendquote}.
+\nwenddocs{}\nwbegincode{51}\sublabel{NW1vYGPv-2InVV3-A}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-2InVV3-A}}}\moddef{targets~{\nwtagstyle{}\subpageref{NW1vYGPv-2InVV3-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-4UwcQh-1}}\nwprevnextdefs{NW1vYGPv-2InVV3-9}{NW1vYGPv-2InVV3-B}\nwenddeflinemarkup
+$\{report:.pdf=.csv\}: $\{in\} $\{out\}.diff $\{out\}.diff.id
+  \LA{}report.csv recipe~{\nwtagstyle{}\subpageref{NW1vYGPv-1PqcL7-1}}\RA{}
+\nwused{\\{NW1vYGPv-4UwcQh-1}}\nwendcode{}\nwbegindocs{52}Since the target for {\Tt{}report.csv\nwendquote} will automatically generate 
+{\Tt{}{\$}{\nwlbrace}out{\nwrbrace}.diff\nwendquote} and {\Tt{}{\$}{\nwlbrace}out{\nwrbrace}.diff.id\nwendquote} we would better add them to the clean 
+recipe in addition to the {\Tt{}{\$}{\nwlbrace}report:.pdf=.csv{\nwrbrace}\nwendquote} file.
+\nwenddocs{}\nwbegincode{53}\sublabel{NW1vYGPv-mtljB-2}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-mtljB-2}}}\moddef{clean recipe~{\nwtagstyle{}\subpageref{NW1vYGPv-mtljB-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-2InVV3-2}}\nwprevnextdefs{NW1vYGPv-mtljB-1}{NW1vYGPv-mtljB-3}\nwenddeflinemarkup
+$\{RM\} $\{out\}.diff $\{out\}.diff.id
+$\{RM\} $\{report:.pdf=.csv\}
+\nwused{\\{NW1vYGPv-2InVV3-2}}\nwendcode{}\nwbegindocs{54}\nwdocspar
+
+Now we want the header back, so we can get it properly formatted from 
+{\Tt{}{\$}{\nwlbrace}out{\nwrbrace}.new\nwendquote}.
+However, we do not want all the excess columns for the grades: we only need one
+column with a summary.
+\nwenddocs{}\nwbegincode{55}\sublabel{NW1vYGPv-1PqcL7-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-1PqcL7-1}}}\moddef{report.csv recipe~{\nwtagstyle{}\subpageref{NW1vYGPv-1PqcL7-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-2InVV3-A}}\nwprevnextdefs{\relax}{NW1vYGPv-1PqcL7-2}\nwenddeflinemarkup
+$\{HEAD\} -n 1 $\{out\}.new | \\
+  $\{CUT\} -f -$\{RESULTS_COLUMNS\} > $@
+\nwalsodefined{\\{NW1vYGPv-1PqcL7-2}}\nwused{\\{NW1vYGPv-2InVV3-A}}\nwendcode{}\nwbegindocs{56}Next, we simply join the two tables on the username column and sort the list 
+on the column of the family name.
+We want to cut the excess columns here as well, the number of columns is 
+controlled by {\Tt{}{\$}{\nwlbrace}RESULTS{\_}COLUMNS{\nwrbrace}\nwendquote}.
+\nwenddocs{}\nwbegincode{57}\sublabel{NW1vYGPv-1PqcL7-2}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-1PqcL7-2}}}\moddef{report.csv recipe~{\nwtagstyle{}\subpageref{NW1vYGPv-1PqcL7-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-2InVV3-A}}\nwprevnextdefs{NW1vYGPv-1PqcL7-1}{\relax}\nwenddeflinemarkup
+$\{JOIN\} -1 1 -2 3 $\{out\}.diff.id $\{out\}.diff | $\{CUT\} -d " " -f 2- | \\
+  $\{SORT\} -k 2 | $\{CUT\} -d " " -f -$\{RESULTS_COLUMNS\} >> $@
+\nwused{\\{NW1vYGPv-2InVV3-A}}\nwendcode{}\nwbegindocs{58}By default we let the default number of columns be four, \ie first and last 
+name, civic identification number and finally one grade.
+\nwenddocs{}\nwbegincode{59}\sublabel{NW1vYGPv-29jjeg-7}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-29jjeg-7}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW1vYGPv-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-4UwcQh-1}}\nwprevnextdefs{NW1vYGPv-29jjeg-6}{\relax}\nwenddeflinemarkup
+RESULTS_COLUMNS?=   4
+\nwused{\\{NW1vYGPv-4UwcQh-1}}\nwendcode{}\nwbegindocs{60}\nwdocspar
+
+
+\section{Sending and storing the results}
+
+Now we will do the actual reporting.
+As stated in \cref{Intro} we have a target {\Tt{}report\nwendquote} for this purpose.
+\nwenddocs{}\nwbegincode{61}\sublabel{NW1vYGPv-2InVV3-B}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-2InVV3-B}}}\moddef{targets~{\nwtagstyle{}\subpageref{NW1vYGPv-2InVV3-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-4UwcQh-1}}\nwprevnextdefs{NW1vYGPv-2InVV3-A}{\relax}\nwenddeflinemarkup
+.PHONY: report
+report: $\{report\} $\{in\}
+\nwused{\\{NW1vYGPv-4UwcQh-1}}\nwendcode{}\nwbegindocs{62}Since this will trigger the creation of {\Tt{}{\$}{\nwlbrace}report{\nwrbrace}\nwendquote} we must add it to the 
+clean recipe.
+\nwenddocs{}\nwbegincode{63}\sublabel{NW1vYGPv-mtljB-3}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-mtljB-3}}}\moddef{clean recipe~{\nwtagstyle{}\subpageref{NW1vYGPv-mtljB-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-2InVV3-2}}\nwprevnextdefs{NW1vYGPv-mtljB-2}{\relax}\nwenddeflinemarkup
+$\{RM\} $\{report\}
+\nwused{\\{NW1vYGPv-2InVV3-2}}\nwendcode{}\nwbegindocs{64}\nwdocspar
+
+If there are no new results, then we do not want to send any report.
+The first thing we do is thus to check for new results.
+If there are none, we will say so to the user.
+\nwenddocs{}\nwbegincode{65}\sublabel{NW1vYGPv-1bP5sY-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-1bP5sY-1}}}\moddef{report recipe~{\nwtagstyle{}\subpageref{NW1vYGPv-1bP5sY-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-2InVV3-1}}\nwprevnextdefs{\relax}{NW1vYGPv-1bP5sY-2}\nwenddeflinemarkup
+if [ ! -s $\{out\}.diff ]; then \\
+  echo "No new results to report" >&2; \\
+\nwalsodefined{\\{NW1vYGPv-1bP5sY-2}}\nwused{\\{NW1vYGPv-2InVV3-1}}\nwendcode{}\nwbegindocs{66}Otherwise, if there are new results, we will output them using the pager and 
+then send them using the email program.
+If the emailing succeeds, then we want to store the results, but not if it 
+fails (hence the conditional).
+\nwenddocs{}\nwbegincode{67}\sublabel{NW1vYGPv-1bP5sY-2}\nwmargintag{{\nwtagstyle{}\subpageref{NW1vYGPv-1bP5sY-2}}}\moddef{report recipe~{\nwtagstyle{}\subpageref{NW1vYGPv-1bP5sY-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1vYGPv-2InVV3-1}}\nwprevnextdefs{NW1vYGPv-1bP5sY-1}{\relax}\nwenddeflinemarkup
+else \\
+  $\{PAGER\} $\{report\}; \\
+  $\{RESULTS_MAILER\} && \\
+  $\{MV\} $\{out\}.new $\{out\}; \\
+fi
+\nwused{\\{NW1vYGPv-2InVV3-1}}\nwendcode{}
+
+\nwixlogsorted{c}{{clean recipe}{NW1vYGPv-mtljB-1}{\nwixu{NW1vYGPv-2InVV3-2}\nwixd{NW1vYGPv-mtljB-1}\nwixd{NW1vYGPv-mtljB-2}\nwixd{NW1vYGPv-mtljB-3}}}%
+\nwixlogsorted{c}{{diff recipe}{NW1vYGPv-257BvH-1}{\nwixu{NW1vYGPv-2InVV3-4}\nwixd{NW1vYGPv-257BvH-1}\nwixd{NW1vYGPv-257BvH-2}\nwixd{NW1vYGPv-257BvH-3}}}%
+\nwixlogsorted{c}{{identifier recipe}{NW1vYGPv-3Cm36S-1}{\nwixu{NW1vYGPv-2InVV3-7}\nwixd{NW1vYGPv-3Cm36S-1}\nwixd{NW1vYGPv-3Cm36S-2}}}%
+\nwixlogsorted{c}{{new recipe}{NW1vYGPv-HUskc-1}{\nwixu{NW1vYGPv-2InVV3-3}\nwixd{NW1vYGPv-HUskc-1}\nwixd{NW1vYGPv-HUskc-2}\nwixd{NW1vYGPv-HUskc-3}}}%
+\nwixlogsorted{c}{{report recipe}{NW1vYGPv-1bP5sY-1}{\nwixu{NW1vYGPv-2InVV3-1}\nwixd{NW1vYGPv-1bP5sY-1}\nwixd{NW1vYGPv-1bP5sY-2}}}%
+\nwixlogsorted{c}{{report.csv recipe}{NW1vYGPv-1PqcL7-1}{\nwixu{NW1vYGPv-2InVV3-A}\nwixd{NW1vYGPv-1PqcL7-1}\nwixd{NW1vYGPv-1PqcL7-2}}}%
+\nwixlogsorted{c}{{results.mk}{NW1vYGPv-4UwcQh-1}{\nwixd{NW1vYGPv-4UwcQh-1}}}%
+\nwixlogsorted{c}{{targets}{NW1vYGPv-2InVV3-1}{\nwixu{NW1vYGPv-4UwcQh-1}\nwixd{NW1vYGPv-2InVV3-1}\nwixd{NW1vYGPv-2InVV3-2}\nwixd{NW1vYGPv-2InVV3-3}\nwixd{NW1vYGPv-2InVV3-4}\nwixd{NW1vYGPv-2InVV3-5}\nwixd{NW1vYGPv-2InVV3-6}\nwixd{NW1vYGPv-2InVV3-7}\nwixd{NW1vYGPv-2InVV3-8}\nwixd{NW1vYGPv-2InVV3-9}\nwixd{NW1vYGPv-2InVV3-A}\nwixd{NW1vYGPv-2InVV3-B}}}%
+\nwixlogsorted{c}{{variables}{NW1vYGPv-29jjeg-1}{\nwixd{NW1vYGPv-29jjeg-1}\nwixu{NW1vYGPv-4UwcQh-1}\nwixd{NW1vYGPv-29jjeg-2}\nwixd{NW1vYGPv-29jjeg-3}\nwixd{NW1vYGPv-29jjeg-4}\nwixd{NW1vYGPv-29jjeg-5}\nwixd{NW1vYGPv-29jjeg-6}\nwixd{NW1vYGPv-29jjeg-7}}}%
+\nwbegindocs{68}\nwdocspar
+\nwenddocs{}

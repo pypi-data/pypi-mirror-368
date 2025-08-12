@@ -1,0 +1,718 @@
+\section{Introduction and usage}% ===> this file was generated automatically by noweave --- better not edit it
+\label{tex:Intro}
+
+The aim of this include file is to make building LaTeX documents easier.
+First we want to add suffix rules for LaTeX similar to those already in 
+make(1)~\cite[see][Sect.\ 10.2]{GNUMake} for \eg (plain) TeX and C.
+
+The main goal is to improve the default rules of GNU make; to change from plain 
+TeX to LaTeX, to change from DVI-format to PDF-format.
+We provide several suffix rules:
+first, for ordinary documents, \ie to compile a {\Tt{}.tex\nwendquote} file to {\Tt{}.pdf\nwendquote},
+but we also provide suffix rules for {\Tt{}.dvi\nwendquote};
+second, for classes and packages, \ie to compile
+\begin{enumerate*}
+\item a DocTeX {\Tt{}.dtx\nwendquote} file to {\Tt{}.pdf\nwendquote} or {\Tt{}.dvi\nwendquote} and
+\item an {\Tt{}.ins\nwendquote} file to {\Tt{}.cls\nwendquote} or {\Tt{}.sty\nwendquote}.
+\end{enumerate*}
+The suffix rules we provide here follows the conventions set out 
+in~\cite[Sect.\ 10.2]{GNUMake}.
+
+To do the main LaTeX compilation, we use the following set up:
+\nwfilename{tex.mk.nw}\nwbegincode{1}\sublabel{NW4GQOIU-29jjeg-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-29jjeg-1}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW4GQOIU-29jjeg-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-2kaaDB-1}}\nwprevnextdefs{\relax}{NW4GQOIU-29jjeg-2}\nwenddeflinemarkup
+LATEX?=           latexmk -dvi -use-make
+PDFLATEX?=        latexmk -pdf -use-make
+LATEXFLAGS?=
+PREPROCESS.tex?=  $\{PDFLATEX\} $\{LATEXFLAGS\} $<
+PREPROCESS.dtx?=  $\{PREPROCESS.tex\}
+TEX_OUTDIR?=      ltxobj
+COMPILE.tex?=     \\
+  $\{PDFLATEX\} $\{LATEXFLAGS\} -output-directory=$\{TEX_OUTDIR\} $<; \\
+  while (grep "Rerun to get cross" $\{TEX_OUTDIR\}/$\{<:.tex=.log\}); \\
+    do $\{PDFLATEX\} $\{LATEXFLAGS\} -output-directory=$\{TEX_OUTDIR\} $<; \\
+  done
+COMPILE.dtx?=     $\{COMPILE.tex\}
+\nwalsodefined{\\{NW4GQOIU-29jjeg-2}\\{NW4GQOIU-29jjeg-3}\\{NW4GQOIU-29jjeg-4}\\{NW4GQOIU-29jjeg-5}\\{NW4GQOIU-29jjeg-6}\\{NW4GQOIU-29jjeg-7}\\{NW4GQOIU-29jjeg-8}\\{NW4GQOIU-29jjeg-9}}\nwused{\\{NW4GQOIU-2kaaDB-1}}\nwendcode{}\nwbegindocs{2}Thus one would have to change the {\Tt{}COMPILE.tex\nwendquote} variable to change format 
+from PDF to DVI unless a suffix rule is used.
+
+%We note that we add this output directory to the search path for 
+%prerequisites~\cite[see][Sect.\ 4.5.1]{GNUMake}.
+%The reason for this is that we might need some out the objects as prerequisites 
+%for other files.
+
+Normally, the above is all that is needed.
+However, if you need to manually build the bibliography, you can either add the
+{\Tt{}.bbl\nwendquote} file as a prerequisite or set the following variable to a non-empty 
+string.
+\nwenddocs{}\nwbegincode{3}\sublabel{NW4GQOIU-29jjeg-2}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-29jjeg-2}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW4GQOIU-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-2kaaDB-1}}\nwprevnextdefs{NW4GQOIU-29jjeg-1}{NW4GQOIU-29jjeg-3}\nwenddeflinemarkup
+TEX_BBL?=
+\nwused{\\{NW4GQOIU-2kaaDB-1}}\nwendcode{}\nwbegindocs{4}Similarly as for the main LaTeX commands, the bibtex(1) command is controlled 
+by
+\nwenddocs{}\nwbegincode{5}\sublabel{NW4GQOIU-29jjeg-3}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-29jjeg-3}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW4GQOIU-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-2kaaDB-1}}\nwprevnextdefs{NW4GQOIU-29jjeg-2}{NW4GQOIU-29jjeg-4}\nwenddeflinemarkup
+BIBTEX?=            bibtexu
+BIBTEXFLAGS?=
+BIBLIOGRAPHY.aux?=  $\{BIBTEX\} $\{BIBTEXFLAGS\} $<
+\nwused{\\{NW4GQOIU-2kaaDB-1}}\nwendcode{}\nwbegindocs{6}And, in case we use biblatex, the biber(1) command is controlled by
+\nwenddocs{}\nwbegincode{7}\sublabel{NW4GQOIU-29jjeg-4}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-29jjeg-4}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW4GQOIU-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-2kaaDB-1}}\nwprevnextdefs{NW4GQOIU-29jjeg-3}{NW4GQOIU-29jjeg-5}\nwenddeflinemarkup
+BIBER?=             biber
+BIBERFLAGS?=
+BIBLIOGRAPHY.bcf?=  $\{BIBER\} -O $@ $\{BIBERFLAGS\} $<
+\nwused{\\{NW4GQOIU-2kaaDB-1}}\nwendcode{}\nwbegindocs{8}\nwdocspar
+
+Similarly as for the bibliography, to enable indexing you can either manually 
+add the {\Tt{}.ind\nwendquote} file as a prerequisite, or you can set the following variable 
+to a non-empty string.
+\nwenddocs{}\nwbegincode{9}\sublabel{NW4GQOIU-29jjeg-5}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-29jjeg-5}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW4GQOIU-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-2kaaDB-1}}\nwprevnextdefs{NW4GQOIU-29jjeg-4}{NW4GQOIU-29jjeg-6}\nwenddeflinemarkup
+TEX_IND?=
+\nwused{\\{NW4GQOIU-2kaaDB-1}}\nwendcode{}\nwbegindocs{10}The indexing-related programs are the following.
+\nwenddocs{}\nwbegincode{11}\sublabel{NW4GQOIU-29jjeg-6}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-29jjeg-6}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW4GQOIU-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-2kaaDB-1}}\nwprevnextdefs{NW4GQOIU-29jjeg-5}{NW4GQOIU-29jjeg-7}\nwenddeflinemarkup
+XINDY?=       texindy
+XINDYFLAGS?=
+COMPILE.idx?= $\{XINDY\} $\{OUTPUT_OPTION\} $\{XINDYFLAGS\} $<
+
+MAKEINDEX?=   makeindex
+MAKEIDXFLAGS?=
+COMPILE.nlo?= $\{MAKEINDEX\} $\{OUTPUT_OPTION\} $\{MAKEIDXFLAGS\} -s nomencl.ist $<
+\nwused{\\{NW4GQOIU-2kaaDB-1}}\nwendcode{}\nwbegindocs{12}\nwdocspar
+
+We also provide support for PythonTeX.
+This is enabled by the following variable.
+\nwenddocs{}\nwbegincode{13}\sublabel{NW4GQOIU-29jjeg-7}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-29jjeg-7}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW4GQOIU-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-2kaaDB-1}}\nwprevnextdefs{NW4GQOIU-29jjeg-6}{NW4GQOIU-29jjeg-8}\nwenddeflinemarkup
+TEX_PYTHONTEX?=
+\nwused{\\{NW4GQOIU-2kaaDB-1}}\nwendcode{}\nwbegindocs{14}Then the required command and flags are controlled with the following 
+variables.
+\nwenddocs{}\nwbegincode{15}\sublabel{NW4GQOIU-29jjeg-8}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-29jjeg-8}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW4GQOIU-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-2kaaDB-1}}\nwprevnextdefs{NW4GQOIU-29jjeg-7}{NW4GQOIU-29jjeg-9}\nwenddeflinemarkup
+PYTHONTEX?=       python3 $$(which pythontex)
+PYTHONTEXFLAGS?=  --interpreter python:python3
+\nwused{\\{NW4GQOIU-2kaaDB-1}}\nwendcode{}\nwbegindocs{16}\nwdocspar
+
+Finally, we provide targets to easily add external classes as dependencies.
+We add the phony targets
+\begin{itemize}
+\item{\Tt{}lncs\nwendquote} for Springer \ac{LNCS},
+\item{\Tt{}biblatex-lncs\nwendquote} for the \ac{LNCS} bibliography style for the 
+{\Tt{}biblatex\nwendquote} package,
+\item{\Tt{}rfc\nwendquote} or {\Tt{}rfc.bib\nwendquote} for an up-to-date bibliography containing all 
+\ac{IETF} \acp{RFC},
+\item{\Tt{}popets\nwendquote} for the style files of the Proceedings of the Privacy Enhancing 
+Technologies (PoPETS, De Gruyter Open/Sciendo).
+\end{itemize}
+
+Finally, we add a method to quickly merge bibliographies without redundancy.
+This is based on the archive syntax of make(1).
+This allows us to have the resulting full bibliography {\Tt{}full.bib\nwendquote} consist of 
+the subbibliographies {\Tt{}sub0.bib\nwendquote} and {\Tt{}sub1.bib\nwendquote}:
+\begin{lstlisting}
+full.bib: full.bib(sub0.bib sub1.bib)
+\end{lstlisting}
+Or, directly as a dependency for the PDF:
+\begin{lstlisting}
+paper.pdf: full.bib(sub0.bib sub1.bib)
+\end{lstlisting}
+
+
+\section{Implementation overview}
+
+The structure of the include file is similar to a header file in C or C++.
+The include file uses the old C-style technique to prevent multiple inclusions.
+\nwenddocs{}\nwbegincode{17}\sublabel{NW4GQOIU-2kaaDB-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-2kaaDB-1}}}\moddef{tex.mk~{\nwtagstyle{}\subpageref{NW4GQOIU-2kaaDB-1}}}\endmoddef\nwstartdeflinemarkup\nwenddeflinemarkup
+ifndef TEX_MK
+TEX_MK=true
+
+.NOTPARALLEL:
+
+INCLUDE_MAKEFILES?=.
+include $\{INCLUDE_MAKEFILES\}/portability.mk
+
+\LA{}variables~{\nwtagstyle{}\subpageref{NW4GQOIU-29jjeg-1}}\RA{}
+\LA{}targets for documents~{\nwtagstyle{}\subpageref{NW4GQOIU-4QwfwR-1}}\RA{}
+\LA{}targets for class and package files~{\nwtagstyle{}\subpageref{NW4GQOIU-tejPg-1}}\RA{}
+\LA{}targets for external classes~{\nwtagstyle{}\subpageref{NW4GQOIU-2Oad4t-1}}\RA{}
+\LA{}targets for cleaning~{\nwtagstyle{}\subpageref{NW4GQOIU-LrkAl-1}}\RA{}
+
+endif
+\nwnotused{tex.mk}\nwendcode{}\nwbegindocs{18}We include {\Tt{}portability.mk\nwendquote} (\cref{portability.mk}) to get portable 
+settings for several common utilities.
+It is currently not possible to run the TeX-builds in parallel, hence the need 
+for the {\Tt{}.NOTPARALLEL\nwendquote} target --- this runs any jobs that includes {\Tt{}tex.mk\nwendquote} 
+  in serial.
+However, this is not inherited, any recursive make invocations will run in 
+parallel unless {\Tt{}.NOTPARALLEL\nwendquote} is specified there as well.
+
+We will start with the targets for cleaning.
+We provide two phony targets, {\Tt{}clean-tex\nwendquote} and {\Tt{}distclean-tex\nwendquote}, and we 
+add them as prerequisites to {\Tt{}clean\nwendquote} and {\Tt{}distclean\nwendquote}, respectively.
+\nwenddocs{}\nwbegincode{19}\sublabel{NW4GQOIU-LrkAl-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-LrkAl-1}}}\moddef{targets for cleaning~{\nwtagstyle{}\subpageref{NW4GQOIU-LrkAl-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-2kaaDB-1}}\nwenddeflinemarkup
+.PHONY: clean clean-tex
+clean: clean-tex
+
+clean-tex:
+  \LA{}clean recipe~{\nwtagstyle{}\subpageref{NW4GQOIU-mtljB-1}}\RA{}
+
+.PHONY: distclean distclean-tex
+distclean: distclean-tex
+
+distclean-tex:
+  \LA{}distclean recipe~{\nwtagstyle{}\subpageref{NW4GQOIU-1Hidyl-1}}\RA{}
+\nwused{\\{NW4GQOIU-2kaaDB-1}}\nwendcode{}\nwbegindocs{20}We will add to the recipes in the remainder of the chapter.
+However, as latexmk(1) is set as the default in \cref{tex:Intro}, we can 
+already add the following line to the cleaning recipe.
+\nwenddocs{}\nwbegincode{21}\sublabel{NW4GQOIU-mtljB-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-mtljB-1}}}\moddef{clean recipe~{\nwtagstyle{}\subpageref{NW4GQOIU-mtljB-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-LrkAl-1}}\nwenddeflinemarkup
+-latexmk -C -output-directory=$\{TEX_OUTDIR\}
+[ "$\{TEX_OUTDIR\}" -ef "$$(pwd)" ] || \\
+  $\{RM\} -R $\{TEX_OUTDIR\}
+$\{RM\} *.pytxcode
+$\{RM\} -R pythontex-files-*
+\nwused{\\{NW4GQOIU-LrkAl-1}}\nwendcode{}\nwbegindocs{22}\nwdocspar
+
+
+\section{Targets for documents}
+
+Now we will treat how to compile documents.
+\nwenddocs{}\nwbegincode{23}\sublabel{NW4GQOIU-4QwfwR-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-4QwfwR-1}}}\moddef{targets for documents~{\nwtagstyle{}\subpageref{NW4GQOIU-4QwfwR-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-2kaaDB-1}}\nwenddeflinemarkup
+\LA{}auxillary files~{\nwtagstyle{}\subpageref{NW4GQOIU-SIrPU-1}}\RA{}
+\LA{}bibliography files~{\nwtagstyle{}\subpageref{NW4GQOIU-3g0BAK-1}}\RA{}
+\LA{}indices files~{\nwtagstyle{}\subpageref{NW4GQOIU-UTABh-1}}\RA{}
+\LA{}PythonTeX files~{\nwtagstyle{}\subpageref{NW4GQOIU-287s1n-1}}\RA{}
+\LA{}document files~{\nwtagstyle{}\subpageref{NW4GQOIU-2cBbLf-1}}\RA{}
+\LA{}target for latexmkrc~{\nwtagstyle{}\subpageref{NW4GQOIU-4Jzoxc-1}}\RA{}
+\nwused{\\{NW4GQOIU-2kaaDB-1}}\nwendcode{}\nwbegindocs{24}These will be discussed in the following sections.
+However, since we use latexmk(1) by default (\cref{tex:Intro}), we will discuss 
+the relevant {\Tt{}\LA{}latexmkrc~{\nwtagstyle{}\subpageref{NW4GQOIU-3qE2M6-1}}\RA{}\nwendquote} entries in parallel.
+We supply a target to easily use our {\Tt{}\LA{}latexmkrc~{\nwtagstyle{}\subpageref{NW4GQOIU-3qE2M6-1}}\RA{}\nwendquote} with latexmk(1).
+\nwenddocs{}\nwbegincode{25}\sublabel{NW4GQOIU-4Jzoxc-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-4Jzoxc-1}}}\moddef{target for latexmkrc~{\nwtagstyle{}\subpageref{NW4GQOIU-4Jzoxc-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-4QwfwR-1}}\nwenddeflinemarkup
+latexmkrc:
+  [ -e $@ -o "$\{INCLUDE_MAKEFILES\}" = "." ] || \\
+  $\{LN\} -s $\{INCLUDE_MAKEFILES\}/latexmkrc $@
+\nwused{\\{NW4GQOIU-4QwfwR-1}}\nwendcode{}\nwbegindocs{26}We also add the corresponding line for cleaning.
+\nwenddocs{}\nwbegincode{27}\sublabel{NW4GQOIU-1Hidyl-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-1Hidyl-1}}}\moddef{distclean recipe~{\nwtagstyle{}\subpageref{NW4GQOIU-1Hidyl-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-LrkAl-1}}\nwenddeflinemarkup
+[ ! -L latexmkrc ] || $\{RM\} latexmkrc
+\nwused{\\{NW4GQOIU-LrkAl-1}}\nwendcode{}\nwbegindocs{28}\nwdocspar
+
+We will now discuss the different files we need latex(1) to generate.
+Note that in many cases we want latex(1) to generate more files, \eg {\Tt{}.toc\nwendquote}
+files, but we do not have to care about these here.
+The reason we can ignore those files is that they do not require any external 
+tool, \eg bibtex(1), to be run, these files just requires another run of 
+latex(1).
+
+\subsection{Auxillary files}
+
+Many steps in compiling a LaTeX document needs the {\Tt{}.aux\nwendquote} file.
+Thus we will first introduce a rule for creating the {\Tt{}.aux\nwendquote} file.
+We will create it in the specified output directory.
+\nwenddocs{}\nwbegincode{29}\sublabel{NW4GQOIU-SIrPU-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-SIrPU-1}}}\moddef{auxillary files~{\nwtagstyle{}\subpageref{NW4GQOIU-SIrPU-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-4QwfwR-1}}\nwenddeflinemarkup
+$\{TEX_OUTDIR\}/%.aux: %.tex
+  \LA{}create output directory and preprocess TeX~{\nwtagstyle{}\subpageref{NW4GQOIU-i3X8w-1}}\RA{}
+\nwused{\\{NW4GQOIU-4QwfwR-1}}\nwendcode{}\nwbegindocs{30}Then we simply do
+\nwenddocs{}\nwbegincode{31}\sublabel{NW4GQOIU-i3X8w-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-i3X8w-1}}}\moddef{create output directory and preprocess TeX~{\nwtagstyle{}\subpageref{NW4GQOIU-i3X8w-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-SIrPU-1}\\{NW4GQOIU-fQI0z-1}\\{NW4GQOIU-UTABh-1}\\{NW4GQOIU-UTABh-4}}\nwenddeflinemarkup
+$\{MKDIR\} $\{TEX_OUTDIR\}
+$\{PREPROCESS.tex\}
+\nwused{\\{NW4GQOIU-SIrPU-1}\\{NW4GQOIU-fQI0z-1}\\{NW4GQOIU-UTABh-1}\\{NW4GQOIU-UTABh-4}}\nwendcode{}\nwbegindocs{32}\nwdocspar
+
+\subsection{Bibliographies}
+
+One file that is commonly needed is the one used to create the bibliography, 
+the {\Tt{}.bbl\nwendquote} file.
+There are two ways to create this file, either using classical bibtex(1) or 
+using the {\Tt{}biblatex\nwendquote} package and biber(1).
+\nwenddocs{}\nwbegincode{33}\sublabel{NW4GQOIU-3g0BAK-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-3g0BAK-1}}}\moddef{bibliography files~{\nwtagstyle{}\subpageref{NW4GQOIU-3g0BAK-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-4QwfwR-1}}\nwprevnextdefs{\relax}{NW4GQOIU-3g0BAK-2}\nwenddeflinemarkup
+\LA{}bbl target for bibtex~{\nwtagstyle{}\subpageref{NW4GQOIU-44dHyo-1}}\RA{}
+\LA{}bbl target for biber~{\nwtagstyle{}\subpageref{NW4GQOIU-fQI0z-1}}\RA{}
+\nwalsodefined{\\{NW4GQOIU-3g0BAK-2}\\{NW4GQOIU-3g0BAK-3}}\nwused{\\{NW4GQOIU-4QwfwR-1}}\nwendcode{}\nwbegindocs{34}\nwdocspar
+
+The first approach, using bibtex(1), depends on the {\Tt{}.aux\nwendquote} file.
+This means that we can have a target creating the desired {\Tt{}.bbl\nwendquote} file from 
+the {\Tt{}.aux\nwendquote} file.
+\nwenddocs{}\nwbegincode{35}\sublabel{NW4GQOIU-44dHyo-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-44dHyo-1}}}\moddef{bbl target for bibtex~{\nwtagstyle{}\subpageref{NW4GQOIU-44dHyo-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-3g0BAK-1}}\nwenddeflinemarkup
+$\{TEX_OUTDIR\}/%.bbl: $\{TEX_OUTDIR\}/%.aux
+  $\{BIBLIOGRAPHY.aux\}
+  $\{MV\} $@ $\{@:.bbl=.blg\} $\{TEX_OUTDIR\}
+\nwused{\\{NW4GQOIU-3g0BAK-1}}\nwendcode{}\nwbegindocs{36}\nwdocspar
+
+The second approach uses the {\Tt{}biblatex\nwendquote} package~\cite{biblatex} and 
+biber(1)~\cite{biber}.
+They do not rely on the {\Tt{}.aux\nwendquote} file, instead {\Tt{}biblatex\nwendquote} creates a {\Tt{}.bcf\nwendquote} 
+file.
+Thus its target is exactly the same as that of the {\Tt{}.aux\nwendquote} file.
+\nwenddocs{}\nwbegincode{37}\sublabel{NW4GQOIU-fQI0z-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-fQI0z-1}}}\moddef{bbl target for biber~{\nwtagstyle{}\subpageref{NW4GQOIU-fQI0z-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-3g0BAK-1}}\nwprevnextdefs{\relax}{NW4GQOIU-fQI0z-2}\nwenddeflinemarkup
+$\{TEX_OUTDIR\}/%.bcf: %.tex
+  \LA{}create output directory and preprocess TeX~{\nwtagstyle{}\subpageref{NW4GQOIU-i3X8w-1}}\RA{}
+\nwalsodefined{\\{NW4GQOIU-fQI0z-2}}\nwused{\\{NW4GQOIU-3g0BAK-1}}\nwendcode{}\nwbegindocs{38}This {\Tt{}.bcf\nwendquote} file is in turn used by biber(1) to create the {\Tt{}.bbl\nwendquote} file.
+To compile the {\Tt{}.bbl\nwendquote} with biber(1) and put the output files in the desired
+directory, we do the following.
+\nwenddocs{}\nwbegincode{39}\sublabel{NW4GQOIU-fQI0z-2}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-fQI0z-2}}}\moddef{bbl target for biber~{\nwtagstyle{}\subpageref{NW4GQOIU-fQI0z-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-3g0BAK-1}}\nwprevnextdefs{NW4GQOIU-fQI0z-1}{\relax}\nwenddeflinemarkup
+$\{TEX_OUTDIR\}/%.bbl: $\{TEX_OUTDIR\}/%.bcf
+  $\{BIBLIOGRAPHY.bcf\}
+\nwused{\\{NW4GQOIU-3g0BAK-1}}\nwendcode{}\nwbegindocs{40}\nwdocspar
+
+As mentioned in \cref{tex:Intro}, we can automatically add the {\Tt{}.bbl\nwendquote} file as
+a prerequisite if the variable {\Tt{}TEX{\_}BBL\nwendquote} is set.
+\nwenddocs{}\nwbegincode{41}\sublabel{NW4GQOIU-3g0BAK-2}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-3g0BAK-2}}}\moddef{bibliography files~{\nwtagstyle{}\subpageref{NW4GQOIU-3g0BAK-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-4QwfwR-1}}\nwprevnextdefs{NW4GQOIU-3g0BAK-1}{NW4GQOIU-3g0BAK-3}\nwenddeflinemarkup
+ifneq ($\{TEX_BBL\},)
+%.pdf $\{TEX_OUTDIR\}/%.pdf: $\{TEX_OUTDIR\}/%.bbl
+endif
+\nwused{\\{NW4GQOIU-4QwfwR-1}}\nwendcode{}\nwbegindocs{42}\nwdocspar
+
+\subsection{Indices}
+
+There are several time we need to work with indices, \eg when working with 
+standard indices but also glossaries.
+Here we provide some suffix rules to make it easier to build such indices.
+
+Before we start, however, we will note that many of these rules are not needed 
+if the {\Tt{}imakeidx\nwendquote} package~\cite{imakeidx} is used.
+We do recommend to use this package.
+Furthermore, we provide rules for the {\Tt{}nomencl\nwendquote} package, however, we 
+recommend to use the {\Tt{}glossaries\nwendquote} package~\cite{glossaries} instead.
+The {\Tt{}glossaries\nwendquote} package also has native support for xindy(1).
+Although the {\Tt{}glossaries\nwendquote} package supports abbreviations and acronyms, we 
+recommend the {\Tt{}acro\nwendquote} package~\cite{acro} for this instead.
+
+The standard LaTeX index uses an {\Tt{}.idx\nwendquote} file, which is generated similarly as
+the {\Tt{}.aux\nwendquote} file.
+Thus we can use the same type of target.
+\nwenddocs{}\nwbegincode{43}\sublabel{NW4GQOIU-UTABh-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-UTABh-1}}}\moddef{indices files~{\nwtagstyle{}\subpageref{NW4GQOIU-UTABh-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-4QwfwR-1}}\nwprevnextdefs{\relax}{NW4GQOIU-UTABh-2}\nwenddeflinemarkup
+$\{TEX_OUTDIR\}/%.idx: %.tex
+  \LA{}create output directory and preprocess TeX~{\nwtagstyle{}\subpageref{NW4GQOIU-i3X8w-1}}\RA{}
+\nwalsodefined{\\{NW4GQOIU-UTABh-2}\\{NW4GQOIU-UTABh-3}\\{NW4GQOIU-UTABh-4}}\nwused{\\{NW4GQOIU-4QwfwR-1}}\nwendcode{}\nwbegindocs{44}The actual index, which resides in a {\Tt{}.ind\nwendquote} file, can then be generated as 
+follows.
+\nwenddocs{}\nwbegincode{45}\sublabel{NW4GQOIU-UTABh-2}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-UTABh-2}}}\moddef{indices files~{\nwtagstyle{}\subpageref{NW4GQOIU-UTABh-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-4QwfwR-1}}\nwprevnextdefs{NW4GQOIU-UTABh-1}{NW4GQOIU-UTABh-3}\nwenddeflinemarkup
+$\{TEX_OUTDIR\}/%.ind: $\{TEX_OUTDIR\}/%.idx
+  $\{COMPILE.idx\}
+\nwused{\\{NW4GQOIU-4QwfwR-1}}\nwendcode{}\nwbegindocs{46}As mentioned in \cref{tex:Intro}, we can automatically add the {\Tt{}.ind\nwendquote} file 
+as
+a prerequisite if the variable {\Tt{}TEX{\_}IND\nwendquote} is set.
+\nwenddocs{}\nwbegincode{47}\sublabel{NW4GQOIU-UTABh-3}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-UTABh-3}}}\moddef{indices files~{\nwtagstyle{}\subpageref{NW4GQOIU-UTABh-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-4QwfwR-1}}\nwprevnextdefs{NW4GQOIU-UTABh-2}{NW4GQOIU-UTABh-4}\nwenddeflinemarkup
+ifneq ($\{TEX_IND\},)
+%.pdf $\{TEX_OUTDIR\}/%.pdf: $\{TEX_OUTDIR\}/%.ind
+endif
+\nwused{\\{NW4GQOIU-4QwfwR-1}}\nwendcode{}\nwbegindocs{48}\nwdocspar
+
+For backwards compatibility, we provide the following code for the 
+{\Tt{}nomenclature\nwendquote} package.
+\nwenddocs{}\nwbegincode{49}\sublabel{NW4GQOIU-UTABh-4}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-UTABh-4}}}\moddef{indices files~{\nwtagstyle{}\subpageref{NW4GQOIU-UTABh-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-4QwfwR-1}}\nwprevnextdefs{NW4GQOIU-UTABh-3}{\relax}\nwenddeflinemarkup
+$\{TEX_OUTDIR\}/%.nlo: %.tex
+  \LA{}create output directory and preprocess TeX~{\nwtagstyle{}\subpageref{NW4GQOIU-i3X8w-1}}\RA{}
+
+$\{TEX_OUTDIR\}/%.nls: $\{TEX_OUTDIR\}/%.nlo
+  $\{COMPILE.nlo\}
+\nwused{\\{NW4GQOIU-4QwfwR-1}}\nwendcode{}\nwbegindocs{50}And now we add the corresponding code for latexmk(1).
+The code is fetched from the latexmk example-files on \ac{CTAN}\footnote{%
+  URL: \url{http://mirrors.ctan.org/support/latexmk/example_rcfiles/nomenclature_latexmkrc}
+}.
+\nwenddocs{}\nwbegincode{51}\sublabel{NW4GQOIU-3qE2M6-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-3qE2M6-1}}}\moddef{latexmkrc~{\nwtagstyle{}\subpageref{NW4GQOIU-3qE2M6-1}}}\endmoddef\nwstartdeflinemarkup\nwprevnextdefs{\relax}{NW4GQOIU-3qE2M6-2}\nwenddeflinemarkup
+add_cus_dep( 'nlo', 'nls', 0, 'makenlo2nls' );
+sub makenlo2nls \{
+  system( "makeindex -s nomencl.ist -o \\"$_[0].nls\\" \\"$_[0].nlo\\"" );
+\}
+\nwalsodefined{\\{NW4GQOIU-3qE2M6-2}}\nwnotused{latexmkrc}\nwendcode{}\nwbegindocs{52}\nwdocspar
+
+\subsection{PythonTeX}
+
+Occasionally we use PythonTeX.
+We also provide a target for the required files.
+However, this construction requires that we load PythonTeX as follows.
+\begin{minted}{LaTeX}
+\usepackage{pythontex}
+\setpythontexoutputdir{.}
+\setpythontexworkingdir{..}
+\end{minted}
+
+The code is as follows.
+\nwenddocs{}\nwbegincode{53}\sublabel{NW4GQOIU-287s1n-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-287s1n-1}}}\moddef{PythonTeX files~{\nwtagstyle{}\subpageref{NW4GQOIU-287s1n-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-4QwfwR-1}}\nwenddeflinemarkup
+$\{TEX_OUTDIR\}/%.pytxcode: $\{TEX_OUTDIR\}/%.aux
+  cd $(dir $@) && $\{PYTHONTEX\} $\{PYTHONTEXFLAGS\} $(basename $(notdir $@))
+%.pytxmcr $\{TEX_OUTDIR\}/%.pytxmcr:: $\{TEX_OUTDIR\}/%.pytxcode
+  cd $\{TEX_OUTDIR\} && $\{PYTHONTEX\} $\{PYTHONTEXFLAGS\} $(basename $(notdir $@))
+\nwused{\\{NW4GQOIU-4QwfwR-1}}\nwendcode{}\nwbegindocs{54}\nwdocspar
+
+As mentioned in \cref{tex:Intro}, we can automatically add the {\Tt{}.pytxmcr\nwendquote} 
+file as a prerequisite if the variable {\Tt{}TEX{\_}PYTHONTEX\nwendquote} is set.
+\nwenddocs{}\nwbegincode{55}\sublabel{NW4GQOIU-3g0BAK-3}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-3g0BAK-3}}}\moddef{bibliography files~{\nwtagstyle{}\subpageref{NW4GQOIU-3g0BAK-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-4QwfwR-1}}\nwprevnextdefs{NW4GQOIU-3g0BAK-2}{\relax}\nwenddeflinemarkup
+ifneq ($\{TEX_PYTHONTEX\},)
+$\{TEX_OUTDIR\}/%.pdf: $\{TEX_OUTDIR\}/%.pytxmcr
+endif
+\nwused{\\{NW4GQOIU-4QwfwR-1}}\nwendcode{}\nwbegindocs{56}\nwdocspar
+
+If we use latexmk(1), then we must also add instructions for this in 
+{\Tt{}\LA{}latexmkrc~{\nwtagstyle{}\subpageref{NW4GQOIU-3qE2M6-1}}\RA{}\nwendquote}.
+The following code is fetched from the latexmk example-files on 
+\ac{CTAN}\footnote{%
+  URL: \url{http://mirrors.ctan.org/support/latexmk/example_rcfiles/pythontex-latexmkrc}
+}.
+\nwenddocs{}\nwbegincode{57}\sublabel{NW4GQOIU-3qE2M6-2}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-3qE2M6-2}}}\moddef{latexmkrc~{\nwtagstyle{}\subpageref{NW4GQOIU-3qE2M6-1}}}\plusendmoddef\nwstartdeflinemarkup\nwprevnextdefs{NW4GQOIU-3qE2M6-1}{\relax}\nwenddeflinemarkup
+#  This version has a fudge on the latex and pdflatex commands that
+#  allows the pythontex custom dependency to work even when $out_dir
+#  is used to set the output directory.  Without the fudge (done by
+#  trickery symbolic links) the custom dependency for using pythontex
+#  will not be detected.
+
+add_cus_dep('pytxcode', 'pytxmcr', 0, 'pythontex');
+sub pythontex \{
+    # This subroutine is a fudge, because it from latexmk's point of
+    # view, it makes the main .tex file depend on the .pytxcode file.
+    # But it doesn't actually make the .tex file, but is used for its
+    # side effects in creating other files.  The dependence is a way
+    # of triggering the rule to be run whenever the .pytxcode file
+    # changes, and to do this before running latex/pdflatex again.
+    return system("pythontex3 --verbose \\"$_[0]\\"");
+\}
+
+$pdflatex = 'internal mylatex %R %Z pdflatex %O %S';
+$latex = 'internal mylatex %R %Z latex %O %S';
+sub mylatex \{
+   my $root = shift;
+   my $dir_string = shift;
+   my $code = "$root.pytxcode";
+   my $result = "pythontex-files-$root";
+   if ($dir_string) \{
+      warn "mylatex: Making symlinks to fool cus_dep creation\\n";
+      unlink $code;
+      if (-l $result) \{
+          unlink $result;
+      \}
+      elsif (-d $result) \{
+         unlink glob "$result/*";
+         rmdir $result;
+      \}
+      symlink $dir_string.$code, $code;
+      if ( ! -e $dir_string.$result ) \{ mkdir $dir_string.$result; \}
+      symlink $dir_string.$result, $result;
+   \}
+   else \{
+      foreach ($code, $result) \{ if (-l) \{ unlink; \} \}
+   \}
+   return system @_;
+\}
+\nwendcode{}\nwbegindocs{58}\nwdocspar
+
+\subsection{Document files}
+
+Now that we have all prerequisite files, we can actually compile the document.
+For simplicity we add file in both the current working directory and the 
+{\Tt{}TEX{\_}OUTDIR\nwendquote} as targets.
+The reason for this is that it makes the makefile easier to write, usually we 
+prefer writing just the {\Tt{}.pdf\nwendquote} file --- and not the path to the {\Tt{}.pdf\nwendquote} in 
+the {\Tt{}TEX{\_}OUTDIR\nwendquote} directory.
+And for the same reason, we create a symbolic link between them after 
+compilation --- this allows make(1) to track modification times correctly.
+(We need a symbolic link, rather than a hard link, because upon recompilation, 
+the file in {\Tt{}TEX{\_}OUTDIR\nwendquote} is unlinked, whereas the other is not.)
+\nwenddocs{}\nwbegincode{59}\sublabel{NW4GQOIU-2cBbLf-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-2cBbLf-1}}}\moddef{document files~{\nwtagstyle{}\subpageref{NW4GQOIU-2cBbLf-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-4QwfwR-1}}\nwenddeflinemarkup
+%.pdf $\{TEX_OUTDIR\}/%.pdf: %.tex
+  $\{COMPILE.tex\}
+  -$\{LN\} $\{TEX_OUTDIR\}/$@ $@
+
+%.dvi $\{TEX_OUTDIR\}/%.dvi: %.tex
+  \LA{}compile DVI~{\nwtagstyle{}\subpageref{NW4GQOIU-whl11-1}}\RA{}
+  -$\{LN\} $\{TEX_OUTDIR\}/$@ $@
+\nwused{\\{NW4GQOIU-4QwfwR-1}}\nwendcode{}\nwbegindocs{60}\nwdocspar
+
+The compilation step for DVI is the usual.
+We compile once, then we recompile as long as the log file tells us.
+\nwenddocs{}\nwbegincode{61}\sublabel{NW4GQOIU-whl11-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-whl11-1}}}\moddef{compile DVI~{\nwtagstyle{}\subpageref{NW4GQOIU-whl11-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-2cBbLf-1}\\{NW4GQOIU-1s6Szf-1}}\nwenddeflinemarkup
+$\{LATEX\} -output-directory=$\{TEX_OUTDIR\} $\{LATEXFLAGS\} $<
+while ( grep "Rerun to get cross" $\{TEX_OUTDIR\}/$\{<:.tex=.log\} ); do \\
+  $\{LATEX\} -output-directory=$\{TEX_OUTDIR\} $\{LATEXFLAGS\} $<; \\
+done
+\nwused{\\{NW4GQOIU-2cBbLf-1}\\{NW4GQOIU-1s6Szf-1}}\nwendcode{}\nwbegindocs{62}\nwdocspar
+
+
+\section{Targets for merging bibliographies}
+
+To merge bibliographies we will use {\Tt{}bibtool\nwendquote} and make's archive rules.
+In particular, we extend the general rules we defined in {\Tt{}portability.mk\nwendquote}.
+\nwenddocs{}\nwbegincode{63}\sublabel{NW4GQOIU-29jjeg-9}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-29jjeg-9}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW4GQOIU-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-2kaaDB-1}}\nwprevnextdefs{NW4GQOIU-29jjeg-8}{\relax}\nwenddeflinemarkup
+BIBTOOL?=     bibtool
+BIBTOOLFLAGS?=--preserve.key.case=on --print.deleted.entries=off -s -d -r biblatex
+ARCHIVE.bib?= $\{CAT\} $(if $(wildcard $@),$@) $% | \\
+  $\{BIBTOOL\} $\{BIBTOOLFLAGS\} -o $@
+\nwused{\\{NW4GQOIU-2kaaDB-1}}\nwendcode{}\nwbegindocs{64}\nwdocspar
+
+
+\section{Targets for class and package files}
+
+There are two parts concerning class and package files.
+\nwenddocs{}\nwbegincode{65}\sublabel{NW4GQOIU-tejPg-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-tejPg-1}}}\moddef{targets for class and package files~{\nwtagstyle{}\subpageref{NW4GQOIU-tejPg-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-2kaaDB-1}}\nwenddeflinemarkup
+\LA{}compile sty and cls files~{\nwtagstyle{}\subpageref{NW4GQOIU-cfvLA-1}}\RA{}
+\LA{}compile class and package documentation~{\nwtagstyle{}\subpageref{NW4GQOIU-1s6Szf-1}}\RA{}
+\nwused{\\{NW4GQOIU-2kaaDB-1}}\nwendcode{}\nwbegindocs{66}These are very similar to what we have done above, especially the 
+documentation.
+
+Compiling a class or package from DocTeX source is easier than compiling 
+a document.
+We can normally create the {\Tt{}.sty\nwendquote} and {\Tt{}.cls\nwendquote} files by running latex(1) on 
+the {\Tt{}.ins\nwendquote} file.
+\nwenddocs{}\nwbegincode{67}\sublabel{NW4GQOIU-cfvLA-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-cfvLA-1}}}\moddef{compile sty and cls files~{\nwtagstyle{}\subpageref{NW4GQOIU-cfvLA-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-tejPg-1}}\nwenddeflinemarkup
+%.cls %.sty: %.ins
+  $\{LATEX\} $<
+\nwused{\\{NW4GQOIU-tejPg-1}}\nwendcode{}\nwbegindocs{68}\nwdocspar
+
+We can then compile the documentation similarly to how we compile normal 
+documents.
+\nwenddocs{}\nwbegincode{69}\sublabel{NW4GQOIU-1s6Szf-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-1s6Szf-1}}}\moddef{compile class and package documentation~{\nwtagstyle{}\subpageref{NW4GQOIU-1s6Szf-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-tejPg-1}}\nwprevnextdefs{\relax}{NW4GQOIU-1s6Szf-2}\nwenddeflinemarkup
+%.pdf $\{TEX_OUTDIR\}/%.pdf: %.dtx
+  $\{COMPILE.dtx\}
+  -$\{LN\} $\{TEX_OUTDIR\}/$@ $@
+
+%.dvi $\{TEX_OUTDIR\}/%.dvi: %.dtx
+  \LA{}compile DVI~{\nwtagstyle{}\subpageref{NW4GQOIU-whl11-1}}\RA{}
+  -$\{LN\} $\{TEX_OUTDIR\}/$@ $@
+\nwalsodefined{\\{NW4GQOIU-1s6Szf-2}}\nwused{\\{NW4GQOIU-tejPg-1}}\nwendcode{}\nwbegindocs{70}However, we must tell make(1) how to make a {\Tt{}.bbl\nwendquote} etc.\ from {\Tt{}.dtx\nwendquote}.
+\nwenddocs{}\nwbegincode{71}\sublabel{NW4GQOIU-1s6Szf-2}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-1s6Szf-2}}}\moddef{compile class and package documentation~{\nwtagstyle{}\subpageref{NW4GQOIU-1s6Szf-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-tejPg-1}}\nwprevnextdefs{NW4GQOIU-1s6Szf-1}{\relax}\nwenddeflinemarkup
+$\{TEX_OUTDIR\}/%.aux $\{TEX_OUTDIR\}/%.bcf $\{TEX_OUTDIR\}/%.idx: %.dtx
+  $\{PREPROCESS.dtx\}
+\nwused{\\{NW4GQOIU-tejPg-1}}\nwendcode{}\nwbegindocs{72}\nwdocspar
+
+
+\section{External classes and packages}
+
+Occasionally, we are required to use document classes that are not in 
+\ac{CTAN}.
+Here we provide targets for some such classes and packages.
+\nwenddocs{}\nwbegincode{73}\sublabel{NW4GQOIU-2Oad4t-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-2Oad4t-1}}}\moddef{targets for external classes~{\nwtagstyle{}\subpageref{NW4GQOIU-2Oad4t-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-2kaaDB-1}}\nwenddeflinemarkup
+\LA{}a general downloader~{\nwtagstyle{}\subpageref{NW4GQOIU-1Zq3gR-1}}\RA{}
+\LA{}Springer LNCS~{\nwtagstyle{}\subpageref{NW4GQOIU-42CEER-1}}\RA{}
+\LA{}biblatex LNCS style~{\nwtagstyle{}\subpageref{NW4GQOIU-JX9cs-1}}\RA{}
+\LA{}the RFC bibliography~{\nwtagstyle{}\subpageref{NW4GQOIU-1nm7wo-1}}\RA{}
+\LA{}PoPETS~{\nwtagstyle{}\subpageref{NW4GQOIU-347V4M-1}}\RA{}
+\nwused{\\{NW4GQOIU-2kaaDB-1}}\nwendcode{}\nwbegindocs{74}\nwdocspar
+
+We will now construct a general downloader, then we will use this downloader to
+write targets for the external classes we are interested in.
+In general, what we want this function to do is to download an archive or 
+repository ({\Tt{}TEX{\_}EXT{\_}SRC\nwendquote}), extract the files we are interested in 
+({\Tt{}TEX{\_}EXT{\_}FILES\nwendquote}) to the destination directory ({\Tt{}TEX{\_}EXT{\_}DIR\nwendquote}), and 
+finally, create symbolic links to those files from the current working 
+directory.
+\nwenddocs{}\nwbegincode{75}\sublabel{NW4GQOIU-1Zq3gR-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-1Zq3gR-1}}}\moddef{a general downloader~{\nwtagstyle{}\subpageref{NW4GQOIU-1Zq3gR-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-2Oad4t-1}}\nwenddeflinemarkup
+define download_archive
+\LA{}targets for symlinks~{\nwtagstyle{}\subpageref{NW4GQOIU-1DUTgs-1}}\RA{}
+\LA{}targets for desired files~{\nwtagstyle{}\subpageref{NW4GQOIU-22rOUj-1}}\RA{}
+\LA{}targets for archive~{\nwtagstyle{}\subpageref{NW4GQOIU-3iv42z-1}}\RA{}
+\LA{}target for cleaning~{\nwtagstyle{}\subpageref{NW4GQOIU-YyAiu-1}}\RA{}
+endef
+define download_repo
+\LA{}targets for symlinks~{\nwtagstyle{}\subpageref{NW4GQOIU-1DUTgs-1}}\RA{}
+\LA{}targets for desired files~{\nwtagstyle{}\subpageref{NW4GQOIU-22rOUj-1}}\RA{}
+\LA{}targets for repo~{\nwtagstyle{}\subpageref{NW4GQOIU-4eSKbD-1}}\RA{}
+\LA{}target for cleaning~{\nwtagstyle{}\subpageref{NW4GQOIU-YyAiu-1}}\RA{}
+endef
+\nwused{\\{NW4GQOIU-2Oad4t-1}}\nwendcode{}\nwbegindocs{76}\nwdocspar
+
+The first thing we want to do is to generate targets and recipes for how to 
+create the symbolic links, assuming that the target files already exists.
+First we set up a dependency between the files we are interested in and where 
+that file is actually located.
+Then we create a recipe which will create a symbolic link between them.
+We use the {\Tt{}notdir\nwendquote} function~\cite[Sect.\ 8.3]{GNUMake} to remove any 
+directory-part since we want to create the symbolic link in the current working
+directory.
+\nwenddocs{}\nwbegincode{77}\sublabel{NW4GQOIU-1DUTgs-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-1DUTgs-1}}}\moddef{targets for symlinks~{\nwtagstyle{}\subpageref{NW4GQOIU-1DUTgs-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-1Zq3gR-1}}\nwprevnextdefs{\relax}{NW4GQOIU-1DUTgs-2}\nwenddeflinemarkup
+$(foreach file,$\{TEX_EXT_FILES-$(1)\},\\
+  $(eval $(notdir $\{file\}): $\{TEX_EXT_DIR-$(1)\}/$\{file\}))
+$(notdir $\{TEX_EXT_FILES-$(1)\}):
+  $\{LN\} $$^ $$@
+\nwalsodefined{\\{NW4GQOIU-1DUTgs-2}}\nwused{\\{NW4GQOIU-1Zq3gR-1}}\nwendcode{}\nwbegindocs{78}Note that we need the {\Tt{}eval\nwendquote} command above to evaluate the rule for each 
+file, otherwise we would get \emph{one line} with many colons --- which is not 
+valid syntax for make(1).
+To make it easier to add these files as prerequisites to a target, we also 
+provide the following phony target.
+\nwenddocs{}\nwbegincode{79}\sublabel{NW4GQOIU-1DUTgs-2}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-1DUTgs-2}}}\moddef{targets for symlinks~{\nwtagstyle{}\subpageref{NW4GQOIU-1DUTgs-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-1Zq3gR-1}}\nwprevnextdefs{NW4GQOIU-1DUTgs-1}{\relax}\nwenddeflinemarkup
+.PHONY: $(1)
+$(1): $(notdir $\{TEX_EXT_FILES-$(1)\})
+\nwused{\\{NW4GQOIU-1Zq3gR-1}}\nwendcode{}\nwbegindocs{80}\nwdocspar
+
+Now we need something to trigger the download of the archive or the repository.
+One way to do this is to add a prerequisite for the files from the archive or 
+repository.
+\nwenddocs{}\nwbegincode{81}\sublabel{NW4GQOIU-22rOUj-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-22rOUj-1}}}\moddef{targets for desired files~{\nwtagstyle{}\subpageref{NW4GQOIU-22rOUj-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-1Zq3gR-1}}\nwenddeflinemarkup
+$(addprefix $\{TEX_EXT_DIR-$(1)\}/,$\{TEX_EXT_FILES-$(1)\}): \\
+  $\{TEX_EXT_DIR-$(1)\}/$\{TEX_EXT_SRC-$(1)\}
+\nwused{\\{NW4GQOIU-1Zq3gR-1}}\nwendcode{}\nwbegindocs{82}Now we turn to the recipe.
+In the case of an archive, we must extract the desired files.
+We let the variable {\Tt{}TEX{\_}EXT{\_}EXTRACT\nwendquote} contain the extraction command.
+\nwenddocs{}\nwbegincode{83}\sublabel{NW4GQOIU-3iv42z-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-3iv42z-1}}}\moddef{targets for archive~{\nwtagstyle{}\subpageref{NW4GQOIU-3iv42z-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-1Zq3gR-1}}\nwprevnextdefs{\relax}{NW4GQOIU-3iv42z-2}\nwenddeflinemarkup
+$(addprefix $\{TEX_EXT_DIR-$(1)\}/,$\{TEX_EXT_FILES-$(1)\}):
+  $\{TEX_EXT_EXTRACT-$(1)\}
+\nwalsodefined{\\{NW4GQOIU-3iv42z-2}}\nwused{\\{NW4GQOIU-1Zq3gR-1}}\nwendcode{}\nwbegindocs{84}For a repository we can simply copy the file or create a link.
+We prefer the latter.
+\nwenddocs{}\nwbegincode{85}\sublabel{NW4GQOIU-4eSKbD-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-4eSKbD-1}}}\moddef{targets for repo~{\nwtagstyle{}\subpageref{NW4GQOIU-4eSKbD-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-1Zq3gR-1}}\nwprevnextdefs{\relax}{NW4GQOIU-4eSKbD-2}\nwenddeflinemarkup
+$(addprefix $\{TEX_EXT_DIR-$(1)\}/,$\{TEX_EXT_FILES-$(1)\}):
+  $\{LN\} $\{TEX_EXT_SRC-$(1)\}/$$\{@:$\{TEX_EXT_DIR-$(1)\}/%=%\} $$@
+\nwalsodefined{\\{NW4GQOIU-4eSKbD-2}}\nwused{\\{NW4GQOIU-1Zq3gR-1}}\nwendcode{}\nwbegindocs{86}\nwdocspar
+
+The file {\Tt{}TEX{\_}EXT{\_}SRC\nwendquote} can be either an archive or a repository.
+We let {\Tt{}TEX{\_}EXT{\_}URL\nwendquote} be the \ac{URL} to fetch it from in both cases.
+In the case of an archive we do the following.
+\nwenddocs{}\nwbegincode{87}\sublabel{NW4GQOIU-3iv42z-2}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-3iv42z-2}}}\moddef{targets for archive~{\nwtagstyle{}\subpageref{NW4GQOIU-3iv42z-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-1Zq3gR-1}}\nwprevnextdefs{NW4GQOIU-3iv42z-1}{\relax}\nwenddeflinemarkup
+$\{TEX_EXT_DIR-$(1)\}/$\{TEX_EXT_SRC-$(1)\}:
+  $\{MKDIR\} $\{TEX_EXT_DIR-$(1)\}
+  $\{CURL\} -o $$@ $\{TEX_EXT_URL-$(1)\}
+\nwused{\\{NW4GQOIU-1Zq3gR-1}}\nwendcode{}\nwbegindocs{88}In the case of a repository, we simply clone it.
+\nwenddocs{}\nwbegincode{89}\sublabel{NW4GQOIU-4eSKbD-2}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-4eSKbD-2}}}\moddef{targets for repo~{\nwtagstyle{}\subpageref{NW4GQOIU-4eSKbD-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-1Zq3gR-1}}\nwprevnextdefs{NW4GQOIU-4eSKbD-1}{\relax}\nwenddeflinemarkup
+$\{TEX_EXT_DIR-$(1)\}/$\{TEX_EXT_SRC-$(1)\}:
+  git clone $\{TEX_EXT_URL-$(1)\} $$@
+\nwused{\\{NW4GQOIU-1Zq3gR-1}}\nwendcode{}\nwbegindocs{90}We note that the directory of the repo should be an order-only 
+prerequisite~\cite[see][Sect.\ 4.3]{GNUMake} for the files inside.
+Unfortunately this is not the case at the moment.
+
+Finally, we must also do some cleaning.
+\nwenddocs{}\nwbegincode{91}\sublabel{NW4GQOIU-YyAiu-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-YyAiu-1}}}\moddef{target for cleaning~{\nwtagstyle{}\subpageref{NW4GQOIU-YyAiu-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-1Zq3gR-1}}\nwenddeflinemarkup
+.PHONY: distclean clean-$(1)
+distclean: clean-$(1)
+clean-$(1):
+  $\{RM\} $\{TEX_EXT_FILES-$(1)\}
+  [ "$\{TEX_EXT_DIR-$(1)\}" = "." ] && $\{RM\} $\{TEX_EXT_SRC-$(1)\} \\
+    || $\{RM\} -R $\{TEX_EXT_DIR-$(1)\}
+\nwused{\\{NW4GQOIU-1Zq3gR-1}}\nwendcode{}\nwbegindocs{92}\nwdocspar
+
+\subsection{Springer LNCS}
+
+Springer's \ac{LNCS} series is used for the proceedings of many 
+conferences.
+The style files are available on Springer's web site, but unfortunately not 
+under any permissive license\footnote{%
+  It would be most desirable that they were made available in \ac{CTAN} under 
+  an open license.
+}.
+So, we must, each and every one of us, connect to Springer's server and 
+download our own copy.
+This is what we automate here.
+
+We use the downloader described above.
+\nwenddocs{}\nwbegincode{93}\sublabel{NW4GQOIU-42CEER-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-42CEER-1}}}\moddef{Springer LNCS~{\nwtagstyle{}\subpageref{NW4GQOIU-42CEER-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-2Oad4t-1}}\nwprevnextdefs{\relax}{NW4GQOIU-42CEER-2}\nwenddeflinemarkup
+TEX_EXT_FILES-lncs?=  llncs.cls sprmindx.sty splncs03.bst aliascnt.sty remreset.sty
+TEX_EXT_DIR-lncs?=    lncs
+TEX_EXT_SRC-lncs?=    llncs2e.zip
+TEX_EXT_URL-lncs?=    https://resource-cms.springernature.com/springer-cms/rest/v1/content/19238648/data/v1
+TEX_EXT_EXTRACT-lncs?=$\{UNZIP\} -u $$< -d $\{TEX_EXT_DIR-lncs\}
+
+$(eval $(call download_archive,lncs))
+\nwalsodefined{\\{NW4GQOIU-42CEER-2}}\nwused{\\{NW4GQOIU-2Oad4t-1}}\nwendcode{}\nwbegindocs{94}\nwdocspar
+
+We also want to add backwards compatibility for when we used {\Tt{}llncs\nwendquote} instead 
+of just {\Tt{}lncs\nwendquote}.
+\nwenddocs{}\nwbegincode{95}\sublabel{NW4GQOIU-42CEER-2}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-42CEER-2}}}\moddef{Springer LNCS~{\nwtagstyle{}\subpageref{NW4GQOIU-42CEER-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-2Oad4t-1}}\nwprevnextdefs{NW4GQOIU-42CEER-1}{\relax}\nwenddeflinemarkup
+.PHONY: llncs
+llncs: lncs
+\nwused{\\{NW4GQOIU-2Oad4t-1}}\nwendcode{}\nwbegindocs{96}\nwdocspar
+
+\subsection{LNCS style for {\Tt{}biblatex\nwendquote}}
+
+There is also \iac{LNCS} style for the {\Tt{}biblatex\nwendquote} package available on 
+GitHub.
+Since it is available on GitHub, we recommend adding it as a Git submodule.
+I.e.\ run the following command.
+\begin{lstlisting}
+git submodule add https://github.com/neapel/biblatex-lncs.git
+\end{lstlisting}
+This will add a directory {\Tt{}biblatex-lncs\nwendquote} to the current directory.
+
+If we do not add it as a submodule we can use the downloader above.
+\nwenddocs{}\nwbegincode{97}\sublabel{NW4GQOIU-JX9cs-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-JX9cs-1}}}\moddef{biblatex LNCS style~{\nwtagstyle{}\subpageref{NW4GQOIU-JX9cs-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-2Oad4t-1}}\nwenddeflinemarkup
+TEX_EXT_FILES-biblatex-lncs?= lncs.bbx lncs.cbx lncs.dbx
+TEX_EXT_DIR-biblatex-lncs?=   lncs
+TEX_EXT_SRC-biblatex-lncs?=   biblatex-lncs
+TEX_EXT_URL-biblatex-lncs?=   https://github.com/NorwegianRockCat/biblatex-lncs.git
+
+$(eval $(call download_repo,biblatex-lncs))
+\nwused{\\{NW4GQOIU-2Oad4t-1}}\nwendcode{}\nwbegindocs{98}\nwdocspar
+
+\subsection{The RFC bibliography}
+
+Occasionally we want to cite \ac{IETF} \acp{RFC}.
+Fortunately, Roland Bless of Karlsruher Institute of Technology provides an 
+up-to-date bibliography file for all \acp{RFC}, so we will use that one.
+This is a single file, so we do not need to use the downloader.
+\nwenddocs{}\nwbegincode{99}\sublabel{NW4GQOIU-1nm7wo-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-1nm7wo-1}}}\moddef{the RFC bibliography~{\nwtagstyle{}\subpageref{NW4GQOIU-1nm7wo-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-2Oad4t-1}}\nwprevnextdefs{\relax}{NW4GQOIU-1nm7wo-2}\nwenddeflinemarkup
+rfc.bib:
+  \LA{}download rfc.bib~{\nwtagstyle{}\subpageref{NW4GQOIU-472ZSW-1}}\RA{}
+  \LA{}change misc to techreport~{\nwtagstyle{}\subpageref{NW4GQOIU-CO7Lj-1}}\RA{}
+
+$\{TEXMF\}/tex/latex/rfc.bib:
+  mkdir -p $\{TEXMF\}/tex/latex/
+  \LA{}download rfc.bib~{\nwtagstyle{}\subpageref{NW4GQOIU-472ZSW-1}}\RA{}
+  \LA{}change misc to techreport~{\nwtagstyle{}\subpageref{NW4GQOIU-CO7Lj-1}}\RA{}
+\nwalsodefined{\\{NW4GQOIU-1nm7wo-2}\\{NW4GQOIU-1nm7wo-3}}\nwused{\\{NW4GQOIU-2Oad4t-1}}\nwendcode{}\nwbegindocs{100}\nwdocspar
+
+We will use curl(1) to download a compressed version from Bless' site.
+We let curl(1) output the contents to standard out and pipe it to the 
+uncompress(1) utility and, finally, redirect the result to the target file.
+\nwenddocs{}\nwbegincode{101}\sublabel{NW4GQOIU-472ZSW-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-472ZSW-1}}}\moddef{download rfc.bib~{\nwtagstyle{}\subpageref{NW4GQOIU-472ZSW-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-1nm7wo-1}}\nwenddeflinemarkup
+$\{CURL\} -o - http://tm.uka.de/~bless/rfc.bib.gz 2>/dev/null \\
+  | $\{UNCOMPRESS.gz\} - > $@ ; \\
+\nwused{\\{NW4GQOIU-1nm7wo-1}}\nwendcode{}\nwbegindocs{102}\nwdocspar
+
+According to \ac{IETF}~\cite[Sect.\ 5.2]{IETFCitingRFCs} the \acp{RFC} should 
+be cited as the {\Tt{}techreport\nwendquote} BibTeX type.
+\nwenddocs{}\nwbegincode{103}\sublabel{NW4GQOIU-CO7Lj-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-CO7Lj-1}}}\moddef{change misc to techreport~{\nwtagstyle{}\subpageref{NW4GQOIU-CO7Lj-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-1nm7wo-1}}\nwenddeflinemarkup
+$\{SED\} -i "s/@misc/@techreport/" $@
+\nwused{\\{NW4GQOIU-1nm7wo-1}}\nwendcode{}\nwbegindocs{104}\nwdocspar
+
+We also provide a phony target for these two files.
+\nwenddocs{}\nwbegincode{105}\sublabel{NW4GQOIU-1nm7wo-2}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-1nm7wo-2}}}\moddef{the RFC bibliography~{\nwtagstyle{}\subpageref{NW4GQOIU-1nm7wo-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-2Oad4t-1}}\nwprevnextdefs{NW4GQOIU-1nm7wo-1}{NW4GQOIU-1nm7wo-3}\nwenddeflinemarkup
+.PHONY: rfc
+rfc: rfc.bib $\{TEXMF\}/tex/latex/rfc.bib
+\nwused{\\{NW4GQOIU-2Oad4t-1}}\nwendcode{}\nwbegindocs{106}\nwdocspar
+
+Finally, we provide a phony cleaning for cleaning.
+The target is named {\Tt{}clean-rfc\nwendquote} and is added as a prerequisite for 
+{\Tt{}distclean\nwendquote} --- this way its recipe will not interfere with any cleaning 
+recipe written by the user.
+\nwenddocs{}\nwbegincode{107}\sublabel{NW4GQOIU-1nm7wo-3}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-1nm7wo-3}}}\moddef{the RFC bibliography~{\nwtagstyle{}\subpageref{NW4GQOIU-1nm7wo-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-2Oad4t-1}}\nwprevnextdefs{NW4GQOIU-1nm7wo-2}{\relax}\nwenddeflinemarkup
+.PHONY: distclean clean-rfc
+distclean: clean-rfc
+clean-rfc:
+  $\{RM\} rfc.bib
+\nwused{\\{NW4GQOIU-2Oad4t-1}}\nwendcode{}\nwbegindocs{108}\nwdocspar
+
+\subsection{Proceedings of the Privacy Enhancing Technologies Symposium}
+
+We would also like to be able to use the PoPETS format.
+\nwenddocs{}\nwbegincode{109}\sublabel{NW4GQOIU-347V4M-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW4GQOIU-347V4M-1}}}\moddef{PoPETS~{\nwtagstyle{}\subpageref{NW4GQOIU-347V4M-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW4GQOIU-2Oad4t-1}}\nwenddeflinemarkup
+TEX_EXT_FILES-popets?=by-nc-nd.pdf sciendo-logo.pdf dgruyter_NEW.sty
+TEX_EXT_URL-popets?=https://petsymposium.org/files/popets.zip
+TEX_EXT_DIR-popets?=popets
+TEX_EXT_SRC-popets?=popets.zip
+TEX_EXT_EXTRACT-popets?=$\{UNZIP\} -p $$< popets/$$(notdir $$@) > $$@
+
+$(eval $(call download_archive,popets))
+\nwused{\\{NW4GQOIU-2Oad4t-1}}\nwendcode{}
+
+\nwixlogsorted{c}{{a general downloader}{NW4GQOIU-1Zq3gR-1}{\nwixu{NW4GQOIU-2Oad4t-1}\nwixd{NW4GQOIU-1Zq3gR-1}}}%
+\nwixlogsorted{c}{{auxillary files}{NW4GQOIU-SIrPU-1}{\nwixu{NW4GQOIU-4QwfwR-1}\nwixd{NW4GQOIU-SIrPU-1}}}%
+\nwixlogsorted{c}{{bbl target for biber}{NW4GQOIU-fQI0z-1}{\nwixu{NW4GQOIU-3g0BAK-1}\nwixd{NW4GQOIU-fQI0z-1}\nwixd{NW4GQOIU-fQI0z-2}}}%
+\nwixlogsorted{c}{{bbl target for bibtex}{NW4GQOIU-44dHyo-1}{\nwixu{NW4GQOIU-3g0BAK-1}\nwixd{NW4GQOIU-44dHyo-1}}}%
+\nwixlogsorted{c}{{biblatex LNCS style}{NW4GQOIU-JX9cs-1}{\nwixu{NW4GQOIU-2Oad4t-1}\nwixd{NW4GQOIU-JX9cs-1}}}%
+\nwixlogsorted{c}{{bibliography files}{NW4GQOIU-3g0BAK-1}{\nwixu{NW4GQOIU-4QwfwR-1}\nwixd{NW4GQOIU-3g0BAK-1}\nwixd{NW4GQOIU-3g0BAK-2}\nwixd{NW4GQOIU-3g0BAK-3}}}%
+\nwixlogsorted{c}{{change misc to techreport}{NW4GQOIU-CO7Lj-1}{\nwixu{NW4GQOIU-1nm7wo-1}\nwixd{NW4GQOIU-CO7Lj-1}}}%
+\nwixlogsorted{c}{{clean recipe}{NW4GQOIU-mtljB-1}{\nwixu{NW4GQOIU-LrkAl-1}\nwixd{NW4GQOIU-mtljB-1}}}%
+\nwixlogsorted{c}{{compile class and package documentation}{NW4GQOIU-1s6Szf-1}{\nwixu{NW4GQOIU-tejPg-1}\nwixd{NW4GQOIU-1s6Szf-1}\nwixd{NW4GQOIU-1s6Szf-2}}}%
+\nwixlogsorted{c}{{compile DVI}{NW4GQOIU-whl11-1}{\nwixu{NW4GQOIU-2cBbLf-1}\nwixd{NW4GQOIU-whl11-1}\nwixu{NW4GQOIU-1s6Szf-1}}}%
+\nwixlogsorted{c}{{compile sty and cls files}{NW4GQOIU-cfvLA-1}{\nwixu{NW4GQOIU-tejPg-1}\nwixd{NW4GQOIU-cfvLA-1}}}%
+\nwixlogsorted{c}{{create output directory and preprocess TeX}{NW4GQOIU-i3X8w-1}{\nwixu{NW4GQOIU-SIrPU-1}\nwixd{NW4GQOIU-i3X8w-1}\nwixu{NW4GQOIU-fQI0z-1}\nwixu{NW4GQOIU-UTABh-1}\nwixu{NW4GQOIU-UTABh-4}}}%
+\nwixlogsorted{c}{{distclean recipe}{NW4GQOIU-1Hidyl-1}{\nwixu{NW4GQOIU-LrkAl-1}\nwixd{NW4GQOIU-1Hidyl-1}}}%
+\nwixlogsorted{c}{{document files}{NW4GQOIU-2cBbLf-1}{\nwixu{NW4GQOIU-4QwfwR-1}\nwixd{NW4GQOIU-2cBbLf-1}}}%
+\nwixlogsorted{c}{{download rfc.bib}{NW4GQOIU-472ZSW-1}{\nwixu{NW4GQOIU-1nm7wo-1}\nwixd{NW4GQOIU-472ZSW-1}}}%
+\nwixlogsorted{c}{{indices files}{NW4GQOIU-UTABh-1}{\nwixu{NW4GQOIU-4QwfwR-1}\nwixd{NW4GQOIU-UTABh-1}\nwixd{NW4GQOIU-UTABh-2}\nwixd{NW4GQOIU-UTABh-3}\nwixd{NW4GQOIU-UTABh-4}}}%
+\nwixlogsorted{c}{{latexmkrc}{NW4GQOIU-3qE2M6-1}{\nwixd{NW4GQOIU-3qE2M6-1}\nwixd{NW4GQOIU-3qE2M6-2}}}%
+\nwixlogsorted{c}{{PoPETS}{NW4GQOIU-347V4M-1}{\nwixu{NW4GQOIU-2Oad4t-1}\nwixd{NW4GQOIU-347V4M-1}}}%
+\nwixlogsorted{c}{{PythonTeX files}{NW4GQOIU-287s1n-1}{\nwixu{NW4GQOIU-4QwfwR-1}\nwixd{NW4GQOIU-287s1n-1}}}%
+\nwixlogsorted{c}{{Springer LNCS}{NW4GQOIU-42CEER-1}{\nwixu{NW4GQOIU-2Oad4t-1}\nwixd{NW4GQOIU-42CEER-1}\nwixd{NW4GQOIU-42CEER-2}}}%
+\nwixlogsorted{c}{{target for cleaning}{NW4GQOIU-YyAiu-1}{\nwixu{NW4GQOIU-1Zq3gR-1}\nwixd{NW4GQOIU-YyAiu-1}}}%
+\nwixlogsorted{c}{{target for latexmkrc}{NW4GQOIU-4Jzoxc-1}{\nwixu{NW4GQOIU-4QwfwR-1}\nwixd{NW4GQOIU-4Jzoxc-1}}}%
+\nwixlogsorted{c}{{targets for archive}{NW4GQOIU-3iv42z-1}{\nwixu{NW4GQOIU-1Zq3gR-1}\nwixd{NW4GQOIU-3iv42z-1}\nwixd{NW4GQOIU-3iv42z-2}}}%
+\nwixlogsorted{c}{{targets for class and package files}{NW4GQOIU-tejPg-1}{\nwixu{NW4GQOIU-2kaaDB-1}\nwixd{NW4GQOIU-tejPg-1}}}%
+\nwixlogsorted{c}{{targets for cleaning}{NW4GQOIU-LrkAl-1}{\nwixu{NW4GQOIU-2kaaDB-1}\nwixd{NW4GQOIU-LrkAl-1}}}%
+\nwixlogsorted{c}{{targets for desired files}{NW4GQOIU-22rOUj-1}{\nwixu{NW4GQOIU-1Zq3gR-1}\nwixd{NW4GQOIU-22rOUj-1}}}%
+\nwixlogsorted{c}{{targets for documents}{NW4GQOIU-4QwfwR-1}{\nwixu{NW4GQOIU-2kaaDB-1}\nwixd{NW4GQOIU-4QwfwR-1}}}%
+\nwixlogsorted{c}{{targets for external classes}{NW4GQOIU-2Oad4t-1}{\nwixu{NW4GQOIU-2kaaDB-1}\nwixd{NW4GQOIU-2Oad4t-1}}}%
+\nwixlogsorted{c}{{targets for repo}{NW4GQOIU-4eSKbD-1}{\nwixu{NW4GQOIU-1Zq3gR-1}\nwixd{NW4GQOIU-4eSKbD-1}\nwixd{NW4GQOIU-4eSKbD-2}}}%
+\nwixlogsorted{c}{{targets for symlinks}{NW4GQOIU-1DUTgs-1}{\nwixu{NW4GQOIU-1Zq3gR-1}\nwixd{NW4GQOIU-1DUTgs-1}\nwixd{NW4GQOIU-1DUTgs-2}}}%
+\nwixlogsorted{c}{{tex.mk}{NW4GQOIU-2kaaDB-1}{\nwixd{NW4GQOIU-2kaaDB-1}}}%
+\nwixlogsorted{c}{{the RFC bibliography}{NW4GQOIU-1nm7wo-1}{\nwixu{NW4GQOIU-2Oad4t-1}\nwixd{NW4GQOIU-1nm7wo-1}\nwixd{NW4GQOIU-1nm7wo-2}\nwixd{NW4GQOIU-1nm7wo-3}}}%
+\nwixlogsorted{c}{{variables}{NW4GQOIU-29jjeg-1}{\nwixd{NW4GQOIU-29jjeg-1}\nwixd{NW4GQOIU-29jjeg-2}\nwixd{NW4GQOIU-29jjeg-3}\nwixd{NW4GQOIU-29jjeg-4}\nwixd{NW4GQOIU-29jjeg-5}\nwixd{NW4GQOIU-29jjeg-6}\nwixd{NW4GQOIU-29jjeg-7}\nwixd{NW4GQOIU-29jjeg-8}\nwixu{NW4GQOIU-2kaaDB-1}\nwixd{NW4GQOIU-29jjeg-9}}}%
+\nwbegindocs{110}\nwdocspar
+\nwenddocs{}

@@ -1,0 +1,303 @@
+\section{Introduction and usage}% ===> this file was generated automatically by noweave --- better not edit it
+
+The {\Tt{}noweb.mk\nwendquote} include provides suffix rules for weaving and tangling 
+(produce documentation and code, respectively).
+The framework uses the conventions of make~\cite[Section~10.2]{GNUMake}.
+
+The suffix rules of make works by taking a prerequisite with one suffix and 
+applying the recipe to get a target with another suffix.
+This requires the stem of the filename to be identical.
+The framework can handle files of suffixes defined in {\Tt{}NOWEB{\_}SUFFIXES\nwendquote}.
+However, we also provide {\Tt{}NOWEAVE.tex\nwendquote} to weave a TeX file ({\Tt{}.tex\nwendquote}) from a 
+NOWEB file ({\Tt{}.nw\nwendquote}) and {\Tt{}NOTANGLE.suf\nwendquote} to tangle a {\Tt{}.suf\nwendquote} file from a 
+NOWEB file ({\Tt{}.nw\nwendquote}).
+There is also a {\Tt{}NOWEAVE.pdf\nwendquote} to weave directly to PDF.
+This assumes that the file is independent, \ie no special LaTeX preamble.
+
+
+\section{Implementation}
+
+The overall structure is the same as for other include files.
+We will cover the suffix rules for documentation first and then those for code.
+\nwfilename{noweb.mk.nw}\nwbegincode{1}\sublabel{NW3JNJ0B-2WTS2G-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3JNJ0B-2WTS2G-1}}}\moddef{noweb.mk~{\nwtagstyle{}\subpageref{NW3JNJ0B-2WTS2G-1}}}\endmoddef\nwstartdeflinemarkup\nwenddeflinemarkup
+ifndef NOWEB_MK
+NOWEB_MK = true
+
+\LA{}variables~{\nwtagstyle{}\subpageref{NW3JNJ0B-29jjeg-1}}\RA{}
+
+INCLUDE_MAKEFILES?=.
+MAKEFILES_DIR?=$\{INCLUDE_MAKEFILES\}
+include $\{MAKEFILES_DIR\}/tex.mk
+
+\LA{}suffix rules for weaving documentation~{\nwtagstyle{}\subpageref{NW3JNJ0B-dAOzE-1}}\RA{}
+\LA{}suffix rules for tangling code~{\nwtagstyle{}\subpageref{NW3JNJ0B-HHfVd-1}}\RA{}
+
+endif
+\nwnotused{noweb.mk}\nwendcode{}\nwbegindocs{2}\nwdocspar
+
+\subsection{Weaving documentation}
+
+We will use the {\Tt{}noweave\nwendquote} command to weave the documentation.
+We are interested in two cases:
+\begin{enumerate}
+\item when a source program should be converted to TeX to be included in a 
+larger document, and
+\item when a source program is independent and should be converted to PDF.
+\end{enumerate}
+
+The order of the rules are important.
+To ensure make takes the \enquote{shortcut} of the second case, we must specify 
+that rule first.
+\nwenddocs{}\nwbegincode{3}\sublabel{NW3JNJ0B-dAOzE-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3JNJ0B-dAOzE-1}}}\moddef{suffix rules for weaving documentation~{\nwtagstyle{}\subpageref{NW3JNJ0B-dAOzE-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3JNJ0B-2WTS2G-1}}\nwenddeflinemarkup
+\LA{}suffix rule for weaving to PDF~{\nwtagstyle{}\subpageref{NW3JNJ0B-4Di5Ld-1}}\RA{}
+\LA{}suffix rule for weaving to TeX~{\nwtagstyle{}\subpageref{NW3JNJ0B-3EfcsT-1}}\RA{}
+\nwused{\\{NW3JNJ0B-2WTS2G-1}}\nwendcode{}\nwbegindocs{4}\nwdocspar
+
+Now, for the first case, we let
+\nwenddocs{}\nwbegincode{5}\sublabel{NW3JNJ0B-29jjeg-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3JNJ0B-29jjeg-1}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3JNJ0B-29jjeg-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3JNJ0B-2WTS2G-1}}\nwprevnextdefs{\relax}{NW3JNJ0B-29jjeg-2}\nwenddeflinemarkup
+NOWEAVE.tex?=       noweave $\{NOWEAVEFLAGS.tex\} $< > $@
+NOWEAVEFLAGS.tex?=  $\{NOWEAVEFLAGS\} -x -n -delay -t2
+\nwalsodefined{\\{NW3JNJ0B-29jjeg-2}\\{NW3JNJ0B-29jjeg-3}\\{NW3JNJ0B-29jjeg-4}\\{NW3JNJ0B-29jjeg-5}\\{NW3JNJ0B-29jjeg-6}}\nwused{\\{NW3JNJ0B-2WTS2G-1}}\nwendcode{}\nwbegindocs{6}Now we need to specify all the suffixes to use and then construct suffix rules 
+for all of them.
+Fortunately we can use the same recipe for all, so we only need to write one 
+recipe for multiple targets.
+We will use a variable {\Tt{}NOWEB{\_}SUFFIXES\nwendquote} to keep a list of supported suffixes.  
+Since these suffixes only matter for tangling, we will set the variable in that
+section.
+For now, we only use it.
+\nwenddocs{}\nwbegincode{7}\sublabel{NW3JNJ0B-3EfcsT-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3JNJ0B-3EfcsT-1}}}\moddef{suffix rule for weaving to TeX~{\nwtagstyle{}\subpageref{NW3JNJ0B-3EfcsT-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3JNJ0B-dAOzE-1}}\nwenddeflinemarkup
+%.tex: %.nw
+  $\{NOWEAVE.tex\}
+
+define def_weave_to_tex
+%.tex: %$(1).nw
+  $$\{NOWEAVE.tex\}
+endef
+
+$(foreach suf,$\{NOWEB_SUFFIXES\},$(eval $(call def_weave_to_tex,$\{suf\})))
+\nwused{\\{NW3JNJ0B-dAOzE-1}}\nwendcode{}\nwbegindocs{8}\nwdocspar
+
+To differentiate the second case from the first (in terms of suffix rules), we 
+go from {\Tt{}.nw\nwendquote} directly to {\Tt{}.pdf\nwendquote}\footnote{%
+  Note, however, that these pattern rules will never be used by make.
+  The make algorithm performs a depth-first search, thus make will take the 
+  long way by first converting to TeX, then to PDF.
+  We can determine which of these two pattern rules should be used by moving 
+  the inclusion of the {\Tt{}tex.mk\nwendquote} include file above.
+}.
+\nwenddocs{}\nwbegincode{9}\sublabel{NW3JNJ0B-4Di5Ld-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3JNJ0B-4Di5Ld-1}}}\moddef{suffix rule for weaving to PDF~{\nwtagstyle{}\subpageref{NW3JNJ0B-4Di5Ld-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3JNJ0B-dAOzE-1}}\nwenddeflinemarkup
+%.pdf: %.nw
+  $\{NOWEAVE.pdf\}
+
+define def_weave_to_pdf
+%.pdf: %$(1).nw
+  $$\{NOWEAVE.pdf\}
+endef
+
+$(foreach suf,$\{NOWEB_SUFFIXES\},$(eval $(call def_weave_to_pdf,$\{suf\})))
+\nwused{\\{NW3JNJ0B-dAOzE-1}}\nwendcode{}\nwbegindocs{10}What differs {\Tt{}NOWEAVE.pdf\nwendquote} from {\Tt{}NOWEAVE.tex\nwendquote} is the options to 
+{\Tt{}noweave\nwendquote} and the compilation step (instead of having that separately).
+\nwenddocs{}\nwbegincode{11}\sublabel{NW3JNJ0B-29jjeg-2}\nwmargintag{{\nwtagstyle{}\subpageref{NW3JNJ0B-29jjeg-2}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3JNJ0B-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3JNJ0B-2WTS2G-1}}\nwprevnextdefs{NW3JNJ0B-29jjeg-1}{NW3JNJ0B-29jjeg-3}\nwenddeflinemarkup
+NOWEAVE.pdf?=       \\
+  noweave $\{NOWEAVEFLAGS.pdf\} $< > $\{@:.pdf=.tex\} && \\
+  latexmk -pdf $\{@:.pdf=.tex\}
+NOWEAVEFLAGS.pdf?=  $\{NOWEAVEFLAGS\} -x -t2
+\nwused{\\{NW3JNJ0B-2WTS2G-1}}\nwendcode{}\nwbegindocs{12}\nwdocspar
+
+\subsection{Tangling code}
+
+We will now cover the rules for tangling the source code for different 
+languages.
+\nwenddocs{}\nwbegincode{13}\sublabel{NW3JNJ0B-HHfVd-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3JNJ0B-HHfVd-1}}}\moddef{suffix rules for tangling code~{\nwtagstyle{}\subpageref{NW3JNJ0B-HHfVd-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3JNJ0B-2WTS2G-1}}\nwenddeflinemarkup
+\LA{}general tangling rules~{\nwtagstyle{}\subpageref{NW3JNJ0B-3Kk0zj-1}}\RA{}
+\LA{}special rules for different languages~{\nwtagstyle{}\subpageref{NW3JNJ0B-3iZmQi-1}}\RA{}
+\nwused{\\{NW3JNJ0B-2WTS2G-1}}\nwendcode{}\nwbegindocs{14}We will first write some general pattern rules, then supply ways to adapt 
+this rule to the different languages.
+
+We will use notangle(1).
+\nwenddocs{}\nwbegincode{15}\sublabel{NW3JNJ0B-29jjeg-3}\nwmargintag{{\nwtagstyle{}\subpageref{NW3JNJ0B-29jjeg-3}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3JNJ0B-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3JNJ0B-2WTS2G-1}}\nwprevnextdefs{NW3JNJ0B-29jjeg-2}{NW3JNJ0B-29jjeg-4}\nwenddeflinemarkup
+NOTANGLEFLAGS?=
+NOTANGLE?=      notangle $\{NOTANGLEFLAGS\} -R$(notdir $@) $(filter %.nw,$^) | \\
+                  $\{CPIF\} $@ && noroots $(filter %.nw,$^)
+\nwused{\\{NW3JNJ0B-2WTS2G-1}}\nwendcode{}\nwbegindocs{16}We will also use the command cpif(1).
+This command only updates the files if they have changed.
+We need this since many files may reside in the same NOWEB source file, but 
+only some of them are updated.
+Without {\Tt{}cpif\nwendquote}, make would normally \emph{update all files} if \emph{any has 
+changed} --- which is clearly undesirable.
+\nwenddocs{}\nwbegincode{17}\sublabel{NW3JNJ0B-29jjeg-4}\nwmargintag{{\nwtagstyle{}\subpageref{NW3JNJ0B-29jjeg-4}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3JNJ0B-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3JNJ0B-2WTS2G-1}}\nwprevnextdefs{NW3JNJ0B-29jjeg-3}{NW3JNJ0B-29jjeg-5}\nwenddeflinemarkup
+CPIF?=          cpif
+\nwused{\\{NW3JNJ0B-2WTS2G-1}}\nwendcode{}\nwbegindocs{18}However, since we use this variable, cpif(1) can be substituted for tee(1) in 
+desirable situations.
+
+\paragraph{General pattern rules}
+
+There are two general pattern rules that we will add.
+\nwenddocs{}\nwbegincode{19}\sublabel{NW3JNJ0B-3Kk0zj-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3JNJ0B-3Kk0zj-1}}}\moddef{general tangling rules~{\nwtagstyle{}\subpageref{NW3JNJ0B-3Kk0zj-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3JNJ0B-HHfVd-1}}\nwenddeflinemarkup
+\LA{}tangle source files with suffix~{\nwtagstyle{}\subpageref{NW3JNJ0B-1VVpCX-1}}\RA{}
+\LA{}tangle source files without suffix~{\nwtagstyle{}\subpageref{NW3JNJ0B-2tqDpo-1}}\RA{}
+\nwused{\\{NW3JNJ0B-HHfVd-1}}\nwendcode{}\nwbegindocs{20}In the first one, we will tangle a file with suffix {\Tt{}.suf\nwendquote} from the source 
+file with suffix {\Tt{}.suf.nw\nwendquote} and in the second a source file with suffix 
+{\Tt{}.nw\nwendquote}.
+
+We can start with the second.
+In this rule, we have a file with a supported suffix {\Tt{}.suf\nwendquote} depend on the 
+NOWEB source file with suffix {\Tt{}.nw\nwendquote}.
+Then we let the recipe be set by the variable {\Tt{}NOTANGLE.suf\nwendquote}, which is the 
+convention followed by make(1)~\cite[Sect.\ 10.2]{GNUMake}.
+\nwenddocs{}\nwbegincode{21}\sublabel{NW3JNJ0B-2tqDpo-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3JNJ0B-2tqDpo-1}}}\moddef{tangle source files without suffix~{\nwtagstyle{}\subpageref{NW3JNJ0B-2tqDpo-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3JNJ0B-3Kk0zj-1}}\nwenddeflinemarkup
+$(addprefix %,$\{NOWEB_SUFFIXES\}): %.nw
+  $\{NOTANGLE$(suffix $@)\}
+\nwused{\\{NW3JNJ0B-3Kk0zj-1}}\nwendcode{}\nwbegindocs{22}\nwdocspar
+
+For the other case, we add rules using the suffix prefixed to {\Tt{}.nw\nwendquote}.
+\nwenddocs{}\nwbegincode{23}\sublabel{NW3JNJ0B-1VVpCX-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3JNJ0B-1VVpCX-1}}}\moddef{tangle source files with suffix~{\nwtagstyle{}\subpageref{NW3JNJ0B-1VVpCX-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3JNJ0B-3Kk0zj-1}}\nwenddeflinemarkup
+define with_suffix_target
+%$(1): %$(1).nw
+  $$\{NOTANGLE$$(suffix $$@)\}
+endef
+$(foreach suf,$\{NOWEB_SUFFIXES\},$(eval $(call with_suffix_target,$\{suf\})))
+\nwused{\\{NW3JNJ0B-3Kk0zj-1}}\nwendcode{}\nwbegindocs{24}However, this rule does not capture some of the things we want, \eg we cannot 
+tangle a header file {\Tt{}.h\nwendquote} from a {\Tt{}.cpp.nw\nwendquote} file.
+We must add these rules manually, which we do below.
+
+\paragraph{Rules for different languages}
+
+We will now cover specialized instances of the general pattern rules defined 
+above.
+We will simply set the default variables.
+\nwenddocs{}\nwbegincode{25}\sublabel{NW3JNJ0B-29jjeg-5}\nwmargintag{{\nwtagstyle{}\subpageref{NW3JNJ0B-29jjeg-5}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3JNJ0B-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3JNJ0B-2WTS2G-1}}\nwprevnextdefs{NW3JNJ0B-29jjeg-4}{NW3JNJ0B-29jjeg-6}\nwenddeflinemarkup
+\LA{}defaults for C and C++~{\nwtagstyle{}\subpageref{NW3JNJ0B-1RkDZv-1}}\RA{}
+\LA{}defaults for Haskell~{\nwtagstyle{}\subpageref{NW3JNJ0B-3G3VYa-1}}\RA{}
+\LA{}defaults for Make~{\nwtagstyle{}\subpageref{NW3JNJ0B-zwVnh-1}}\RA{}
+\LA{}defaults for remaining~{\nwtagstyle{}\subpageref{NW3JNJ0B-34DmtX-1}}\RA{}
+\nwused{\\{NW3JNJ0B-2WTS2G-1}}\nwendcode{}\nwbegindocs{26}As noted above, we need some special rules for the C and C++ header files, 
+but no extra rules for any other language.
+\nwenddocs{}\nwbegincode{27}\sublabel{NW3JNJ0B-3iZmQi-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3JNJ0B-3iZmQi-1}}}\moddef{special rules for different languages~{\nwtagstyle{}\subpageref{NW3JNJ0B-3iZmQi-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3JNJ0B-HHfVd-1}}\nwenddeflinemarkup
+\LA{}rules for C and C++~{\nwtagstyle{}\subpageref{NW3JNJ0B-1mCQja-1}}\RA{}
+\nwused{\\{NW3JNJ0B-HHfVd-1}}\nwendcode{}\nwbegindocs{28}\nwdocspar
+
+For the languages of the C-family, we will use the {\Tt{}-L\nwendquote} option to get the 
+line preprocessor-directive in the generated source --- this will allow {\Tt{}gdb\nwendquote} 
+and the compiler to point to lines in the NOWEB source file, and not to the 
+generated file.
+\nwenddocs{}\nwbegincode{29}\sublabel{NW3JNJ0B-1RkDZv-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3JNJ0B-1RkDZv-1}}}\moddef{defaults for C and C++~{\nwtagstyle{}\subpageref{NW3JNJ0B-1RkDZv-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3JNJ0B-29jjeg-5}}\nwprevnextdefs{\relax}{NW3JNJ0B-1RkDZv-2}\nwenddeflinemarkup
+NOWEB_SUFFIXES+=    .c .cc .cpp .cxx
+NOTANGLEFLAGS.c?=   -L
+NOTANGLE.c?=        notangle $\{NOTANGLEFLAGS.c\} -R$(notdir $@) \\
+  $(filter %.nw,$^) | $\{CPIF\} $@ && noroots $(filter %.nw,$^)
+NOTANGLEFLAGS.cc?=  $\{NOTANGLEFLAGS.c\}
+NOTANGLE.cc?=       notangle $\{NOTANGLEFLAGS.cc\} -R$(notdir $@) \\
+  $(filter %.nw,$^) | $\{CPIF\} $@ && noroots $(filter %.nw,$^)
+NOTANGLEFLAGS.cpp?= $\{NOTANGLEFLAGS.c\}
+NOTANGLE.cpp?=      notangle $\{NOTANGLEFLAGS.cpp\} -R$(notdir $@) \\
+  $(filter %.nw,$^) | $\{CPIF\} $@ && noroots $(filter %.nw,$^)
+NOTANGLEFLAGS.cxx?= $\{NOTANGLEFLAGS.c\}
+NOTANGLE.cxx?=      notangle $\{NOTANGLEFLAGS.cxx\} -R$(notdir $@) \\
+  $(filter %.nw,$^) | $\{CPIF\} $@ && noroots $(filter %.nw,$^)
+\nwalsodefined{\\{NW3JNJ0B-1RkDZv-2}}\nwused{\\{NW3JNJ0B-29jjeg-5}}\nwendcode{}\nwbegindocs{30}\nwdocspar
+
+For C-family source code, we will assume that the header files (declarations) 
+are written together with the definitions, so that we can extract both files 
+from the same NOWEB source.
+However, for this we must add extra pattern rules.
+\nwenddocs{}\nwbegincode{31}\sublabel{NW3JNJ0B-1mCQja-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3JNJ0B-1mCQja-1}}}\moddef{rules for C and C++~{\nwtagstyle{}\subpageref{NW3JNJ0B-1mCQja-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3JNJ0B-3iZmQi-1}}\nwenddeflinemarkup
+%.h: %.c.nw
+  $\{NOTANGLE.h\}
+
+%.hh: %.cc.nw
+  $\{NOTANGLE.hh\}
+
+%.hpp: %.cpp.nw
+  $\{NOTANGLE.hpp\}
+
+%.hxx: %.cxx.nw
+  $\{NOTANGLE.hxx\}
+\nwused{\\{NW3JNJ0B-3iZmQi-1}}\nwendcode{}\nwbegindocs{32}Finally, we can define the variables used for tangling.
+\nwenddocs{}\nwbegincode{33}\sublabel{NW3JNJ0B-1RkDZv-2}\nwmargintag{{\nwtagstyle{}\subpageref{NW3JNJ0B-1RkDZv-2}}}\moddef{defaults for C and C++~{\nwtagstyle{}\subpageref{NW3JNJ0B-1RkDZv-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3JNJ0B-29jjeg-5}}\nwprevnextdefs{NW3JNJ0B-1RkDZv-1}{\relax}\nwenddeflinemarkup
+NOWEB_SUFFIXES+=    .h .hh .hpp .hxx
+NOTANGLEFLAGS.h?=   -L
+NOTANGLE.h?=        notangle $\{NOTANGLEFLAGS.h\} -R$(notdir $@) \\
+  $(filter %.nw,$^) | $\{CPIF\} $@ && noroots $(filter %.nw,$^)
+NOTANGLEFLAGS.hh?=  $\{NOTANGLEFLAGS.h\}
+NOTANGLE.hh?=       notangle $\{NOTANGLEFLAGS.hh\} -R$(notdir $@) \\
+  $(filter %.nw,$^) | $\{CPIF\} $@ && noroots $(filter %.nw,$^)
+NOTANGLEFLAGS.hpp?= $\{NOTANGLEFLAGS.h\}
+NOTANGLE.hpp?=      notangle $\{NOTANGLEFLAGS.hpp\} -R$(notdir $@) \\
+  $(filter %.nw,$^) | $\{CPIF\} $@ && noroots $(filter %.nw,$^)
+NOTANGLEFLAGS.hxx?= $\{NOTANGLEFLAGS.h\}
+NOTANGLE.hxx?=      notangle $\{NOTANGLEFLAGS.hxx\} -R$(notdir $@) \\
+  $(filter %.nw,$^) | $\{CPIF\} $@ && noroots $(filter %.nw,$^)
+\nwused{\\{NW3JNJ0B-29jjeg-5}}\nwendcode{}\nwbegindocs{34}\nwdocspar
+
+The suffix rules for Haskell is similar to those for C and C++, due to the 
+Glasgow Haskell Compiler (GHC) being very close to the C and C++ compilers.
+\nwenddocs{}\nwbegincode{35}\sublabel{NW3JNJ0B-3G3VYa-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3JNJ0B-3G3VYa-1}}}\moddef{defaults for Haskell~{\nwtagstyle{}\subpageref{NW3JNJ0B-3G3VYa-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3JNJ0B-29jjeg-5}}\nwenddeflinemarkup
+NOWEB_SUFFIXES+=    .hs
+NOTANGLEFLAGS.hs?=  -L
+NOTANGLE.hs?=       notangle $\{NOTANGLEFLAGS.hs\} -R$(notdir $@) \\
+  $(filter %.nw,$^) | $\{CPIF\} $@ && noroots $(filter %.nw,$^)
+\nwused{\\{NW3JNJ0B-29jjeg-5}}\nwendcode{}\nwbegindocs{36}We also note that we do not need any suffix rule for {\Tt{}.lhs\nwendquote} files, for the 
+same reason as for the weaving, GHC automatically tangles Haskell's native 
+literate files ({\Tt{}.lhs\nwendquote}).
+
+Make also requires slightly modified flags.
+We need {\Tt{}-t2\nwendquote} to expand spaces into tabs, because make(1) requires tabs for 
+indentation, not spaces.
+\nwenddocs{}\nwbegincode{37}\sublabel{NW3JNJ0B-zwVnh-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3JNJ0B-zwVnh-1}}}\moddef{defaults for Make~{\nwtagstyle{}\subpageref{NW3JNJ0B-zwVnh-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3JNJ0B-29jjeg-5}}\nwenddeflinemarkup
+NOWEB_SUFFIXES+=    .mk
+NOTANGLEFLAGS.mk?=  -t2
+NOTANGLE.mk?=       notangle $\{NOTANGLEFLAGS.mk\} -R$(notdir $@) \\
+  $(filter %.nw,$^) > $@ && noroots $(filter %.nw,$^)
+\nwused{\\{NW3JNJ0B-29jjeg-5}}\nwendcode{}\nwbegindocs{38}\nwdocspar
+
+For Python, LaTeX, shell scripts and Go, there is no special processing needed, 
+we simply use the flags we set in the beginning.
+We will now iterate through \emph{all} suffixes, including {\Tt{}.mk\nwendquote} and {\Tt{}.cpp\nwendquote} 
+\etc that we have already defined options for.
+Since we use the {\Tt{}?=\nwendquote} operator, those we have already defined will be 
+ignored.
+This has the added benefit that one can simply add {\Tt{}.suf\nwendquote} to 
+{\Tt{}NOWEB{\_}SUFFIXES\nwendquote} and this code will automatically generate the default 
+settings.
+\nwenddocs{}\nwbegincode{39}\sublabel{NW3JNJ0B-34DmtX-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3JNJ0B-34DmtX-1}}}\moddef{defaults for remaining~{\nwtagstyle{}\subpageref{NW3JNJ0B-34DmtX-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3JNJ0B-29jjeg-5}}\nwprevnextdefs{\relax}{NW3JNJ0B-34DmtX-2}\nwenddeflinemarkup
+NOWEB_SUFFIXES+=    .py .sty .cls .sh .go
+
+define default_tangling
+NOTANGLEFLAGS$(1)?=
+NOTANGLE$(1)?=      notangle $$\{NOTANGLEFLAGS$(1)\} -R$$(notdir $$@) \\
+  $$(filter %.nw,$$^) > $$@ && noroots $$(filter %.nw,$$^)
+endef
+
+$(foreach suffix,$\{NOWEB_SUFFIXES\},$(eval $(call default_tangling,$\{suffix\})))
+\nwalsodefined{\\{NW3JNJ0B-34DmtX-2}}\nwused{\\{NW3JNJ0B-29jjeg-5}}\nwendcode{}\nwbegindocs{40}\nwdocspar
+
+However, we'd like to add an extra post-processing step for Python:
+we'd like to run a Python formatter (such as Black) on the generated source 
+code.
+\nwenddocs{}\nwbegincode{41}\sublabel{NW3JNJ0B-34DmtX-2}\nwmargintag{{\nwtagstyle{}\subpageref{NW3JNJ0B-34DmtX-2}}}\moddef{defaults for remaining~{\nwtagstyle{}\subpageref{NW3JNJ0B-34DmtX-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3JNJ0B-29jjeg-5}}\nwprevnextdefs{NW3JNJ0B-34DmtX-1}{\relax}\nwenddeflinemarkup
+NOTANGLE.py+=       && $\{NOWEB_PYCODEFMT\}
+\nwused{\\{NW3JNJ0B-29jjeg-5}}\nwendcode{}\nwbegindocs{42}\nwdocspar
+
+We'll add Black as the default Python code formatter.
+\nwenddocs{}\nwbegincode{43}\sublabel{NW3JNJ0B-29jjeg-6}\nwmargintag{{\nwtagstyle{}\subpageref{NW3JNJ0B-29jjeg-6}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3JNJ0B-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3JNJ0B-2WTS2G-1}}\nwprevnextdefs{NW3JNJ0B-29jjeg-5}{\relax}\nwenddeflinemarkup
+NOWEB_PYCODEFMT?=   black $@
+\nwused{\\{NW3JNJ0B-2WTS2G-1}}\nwendcode{}
+
+\nwixlogsorted{c}{{defaults for C and C++}{NW3JNJ0B-1RkDZv-1}{\nwixu{NW3JNJ0B-29jjeg-5}\nwixd{NW3JNJ0B-1RkDZv-1}\nwixd{NW3JNJ0B-1RkDZv-2}}}%
+\nwixlogsorted{c}{{defaults for Haskell}{NW3JNJ0B-3G3VYa-1}{\nwixu{NW3JNJ0B-29jjeg-5}\nwixd{NW3JNJ0B-3G3VYa-1}}}%
+\nwixlogsorted{c}{{defaults for Make}{NW3JNJ0B-zwVnh-1}{\nwixu{NW3JNJ0B-29jjeg-5}\nwixd{NW3JNJ0B-zwVnh-1}}}%
+\nwixlogsorted{c}{{defaults for remaining}{NW3JNJ0B-34DmtX-1}{\nwixu{NW3JNJ0B-29jjeg-5}\nwixd{NW3JNJ0B-34DmtX-1}\nwixd{NW3JNJ0B-34DmtX-2}}}%
+\nwixlogsorted{c}{{general tangling rules}{NW3JNJ0B-3Kk0zj-1}{\nwixu{NW3JNJ0B-HHfVd-1}\nwixd{NW3JNJ0B-3Kk0zj-1}}}%
+\nwixlogsorted{c}{{noweb.mk}{NW3JNJ0B-2WTS2G-1}{\nwixd{NW3JNJ0B-2WTS2G-1}}}%
+\nwixlogsorted{c}{{rules for C and C++}{NW3JNJ0B-1mCQja-1}{\nwixu{NW3JNJ0B-3iZmQi-1}\nwixd{NW3JNJ0B-1mCQja-1}}}%
+\nwixlogsorted{c}{{special rules for different languages}{NW3JNJ0B-3iZmQi-1}{\nwixu{NW3JNJ0B-HHfVd-1}\nwixd{NW3JNJ0B-3iZmQi-1}}}%
+\nwixlogsorted{c}{{suffix rule for weaving to PDF}{NW3JNJ0B-4Di5Ld-1}{\nwixu{NW3JNJ0B-dAOzE-1}\nwixd{NW3JNJ0B-4Di5Ld-1}}}%
+\nwixlogsorted{c}{{suffix rule for weaving to TeX}{NW3JNJ0B-3EfcsT-1}{\nwixu{NW3JNJ0B-dAOzE-1}\nwixd{NW3JNJ0B-3EfcsT-1}}}%
+\nwixlogsorted{c}{{suffix rules for tangling code}{NW3JNJ0B-HHfVd-1}{\nwixu{NW3JNJ0B-2WTS2G-1}\nwixd{NW3JNJ0B-HHfVd-1}}}%
+\nwixlogsorted{c}{{suffix rules for weaving documentation}{NW3JNJ0B-dAOzE-1}{\nwixu{NW3JNJ0B-2WTS2G-1}\nwixd{NW3JNJ0B-dAOzE-1}}}%
+\nwixlogsorted{c}{{tangle source files with suffix}{NW3JNJ0B-1VVpCX-1}{\nwixu{NW3JNJ0B-3Kk0zj-1}\nwixd{NW3JNJ0B-1VVpCX-1}}}%
+\nwixlogsorted{c}{{tangle source files without suffix}{NW3JNJ0B-2tqDpo-1}{\nwixu{NW3JNJ0B-3Kk0zj-1}\nwixd{NW3JNJ0B-2tqDpo-1}}}%
+\nwixlogsorted{c}{{variables}{NW3JNJ0B-29jjeg-1}{\nwixu{NW3JNJ0B-2WTS2G-1}\nwixd{NW3JNJ0B-29jjeg-1}\nwixd{NW3JNJ0B-29jjeg-2}\nwixd{NW3JNJ0B-29jjeg-3}\nwixd{NW3JNJ0B-29jjeg-4}\nwixd{NW3JNJ0B-29jjeg-5}\nwixd{NW3JNJ0B-29jjeg-6}}}%
+\nwbegindocs{44}\nwdocspar
+\nwenddocs{}

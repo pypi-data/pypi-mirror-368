@@ -1,0 +1,471 @@
+\chapter{Sign-up sheets}
+
+In this chapter we cover the [[nytid.signup.sheets]] module.
+The outline of the module is as follows:
+<<sheets.py>>=
+import csv
+from datetime import datetime
+import dateutil.tz
+import ics.attendee
+import ics.event
+import nytid.schedules
+import nytid.signup.utils
+import os
+from nytid.signup import sheets
+import re
+import requests
+
+<<constants>>
+<<classes>>
+<<functions>>
+@
+
+
+\section{Generate sign up sheet for TAs}
+
+We want to generate a sign-up sheet that TAs can use to sign up for teaching 
+sessions, \eg lab or tutorial sessions.
+It takes the course title (used for file name) and a URL to TimeEdit for the 
+course schedule.
+It outputs a CSV that can be imported to Google Sheets that the TAs can fill.
+<<functions>>=
+def generate_signup_sheet(outfile, url,
+                          needed_TAs=nytid.signup.utils.needed_TAs, 
+                          event_filter=nytid.schedules.event_filter,
+                          <<more signup args>>):
+  """
+  Input:
+  - outfile is a string containing the file name used for output.
+  - url is the URL to the ICS-formatted calendar.
+  - needed_TAs is a function computing the number of needed TAs based on the 
+    event. The default is the needed_TAs function in this module,
+  - event_filter is a function that filters events, takes a list of events as 
+    argument and returns a filtered list.
+  <<more signup args doc>>
+
+  Output:
+  Returns nothing. Writes output to {outfile}.csv.
+  """
+  <<let [[out]] be [[outfile]] open for writing>>
+  with out:
+    csvout = csv.writer(out, delimiter="\t")
+    calendar = nytid.schedules.read_calendar(url)
+
+    max_num_TAs = 0
+    rows = []
+
+    <<generate [[rows]] of sign-up sheet>>
+
+    csvout.writerow(SIGNUP_SHEET_HEADER +
+      [f"TA username" for n in range(max_num_TAs)] +
+        ["..."])
+
+    csvout.writerows(rows)
+@
+
+To open the file for writing, we want to ensure that the directory exists.
+We try to open it, and if it fails with a [[FileNotFoundError]] we know the 
+parent directory doesn't exist.
+Then we create the parent directories and try again.
+<<let [[out]] be [[outfile]] open for writing>>=
+try:
+  out = open(outfile, "w")
+except FileNotFoundError:
+  os.makedirs(os.path.dirname(outfile), exist_ok=True)
+  out = open(outfile, "w")
+@
+
+To generate the rows of the sheet, we simply go through the calendar in 
+chronological order.
+We want TAs to sign up for any event in the calendar.
+If we don't want any TAs, we can simply filter out those events from the 
+TimeEdit ICS export.
+<<generate [[rows]] of sign-up sheet>>=
+for event in event_filter(calendar.timeline):
+  num_TAs = needed_TAs(event)
+
+  if num_TAs > max_num_TAs:
+    max_num_TAs = num_TAs
+
+  <<append [[event]] data to [[rows]]>>
+@
+
+In most cases, it would be straight-forward to just extract the event data and 
+to append it to [[rows]].
+However, in the case where we have digital in location, it's good to have a 
+separate line to book TAs for the digital event.
+For instance, then they might not have to come to campus.
+It also makes it clear who is responsible for the online component.
+So when that happens, we want to append the event data twice---once for 
+physical rooms (without the digital room) and once for the digital room.
+However, we make this optional, but on by default.
+<<more signup args doc>>=
+- digital_separately is a bool indicating whether to separate digital 
+  events from physical ones. If True, the digital events will be separated into 
+  their own rows in the sign-up sheet. Default is True.
+<<more signup args>>=
+digital_separately=True,
+<<append [[event]] data to [[rows]]>>=
+if digital_separately and "digital" in event.location.casefold():
+  TAs_per_room = num_TAs // (event.location.count(",") + 1)
+  <<remove digital from [[event.location]]>>
+  if event.location: # check if digital was the only room
+    rows.append([*event_to_CSV(event),
+                max(num_TAs-TAs_per_room, 1)]) # at least one TA
+  event.location = "Digital"
+  rows.append([*event_to_CSV(event),
+               max(TAs_per_room, 1)])
+else:
+  rows.append([*event_to_CSV(event), num_TAs])
+<<functions>>=
+def event_to_CSV(event):
+  """
+  Input: event is an ics.event.Event object.
+
+  Output: a list of strings containing the event's attributes in the order 
+  specified in SIGNUP_SHEET_HEADER.
+  """
+  return [
+    event.name,
+    event.begin.to("local").format(DATETIME_FORMAT),
+    event.end.to("local").format(DATETIME_FORMAT),
+    event.location
+  ]
+<<constants>>=
+SIGNUP_SHEET_HEADER = [
+  "Event", "Start", "End", "Rooms",
+  "#Needed TAs"
+]
+DATETIME_FORMAT = "YYYY-MM-DD HH:mm"
+STRPTIME_FORMAT = "%Y-%m-%d %H:%M"
+@
+
+When we remove digital from the location, we want to remove it in a way that 
+doesn't break the list of rooms.
+So we want to remove it either with a preceding comma, or a trailing comma, but 
+not both.
+We're fine removing it if it's the only room, since then we would detect it 
+above.
+<<remove digital from [[event.location]]>>=
+event.location = re.sub(r"(,\s*digital|digital,\s*|digital)", "",
+                        event.location,
+                        flags=re.IGNORECASE).strip()
+@
+
+Finally, we can use the function as follows.
+<<usage examples>>=
+COURSES = {
+  "DD1310": 
+  "https://cloud.timeedit.net/kth/web/public01/ri.ics?sid=7&p=0.w%2C12.n&objects=453080.10&e=220609&enol=t&ku=29&k=1B9F3AD696BCA5C434C68950EFD376DD",
+  "DD1317": 
+  "https://cloud.timeedit.net/kth/web/public01/ri.ics?sid=7&p=0.w%2C12.n&objects=455995.10&e=220609&enol=t&ku=29&k=BA4400E3C003685549BC65AD9EAD3DC58E"
+}
+
+for course, url in COURSES.items():
+  generate_signup_sheet(course, url)
+@
+
+
+\section{Reading the sign-up sheet}
+
+We want to read the sign-up sheet to later parse it to extract interesting 
+data.
+We provide two ways:
+\begin{itemize}
+\item read from a file.
+\item read from a URL.
+\end{itemize}
+In both cases we want to return the rows of the CSV.
+
+\subsection{Reading from a file}
+
+We simply read the rows from the file.
+<<functions>>=
+def read_signup_sheet_from_file(filename):
+  """
+  Input: filename is a string containing the file name of the CSV file of the 
+  sign-up sheet.
+
+  Output: All the rows of the CSV as a Python list.
+  """
+  with open(filename, "r") as f:
+    csvfile = csv.reader(f)
+    return list(filter(any, list(csvfile)[1:]))
+@
+
+\subsection{Reading from a URL}
+
+We simply download the CSV file and read the rows from the file.
+<<functions>>=
+def read_signup_sheet_from_url(url):
+  """
+  Input: url is a string containing the URL of the CSV file of the sign-up 
+  sheet.
+
+  Output: All the rows of the CSV as a Python list.
+  """
+  response = requests.get(url)
+  if response.status_code != 200:
+    raise ValueError(response.text)
+
+  response.encoding = response.apparent_encoding
+  csvdata = response.text.splitlines()
+  return list(filter(any, list(csv.reader(csvdata))[1:]))
+@
+
+We also provide a function that takes the sharing URL of a publicly visible 
+sheet on Google Sheets and changes it into a URL that exports the sheet to CSV.
+<<functions>>=
+def google_sheet_to_csv_url(share_url):
+  """
+  Input: The share URL of a Google Sheets sheet.
+
+  Output: A URL that downloads (exports) the sheet in CSV format.
+  """
+  match = re.search("/edit.*$", share_url)
+  if not match:
+    raise ValueError(f"{share_url} doesn't seem like a Google Sheets URL.")
+
+  url = share_url[:match.start()]
+  return url + "/export?format=csv"
+@
+
+\section{Converting between \texttt{ics.event.Event}s and CSV data}
+
+Sometimes we want to convert this CSV-format back to a calendar.
+What we want to do is to be able to convert a row of this CSV (that corresponds 
+to an event) and convert it to an [[ics.event.Event]] object.
+We will introduce an [[EventFromCSV]] class that inherits from the standard 
+[[Event]] class.
+This is just to make constructing the objects easier.
+<<classes>>=
+class EventFromCSV(ics.event.Event):
+  """A class to create an ics.event.Event from an event in CSV format"""
+
+  def __init__(self, csv_row):
+    """
+    Input: a row from a calendar in CSV format (e.g. the sign-up sheet).
+    """
+    <<process CSV row, initialize attributes>>
+@
+
+The CSV from the sign-up sheet doesn't contain all the data as before.
+It only contains the event (type), start and end times and the TAs that will 
+attend.
+We can put the attributes number of rooms and needed TAs in the description.
+<<process CSV row, initialize attributes>>=
+kwargs = dict()
+
+kwargs["name"] = csv_row[SIGNUP_SHEET_HEADER.index("Event")]
+
+<<add begin and end to [[kwargs]]>>
+
+rooms = csv_row[SIGNUP_SHEET_HEADER.index("Rooms")]
+kwargs["location"] = rooms
+needed_TAs = csv_row[SIGNUP_SHEET_HEADER.index("#Needed TAs")]
+kwargs["description"] = f"Needed TAs: {needed_TAs}\n"
+
+<<add TAs to [[kwargs["attendees"]]]>>
+<<add attendees to description>>
+
+super().__init__(**kwargs)
+@
+
+\subsection{Reading start and end}
+
+When we read the start and end time, we want to ensure they're interpreted in 
+the local timezone, since that's how they were written.
+However, it seems like we must set the [[begin]] and [[end]] attributes of the 
+event in UTC, hence the [[.astimezone(dateutil.tz.UTC)]].
+<<add begin and end to [[kwargs]]>>=
+tz = dateutil.tz.tzlocal()
+
+begin = datetime.strptime(csv_row[SIGNUP_SHEET_HEADER.index("Start")],
+                          STRPTIME_FORMAT)
+begin.replace(tzinfo=tz)
+kwargs["begin"] = begin.astimezone(dateutil.tz.UTC)
+
+end = datetime.strptime(csv_row[SIGNUP_SHEET_HEADER.index("End")],
+                        STRPTIME_FORMAT)
+end.replace(tzinfo=tz)
+kwargs["end"] = end.astimezone(dateutil.tz.UTC)
+@
+
+\subsection{Attendees}
+
+If we need to add an attendee, that value is the KTH username.
+The attendee object requires an email, so we can easily form that from the 
+username, which we've done above.
+We might have an empty value, due to empty columns in the CSV, so we must 
+filter those.
+<<add TAs to [[kwargs["attendees"]]]>>=
+kwargs["attendees"] = [ics.attendee.Attendee(f"{user}@kth.se")
+                       for user in csv_row[len(SIGNUP_SHEET_HEADER):]
+                       if user]
+@
+
+When we import this schedule in Google Calendar, we don't get the attendees.
+We also want to add all attendees to the description as well.
+But we'll do a bit better and simply add who is booked and who is reserve.
+
+Now, we add them in a particular way.
+The description will also be used by the [[nytid schedule show]] command.
+If there are no booked TAs we add \enquote{Booked TAs: None}.
+This allows us to grep for \enquote{None} to find events that have no booked 
+TAs.
+Similarly, we only add \enquote{Reserve TAs:} if there are reserve TAs.
+This way we can grep for \enquote{Reserve} to find events that have reserve 
+TAs.
+<<add attendees to description>>=
+booked, reserves = sheets.get_booked_TAs_from_csv(csv_row)
+
+kwargs["description"] += "Booked TAs:"
+if booked:
+  for username in booked:
+    kwargs["description"] += f" {username}"
+else:
+  kwargs["description"] += " None"
+kwargs["description"] += "\n"
+
+if reserves:
+  kwargs["description"] += "Reserve TAs:"
+  for username in reserves:
+    kwargs["description"] += f" {username}"
+  kwargs["description"] += "\n"
+@
+
+
+\section{Extracting data from sign-up sheet}
+
+We would also like to parse the sign-up sheet.
+Considering the design, we can read out many things.
+We are interested in the following:
+\begin{itemize}
+\item Which TAs are signed up for a particular session? (To organize teaching 
+better, \eg automatically generate presentation events in Canvas' calendar for 
+the students.)
+\item How many hours are spent on TAs on a course? (To keep budget.)
+\item How many hours a particular TA spent during a particular period? (To 
+generate timesheets.)
+\end{itemize}
+
+\subsection{Which TAs signed up for a particular event?}
+
+For this, we just need to take the event (a row of CSV) as input, then cut only 
+the list of TAs.
+
+The TAs have a tendency to add extraneous spaces at the beginning or end, so we 
+want to strip those away.
+They also have a tendency to write their username in different cases, so we 
+want to do a casefold.
+Now that explains the call to [[map]].
+
+We also want to strip away empty slots.
+Since they might contain spaces, we want to strip those away first.
+However, we need a call to [[.strip()]] both in the [[filter]] and the [[map]] 
+calls.
+Since [[filter]] will not modify, it just checks that something was left after 
+the strip and, in that case, passes the string as it was---not stripped!
+<<functions>>=
+def get_TAs_from_csv(csv_row):
+  """
+  Input: takes a CSV data row as from a csv.reader.
+
+  Output: returns the list of signed TAs. Ensures casefold for TA IDs.
+  """
+  return list(
+    map(lambda x: x.casefold().strip(),
+      filter(lambda x: x.strip(),
+        csv_row[len(SIGNUP_SHEET_HEADER):]))
+    )
+@
+
+We also want to apply the queue.
+Since we have the number of needed TAs, we know how many are needed.
+So we want to return those who are booked and those who are reserves for a 
+slot.
+<<functions>>=
+def get_booked_TAs_from_csv(csv_row):
+  """
+  Input: takes a CSV data row as from a csv.reader.
+
+  Output: returns the list of signed TAs, the first N, where N is the number of 
+  needed TAs specified in the CSV data.
+  """
+  TAs = get_TAs_from_csv(csv_row)
+  num_needed_TAs = int(csv_row[SIGNUP_SHEET_HEADER.index("#Needed TAs")])
+
+  return TAs[:num_needed_TAs], TAs[num_needed_TAs:]
+@
+
+\subsection{Filter events in CSV by TA, or, which events did a TA sign up for?}
+
+Now, let's continue by asking the opposite question: which events did a TA sign 
+up for?
+We want to answer this question when we contract a TA for an amanuensis 
+position.
+We need this for, for instance, if they sign up for more, we want to calculate 
+the difference in hours.
+
+We simply look at the list of TAs for each row.
+If the TA's identifier is there, we include the row in the output.
+<<functions>>=
+def filter_events_by_TA(ta_id, csv_rows):
+  """
+  Input: ta_id is the string to (exactly) match the TAs' identifiers against;
+  csv_rows is a list of CSV rows, as from csv.reader.
+
+  Output: a list of CSV rows containing only the rows containing ta_id.
+  """
+  return list(
+    filter(lambda x: ta_id.casefold() in get_TAs_from_csv(x),
+      csv_rows))
+@
+
+\subsection{Filtering events in CSV by title}
+
+We also might be interested in filtering the events by type (or title).
+We simply filter by substring on the index of the event title of each row.
+<<functions>>=
+def filter_events_by_title(event_title, csv_rows):
+  """
+  Input: event_title is the substring to match the event title against;
+  csv_rows is a list of CSV rows, as from csv.reader.
+
+  Output: a list of CSV rows containing only the rows with an event title 
+  having event_title as substring.
+  """
+  return list(filter(
+    lambda x: event_title in x[SIGNUP_SHEET_HEADER.index("Event")],
+    csv_rows))
+@
+
+\subsection{Filtering events in CSV by start or end dates}
+
+We want to filter out events that are outside a particular time period.
+<<functions>>=
+def filter_events_by_date(csv_rows, start_date=None, end_date=None):
+  """
+  Input: start_date and end_date are datetime.date objects; csv_rows is a list 
+  of CSV rows, as from csv.reader.
+
+  Output: a list of CSV rows containing only the rows with an event starting 
+  between start_date and end_date.
+  """
+  filtered = csv_rows.copy()
+
+  if start_date:
+    filtered = filter(
+                  lambda x: start_date.date() <=
+                      datetime.strptime(x[SIGNUP_SHEET_HEADER.index("Start")],
+                                        STRPTIME_FORMAT).date(),
+                  csv_rows)
+  if end_date:
+    filtered = filter(
+                  lambda x: end_date.date() >
+                      datetime.strptime(x[SIGNUP_SHEET_HEADER.index("End")],
+                                        STRPTIME_FORMAT).date(),
+                  csv_rows)
+
+  return list(filtered)
+@

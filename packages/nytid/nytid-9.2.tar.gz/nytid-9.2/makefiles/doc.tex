@@ -1,0 +1,351 @@
+\section{Introduction and usage}% ===> this file was generated automatically by noweave --- better not edit it
+
+When working with large sets of documents we sometimes want to do some 
+operations on them, \eg print them or convert them between formats.
+This include file provides exactly that.
+
+We provide a target {\Tt{}print\nwendquote} which prints its prerequisites, see 
+\cref{Printing} for details.
+It prints them using {\Tt{}{\$}{\nwlbrace}LPR{\nwrbrace}\ {\$}{\nwlbrace}LPRFLAGS{\nwrbrace}\ <file>\nwendquote}.
+Each of these variables has specialized {\Tt{}LPR-<file>\nwendquote} and {\Tt{}LPRFLAGS-<file>\nwendquote} 
+versions, which means that different documents can be printed with different 
+commands and flags.
+
+We also provide a target {\Tt{}wc\nwendquote} which counts the words of its prerequisites 
+(\cref{WordCounting}).
+The counting is done with {\Tt{}{\$}{\nwlbrace}WC{\nwrbrace}\ {\$}{\nwlbrace}WCFLAGS{\nwrbrace}\ <file>\nwendquote}.
+There is also a {\Tt{}todo\nwendquote} target (\cref{ToDoLists}) which grep's its 
+prerequisites for common todo comments (\eg TODO, XXX, FIXME).
+
+Each of {\Tt{}wc\nwendquote} and {\Tt{}todo\nwendquote} has the specialized {\Tt{}-<file>\nwendquote} versions of the 
+variables, same as for {\Tt{}print\nwendquote}.
+However, {\Tt{}wc\nwendquote} and {\Tt{}todo\nwendquote} additionally have a {\Tt{}PREWC\nwendquote} and {\Tt{}PRETODO\nwendquote} 
+commands which pipe their output to the {\Tt{}WC\nwendquote} and {\Tt{}TODO\nwendquote} commands, 
+respectively.
+These variables have {\Tt{}-<file>\nwendquote} versions, but no flags variable.
+
+Finally, we also provide a set of suffix rules for automatic conversion between 
+different formats, see \cref{FormatConversion} for details about the formats.
+In general, we provide the variable {\Tt{}CONVERT.a.b\nwendquote} which can be used in 
+recipes to convert a file of format {\Tt{}.a\nwendquote} to a file of format {\Tt{}.b\nwendquote}.
+The command run is designed to fit a rule of the form {\Tt{}{\%}.b:\ {\%}.a\nwendquote}.
+
+
+\section{Implementation}
+
+Since the makefile is designed for inclusion, we want to ensure that it is not 
+included more than once --- like we do in C and C++.
+Then first comes our variables described above followed by the targets.
+\nwfilename{doc.mk.nw}\nwbegincode{1}\sublabel{NW24Dyoa-30nQvD-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW24Dyoa-30nQvD-1}}}\moddef{doc.mk~{\nwtagstyle{}\subpageref{NW24Dyoa-30nQvD-1}}}\endmoddef\nwstartdeflinemarkup\nwenddeflinemarkup
+ifndef DOC_MK
+DOC_MK=true
+
+INCLUDE_MAKEFILES?=.
+include $\{INCLUDE_MAKEFILES\}/portability.mk
+
+\LA{}variables~{\nwtagstyle{}\subpageref{NW24Dyoa-29jjeg-1}}\RA{}
+\LA{}target for printing~{\nwtagstyle{}\subpageref{NW24Dyoa-2hdAVM-1}}\RA{}
+\LA{}target for word counting~{\nwtagstyle{}\subpageref{NW24Dyoa-1mgWVy-1}}\RA{}
+\LA{}target for to-do lists~{\nwtagstyle{}\subpageref{NW24Dyoa-oXGPJ-1}}\RA{}
+\LA{}suffix rules for format conversion~{\nwtagstyle{}\subpageref{NW24Dyoa-3n2nVJ-1}}\RA{}
+
+endif
+\nwnotused{doc.mk}\nwendcode{}\nwbegindocs{2}\nwdocspar
+
+\subsection{Printing}
+\label{Printing}
+
+We provide a target {\Tt{}print\nwendquote} to print all documents in a set.
+The usage is simply that documents are added as prerequisites, then the target 
+prints all documents in its dependency list.
+The printing is done using the {\Tt{}lpr\nwendquote} command by default.
+However, this can be changed with the {\Tt{}LPR\nwendquote} variable.
+\nwenddocs{}\nwbegincode{3}\sublabel{NW24Dyoa-29jjeg-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW24Dyoa-29jjeg-1}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW24Dyoa-29jjeg-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW24Dyoa-30nQvD-1}}\nwprevnextdefs{\relax}{NW24Dyoa-29jjeg-2}\nwenddeflinemarkup
+LPR?=       lpr
+LPRFLAGS?=
+\nwalsodefined{\\{NW24Dyoa-29jjeg-2}\\{NW24Dyoa-29jjeg-3}\\{NW24Dyoa-29jjeg-4}\\{NW24Dyoa-29jjeg-5}\\{NW24Dyoa-29jjeg-6}\\{NW24Dyoa-29jjeg-7}\\{NW24Dyoa-29jjeg-8}\\{NW24Dyoa-29jjeg-9}\\{NW24Dyoa-29jjeg-A}\\{NW24Dyoa-29jjeg-B}\\{NW24Dyoa-29jjeg-C}}\nwused{\\{NW24Dyoa-30nQvD-1}}\nwendcode{}\nwbegindocs{4}\nwdocspar
+
+If {\Tt{}lpr\nwendquote} is used, we note that the files added as prerequisites for the 
+{\Tt{}print\nwendquote} target must be printable by {\Tt{}lpr\nwendquote}, \eg we must supply 
+PostScript-files instead of PDF-files.
+Fortunately, the automatic file format conversion (\cref{FormatConversion}) 
+solves most of those problems.
+For example, if you want to print a PDF-file {\Tt{}something.pdf\nwendquote}, then just add 
+{\Tt{}something.ps\nwendquote} as a prerequisite to print and the suffix rules below will do 
+the rest.
+
+The implementation is quite simple.
+We will iterate through the list of prerequisites and process them one by
+one.
+For each document we will check if there is an overriding setting for the 
+printing command and its arguments, if there is not we use the default set 
+above.
+\nwenddocs{}\nwbegincode{5}\sublabel{NW24Dyoa-2hdAVM-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW24Dyoa-2hdAVM-1}}}\moddef{target for printing~{\nwtagstyle{}\subpageref{NW24Dyoa-2hdAVM-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW24Dyoa-30nQvD-1}}\nwenddeflinemarkup
+.PHONY: print
+print:
+  $(foreach doc,$^,\\
+    $(if $\{LPR-$\{doc\}\},$\{LPR-$\{doc\}\},$\{LPR\}) \\
+    $(if $\{LPRFLAGS-$\{doc\}\},$\{LPRFLAGS-$\{doc\}\},$\{LPRFLAGS\}) \\
+    $\{doc\};)
+\nwused{\\{NW24Dyoa-30nQvD-1}}\nwendcode{}\nwbegindocs{6}\nwdocspar
+
+\subsection{Counting words}
+\label{WordCounting}
+
+We provide a {\Tt{}wc\nwendquote} target which counts the words in its prerequisites.
+The files added as prerequisites must thus be text files.
+Similarly as for print, there are suffix rules to convert \eg TeX-files to 
+plain text files using {\Tt{}detex\nwendquote}.
+
+The implementation is similar to that for {\Tt{}print\nwendquote}.
+The counting is done using the {\Tt{}wc\nwendquote} command by default, but we allow 
+overrides using the following variable.
+\nwenddocs{}\nwbegincode{7}\sublabel{NW24Dyoa-29jjeg-2}\nwmargintag{{\nwtagstyle{}\subpageref{NW24Dyoa-29jjeg-2}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW24Dyoa-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW24Dyoa-30nQvD-1}}\nwprevnextdefs{NW24Dyoa-29jjeg-1}{NW24Dyoa-29jjeg-3}\nwenddeflinemarkup
+WC?=        wc
+WCFLAGS?=   -w
+\nwused{\\{NW24Dyoa-30nQvD-1}}\nwendcode{}\nwbegindocs{8}\nwdocspar
+
+We will simply iterate through the list of prerequisites and process them one 
+by one using {\Tt{}wc\nwendquote}.
+We first print the name followed by a colon, then we print the word count.
+Similarly as above, we check for each document whether there is an overriding 
+setting for the word counting command.
+We also check if there is a preprocessing command, \eg it might be useful to 
+run detex(1) on TeX files before counting the words.
+\nwenddocs{}\nwbegincode{9}\sublabel{NW24Dyoa-1mgWVy-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW24Dyoa-1mgWVy-1}}}\moddef{target for word counting~{\nwtagstyle{}\subpageref{NW24Dyoa-1mgWVy-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW24Dyoa-30nQvD-1}}\nwenddeflinemarkup
+.PHONY: wc
+wc:
+  $(foreach doc,$^,echo -n "$\{doc\}: "; $\{CAT\} $\{doc\} | \\
+    $(if $\{PREWC-$\{doc\}\},$\{PREWC-$\{doc\}\} |,$(if $\{PREWC\},$\{PREWC\} |,)) \\
+    $(if $\{WC-$\{doc\}\},$\{WC-$\{doc\}\},$\{WC\}) \\
+    $(if $\{WCFLAGS-$\{doc\}\},$\{WCFLAGS-$\{doc\}\},$\{WCFLAGS\});)
+\nwused{\\{NW24Dyoa-30nQvD-1}}\nwendcode{}\nwbegindocs{10}\nwdocspar
+
+\subsection{To-do lists}%
+\label{ToDoLists}
+
+Similarly to the {\Tt{}wc\nwendquote} target, we would also like to add a {\Tt{}todo\nwendquote} target 
+which generates a to-do list from the to-do comments in the source files (\ie 
+\enquote{TODO}, \enquote{XXX} or \enquote{FIXME}).
+\nwenddocs{}\nwbegincode{11}\sublabel{NW24Dyoa-oXGPJ-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW24Dyoa-oXGPJ-1}}}\moddef{target for to-do lists~{\nwtagstyle{}\subpageref{NW24Dyoa-oXGPJ-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW24Dyoa-30nQvD-1}}\nwenddeflinemarkup
+.PHONY: todo
+todo:
+  $(foreach doc,$^,echo "$\{doc\}: "; $\{CAT\} $\{doc\} | \\
+    $(if $\{PRETODO-$\{doc\}\},$\{PRETODO-$\{doc\}\} |,$(if $\{PRETODO\},$\{PRETODO\} |,)) \\
+    $(if $\{TODO-$\{doc\}\},$\{TODO-$\{doc\}\},$\{TODO\}) \\
+    $(if $\{TODOFLAGS-$\{doc\}\},$\{TODOFLAGS-$\{doc\}\},$\{TODOFLAGS\});echo;)
+\nwused{\\{NW24Dyoa-30nQvD-1}}\nwendcode{}\nwbegindocs{12}\nwdocspar
+
+We will use the grep(1) utility to grep for these flags in the files.
+\nwenddocs{}\nwbegincode{13}\sublabel{NW24Dyoa-29jjeg-3}\nwmargintag{{\nwtagstyle{}\subpageref{NW24Dyoa-29jjeg-3}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW24Dyoa-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW24Dyoa-30nQvD-1}}\nwprevnextdefs{NW24Dyoa-29jjeg-2}{NW24Dyoa-29jjeg-4}\nwenddeflinemarkup
+TODO?=        $\{GREP\} "\\(XXX\\|TODO\\|FIXME\\)"
+TODOFLAGS?=
+\nwused{\\{NW24Dyoa-30nQvD-1}}\nwendcode{}\nwbegindocs{14}\nwdocspar
+
+\subsection{Format conversion}
+\label{FormatConversion}
+
+We often want to convert a file from one format to another.
+We will now write a pattern along the lines of make's conventions for 
+compilation targets~\cite[Sect.~10.2, second to last paragraph]{GNUMake}.
+\Ie, {\Tt{}CONVERT.a.b\nwendquote} will convert a file with suffix {\Tt{}.a\nwendquote} to a format with 
+suffix {\Tt{}.b\nwendquote}.
+However, we will only provide pattern rules for the most common direction, \eg 
+from {\Tt{}.a\nwendquote} to {\Tt{}.b\nwendquote} but not from {\Tt{}.b\nwendquote} to {\Tt{}.a\nwendquote}.
+Having both will cause make to drop one due to circular dependencies.
+
+We provide the following patterns:
+\nwenddocs{}\nwbegincode{15}\sublabel{NW24Dyoa-3n2nVJ-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW24Dyoa-3n2nVJ-1}}}\moddef{suffix rules for format conversion~{\nwtagstyle{}\subpageref{NW24Dyoa-3n2nVJ-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW24Dyoa-30nQvD-1}}\nwenddeflinemarkup
+\LA{}PS to PDF~{\nwtagstyle{}\subpageref{NW24Dyoa-EtapP-1}}\RA{}
+\LA{}DVI to PS~{\nwtagstyle{}\subpageref{NW24Dyoa-1cjAZS-1}}\RA{}
+\LA{}ODF to PDF~{\nwtagstyle{}\subpageref{NW24Dyoa-3UjpCj-1}}\RA{}
+
+\LA{}SVG to PDF~{\nwtagstyle{}\subpageref{NW24Dyoa-2DBQKE-1}}\RA{}
+\LA{}SVG to PS~{\nwtagstyle{}\subpageref{NW24Dyoa-3pi6CK-1}}\RA{}
+\LA{}DIA to TeX~{\nwtagstyle{}\subpageref{NW24Dyoa-4eYbec-1}}\RA{}
+\LA{}XCF to PNG~{\nwtagstyle{}\subpageref{NW24Dyoa-3Ti4ja-1}}\RA{}
+
+\LA{}MD to TeX~{\nwtagstyle{}\subpageref{NW24Dyoa-t0DBM-1}}\RA{}
+\LA{}MD, TeX to HTML~{\nwtagstyle{}\subpageref{NW24Dyoa-4SnFzz-1}}\RA{}
+\LA{}TeX to text~{\nwtagstyle{}\subpageref{NW24Dyoa-24otFo-1}}\RA{}
+\nwused{\\{NW24Dyoa-30nQvD-1}}\nwendcode{}\nwbegindocs{16}\nwdocspar
+
+\subsubsection{Document formats}
+
+To convert PDFs to PostScript format, we use the {\Tt{}pdf2ps\nwendquote} command by default.
+\nwenddocs{}\nwbegincode{17}\sublabel{NW24Dyoa-29jjeg-4}\nwmargintag{{\nwtagstyle{}\subpageref{NW24Dyoa-29jjeg-4}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW24Dyoa-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW24Dyoa-30nQvD-1}}\nwprevnextdefs{NW24Dyoa-29jjeg-3}{NW24Dyoa-29jjeg-5}\nwenddeflinemarkup
+PDF2PS?=          pdf2ps
+PDF2PSFLAGS?=
+CONVERT.pdf.ps?=  $\{PDF2PS\} $\{PDF2PSFLAGS\} $<
+
+PS2PDF?=          ps2pdf
+PS2PDFFLAGS?=
+CONVERT.ps.pdf?=  $\{PS2PDF\} $\{PS2PDFFLAGS\} $<
+\nwused{\\{NW24Dyoa-30nQvD-1}}\nwendcode{}\nwbegindocs{18}This allows us to specify the rules as follows.
+\nwenddocs{}\nwbegincode{19}\sublabel{NW24Dyoa-EtapP-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW24Dyoa-EtapP-1}}}\moddef{PS to PDF~{\nwtagstyle{}\subpageref{NW24Dyoa-EtapP-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW24Dyoa-3n2nVJ-1}}\nwenddeflinemarkup
+%.pdf: %.ps
+  $\{CONVERT.ps.pdf\}
+\nwused{\\{NW24Dyoa-3n2nVJ-1}}\nwendcode{}\nwbegindocs{20}\nwdocspar
+
+We do similarly for DVI-files that we want to convert to PostScript.
+\nwenddocs{}\nwbegincode{21}\sublabel{NW24Dyoa-29jjeg-5}\nwmargintag{{\nwtagstyle{}\subpageref{NW24Dyoa-29jjeg-5}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW24Dyoa-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW24Dyoa-30nQvD-1}}\nwprevnextdefs{NW24Dyoa-29jjeg-4}{NW24Dyoa-29jjeg-6}\nwenddeflinemarkup
+DVIPS?=           dvips
+DVIPSFLAGS?=
+CONVERT.dvi.ps?=  $\{DVIPS\} $\{DVIPSFLAGS\} $<
+\nwused{\\{NW24Dyoa-30nQvD-1}}\nwendcode{}\nwbegindocs{22}With those variables we let
+\nwenddocs{}\nwbegincode{23}\sublabel{NW24Dyoa-1cjAZS-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW24Dyoa-1cjAZS-1}}}\moddef{DVI to PS~{\nwtagstyle{}\subpageref{NW24Dyoa-1cjAZS-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW24Dyoa-3n2nVJ-1}}\nwenddeflinemarkup
+%.ps: %.dvi
+  $\{CONVERT.dvi.ps\}
+\nwused{\\{NW24Dyoa-3n2nVJ-1}}\nwendcode{}\nwbegindocs{24}\nwdocspar
+
+There is no good conversion program for the Open Document Format (ODF) files.
+We will use LibreOffice although that will incur some manual labour.
+\nwenddocs{}\nwbegincode{25}\sublabel{NW24Dyoa-29jjeg-6}\nwmargintag{{\nwtagstyle{}\subpageref{NW24Dyoa-29jjeg-6}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW24Dyoa-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW24Dyoa-30nQvD-1}}\nwprevnextdefs{NW24Dyoa-29jjeg-5}{NW24Dyoa-29jjeg-7}\nwenddeflinemarkup
+ODF2PDF?=         soffice --convert-to pdf
+ODF2PDFFLAGS?=    --headless
+CONVERT.odt.pdf?= $\{ODF2PDF\} $\{ODF2PDFFLAGS\} $<
+CONVERT.ods.pdf?= $\{ODF2PDF\} $\{ODF2PDFFLAGS\} $<
+CONVERT.odg.pdf?= $\{ODF2PDF\} $\{ODF2PDFFLAGS\} $<
+CONVERT.odp.pdf?= $\{ODF2PDF\} $\{ODF2PDFFLAGS\} $<
+CONVERT.doc.pdf?= $\{ODF2PDF\} $\{ODF2PDFFLAGS\} $<
+CONVERT.docx.pdf?=$\{ODF2PDF\} $\{ODF2PDFFLAGS\} $<
+CONVERT.xls.pdf?= $\{ODF2PDF\} $\{ODF2PDFFLAGS\} $<
+CONVERT.xlsx.pdf?=$\{ODF2PDF\} $\{ODF2PDFFLAGS\} $<
+CONVERT.ppt.pdf?= $\{ODF2PDF\} $\{ODF2PDFFLAGS\} $<
+CONVERT.pptx.pdf?=$\{ODF2PDF\} $\{ODF2PDFFLAGS\} $<
+\nwused{\\{NW24Dyoa-30nQvD-1}}\nwendcode{}\nwbegindocs{26}Then we can generate the suffix rules as follows.
+\nwenddocs{}\nwbegincode{27}\sublabel{NW24Dyoa-3UjpCj-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW24Dyoa-3UjpCj-1}}}\moddef{ODF to PDF~{\nwtagstyle{}\subpageref{NW24Dyoa-3UjpCj-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW24Dyoa-3n2nVJ-1}}\nwenddeflinemarkup
+define def_convert_rule
+%.pdf: %.$(1)
+  $\{CONVERT.$(1).pdf\}
+endef
+$(foreach suf,odt ods odg odp doc docx xls xlsx ppt pptx,\\
+  $(eval $(call def_convert_rule,$\{suf\})))
+\nwused{\\{NW24Dyoa-3n2nVJ-1}}\nwendcode{}\nwbegindocs{28}\nwdocspar
+
+\subsubsection{Figure formats}
+
+Usually we want to keep figures in their source form, so that we can still edit
+them later.
+However, just as usually, we cannot use the source form directly in TeX 
+documents, so we want to convert them to TeX or PDF.
+
+When working with SVG-files, there are two things: the graphics and the text in 
+the graphics.
+We will use Inkscape for working with SVGs, because Inkscape allows us to 
+export the graphics part as PDF and all text in it as TeX.
+Unlike previously, we will only allow flags for {\Tt{}inkscape\nwendquote} to be set.
+\nwenddocs{}\nwbegincode{29}\sublabel{NW24Dyoa-29jjeg-7}\nwmargintag{{\nwtagstyle{}\subpageref{NW24Dyoa-29jjeg-7}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW24Dyoa-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW24Dyoa-30nQvD-1}}\nwprevnextdefs{NW24Dyoa-29jjeg-6}{NW24Dyoa-29jjeg-8}\nwenddeflinemarkup
+INKSCAPE?=        inkscape
+INKSCAPEFLAGS?=   -D -z --export-latex
+CONVERT.svg.pdf?= $\{INKSCAPE\} $\{INKSCAPEFLAGS\} --file=$< --export-pdf=$@
+CONVERT.svg.ps?=  $\{INKSCAPE\} $\{INKSCAPEFLAGS\} --file=$< --export-ps=$@
+CONVERT.svg.eps?= $\{INKSCAPE\} $\{INKSCAPEFLAGS\} --file=$< --export-eps=$@
+\nwused{\\{NW24Dyoa-30nQvD-1}}\nwendcode{}\nwbegindocs{30}\nwdocspar
+\nwenddocs{}\nwbegincode{31}\sublabel{NW24Dyoa-2DBQKE-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW24Dyoa-2DBQKE-1}}}\moddef{SVG to PDF~{\nwtagstyle{}\subpageref{NW24Dyoa-2DBQKE-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW24Dyoa-3n2nVJ-1}}\nwenddeflinemarkup
+%.pdf: %.svg
+  $\{CONVERT.svg.pdf\}
+\nwused{\\{NW24Dyoa-3n2nVJ-1}}\nwendcode{}\nwbegindocs{32}We can thus create similar rules for the formats PS and EPS, instead of PDF.
+\nwenddocs{}\nwbegincode{33}\sublabel{NW24Dyoa-3pi6CK-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW24Dyoa-3pi6CK-1}}}\moddef{SVG to PS~{\nwtagstyle{}\subpageref{NW24Dyoa-3pi6CK-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW24Dyoa-3n2nVJ-1}}\nwenddeflinemarkup
+%.ps %.eps: %.svg
+  $\{CONVERT.svg$(suffix $@)\}
+\nwused{\\{NW24Dyoa-3n2nVJ-1}}\nwendcode{}\nwbegindocs{34}\nwdocspar
+
+Dia is a useful tool for making figures over network topologies etc.
+Fortunately, Dia can output native TeX.
+Similarly to Inkscape, we will only provide flags for Dia.
+\nwenddocs{}\nwbegincode{35}\sublabel{NW24Dyoa-29jjeg-8}\nwmargintag{{\nwtagstyle{}\subpageref{NW24Dyoa-29jjeg-8}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW24Dyoa-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW24Dyoa-30nQvD-1}}\nwprevnextdefs{NW24Dyoa-29jjeg-7}{NW24Dyoa-29jjeg-9}\nwenddeflinemarkup
+DIA?=             dia
+DIAFLAGS?=
+CONVERT.dia.tex?= $\{DIA\} $\{DIAFLAGS\} -e $@ -t pgf-tex $<
+\nwused{\\{NW24Dyoa-30nQvD-1}}\nwendcode{}\nwbegindocs{36}That gives the suffix rule as follows.
+\nwenddocs{}\nwbegincode{37}\sublabel{NW24Dyoa-4eYbec-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW24Dyoa-4eYbec-1}}}\moddef{DIA to TeX~{\nwtagstyle{}\subpageref{NW24Dyoa-4eYbec-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW24Dyoa-3n2nVJ-1}}\nwenddeflinemarkup
+%.tex: %.dia
+  $\{CONVERT.dia.tex\}
+\nwused{\\{NW24Dyoa-3n2nVJ-1}}\nwendcode{}\nwbegindocs{38}\nwdocspar
+
+Gimp is a useful tool for raster graphics.
+We can convert Gimps own format XCF to PNG using the ImageMagic library.
+\nwenddocs{}\nwbegincode{39}\sublabel{NW24Dyoa-29jjeg-9}\nwmargintag{{\nwtagstyle{}\subpageref{NW24Dyoa-29jjeg-9}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW24Dyoa-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW24Dyoa-30nQvD-1}}\nwprevnextdefs{NW24Dyoa-29jjeg-8}{NW24Dyoa-29jjeg-A}\nwenddeflinemarkup
+XCF2PNGFLAGS?=    -flatten
+XCF2PNG?=         convert $\{XCF2PNGFLAGS\} $< $@
+TRIM?=            convert -trim $@ $@
+CONVERT.xcf.png?= $\{XCF2PNG\} && $\{TRIM\}
+\nwused{\\{NW24Dyoa-30nQvD-1}}\nwendcode{}\nwbegindocs{40}Then we can have the following rule:
+\nwenddocs{}\nwbegincode{41}\sublabel{NW24Dyoa-3Ti4ja-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW24Dyoa-3Ti4ja-1}}}\moddef{XCF to PNG~{\nwtagstyle{}\subpageref{NW24Dyoa-3Ti4ja-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW24Dyoa-3n2nVJ-1}}\nwenddeflinemarkup
+%.png: %.xcf
+  $\{CONVERT.xcf.png\}
+\nwused{\\{NW24Dyoa-3n2nVJ-1}}\nwendcode{}\nwbegindocs{42}\nwdocspar
+
+\subsubsection{Text-based formats}
+
+The conversion of the text-based formats differ from the formats above.
+Most of these tools automatically write their output to stdout, which is 
+customary when working with text in the terminal.
+
+We use the {\Tt{}pandoc\nwendquote} program to convert between Markdown and TeX.
+\nwenddocs{}\nwbegincode{43}\sublabel{NW24Dyoa-29jjeg-A}\nwmargintag{{\nwtagstyle{}\subpageref{NW24Dyoa-29jjeg-A}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW24Dyoa-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW24Dyoa-30nQvD-1}}\nwprevnextdefs{NW24Dyoa-29jjeg-9}{NW24Dyoa-29jjeg-B}\nwenddeflinemarkup
+MD2TEX?=        pandoc
+MD2TEXFLAGS?=   -s
+CONVERT.md.tex?=$\{MD2TEX\} $\{MD2TEXFLAGS\} -o $@ $<
+
+TEX2MD?=        pandoc
+TEX2MDFLAGS?=   -s
+CONVERT.tex.md?=$\{TEX2MD\} $\{TEX2MDFLAGS\} -o $@ $<
+\nwused{\\{NW24Dyoa-30nQvD-1}}\nwendcode{}\nwbegindocs{44}This gives the following suffix rules.
+\nwenddocs{}\nwbegincode{45}\sublabel{NW24Dyoa-t0DBM-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW24Dyoa-t0DBM-1}}}\moddef{MD to TeX~{\nwtagstyle{}\subpageref{NW24Dyoa-t0DBM-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW24Dyoa-3n2nVJ-1}}\nwenddeflinemarkup
+%.md: %.tex
+  $\{CONVERT.tex.md\}
+\nwused{\\{NW24Dyoa-3n2nVJ-1}}\nwendcode{}\nwbegindocs{46}\nwdocspar
+
+Sometimes we want to convert to HTML, we will use {\Tt{}pandoc\nwendquote} to convert both 
+Markdown and LaTeX to HTML.
+\nwenddocs{}\nwbegincode{47}\sublabel{NW24Dyoa-29jjeg-B}\nwmargintag{{\nwtagstyle{}\subpageref{NW24Dyoa-29jjeg-B}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW24Dyoa-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW24Dyoa-30nQvD-1}}\nwprevnextdefs{NW24Dyoa-29jjeg-A}{NW24Dyoa-29jjeg-C}\nwenddeflinemarkup
+MD2HTML?=           pandoc
+MD2HTMLFLAGS?=      -s
+CONVERT.md.html?=   $\{MD2HTML\} $\{MD2HTMLFLAGS\} -o $@ $<
+
+TEX2HTML?=          pandoc
+TEX2HTMLFLAGS?=     -s
+CONVERT.tex.html?=  $\{TEX2HTML\} $\{TEX2HTMLFLAGS\} -o $@ $<
+\nwused{\\{NW24Dyoa-30nQvD-1}}\nwendcode{}\nwbegindocs{48}Then we can provide following two rules:
+\nwenddocs{}\nwbegincode{49}\sublabel{NW24Dyoa-4SnFzz-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW24Dyoa-4SnFzz-1}}}\moddef{MD, TeX to HTML~{\nwtagstyle{}\subpageref{NW24Dyoa-4SnFzz-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW24Dyoa-3n2nVJ-1}}\nwenddeflinemarkup
+define to_html_rule
+%.html: %.$(1)
+  $\{CONVERT.$(1).html\}
+endef
+$(foreach suf,md tex,$(eval $(call to_html_rule,$\{suf\})))
+\nwused{\\{NW24Dyoa-3n2nVJ-1}}\nwendcode{}\nwbegindocs{50}\nwdocspar
+
+There are times when we want to convert out TeX-files to plain text, \eg to 
+count the words.
+To do this we simply use the {\Tt{}detex\nwendquote} program.
+\nwenddocs{}\nwbegincode{51}\sublabel{NW24Dyoa-29jjeg-C}\nwmargintag{{\nwtagstyle{}\subpageref{NW24Dyoa-29jjeg-C}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW24Dyoa-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW24Dyoa-30nQvD-1}}\nwprevnextdefs{NW24Dyoa-29jjeg-B}{\relax}\nwenddeflinemarkup
+TEX2TEXT?=        detex
+TEX2TEXTFLAGS?=
+CONVERT.tex.txt?= $\{TEX2TEXT\} $\{TEX2TEXTFLAGS\} -o $@ $<
+\nwused{\\{NW24Dyoa-30nQvD-1}}\nwendcode{}\nwbegindocs{52}This gives us the following suffix rule.
+\nwenddocs{}\nwbegincode{53}\sublabel{NW24Dyoa-24otFo-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW24Dyoa-24otFo-1}}}\moddef{TeX to text~{\nwtagstyle{}\subpageref{NW24Dyoa-24otFo-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW24Dyoa-3n2nVJ-1}}\nwenddeflinemarkup
+%.txt: %.tex
+  $\{CONVERT.tex.txt\}
+\nwused{\\{NW24Dyoa-3n2nVJ-1}}\nwendcode{}
+
+\nwixlogsorted{c}{{DIA to TeX}{NW24Dyoa-4eYbec-1}{\nwixu{NW24Dyoa-3n2nVJ-1}\nwixd{NW24Dyoa-4eYbec-1}}}%
+\nwixlogsorted{c}{{doc.mk}{NW24Dyoa-30nQvD-1}{\nwixd{NW24Dyoa-30nQvD-1}}}%
+\nwixlogsorted{c}{{DVI to PS}{NW24Dyoa-1cjAZS-1}{\nwixu{NW24Dyoa-3n2nVJ-1}\nwixd{NW24Dyoa-1cjAZS-1}}}%
+\nwixlogsorted{c}{{MD to TeX}{NW24Dyoa-t0DBM-1}{\nwixu{NW24Dyoa-3n2nVJ-1}\nwixd{NW24Dyoa-t0DBM-1}}}%
+\nwixlogsorted{c}{{MD, TeX to HTML}{NW24Dyoa-4SnFzz-1}{\nwixu{NW24Dyoa-3n2nVJ-1}\nwixd{NW24Dyoa-4SnFzz-1}}}%
+\nwixlogsorted{c}{{ODF to PDF}{NW24Dyoa-3UjpCj-1}{\nwixu{NW24Dyoa-3n2nVJ-1}\nwixd{NW24Dyoa-3UjpCj-1}}}%
+\nwixlogsorted{c}{{PS to PDF}{NW24Dyoa-EtapP-1}{\nwixu{NW24Dyoa-3n2nVJ-1}\nwixd{NW24Dyoa-EtapP-1}}}%
+\nwixlogsorted{c}{{suffix rules for format conversion}{NW24Dyoa-3n2nVJ-1}{\nwixu{NW24Dyoa-30nQvD-1}\nwixd{NW24Dyoa-3n2nVJ-1}}}%
+\nwixlogsorted{c}{{SVG to PDF}{NW24Dyoa-2DBQKE-1}{\nwixu{NW24Dyoa-3n2nVJ-1}\nwixd{NW24Dyoa-2DBQKE-1}}}%
+\nwixlogsorted{c}{{SVG to PS}{NW24Dyoa-3pi6CK-1}{\nwixu{NW24Dyoa-3n2nVJ-1}\nwixd{NW24Dyoa-3pi6CK-1}}}%
+\nwixlogsorted{c}{{target for printing}{NW24Dyoa-2hdAVM-1}{\nwixu{NW24Dyoa-30nQvD-1}\nwixd{NW24Dyoa-2hdAVM-1}}}%
+\nwixlogsorted{c}{{target for to-do lists}{NW24Dyoa-oXGPJ-1}{\nwixu{NW24Dyoa-30nQvD-1}\nwixd{NW24Dyoa-oXGPJ-1}}}%
+\nwixlogsorted{c}{{target for word counting}{NW24Dyoa-1mgWVy-1}{\nwixu{NW24Dyoa-30nQvD-1}\nwixd{NW24Dyoa-1mgWVy-1}}}%
+\nwixlogsorted{c}{{TeX to text}{NW24Dyoa-24otFo-1}{\nwixu{NW24Dyoa-3n2nVJ-1}\nwixd{NW24Dyoa-24otFo-1}}}%
+\nwixlogsorted{c}{{variables}{NW24Dyoa-29jjeg-1}{\nwixu{NW24Dyoa-30nQvD-1}\nwixd{NW24Dyoa-29jjeg-1}\nwixd{NW24Dyoa-29jjeg-2}\nwixd{NW24Dyoa-29jjeg-3}\nwixd{NW24Dyoa-29jjeg-4}\nwixd{NW24Dyoa-29jjeg-5}\nwixd{NW24Dyoa-29jjeg-6}\nwixd{NW24Dyoa-29jjeg-7}\nwixd{NW24Dyoa-29jjeg-8}\nwixd{NW24Dyoa-29jjeg-9}\nwixd{NW24Dyoa-29jjeg-A}\nwixd{NW24Dyoa-29jjeg-B}\nwixd{NW24Dyoa-29jjeg-C}}}%
+\nwixlogsorted{c}{{XCF to PNG}{NW24Dyoa-3Ti4ja-1}{\nwixu{NW24Dyoa-3n2nVJ-1}\nwixd{NW24Dyoa-3Ti4ja-1}}}%
+\nwbegindocs{54}\nwdocspar
+
+\nwenddocs{}

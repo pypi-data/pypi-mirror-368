@@ -1,0 +1,671 @@
+\chapter{Dealing with AFS, the \texttt{storage.afs} module}
+
+In this chapter we describe how we will use the AFS file system as storage, the 
+[[storage.afs]] module.
+
+Working with AFS is the same as working with the local file system, as in the 
+[[storage]] module.
+The only difference is working with permissions.
+
+
+\section{Code outline}
+
+As pointed out above, the only difference to the [[storage]] module is the 
+permissions methods.
+Hence, we only need to overload them.
+<<afs.py>>=
+from nytid import storage
+import sys
+<<helper imports>>
+
+<<helper constants>>
+<<helper exceptions>>
+<<helper functions>>
+
+class StorageRoot(storage.StorageRoot):
+  """
+  Manages a storage root in the AFS system.
+  """
+
+  <<methods for granting and revoking access>>
+@
+
+We also add the tests in a test file that will be used by [[pytest]].
+We need a temporary directory that we can use as the root.
+<<test storageafs.py>>=
+import shutil
+from nytid.storage.afs import *
+
+root_dir = "/afs/kth.se/home/d/b/dbosk/nytid-nonexisting-test-directory"
+
+try:
+  shutil.rmtree(root_dir)
+except FileNotFoundError:
+  pass
+
+<<test functions>>
+
+try:
+  shutil.rmtree(root_dir)
+except FileNotFoundError:
+  pass
+@
+
+
+\section{Functions for AFS ACL operations}\label{AFSACL}
+
+AFS works by setting the access control list.
+This means that we need to set the complete access control list every time.
+This also means that to revoke access, we simply set no permissions.
+We create a main function that does this, then we'll implement other 
+easier-to-use functions that use it.
+<<helper functions>>=
+def set_acl(path, user_or_group, permissions):
+  """
+  Sets the access control list for directory `path` for user or group 
+  `user_or_group` to permissions in `permissions`.
+
+  `permissions` is a list of one-letter permissions. (A string of letters and a 
+  list of one-letter strings are equivalent.)
+  """
+  <<check \texttt{permissions} and turn into correct format>>
+  <<run fs sa command>>
+
+<<more useful acl functions>>
+@
+
+Before we go into the details of [[set_acl]], we'll cover some more useful 
+functions that use it in \cref{UsefulACLFunctions}.
+But even before that, we must cover how to read the access control lists.
+<<helper functions>>=
+def get_acl(path):
+  """
+  Returns a dictionary containing the access control list:
+  users or groups as key, permissions as value.
+  """
+  acl = {}
+  <<run fs la command>>
+  <<parse fs output into acl dict>>
+  return acl
+@
+
+Let's test these functions.
+We want test both at the same time.
+We need to know the default permissions when creating a directory (all AFS ACL 
+apply to directories).
+Then we can use the functions to modify and check, if both are correct the 
+tests will pass.
+<<test functions>>=
+def test_get_set_acl():
+  with StorageRoot(root_dir) as root:
+    acl = get_acl(root.path)
+    assert "l" in acl["system:anyuser"][0]
+    assert "w" in acl["system:administrators"][0]
+
+    set_acl(root.path, "system:anyuser", "")
+    new_acl = get_acl(root.path)
+    assert "system:anyuser" not in new_acl
+
+  shutil.rmtree(root_dir)
+@
+
+\subsection{Reading the AFS ACL, running \texttt{fs la}}
+
+To read the ACL, we must run the command [[fs ls path]] to get the ACL for the 
+path.
+If an error occurs, it will return a non-zero return code; so we want to check 
+the return code.
+Also, we must capture the output to get the error messages and the output in 
+case of no errors.
+<<run fs la command>>=
+cmd = ["fs", "la", path]
+try:
+  fsla = subprocess.run(cmd, check=True, capture_output=True)
+except subprocess.CalledProcessError as err:
+  <<handle fs la error>>
+@
+
+Let's start with the error handling before we turn to the parsing of data.
+The error messages are written to [[stderr]], prepended with \enquote{fs: }:
+\begin{minted}[linenos=false]{text}
+fs: File '/home/dbosk/test' doesn't exist
+\end{minted}
+or
+\begin{minted}[linenos=false]{text}
+fs: Invalid argument; it is possible that /home/dbosk is not in AFS.
+\end{minted}
+We want to turn those error messages into exceptions.
+<<handle fs la error>>=
+errmsg = str(err.stderr, encoding=sys.getdefaultencoding())
+raise AFSfsError(f"`fs la {path}` returned with error: {errmsg}")
+<<helper exceptions>>=
+class AFSfsError(Exception):
+  pass
+@
+
+Now, let's have a look at the output when successful.
+\begin{minted}{text}
+Access list for test is
+Normal rights:
+  dbosk:remote-users rlidwka
+  system:administrators rlidwka
+  system:anyuser l
+  dbosk rlidwka
+\end{minted}
+It can also look like this, when there are negative permissions.
+\begin{minted}{text}
+Access list for test is
+Normal rights:
+  dbosk:remote-users rlidwka
+  system:administrators rlidwka
+  system:anyuser l
+  dbosk rlidwka
+Negative rights:
+  dbosk w
+\end{minted}
+This yields the following algorithm:
+Divide [[stdout]] into lines.
+Iterate through the lines by popping lines from the front.
+Check for \enquote{Normal rights:} and \enquote{Negative rights:}.
+Then read all indented lines as part of that category.
+Finally, we merge them as a tuple (normal rights, negative rights) for a user.
+<<parse fs output into acl dict>>=
+lines = str(fsla.stdout, encoding=sys.getdefaultencoding()).split("\n")
+pos_permissions = {}
+neg_permissions = {}
+
+while lines:
+  line = lines.pop(0)
+  if line == "Normal rights:":
+    pos_permissions.update(pop_permissions(lines))
+  elif line == "Negative rights:":
+    neg_permissions.update(pop_permissions(lines))
+
+<<merge positive and negative permissions>>
+@
+
+We want to merge the dictionaries from
+[[(user, permissions)]] into
+[[(user, (pos_permissions, neg_permissions))]].
+We do this by iterating through the positive, the majority is here.
+We add both positive and negative.
+When done, we must iterate through the negative to add only those that didn't 
+also have positive permissions.
+<<merge positive and negative permissions>>=
+for key, value in pos_permissions.items():
+  try:
+    acl[key] = (value, neg_permissions[key])
+  except KeyError:
+    acl[key] = (value, None)
+
+for key, value in neg_permissions.items():
+  if key in acl:
+    continue
+  else:
+    acl[key] = (None, value)
+@
+
+The [[pop_permissions]] function will read all indented lines, return a 
+dictionary with user or group as key and the permissions as value.
+<<helper functions>>=
+def pop_permissions(lines):
+  """
+  Pops all indented lines from front in `lines`. Returns dictionary containing 
+  username (or group) as keys, permissions as values.
+  """
+  acl = {}
+
+  while lines:
+    if not lines[0].startswith("  "):
+      return acl
+
+    user_or_group, permissions = lines.pop(0).split()
+
+    acl[user_or_group] = permissions
+
+  return acl
+@
+
+We can test this code as follows.
+<<test functions>>=
+def test_pop_permissions():
+  perm_lines = [
+    "  dbosk rlw",
+    "  alba rl",
+    "  system:anyuser rl"
+  ]
+  acl = pop_permissions(perm_lines)
+
+  assert acl["alba"] == "rl"
+  assert acl["system:anyuser"] == "rl"
+  assert acl["dbosk"] == "rlw"
+@
+
+\subsection{Useful AFS ACL functions}\label{UsefulACLFunctions}
+
+There are some combinations of AFS permissions that are very usable for us.
+We will create a small set of them here.
+Let's cover them in a (sort of) hierarchical order.
+
+\paragraph{Revoke all permissions}
+
+Let's start with the simplest, revoking all permissions.
+<<more useful acl functions>>=
+def revoke_all(path, user_or_group):
+  """
+  Revokes all access to `path` for `user_or_group`.
+  """
+  set_acl(path, user_or_group, "")
+@
+
+\paragraph{Drop box}
+
+The first one which grants permissions is the \enquote{drop box} permission.
+The user is allowed to insert files in a directory, but not read back or change 
+them later.
+<<more useful acl functions>>=
+def grant_dropbox(path, user_or_group):
+  """
+  Lets `user_or_group` use `path` as a dropbox, i.e. can insert files, but not 
+  list, read or modify them.
+  """
+  set_acl(path, user_or_group, "i")
+@
+
+\paragraph{Reader}
+
+The simples reading permissions is simply to list files and be able to read 
+them.
+We also allow the reader to put locks on files it's reading.
+<<more useful acl functions>>=
+def grant_lookup(path, user_or_group):
+  """
+  Lets `user_or_group` list/lookup files in `path`.
+  """
+  set_acl(path, user_or_group, "l")
+
+def grant_reader(path, user_or_group):
+  """
+  Lets `user_or_group` list, read and lock files in `path`.
+  """
+  set_acl(path, user_or_group, "rlk")
+@
+
+\paragraph{Writer}
+
+The next level is to also have write access.
+It makes sense that a writer can also read the file, so that they can modify 
+files.
+We also allow a writer to delete files, as they could truncate them anyway.
+Also, we want the writer to be able to lock files before writing.
+<<more useful acl functions>>=
+def grant_writer(path, user_or_group):
+  """
+  Lets `user_or_group` list, read, lock, write, delete files in `path`.
+  """
+  set_acl(path, user_or_group, "rlidwk")
+@
+
+\paragraph{Admin}
+
+Finally, the last level is the admin, who, in addition to the writer, can 
+modify the access control list.
+(We cover [[VALID_PERMISSIONS]] in \cref{CheckPermissions}.)
+<<more useful acl functions>>=
+def grant_admin(path, user_or_group):
+  """
+  Lets `user_or_group` do anything to `path` and files in it.
+  """
+  set_acl(path, user_or_group, VALID_PERMISSIONS)
+@
+
+\subsection{Setting the AFS ACL, running \texttt{fs sa}}
+
+We can start with how to run the command-line utility.
+We simply piece together the command line.
+Note that we want to pass the arguments in the list format, not in string 
+format, as that is more secure (we don't need to worry about escapes).
+We want to check the return codes automatically and capture any output to use 
+for error handling.
+<<run fs sa command>>=
+cmd = ["fs", "sa", path, user_or_group, permissions]
+try:
+  fssa = subprocess.run(cmd, check=True, capture_output=True)
+except subprocess.CalledProcessError as err:
+  <<handle fs sa error>>
+<<helper imports>>=
+import subprocess
+@
+
+If the [[fs]] command exited with non-zero return code, we want to relay the 
+error further.
+What's interesting is the error messages in [[stderr]].
+<<handle fs sa error>>=
+errmsg = str(err.stderr, encoding=sys.getdefaultencoding())
+raise AFSACLError(f"Error while setting AFS ACL: "
+                  f"`{err.cmd}` resulted in '{errmsg}'")
+<<helper exceptions>>=
+class AFSACLError(Exception):
+  pass
+@
+
+\subsection{Check the permissions}\label{CheckPermissions}
+
+Now let's look at [[permissions]].
+We allow it to be either a string of letters or a list of letters (one-letter 
+strings).
+We want to check that it contains valid permissions and convert it to the 
+string format to pass to the [[fs sa]] command above.
+To make it more useful for the user, we sort out all the invalid permissions.
+<<check \texttt{permissions} and turn into correct format>>=
+valid_permissions = ""
+invalid_permissions = ""
+
+for permission in permissions:
+  if permission in VALID_PERMISSIONS:
+    valid_permissions += permission
+  else:
+    invalid_permissions += permission
+
+if invalid_permissions:
+  <<handle invalid permission>>
+<<helper constants>>=
+VALID_PERMISSIONS = "rlidwka"
+@
+
+Now, when there is an invalid permission, we have sorted out all the invalid 
+permissions.
+So we can pass them to the user using an exception.
+<<handle invalid permission>>=
+raise AFSPermissionError(f"{invalid_permissions} are invalid permissions.")
+<<helper exceptions>>=
+class AFSPermissionError(Exception):
+  pass
+@
+
+
+\section{Granting and revoking access to storage root}
+
+We will add methods to grant access to users using the functions from 
+\cref{AFSACL}.
+These methods will thus be more like convenient wrappers around those 
+functions.
+%according to the \enquote{roles} defined above (\cref{UsefulACLFunctions}).
+
+\subsection{Revoking access}
+
+We start with the most basic: revoking all permissions.
+<<methods for granting and revoking access>>=
+def revoke_access(self, user_or_group):
+  """
+  Revokes access to storage root for a user or group. Returns nothing.
+  """
+  revoke_all(self.path, user_or_group)
+@
+
+\subsection{Granting access}
+
+Let's start with the most general method, that can grant any combinations of 
+permissions.
+<<methods for granting and revoking access>>=
+def grant_access(self, user_or_group, permissions):
+  """
+  Sets `permissions` as access rights for `user_or_group`.
+
+  `permissions` is a substring of the AFS permissions: "rlidwka".
+
+  l -- Lookup: Note that a user needs Lookup to a parent directory
+               as well as access to a subdirectory to access files in
+               the subdirectory.
+  r -- Read:   Allows user to read or copy any file in the directory.
+  w -- Write:  Allows user to modify any existing file in the directory.
+  k -- Lock:   Allows user to flock a file.
+  i -- Insert: Allows user to add new files and create new subdirectories.
+  d -- Delete: Allows user to remove files and empty subdirectories.
+  a -- Admin:  Allows user to change the ACL for a directory.
+  """
+  set_acl(self.path, user_or_group, permissions)
+@
+
+
+\section{Group management}
+
+An easy way to manage access is through groups.
+This way we just add a group to the ACL using the functions above and then add 
+members to the group to give that access.
+
+AFS provides the command [[pts]] to manage groups.
+So we need to create wrapper functions around that command in the same way we 
+did with [[fs]] above (\cref{UsefulACLFunctions}).
+We want to be able to run
+\begin{itemize}
+\item [[pts creategroup]], to create a group;
+\item [[pts delete]], to remove a group;
+\item [[pts adduser]], to add a user to a group;
+\item [[pts removeuser]], to remove a user from a group;
+\item [[pts membership]], to list members of the group.
+\end{itemize}
+
+We can run the [[pts]] command in the same way we did with [[fs]] in 
+\cref{AFSACL}.
+We can set the list [[cmd]], for example,
+[[cmd = ["pts", "membership", "dbosk:datintro23"]]],
+and then run it as follows.
+Note that [[pts]] can give an error even when it doesn't give a non-zero return 
+code.
+So we must check for errors even on success.
+<<run the [[pts]] command in [[cmd]], put output in [[pts_lines]]>>=
+try:
+  pts = subprocess.run(cmd, check=True, capture_output=True)
+except subprocess.CalledProcessError as err:
+  <<handle pts errors>>
+else:
+  <<create [[pts_lines]] from [[pts.stdout]]>>
+<<create [[pts_lines]] from [[pts.stdout]]>>=
+pts_lines = str(pts.stdout, encoding=sys.getdefaultencoding()).split("\n")
+@
+
+When an error occurs, the [[pts]] command prints [[pts: error message]].
+We simply use that error message as the error message in an exception that we 
+raise when an error occurs.
+<<handle pts errors>>=
+pts_lines = str(err.stderr, encoding=sys.getdefaultencoding()).split("\n")
+raise AFSGroupError(f"`{' '.join(cmd)}` returned an error: {pts_lines[0]}")
+<<helper exceptions>>=
+class AFSGroupError(Exception):
+  pass
+@
+
+Let's determine which group names to use for testing this code.
+<<test functions>>=
+test_group_name = "dbosk:nytid-nonexisting-group"
+@
+
+
+\subsection{Creating groups}
+
+Let's start with creating a group.
+<<helper functions>>=
+def create_group(group_name):
+  """
+  Creates a group in AFS named `group_name`.
+  """
+  cmd = ["pts", "creategroup", group_name]
+  <<run the [[pts]] command in [[cmd]], put output in [[pts_lines]]>>
+@
+
+Let's test this command.
+<<test functions>>=
+def test_create_group():
+  try:
+    create_group("dbosk:remote-users")
+  except AFSGroupError as err:
+    assert "already exists" in str(err)
+
+  create_group(test_group_name)
+@
+
+\subsection{Adding users to groups}
+
+Let's continue by adding a user to a group that we've created.
+<<helper functions>>=
+def add_user_to_group(username, group_name):
+  """
+  Adds user `username` to the AFS group `group_name`.
+  """
+  cmd = ["pts", "adduser", username, group_name]
+  <<run the [[pts]] command in [[cmd]], put output in [[pts_lines]]>>
+@
+
+Let's test this.
+We add the author's username to the test group.
+The first time it should work, since it's an empty group that was just created.
+The second time it should fail, since the user is already a member of the 
+group.
+<<test functions>>=
+def test_add_user_to_group():
+  try:
+    add_user_to_group("dbosk", test_group_name)
+  except AFSGroupError as err:
+    assert False
+  else:
+    assert True
+
+  try:
+    add_user_to_group("dbosk", test_group_name)
+  except AFSGroupError as err:
+    assert True
+  else:
+    assert False
+@
+
+\subsection{Listing users in a group}
+
+Now, let's list the users in a group.
+The membership command of [[pts]] doesn't report errors correctly.
+It doesn't return a non-zero return code on errors, but returns zero.
+So the only way to detect errors here is to parse the output.
+
+Once we're done with determining error or not, we remove the header from the 
+lines.
+Then it contains only the usernames that must be stripped.
+<<helper functions>>=
+def list_users_in_group(group_name):
+  """
+  Lists the members of the group `group_name`.
+  """
+  cmd = ["pts", "membership", group_name]
+  <<run the [[pts]] command in [[cmd]], put output in [[pts_lines]]>>
+
+  <<determine if [[pts_lines]] indicates an error or not. pop first line>>
+
+  return [user.strip() for user in pts_lines]
+@
+
+We can determine this by inspecting the first line of output.
+\begin{minted}{text}
+$ pts membership dbosk:remote-users
+Members of dbosk:remote-users (id: -32576) are:
+  dbosk
+$ pts membership dbosk:remoteusers
+pts: User or group doesn't exist so couldn't look up id for dbosk:remoteusers
+\end{minted}
+<<determine if [[pts_lines]] indicates an error or not. pop first line>>=
+first_line = pts_lines.pop(0)
+if first_line.startswith("pts: "):
+  raise AFSGroupError(f"`{' '.join(cmd)}` returned an error: {first_line}")
+@
+
+Let's test this.
+<<test functions>>=
+def test_list_users_in_group():
+  users = list_users_in_group(test_group_name)
+  assert "dbosk" in users
+
+  try:
+    users = list_users_in_group(test_group_name+"-nonexisting-ending")
+  except AFSGroupError as err:
+    assert "group doesn't exist" in str(err)
+@
+
+\subsection{Removing users from groups}
+
+Let's continue by removing a user from a group that we've created.
+<<helper functions>>=
+def remove_user_from_group(username, group_name):
+  """
+  Removes user `username` from the AFS group `group_name`.
+  """
+  cmd = ["pts", "removeuser", username, group_name]
+  <<run the [[pts]] command in [[cmd]], put output in [[pts_lines]]>>
+@
+
+Let's test this.
+We start by adding the user, although the user should already be added by the 
+test above (if it didn't fail).
+Then we try to remove it twice; the first time it succeeds, second time it 
+fails.
+<<test functions>>=
+def test_remove_user_from_group():
+  try:
+    add_user_to_group("dbosk", test_group_name)
+  except AFSGroupError as err:
+    pass
+
+  try:
+    remove_user_from_group("dbosk", test_group_name)
+  except AFSGroupError as err:
+    assert False
+  else:
+    assert True
+
+  try:
+    remove_user_from_group("dbosk", test_group_name)
+  except AFSGroupError as err:
+    assert True
+  else:
+    assert False
+@
+
+\subsection{Deleting a group}
+
+Finally, let's delete a group that we've created.
+The delete command of [[pts]] is the same as its membership command, it doesn't 
+return non-zero on errors.
+<<helper functions>>=
+def delete_group(group_name):
+  """
+  Deletes the AFS group `group_name`.
+  """
+  cmd = ["pts", "delete", group_name]
+  <<run the [[pts]] command in [[cmd]], put output in [[pts_lines]]>>
+  <<check for error deleting group>>
+@
+
+Unlike the membership command, the delete command outputs its error message to 
+standard error (membership wrote the error message to standard out).
+<<check for error deleting group>>=
+pts_lines = str(pts.stderr, encoding=sys.getdefaultencoding()).split("\n")
+if pts_lines[0].startswith("pts: "):
+  raise AFSGroupError(f"`{' '.join(cmd)}` returned an error: {pts_lines[0]}")
+@
+
+Let's test this.
+The first time we remove the test group, it should already exist (if the tests 
+above didn't fail).
+The second time, it should fail.
+<<test functions>>=
+def test_delete_group():
+  try:
+    delete_group(test_group_name)
+  except AFSGroupError as err:
+    assert False
+  else:
+    assert True
+
+  try:
+    delete_group(test_group_name)
+  except AFSGroupError as err:
+    assert True
+  else:
+    assert False

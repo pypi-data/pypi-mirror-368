@@ -1,0 +1,322 @@
+\label{portability.mk}% ===> this file was generated automatically by noweave --- better not edit it
+\section{Introduction}
+
+The purpose of this include file is to improve portability of the include 
+files.
+The make(1) utility itself already provides certain portability between 
+platforms, here we want to extend this portability.
+I.e.\ we provide variables which substitute to system-specific commands which 
+corresponds to the expected action.
+For instance, MacOS uses an ancient version of {\Tt{}unzip\nwendquote}, a version which does 
+not support the option {\Tt{}-DD\nwendquote} which is desirable.
+So, on MacOS the variable {\Tt{}UNZIP\nwendquote} will substitute to {\Tt{}unzip\nwendquote} which on other
+systems it will substitute to {\Tt{}unzip\ -DD\nwendquote}.
+Another examples is BSD-systems, which does not use the GNU versions of {\Tt{}sed\nwendquote}
+and {\Tt{}grep\nwendquote} (and {\Tt{}make\nwendquote}).
+On these systems {\Tt{}SED\nwendquote} will substitute to {\Tt{}gsed\nwendquote}, which is the GNU version 
+of the command.
+Probably the reader can skip this chapter on a first reading.
+
+The include file is structures similarly to a header file in C.
+We use the same technique to prevent multiple inclusions.
+The outline is as follows.
+\nwfilename{portability.mk.nw}\nwbegincode{1}\sublabel{NW1AE0du-okr1C-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW1AE0du-okr1C-1}}}\moddef{portability.mk~{\nwtagstyle{}\subpageref{NW1AE0du-okr1C-1}}}\endmoddef\nwstartdeflinemarkup\nwenddeflinemarkup
+ifndef PORTABILITY_MK
+PORTABILITY_MK=true
+
+\LA{}system-specific configuration~{\nwtagstyle{}\subpageref{NW1AE0du-45XUZU-1}}\RA{}
+
+\LA{}standard unix commands~{\nwtagstyle{}\subpageref{NW1AE0du-1VdKMJ-1}}\RA{}
+\LA{}networking commands~{\nwtagstyle{}\subpageref{NW1AE0du-26HyRR-1}}\RA{}
+\LA{}compressed files and archives~{\nwtagstyle{}\subpageref{NW1AE0du-3TkHp6-1}}\RA{}
+
+endif
+\nwnotused{portability.mk}\nwendcode{}\nwbegindocs{2}Since this file provides system-dependent configuration, we allow the user to
+provide a system-wide configuration file.
+\nwenddocs{}\nwbegincode{3}\sublabel{NW1AE0du-45XUZU-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW1AE0du-45XUZU-1}}}\moddef{system-specific configuration~{\nwtagstyle{}\subpageref{NW1AE0du-45XUZU-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1AE0du-okr1C-1}}\nwenddeflinemarkup
+PORTABILITY_CONF?=  $\{HOME\}/.mk.conf /etc/mk.conf
+-include $\{PORTABILITY_CONF\}
+\nwused{\\{NW1AE0du-okr1C-1}}\nwendcode{}\nwbegindocs{4}The file in {\Tt{}/etc/mk.conf\nwendquote} is commonly available in BSDs.
+However, since these files might not exist, make(1) should not yield a fatal 
+error if the include directive fails.
+
+
+\section{Standard Unix commands}
+
+In this section we provide default commands with options for the standard Unix 
+command line.
+More specifically, we cover the following areas.
+\nwenddocs{}\nwbegincode{5}\sublabel{NW1AE0du-1VdKMJ-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW1AE0du-1VdKMJ-1}}}\moddef{standard unix commands~{\nwtagstyle{}\subpageref{NW1AE0du-1VdKMJ-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1AE0du-okr1C-1}}\nwenddeflinemarkup
+\LA{}file system commands~{\nwtagstyle{}\subpageref{NW1AE0du-2hTQq2-1}}\RA{}
+\LA{}printing file contents~{\nwtagstyle{}\subpageref{NW1AE0du-1QBbQP-1}}\RA{}
+\LA{}opening files depending on file type~{\nwtagstyle{}\subpageref{NW1AE0du-1j2O2M-1}}\RA{}
+\LA{}filtering and transforming file contents~{\nwtagstyle{}\subpageref{NW1AE0du-2RSbVo-1}}\RA{}
+\LA{}statistics on file contents~{\nwtagstyle{}\subpageref{NW1AE0du-1Dsqad-1}}\RA{}
+\nwused{\\{NW1AE0du-okr1C-1}}\nwendcode{}\nwbegindocs{6}\nwdocspar
+
+\subsection{File system commands}
+
+We commonly use the commands to interact with the file system.
+The following basic commands cover most uses.
+\nwenddocs{}\nwbegincode{7}\sublabel{NW1AE0du-2hTQq2-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW1AE0du-2hTQq2-1}}}\moddef{file system commands~{\nwtagstyle{}\subpageref{NW1AE0du-2hTQq2-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1AE0du-1VdKMJ-1}}\nwenddeflinemarkup
+MV?=      mv
+CP?=      cp -R
+LN?=      ln -sf
+MKDIR?=   mkdir -p
+MKTMPDIR?=mktemp -d
+CHOWN?=   chown -R
+CHMOD?=   chmod -R
+\nwused{\\{NW1AE0du-1VdKMJ-1}}\nwendcode{}\nwbegindocs{8}The make(1) utility already sets {\Tt{}RM\ =\ rm\ -f\nwendquote} by default~\cite[Sect.\ 
+10.3]{GNUMake}, so we need not repeat it.
+
+\subsection{Viewing file contents}
+
+Quite commonly we want to open files with the user's desired application, \eg 
+to open PDFs in the user's PDF reader.
+For this we use the xdg-open(1) utility.
+\nwenddocs{}\nwbegincode{9}\sublabel{NW1AE0du-1j2O2M-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW1AE0du-1j2O2M-1}}}\moddef{opening files depending on file type~{\nwtagstyle{}\subpageref{NW1AE0du-1j2O2M-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1AE0du-1VdKMJ-1}}\nwenddeflinemarkup
+OPEN?=    xdg-open
+\nwused{\\{NW1AE0du-1VdKMJ-1}}\nwendcode{}\nwbegindocs{10}However, for text files, we prefer to just print the contents to standard 
+output.
+\nwenddocs{}\nwbegincode{11}\sublabel{NW1AE0du-1QBbQP-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW1AE0du-1QBbQP-1}}}\moddef{printing file contents~{\nwtagstyle{}\subpageref{NW1AE0du-1QBbQP-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1AE0du-1VdKMJ-1}}\nwenddeflinemarkup
+CAT?=     cat
+\nwused{\\{NW1AE0du-1VdKMJ-1}}\nwendcode{}\nwbegindocs{12}\nwdocspar
+
+\subsection{Filtering and transformations}
+
+Two of the most frequently used utilities are sed(1) and grep(1).
+The version of these that we want to use is the GNU version.
+On Linux systems, this is the default.
+On BSDs, however, they are available prefixed with the letter \enquote{g}.
+The same goes to the make(1) utility, which means that we can use that fact to 
+check for this.
+\nwenddocs{}\nwbegincode{13}\sublabel{NW1AE0du-2RSbVo-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW1AE0du-2RSbVo-1}}}\moddef{filtering and transforming file contents~{\nwtagstyle{}\subpageref{NW1AE0du-2RSbVo-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1AE0du-1VdKMJ-1}}\nwprevnextdefs{\relax}{NW1AE0du-2RSbVo-2}\nwenddeflinemarkup
+ifeq ($\{MAKE\},gmake)
+SED?=     gsed
+SEDex?=   gsed -E
+else
+SED?=     sed
+SEDex?=   sed -E
+endif
+\nwalsodefined{\\{NW1AE0du-2RSbVo-2}}\nwused{\\{NW1AE0du-1VdKMJ-1}}\nwendcode{}\nwbegindocs{14}Similarly, we let
+\nwenddocs{}\nwbegincode{15}\sublabel{NW1AE0du-2RSbVo-2}\nwmargintag{{\nwtagstyle{}\subpageref{NW1AE0du-2RSbVo-2}}}\moddef{filtering and transforming file contents~{\nwtagstyle{}\subpageref{NW1AE0du-2RSbVo-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1AE0du-1VdKMJ-1}}\nwprevnextdefs{NW1AE0du-2RSbVo-1}{\relax}\nwenddeflinemarkup
+ifeq ($\{MAKE\},gmake)
+GREP=     ggrep
+GREPex=   ggrep -E
+else
+GREP=     grep
+GREPex=   grep -E
+endif
+\nwused{\\{NW1AE0du-1VdKMJ-1}}\nwendcode{}\nwbegindocs{16}\nwdocspar
+
+\subsection{Statistics}
+
+We also need to count words in a few places.
+We use wc(1) for this.
+\nwenddocs{}\nwbegincode{17}\sublabel{NW1AE0du-1Dsqad-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW1AE0du-1Dsqad-1}}}\moddef{statistics on file contents~{\nwtagstyle{}\subpageref{NW1AE0du-1Dsqad-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1AE0du-1VdKMJ-1}}\nwenddeflinemarkup
+WC?=      wc
+WCw?=     wc -w
+\nwused{\\{NW1AE0du-1VdKMJ-1}}\nwendcode{}\nwbegindocs{18}\nwdocspar
+
+
+\section{Networking commands}
+
+We also need some network related commands.
+\nwenddocs{}\nwbegincode{19}\sublabel{NW1AE0du-26HyRR-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW1AE0du-26HyRR-1}}}\moddef{networking commands~{\nwtagstyle{}\subpageref{NW1AE0du-26HyRR-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1AE0du-okr1C-1}}\nwenddeflinemarkup
+\LA{}fetching files~{\nwtagstyle{}\subpageref{NW1AE0du-rjStN-1}}\RA{}
+\LA{}remote execution~{\nwtagstyle{}\subpageref{NW1AE0du-2gLZR6-1}}\RA{}
+\nwused{\\{NW1AE0du-okr1C-1}}\nwendcode{}\nwbegindocs{20}\nwdocspar
+
+We have some common commands for fetching and copying files between remote 
+hosts.
+\nwenddocs{}\nwbegincode{21}\sublabel{NW1AE0du-rjStN-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW1AE0du-rjStN-1}}}\moddef{fetching files~{\nwtagstyle{}\subpageref{NW1AE0du-rjStN-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1AE0du-26HyRR-1}}\nwenddeflinemarkup
+CURL?=    curl
+SFTP?=    sftp
+SCP?=     scp -r
+\nwused{\\{NW1AE0du-26HyRR-1}}\nwendcode{}\nwbegindocs{22}\nwdocspar
+
+We also need commands for remote execution.
+\nwenddocs{}\nwbegincode{23}\sublabel{NW1AE0du-2gLZR6-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW1AE0du-2gLZR6-1}}}\moddef{remote execution~{\nwtagstyle{}\subpageref{NW1AE0du-2gLZR6-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1AE0du-26HyRR-1}}\nwenddeflinemarkup
+SSH?=     ssh
+\nwused{\\{NW1AE0du-26HyRR-1}}\nwendcode{}\nwbegindocs{24}\nwdocspar
+
+
+\section{Compressed files and archives}
+
+We want to provide functionality to make it easy to uncompress files or extract 
+files from archives of different kinds.
+We will construct two functionalities.
+\nwenddocs{}\nwbegincode{25}\sublabel{NW1AE0du-3TkHp6-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW1AE0du-3TkHp6-1}}}\moddef{compressed files and archives~{\nwtagstyle{}\subpageref{NW1AE0du-3TkHp6-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1AE0du-okr1C-1}}\nwenddeflinemarkup
+\LA{}variables for compression programs~{\nwtagstyle{}\subpageref{NW1AE0du-8WF6G-1}}\RA{}
+
+\LA{}variables for archive programs~{\nwtagstyle{}\subpageref{NW1AE0du-5Fqx6-1}}\RA{}
+\LA{}general pattern rule for archiving~{\nwtagstyle{}\subpageref{NW1AE0du-4HTPNs-1}}\RA{}
+\LA{}function to generate extraction targets~{\nwtagstyle{}\subpageref{NW1AE0du-3ARMxi-1}}\RA{}
+\nwused{\\{NW1AE0du-okr1C-1}}\nwendcode{}\nwbegindocs{26}Both will use the type of construction outlined in~\cite[Sect.\ 
+10.2]{GNUMake}:
+the variable {\Tt{}EXTRACT.suf\nwendquote} ({\Tt{}UNCOMPRESS.suf\nwendquote}) will contain the command to 
+extract a file from an archive (decompress a file) with suffix {\Tt{}.suf\nwendquote};
+the variable {\Tt{}ARCHIVE.suf\nwendquote} ({\Tt{}COMPRESS.suf\nwendquote}) will contain the command to 
+update an archive of suffix {\Tt{}.suf\nwendquote} with a file (compress a file).
+
+\subsection{Compressing and uncompressing files}
+\label{CompressingFiles}
+
+A compressed file is a file whose data is compressed --- this is not 
+necessarily an archive.
+A compressed file can be uncompressed, \ie the compression is removed.
+Compressed files usually get the added suffix of the compression algorithm, 
+\eg a {\Tt{}.tar\nwendquote} file usually get the suffix {\Tt{}.tar.gz\nwendquote} when it is also 
+compressed using gzip(1).
+Another common file to compress is PostScript, \ie turning {\Tt{}.ps\nwendquote} to 
+{\Tt{}.ps.gz\nwendquote}.
+We want to form pattern rules for the compression and uncompression operations.
+
+There are, of course, a myriad different compression formats.
+We will let the variable {\Tt{}COMPRESS{\_}SUFFIXES\nwendquote} and {\Tt{}UNCOMPRESS{\_}SUFFIXES\nwendquote} 
+contain space-separated lists of suffixes supported for the two operations.
+
+To compress a file, we simply passes its contents through a compression 
+program, \eg gzip(1) (gets the {\Tt{}.gz\nwendquote} suffix).
+We can use the following general pattern rule for compression and then use 
+{\Tt{}COMPRESS{\_}SUFFIXES\nwendquote} to automatically generate all the pattern 
+rules\footnote{
+  Note that the pattern rules in the code blocks
+  {\Tt{}\LA{}general pattern rule for compression~{\nwtagstyle{}\subpageref{NW1AE0du-1eeSjh-1}}\RA{}\nwendquote} and
+  {\Tt{}\LA{}general pattern rule for uncompression~{\nwtagstyle{}\subpageref{NW1AE0du-1ce4LT-1}}\RA{}\nwendquote} are not included in
+  {\Tt{}\LA{}compressed files and archives~{\nwtagstyle{}\subpageref{NW1AE0du-3TkHp6-1}}\RA{}\nwendquote} above, and thus not enabled by default.
+  This is due to causing circular dependencies.
+}.
+\nwenddocs{}\nwbegincode{27}\sublabel{NW1AE0du-1eeSjh-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW1AE0du-1eeSjh-1}}}\moddef{general pattern rule for compression~{\nwtagstyle{}\subpageref{NW1AE0du-1eeSjh-1}}}\endmoddef\nwstartdeflinemarkup\nwenddeflinemarkup
+define compress
+%$(1): %
+  $$\{COMPRESS$(1)\}
+endef
+$(foreach suf,$\{COMPRESS_SUFFIXES\},$(eval $(call compress,$\{suf\})))
+\nwnotused{general pattern rule for compression}\nwendcode{}\nwbegindocs{28}In a similar fashion, we can use the following general pattern rule for 
+uncompression.
+\nwenddocs{}\nwbegincode{29}\sublabel{NW1AE0du-1ce4LT-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW1AE0du-1ce4LT-1}}}\moddef{general pattern rule for uncompression~{\nwtagstyle{}\subpageref{NW1AE0du-1ce4LT-1}}}\endmoddef\nwstartdeflinemarkup\nwenddeflinemarkup
+define uncompress
+%: %$(1)
+  $$\{UNCOMPRESS$(1)\}
+endef
+$(foreach suf,$\{UNCOMPRESS_SUFFIXES\},$(eval $(call uncompress,$\{suf\})))
+\nwnotused{general pattern rule for uncompression}\nwendcode{}\nwbegindocs{30}We note that due to to the {\Tt{}call\nwendquote} and {\Tt{}eval\nwendquote} above, we must escape the 
+target and prerequisite variables, {\Tt{}{\$}{\$}@\nwendquote} and {\Tt{}{\$}{\$}<\nwendquote}, respectively.
+
+Now, let us write what we need to automatically handle the gzip(1) format.
+To uncompress a gzipped file we can use gunzip(1).
+\nwenddocs{}\nwbegincode{31}\sublabel{NW1AE0du-8WF6G-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW1AE0du-8WF6G-1}}}\moddef{variables for compression programs~{\nwtagstyle{}\subpageref{NW1AE0du-8WF6G-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1AE0du-3TkHp6-1}}\nwprevnextdefs{\relax}{NW1AE0du-8WF6G-2}\nwenddeflinemarkup
+UNCOMPRESS_SUFFIXES+= .gz .z
+GUNZIP?=              gunzip
+UNCOMPRESS.gz?=       $\{GUNZIP\} $<
+UNCOMPRESS.z?=        $\{UNCOMPRESS.gz\}
+\nwalsodefined{\\{NW1AE0du-8WF6G-2}}\nwused{\\{NW1AE0du-3TkHp6-1}}\nwendcode{}\nwbegindocs{32}To compress a file using gzip(1) we can use the following.
+\nwenddocs{}\nwbegincode{33}\sublabel{NW1AE0du-8WF6G-2}\nwmargintag{{\nwtagstyle{}\subpageref{NW1AE0du-8WF6G-2}}}\moddef{variables for compression programs~{\nwtagstyle{}\subpageref{NW1AE0du-8WF6G-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1AE0du-3TkHp6-1}}\nwprevnextdefs{NW1AE0du-8WF6G-1}{\relax}\nwenddeflinemarkup
+COMPRESS_SUFFIXES+=   .gz
+GZIP?=                gzip
+COMPRESS.gz?=         $\{GZIP\} $<
+\nwused{\\{NW1AE0du-3TkHp6-1}}\nwendcode{}\nwbegindocs{34}\nwdocspar
+
+\subsection{Packing and extracting from archives}
+\label{portability:Archives}
+
+We can (ab)use the archive syntax~\cite[Chap.\ 11]{GNUMake} of make(1) to 
+create a pattern rule for creating archives.
+This rule will work for all archive types that support adding files to an 
+existing archive.
+However, make(1) cannot check the modification times of these archive members, 
+so they will be updated every time instead of only when necessary.
+
+The pattern rule matches all archive member targets.
+Then it determines which variable to use as recipe by looking at the suffix of 
+the archive.
+\nwenddocs{}\nwbegincode{35}\sublabel{NW1AE0du-4HTPNs-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW1AE0du-4HTPNs-1}}}\moddef{general pattern rule for archiving~{\nwtagstyle{}\subpageref{NW1AE0du-4HTPNs-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1AE0du-3TkHp6-1}}\nwenddeflinemarkup
+(%):
+  $\{ARCHIVE$(suffix $@)\}
+\nwused{\\{NW1AE0du-3TkHp6-1}}\nwendcode{}\nwbegindocs{36}Unlike for the compression targets above (\cref{CompressingFiles}), we do not 
+need to escape {\Tt{}{\$}@\nwendquote} and
+{\Tt{}{\$}<\nwendquote} --- since we have only one (lazy) evaluation.
+
+We do not want to break the native archive functionality of make(1), so we 
+provide the following to retain that.
+\nwenddocs{}\nwbegincode{37}\sublabel{NW1AE0du-5Fqx6-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW1AE0du-5Fqx6-1}}}\moddef{variables for archive programs~{\nwtagstyle{}\subpageref{NW1AE0du-5Fqx6-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1AE0du-3TkHp6-1}}\nwprevnextdefs{\relax}{NW1AE0du-5Fqx6-2}\nwenddeflinemarkup
+ARCHIVE.a?=   ar r $@ $%
+\nwalsodefined{\\{NW1AE0du-5Fqx6-2}\\{NW1AE0du-5Fqx6-3}\\{NW1AE0du-5Fqx6-4}\\{NW1AE0du-5Fqx6-5}}\nwused{\\{NW1AE0du-3TkHp6-1}}\nwendcode{}\nwbegindocs{38}\nwdocspar
+
+Now to a more interesting format, let us create tarballs using this syntax.
+We provide settings for both tar(1) and pax(1) using the tar format.
+We are interested in the pax(1) command because it has an interface for regular 
+expressions, \ie for filtering and transforming file names.
+The BSD tar(1) has this too, but the GNU tar(1) does not.
+We can use the {\Tt{}-u\nwendquote} option to both tar(1) and pax(1) to update an existing 
+archive with a file.
+\nwenddocs{}\nwbegincode{39}\sublabel{NW1AE0du-5Fqx6-2}\nwmargintag{{\nwtagstyle{}\subpageref{NW1AE0du-5Fqx6-2}}}\moddef{variables for archive programs~{\nwtagstyle{}\subpageref{NW1AE0du-5Fqx6-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1AE0du-3TkHp6-1}}\nwprevnextdefs{NW1AE0du-5Fqx6-1}{NW1AE0du-5Fqx6-3}\nwenddeflinemarkup
+TAR?=         tar -u
+PAX?=         pax -wzLx ustar
+ARCHIVE.tar?= $\{TAR\} -f $@ $%
+\nwused{\\{NW1AE0du-3TkHp6-1}}\nwendcode{}\nwbegindocs{40}We can also create zip(1) archives.
+\nwenddocs{}\nwbegincode{41}\sublabel{NW1AE0du-5Fqx6-3}\nwmargintag{{\nwtagstyle{}\subpageref{NW1AE0du-5Fqx6-3}}}\moddef{variables for archive programs~{\nwtagstyle{}\subpageref{NW1AE0du-5Fqx6-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1AE0du-3TkHp6-1}}\nwprevnextdefs{NW1AE0du-5Fqx6-2}{NW1AE0du-5Fqx6-4}\nwenddeflinemarkup
+ZIP?=         zip
+ARCHIVE.zip?= $\{ZIP\} -u $@ $%
+\nwused{\\{NW1AE0du-3TkHp6-1}}\nwendcode{}\nwbegindocs{42}\nwdocspar
+
+Unfortunately, we cannot create any pattern rules for file extraction from 
+archives.
+However, we can provide a function which create such targets automatically.
+\nwenddocs{}\nwbegincode{43}\sublabel{NW1AE0du-3ARMxi-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW1AE0du-3ARMxi-1}}}\moddef{function to generate extraction targets~{\nwtagstyle{}\subpageref{NW1AE0du-3ARMxi-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1AE0du-3TkHp6-1}}\nwenddeflinemarkup
+define extract
+$(1): $(2)
+  $$\{EXTRACT$(suffix $(2))\}
+endef
+\nwused{\\{NW1AE0du-3TkHp6-1}}\nwendcode{}\nwbegindocs{44}Now we only need to provide the {\Tt{}EXTRACT.XXX\nwendquote} for every type of archive we 
+might want to use.
+Then we can use the function {\Tt{}extract\nwendquote} in our makefiles.
+Note that we are now in the same situation as for the compression targets 
+(\cref{CompressingFiles}), so we must escape the variables.
+
+We start with tarballs.
+For extraction, we do not want to restore the modification times from inside 
+the archive.
+If we restore the modification times, then the archive will always be newer 
+that the files extracted from it and thus make(1) will re-extract the file 
+every time.
+To prevent this we add the {\Tt{}-m\nwendquote} option to tar(1).
+\nwenddocs{}\nwbegincode{45}\sublabel{NW1AE0du-5Fqx6-4}\nwmargintag{{\nwtagstyle{}\subpageref{NW1AE0du-5Fqx6-4}}}\moddef{variables for archive programs~{\nwtagstyle{}\subpageref{NW1AE0du-5Fqx6-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1AE0du-3TkHp6-1}}\nwprevnextdefs{NW1AE0du-5Fqx6-3}{NW1AE0du-5Fqx6-5}\nwenddeflinemarkup
+UNTAR?=       tar -xm
+UNPAX?=       pax -rzp m
+EXTRACT.tar?= $\{UNTAR\} -f $< $@
+\nwused{\\{NW1AE0du-3TkHp6-1}}\nwendcode{}\nwbegindocs{46}It will be similar for zip archives.
+The option to prevent resetting the modification time for unzip(1) is {\Tt{}-DD\nwendquote}.
+Unfortunately, MacOS ships with an ancient version of unzip(1), one which does 
+not support the desired {\Tt{}-DD\nwendquote} option.
+Hence we check if the system is Darwin, if so, we skip the {\Tt{}-DD\nwendquote} option.
+\nwenddocs{}\nwbegincode{47}\sublabel{NW1AE0du-5Fqx6-5}\nwmargintag{{\nwtagstyle{}\subpageref{NW1AE0du-5Fqx6-5}}}\moddef{variables for archive programs~{\nwtagstyle{}\subpageref{NW1AE0du-5Fqx6-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW1AE0du-3TkHp6-1}}\nwprevnextdefs{NW1AE0du-5Fqx6-4}{\relax}\nwenddeflinemarkup
+ifeq ($(shell uname),Darwin)
+UNZIP?=       unzip
+else
+UNZIP?=       unzip -DD
+endif
+EXTRACT.zip?= $\{UNZIP\} $< $@
+\nwused{\\{NW1AE0du-3TkHp6-1}}\nwendcode{}
+
+\nwixlogsorted{c}{{compressed files and archives}{NW1AE0du-3TkHp6-1}{\nwixu{NW1AE0du-okr1C-1}\nwixd{NW1AE0du-3TkHp6-1}}}%
+\nwixlogsorted{c}{{fetching files}{NW1AE0du-rjStN-1}{\nwixu{NW1AE0du-26HyRR-1}\nwixd{NW1AE0du-rjStN-1}}}%
+\nwixlogsorted{c}{{file system commands}{NW1AE0du-2hTQq2-1}{\nwixu{NW1AE0du-1VdKMJ-1}\nwixd{NW1AE0du-2hTQq2-1}}}%
+\nwixlogsorted{c}{{filtering and transforming file contents}{NW1AE0du-2RSbVo-1}{\nwixu{NW1AE0du-1VdKMJ-1}\nwixd{NW1AE0du-2RSbVo-1}\nwixd{NW1AE0du-2RSbVo-2}}}%
+\nwixlogsorted{c}{{function to generate extraction targets}{NW1AE0du-3ARMxi-1}{\nwixu{NW1AE0du-3TkHp6-1}\nwixd{NW1AE0du-3ARMxi-1}}}%
+\nwixlogsorted{c}{{general pattern rule for archiving}{NW1AE0du-4HTPNs-1}{\nwixu{NW1AE0du-3TkHp6-1}\nwixd{NW1AE0du-4HTPNs-1}}}%
+\nwixlogsorted{c}{{general pattern rule for compression}{NW1AE0du-1eeSjh-1}{\nwixd{NW1AE0du-1eeSjh-1}}}%
+\nwixlogsorted{c}{{general pattern rule for uncompression}{NW1AE0du-1ce4LT-1}{\nwixd{NW1AE0du-1ce4LT-1}}}%
+\nwixlogsorted{c}{{networking commands}{NW1AE0du-26HyRR-1}{\nwixu{NW1AE0du-okr1C-1}\nwixd{NW1AE0du-26HyRR-1}}}%
+\nwixlogsorted{c}{{opening files depending on file type}{NW1AE0du-1j2O2M-1}{\nwixu{NW1AE0du-1VdKMJ-1}\nwixd{NW1AE0du-1j2O2M-1}}}%
+\nwixlogsorted{c}{{portability.mk}{NW1AE0du-okr1C-1}{\nwixd{NW1AE0du-okr1C-1}}}%
+\nwixlogsorted{c}{{printing file contents}{NW1AE0du-1QBbQP-1}{\nwixu{NW1AE0du-1VdKMJ-1}\nwixd{NW1AE0du-1QBbQP-1}}}%
+\nwixlogsorted{c}{{remote execution}{NW1AE0du-2gLZR6-1}{\nwixu{NW1AE0du-26HyRR-1}\nwixd{NW1AE0du-2gLZR6-1}}}%
+\nwixlogsorted{c}{{standard unix commands}{NW1AE0du-1VdKMJ-1}{\nwixu{NW1AE0du-okr1C-1}\nwixd{NW1AE0du-1VdKMJ-1}}}%
+\nwixlogsorted{c}{{statistics on file contents}{NW1AE0du-1Dsqad-1}{\nwixu{NW1AE0du-1VdKMJ-1}\nwixd{NW1AE0du-1Dsqad-1}}}%
+\nwixlogsorted{c}{{system-specific configuration}{NW1AE0du-45XUZU-1}{\nwixu{NW1AE0du-okr1C-1}\nwixd{NW1AE0du-45XUZU-1}}}%
+\nwixlogsorted{c}{{variables for archive programs}{NW1AE0du-5Fqx6-1}{\nwixu{NW1AE0du-3TkHp6-1}\nwixd{NW1AE0du-5Fqx6-1}\nwixd{NW1AE0du-5Fqx6-2}\nwixd{NW1AE0du-5Fqx6-3}\nwixd{NW1AE0du-5Fqx6-4}\nwixd{NW1AE0du-5Fqx6-5}}}%
+\nwixlogsorted{c}{{variables for compression programs}{NW1AE0du-8WF6G-1}{\nwixu{NW1AE0du-3TkHp6-1}\nwixd{NW1AE0du-8WF6G-1}\nwixd{NW1AE0du-8WF6G-2}}}%
+\nwbegindocs{48}\nwdocspar
+\nwenddocs{}

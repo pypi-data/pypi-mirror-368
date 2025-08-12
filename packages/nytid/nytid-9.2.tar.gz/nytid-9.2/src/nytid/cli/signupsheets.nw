@@ -1,0 +1,319 @@
+\chapter{The \texttt{cli.signupsheets} module and
+         the \texttt{signupsheets} subcommands}%
+\label{cli.signupsheets}
+
+In this chapter we introduce the subommands found under [[nytid signupsheets]],
+it's the [[cli.signupsheets]] module.
+<<signupsheets.py>>=
+import datetime
+from enum import Enum
+import ics.icalendar
+import logging
+import pathlib
+import sys
+import typer
+from typing_extensions import Annotated
+
+from nytid.cli import courses as coursescli
+from nytid import courses as courseutils
+from nytid import schedules as schedutils
+from nytid.signup import hr
+from nytid.signup import sheets
+
+<<imports>>
+<<constants>>
+
+cli = typer.Typer(name="signupsheets",
+                  help="Manage sign-up sheets for teaching")
+
+<<argument and option definitions>>
+<<subcommands>>
+@
+
+
+\section{Default arguments for matching courses}
+
+The first argument we need is to identify a set of courses.
+For this we might also have to identify a set of registers.
+We'll use the argument and option defined in the [[cli.courses]] module.
+We'll default to all courses ([[.*]]) in the register of the [[mine]] command.
+<<argument for matching courses>>=
+course: Annotated[str, coursescli.course_arg_regex]
+<<option for matching registers, default to mine>>=
+register: Annotated[str, coursescli.register_opt_regex] = coursescli.MINE
+@
+
+Then we can create a list of course--configuration pairs like this.
+<<set list [[courses]] to ((course, register), config)-pairs>>=
+registers = coursescli.registers_regex(register)
+courses = {}
+for course_reg in coursescli.courses_regex(course, registers):
+  try:
+    courses[course_reg] = courseutils.get_course_config(*course_reg)
+  <<handle errors for accessing course data>>
+<<handle errors for accessing course data>>=
+except KeyError as err:
+  logging.warning(err)
+except PermissionError as err:
+  course, register = course_reg
+  logging.warning(f"You don't have access to {course} in {register}: {err}")
+@
+
+Now, if that list is empty, we have no courses, then we exit with a non-zero 
+return code.
+<<set list [[courses]] to ((course, register), config)-pairs>>=
+if not courses:
+  sys.exit(1)
+@
+
+\section{Generate sign-up sheet}
+
+We want a command that can generate a sign-up sheet that can be used to let the 
+TAs sign up using Google Sheets or similar.
+<<subcommands>>=
+@cli.command(name="generate")
+def generate_signup_sheet(<<argument for matching courses>>,
+                          <<option for matching registers, default to mine>>,
+                          <<output options>>,
+                          <<editing options>>):
+  """
+  Generates a sign-up sheet to be used with Google Sheets or similar for TAs to 
+  sign up.
+  """
+  <<generate sign-up sheet>>
+@
+
+\subsection{Generating the sheets}
+
+We have that [[<<argument for matching courses>>]] and
+[[<<option for matching registers, default to mine>>]] are the same, we get 
+[[course]] and [[register]].
+
+Then we can get the list of courses and their ICS URLs.
+We then iterate through them and generate a sign-up sheet for each.
+<<generate sign-up sheet>>=
+<<set list [[courses]] to ((course, register), config)-pairs>>
+
+<<generation iteration variables>>
+for (course, register), course_conf in courses.items():
+  <<compute [[group_size]] for [[course]]>>
+
+  def needed_TAs(event):
+    return utils.needed_TAs(event, group_size=group_size)
+
+  <<set [[outfile]] for [[course]]>>
+
+  url = course_conf.get("ics")
+  sheets.generate_signup_sheet(outfile, url, needed_TAs)
+  <<open [[outfile]] for editing if requested>>
+<<imports>>=
+from nytid.signup import sheets
+from nytid.signup import utils
+@
+
+By default, [[utils.needed_TAs]] uses the 12 as the group size.
+This is the optimal group size, but we might now have exactly that.
+<<compute [[group_size]] for [[course]]>>=
+try:
+  num_students = int(course_conf.get("num_students"))
+except ValueError as err:
+  logging.warning(f"num_students for {course} in {register} is not an integer: "
+                  f"{err}")
+  continue
+
+try:
+  num_groups = int(course_conf.get("num_groups"))
+except ValueError as err:
+  logging.warning(f"num_groups for {course} in {register} is not an integer: "
+                  f"{err}")
+  continue
+
+try:
+  group_size = round(num_students / num_groups)
+except ZeroDivisionError as err:
+  logging.warning(f"num_groups for {course} in {register} is zero: {err}")
+  continue
+@
+
+We want to output the signup sheets somewhere.
+By default we want to store them in each course's data directory.
+We'd like to keep track of the ones generated, so we'll include a timestamp as 
+part of the name.
+<<output options>>=
+outpath: Annotated[pathlib.Path, outpath_opt] = None
+<<argument and option definitions>>=
+outpath_opt = typer.Option(help="Path where to write the sign-up sheet "
+                                "files. Default is in each course's "
+                                "data path.")
+<<set [[outfile]] for [[course]]>>=
+if not outpath:
+  try:
+    data_root = courseutils.get_course_data(course, register)
+  <<handle errors for accessing course data directory>>
+  else:
+    outfile = data_root.path / f"signup-{course}-{timestamp}.csv"
+else:
+  outfile = outpath / f"signup-{course}-{timestamp}.csv"
+<<handle errors for accessing course data directory>>=
+except KeyError as err:
+  logging.warning(err)
+except PermissionError as err:
+  logging.warning(f"You don't have access to {course} in {register}: {err}")
+  outfile = f"./signup-{course}-{timestamp}.csv"
+  logging.warning(f"Writing file to current working directory: {outfile}")
+@
+
+Now, to compute [[timestamp]] we'll need the current time and then we simply 
+turn it into a string.
+<<generation iteration variables>>=
+now = datetime.datetime.now()
+timestamp = now.strftime("%Y%m%d-%H%M")
+@
+
+\subsection{Editing the sign-up sheet}
+
+We want to provide an option for the user to edit the generated sign-up sheet 
+directly after it has been generated.
+<<editing options>>=
+edit: Annotated[bool, edit_opt] = False
+<<argument and option definitions>>=
+edit_opt = typer.Option(help="If specified, opens each generated sheet "
+                             "for editing.")
+@
+
+To open the file for editing, we simply use the default of the OS to edit it.
+There is no uniform way of doing this in Python (yet).
+We adapted a snippet suggested on StackOverflow\footnote{%
+  URL: \url{https://stackoverflow.com/a/435669/1305099}
+}
+<<open [[outfile]] for editing if requested>>=
+if edit:
+  the_os = platform.system()
+  if the_os == "Darwin":
+    subprocess.call(["open", outfile])
+  elif the_os == "Windows":
+    os.startfile(outfile)
+  else:
+    subprocess.call(["xdg-open", outfile])
+<<imports>>=
+import os, platform, subprocess
+@
+
+\section{Setting the sign-up sheet URL}
+
+We need a command to set the URL to the CSV for the sign-up sheet used.
+<<subcommands>>=
+@cli.command()
+def set_url(<<argument for matching courses>>,
+            url: Annotated[str, url_arg],
+            <<option for matching registers, default to mine>>):
+  """
+  Sets the URL of the sign-up sheet for the course(s).
+  """
+  <<set list [[courses]] to ((course, register), config)-pairs>>
+  for _, conf in courses.items():
+    conf.set(SIGNUPSHEET_URL_PATH, url)
+<<constants>>=
+SIGNUPSHEET_URL_PATH = "signupsheet.url"
+<<argument and option definitions>>=
+url_arg = typer.Argument(help="The URL for the sign-up sheet. "
+                              "For Google Sheets, it's the same URL as the "
+                              "one shared with TAs to sign up. "
+                              "For others, it's a URL to a CSV file.")
+@
+
+
+\endinput
+
+\section{Lacking sign-ups}
+
+<<missing.py>>=
+import arrow
+from config import COURSES, SIGNUP
+import ics.icalendar
+from nytid.signup import sheets
+import nytid.schedules as sched
+import sys
+
+def events_missing_TAs(csv_rows, missing_factor=0.5):
+    """
+    Input: a list of CSV data (tuples)
+
+    Output: a list of CSV data, only those rows where there are fewer TAs 
+    booked than the number of needed TAs.
+    """
+    needed_TAs_index = sheets.SIGNUP_SHEET_HEADER.index("#Needed TAs")
+
+    for row in csv_rows:
+        num_TAs = len(sheets.get_TAs_from_csv(row))
+        needed_TAs = int(row[needed_TAs_index])
+
+        if num_TAs < missing_factor * needed_TAs:
+            yield row
+
+
+def generate_schedule(csv_rows):
+    """
+    Generates schedule (ICS format) from a list of CSV rows,
+    returns an ics.icalendar.Calendar object.
+    """
+    schedule = ics.icalendar.Calendar()
+    schedule.events.update(set(map(sheets.EventFromCSV, csv_rows)))
+
+    return schedule
+
+
+def format_event(event):
+    """
+    Returns a string representation of the event.
+    """
+    return f"{sched.format_event_short(event)}; " + \
+            ", ".join([attendee.email for attendee in event.attendees])
+
+
+def main():
+    """Main program"""
+    booking_data = []
+    for _, url in SIGNUP.items():
+        booking_data += sheets.read_signup_sheet_from_url(url)
+
+    schedule = generate_schedule(events_missing_TAs(booking_data))
+    now = arrow.get(2022, 8, 29)
+    if now < arrow.now():
+        now = arrow.now()
+
+    if len(sys.argv) > 1:
+        try:
+            time_limit = now.shift(weeks=+int(sys.argv[1]))
+        except ValueError as err:
+            print(f"{sys.argv[0]}: {err}: "
+                  f"first argument must be the number of weeks to print",
+                  file=sys.stderr)
+            sys.exit(1)
+
+    first = True
+    for event in schedule.timeline:
+        try:
+            if event.begin < now:
+                continue
+            elif event.begin > time_limit:
+                break
+        except NameError:
+            pass
+
+        if first:
+            first = False
+            current_week = event.begin.isocalendar()[1]
+        elif event.begin.isocalendar()[1] != current_week:
+            current_week = event.begin.isocalendar()[1]
+            print(end="\n\n")
+
+        print(format_event(event))
+
+
+if __name__ == "__main__":
+    main()
+@
+
+
+

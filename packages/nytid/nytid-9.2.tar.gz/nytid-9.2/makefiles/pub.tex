@@ -1,0 +1,553 @@
+\section{Introduction and usage}% ===> this file was generated automatically by noweave --- better not edit it
+
+Sometimes we wish to easily publish a release of the material we work with.
+Here we provide the functionality of publishing files, we have two ways:
+\begin{enumerate}
+\item the {\Tt{}upload\nwendquote} target which uploads files to a server, and
+\item the {\Tt{}gh-release\nwendquote} target which creates a release on the GitHub repo.
+\end{enumerate}
+To use the {\Tt{}publish\nwendquote} target, we must add either {\Tt{}publish:\ upload\nwendquote} or 
+{\Tt{}publish:\ gh-release\nwendquote} to our {\Tt{}Makefile\nwendquote}.
+
+\subsection{Specifying files}
+
+The idea is to publish files, and this is common between all publication 
+methods.
+This is controlled with the {\Tt{}PUB{\_}FILES\nwendquote} variable, which is set to a space 
+separated list of file names.
+\nwfilename{pub.mk.nw}\nwbegincode{1}\sublabel{NW3VYM2B-29jjeg-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-1}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-uLTNW-1}}\nwprevnextdefs{\relax}{NW3VYM2B-29jjeg-2}\nwenddeflinemarkup
+PUB_FILES?=
+\nwalsodefined{\\{NW3VYM2B-29jjeg-2}\\{NW3VYM2B-29jjeg-3}\\{NW3VYM2B-29jjeg-4}\\{NW3VYM2B-29jjeg-5}\\{NW3VYM2B-29jjeg-6}\\{NW3VYM2B-29jjeg-7}\\{NW3VYM2B-29jjeg-8}\\{NW3VYM2B-29jjeg-9}\\{NW3VYM2B-29jjeg-A}\\{NW3VYM2B-29jjeg-B}\\{NW3VYM2B-29jjeg-C}\\{NW3VYM2B-29jjeg-D}\\{NW3VYM2B-29jjeg-E}\\{NW3VYM2B-29jjeg-F}\\{NW3VYM2B-29jjeg-G}\\{NW3VYM2B-29jjeg-H}\\{NW3VYM2B-29jjeg-I}\\{NW3VYM2B-29jjeg-J}\\{NW3VYM2B-29jjeg-K}}\nwused{\\{NW3VYM2B-uLTNW-1}}\nwendcode{}\nwbegindocs{2}The {\Tt{}upload\nwendquote} target will take the files in {\Tt{}PUB{\_}FILES\nwendquote} and upload them to 
+the target server (more below).
+The {\Tt{}gh-release\nwendquote} on the other hand will use the {\Tt{}PUB{\_}FILES\nwendquote} as attachment 
+to the release.
+
+For convenience, we can also control files to ignore.
+\nwenddocs{}\nwbegincode{3}\sublabel{NW3VYM2B-29jjeg-2}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-2}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-uLTNW-1}}\nwprevnextdefs{NW3VYM2B-29jjeg-1}{NW3VYM2B-29jjeg-3}\nwenddeflinemarkup
+IGNORE_FILES?=      \\(\\.svn\\|\\.git\\|CVS\\)
+PUB_IGNORE?=        $\{IGNORE_FILES\}
+\nwused{\\{NW3VYM2B-uLTNW-1}}\nwendcode{}\nwbegindocs{4}However, this only applies to the {\Tt{}upload\nwendquote} target.
+
+\subsection{Automatically tag on publication}
+
+Since the published files usually are stripped of their versioning information,
+it can be a good idea to keep track of the corresponding version in the version
+management system.
+One way is to create a tag every time a publication is made.
+
+To enable this feature we set the variable {\Tt{}PUB{\_}AUTOTAG\nwendquote} to true.
+By default we let it be false, \ie this feature is disabled.
+\nwenddocs{}\nwbegincode{5}\sublabel{NW3VYM2B-29jjeg-3}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-3}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-uLTNW-1}}\nwprevnextdefs{NW3VYM2B-29jjeg-2}{NW3VYM2B-29jjeg-4}\nwenddeflinemarkup
+PUB_AUTOTAG?=       false
+\nwused{\\{NW3VYM2B-uLTNW-1}}\nwendcode{}\nwbegindocs{6}Note that for {\Tt{}gh-release\nwendquote} this doesn't matter, a tag will be created on 
+the GitHub side if it doesn't exist already.
+
+The first thing we need is to know which \ac{VCS} is used.
+We control this with {\Tt{}PUB{\_}VCS\nwendquote}.
+\nwenddocs{}\nwbegincode{7}\sublabel{NW3VYM2B-29jjeg-4}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-4}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-uLTNW-1}}\nwprevnextdefs{NW3VYM2B-29jjeg-3}{NW3VYM2B-29jjeg-5}\nwenddeflinemarkup
+PUB_VCS?=           git
+\nwused{\\{NW3VYM2B-uLTNW-1}}\nwendcode{}\nwbegindocs{8}The only thing needed more than this is any options that the user want to 
+use.
+\nwenddocs{}\nwbegincode{9}\sublabel{NW3VYM2B-29jjeg-5}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-5}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-uLTNW-1}}\nwprevnextdefs{NW3VYM2B-29jjeg-4}{NW3VYM2B-29jjeg-6}\nwenddeflinemarkup
+PUB_TAG_OPTS?=
+\nwused{\\{NW3VYM2B-uLTNW-1}}\nwendcode{}\nwbegindocs{10}The tag name is controlled with the following variable.
+The default value is today's date and the current time.
+\nwenddocs{}\nwbegincode{11}\sublabel{NW3VYM2B-29jjeg-6}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-6}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-uLTNW-1}}\nwprevnextdefs{NW3VYM2B-29jjeg-5}{NW3VYM2B-29jjeg-7}\nwenddeflinemarkup
+PUB_TAG_NAME?=      $(shell date +%Y%m%d-%H%M)
+\nwused{\\{NW3VYM2B-uLTNW-1}}\nwendcode{}\nwbegindocs{12}\nwdocspar
+
+The tagging will be wrong if we have forgotten to commit the files we were 
+working on.
+For this reason we also provide a similar feature which automatically makes 
+a commit.
+This feature is also disabled by default.
+\nwenddocs{}\nwbegincode{13}\sublabel{NW3VYM2B-29jjeg-7}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-7}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-uLTNW-1}}\nwprevnextdefs{NW3VYM2B-29jjeg-6}{NW3VYM2B-29jjeg-8}\nwenddeflinemarkup
+PUB_AUTOCOMMIT?=    false
+\nwused{\\{NW3VYM2B-uLTNW-1}}\nwendcode{}\nwbegindocs{14}The command and options are similarly set with the following.
+\nwenddocs{}\nwbegincode{15}\sublabel{NW3VYM2B-29jjeg-8}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-8}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-uLTNW-1}}\nwprevnextdefs{NW3VYM2B-29jjeg-7}{NW3VYM2B-29jjeg-9}\nwenddeflinemarkup
+PUB_COMMIT_OPTS?=   -av
+\nwused{\\{NW3VYM2B-uLTNW-1}}\nwendcode{}\nwbegindocs{16}\nwdocspar
+
+
+\section{Configuration for publishing files on a server, {\Tt{}upload\nwendquote}}
+
+Publication means that we upload the files somewhere.
+This is controlled by the following variable.
+\nwenddocs{}\nwbegincode{17}\sublabel{NW3VYM2B-29jjeg-9}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-9}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-uLTNW-1}}\nwprevnextdefs{NW3VYM2B-29jjeg-8}{NW3VYM2B-29jjeg-A}\nwenddeflinemarkup
+PUB_SERVER?=        localhost
+\nwused{\\{NW3VYM2B-uLTNW-1}}\nwendcode{}\nwbegindocs{18}\nwdocspar
+
+We are also interested in where on the server the files are written.
+\nwenddocs{}\nwbegincode{19}\sublabel{NW3VYM2B-29jjeg-A}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-A}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-uLTNW-1}}\nwprevnextdefs{NW3VYM2B-29jjeg-9}{NW3VYM2B-29jjeg-B}\nwenddeflinemarkup
+PUB_DIR?=           $\{PUBDIR\}/$\{CATEGORY\}
+\nwused{\\{NW3VYM2B-uLTNW-1}}\nwendcode{}\nwbegindocs{20}Once written to the location, we must consider the owner, group and access 
+rights.
+\nwenddocs{}\nwbegincode{21}\sublabel{NW3VYM2B-29jjeg-B}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-B}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-uLTNW-1}}\nwprevnextdefs{NW3VYM2B-29jjeg-A}{NW3VYM2B-29jjeg-C}\nwenddeflinemarkup
+PUB_USER?=          $\{USER\}
+PUB_GROUP?=         $\{GROUP\}
+PUB_CHMOD?=         o+r
+\nwused{\\{NW3VYM2B-uLTNW-1}}\nwendcode{}\nwbegindocs{22}\nwdocspar
+
+\subsection{Publication methods}
+
+There are currently three methods for publication:
+\begin{enumerate*}
+\item {\Tt{}ssh\nwendquote},
+\item {\Tt{}git\nwendquote}, and
+\item {\Tt{}at\nwendquote}.
+\end{enumerate*}
+The default method is {\Tt{}ssh\nwendquote}.
+\nwenddocs{}\nwbegincode{23}\sublabel{NW3VYM2B-29jjeg-C}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-C}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-uLTNW-1}}\nwprevnextdefs{NW3VYM2B-29jjeg-B}{NW3VYM2B-29jjeg-D}\nwenddeflinemarkup
+PUB_METHOD?=        ssh
+\nwused{\\{NW3VYM2B-uLTNW-1}}\nwendcode{}\nwbegindocs{24}The remaining parts of the configuration depends on which publication method 
+is used.
+
+\paragraph{ssh}
+
+The {\Tt{}ssh\nwendquote} method will use the \ac{SSH} protocol to transfer the files.
+It will compress the files, pipe the output to the {\Tt{}ssh\nwendquote} process which runs 
+the decompression on the server --- in the specified directory.
+After successful transfer it will try to change the access rights to what is 
+given by the settings above.
+
+\paragraph{at}
+
+The {\Tt{}at\nwendquote} method works similarly to {\Tt{}ssh\nwendquote}, the difference is that it 
+postpones the publication until a certain time.
+The time is given by the {\Tt{}PKG{\_}AT\nwendquote} variable, or {\Tt{}at\nwendquote} as a shortcut for the 
+command-line ({\Tt{}make\ at=tomorrow\nwendquote}).
+\nwenddocs{}\nwbegincode{25}\sublabel{NW3VYM2B-29jjeg-D}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-D}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-uLTNW-1}}\nwprevnextdefs{NW3VYM2B-29jjeg-C}{NW3VYM2B-29jjeg-E}\nwenddeflinemarkup
+at?=                tomorrow
+PKG_AT?=            $\{at\}
+\nwused{\\{NW3VYM2B-uLTNW-1}}\nwendcode{}\nwbegindocs{26}\nwdocspar
+
+The way this works is that instead of writing the files to {\Tt{}PUB{\_}DIR\nwendquote} on the 
+server, we write the files to {\Tt{}PUB{\_}TMP\nwendquote} and then add an {\Tt{}at\nwendquote} job that will 
+move the files from the temporary to the final directory.
+\nwenddocs{}\nwbegincode{27}\sublabel{NW3VYM2B-29jjeg-E}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-E}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-uLTNW-1}}\nwprevnextdefs{NW3VYM2B-29jjeg-D}{NW3VYM2B-29jjeg-F}\nwenddeflinemarkup
+PUB_TMPDIR?=        /var/tmp
+\nwused{\\{NW3VYM2B-uLTNW-1}}\nwendcode{}\nwbegindocs{28}\nwdocspar
+
+\paragraph{git}
+
+The {\Tt{}git\nwendquote} method uses Git's archive functionality.
+This means that Git will export an archive made from a branch in the 
+repository, which branch is used is controlled by the following variable.
+\nwenddocs{}\nwbegincode{29}\sublabel{NW3VYM2B-29jjeg-F}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-F}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-uLTNW-1}}\nwprevnextdefs{NW3VYM2B-29jjeg-E}{NW3VYM2B-29jjeg-G}\nwenddeflinemarkup
+PUB_BRANCH?=        master
+\nwused{\\{NW3VYM2B-uLTNW-1}}\nwendcode{}\nwbegindocs{30}\nwdocspar
+
+\subsection{Publishing to multiple sites}
+
+We might also be interested in publishing files to several places, \eg to 
+a set of mirrors.
+The variable {\Tt{}PUB{\_}SITES\nwendquote} contains a list of sites.
+\nwenddocs{}\nwbegincode{31}\sublabel{NW3VYM2B-29jjeg-G}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-G}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-uLTNW-1}}\nwprevnextdefs{NW3VYM2B-29jjeg-F}{NW3VYM2B-29jjeg-H}\nwenddeflinemarkup
+PUB_SITES?=         main
+\nwused{\\{NW3VYM2B-uLTNW-1}}\nwendcode{}\nwbegindocs{32}We supply one by default, this allows us to simply use the general variables 
+above.
+This way, site-specific overrides can be specified by appending the variable 
+with the site name, \eg {\Tt{}-main\nwendquote}.
+All other values are copied from the defaults, \ie the general variables.
+\nwenddocs{}\nwbegincode{33}\sublabel{NW3VYM2B-29jjeg-H}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-H}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-uLTNW-1}}\nwprevnextdefs{NW3VYM2B-29jjeg-G}{NW3VYM2B-29jjeg-I}\nwenddeflinemarkup
+define variables
+PUB_METHOD-$(1)?=   $\{PUB_METHOD\}
+
+PUB_SERVER-$(1)?=   $\{PUB_SERVER\}
+PUB_DIR-$(1)?=      $\{PUB_DIR\}
+PUB_FILES-$(1)?=    $\{PUB_FILES\}
+PUB_IGNORE-$(1)?=   $\{PUB_IGNORE\}
+
+PUB_USER-$(1)?=     $\{PUB_USER\}
+PUB_GROUP-$(1)?=    $\{PUB_GROUP\}
+PUB_CHMOD-$(1)?=    $\{PUB_CHMOD\}
+
+PUB_AT-$(1)?=       $\{PUB_AT\}
+PUB_TMPDIR-$(1)?=   $\{PUB_TMPDIR\}
+
+PUB_BRANCH-$(1)?=   $\{PUB_BRANCH\}
+endef
+
+$(foreach site,$\{PUB_SITES\},$(eval $(call variables,$\{site\})))
+\nwused{\\{NW3VYM2B-uLTNW-1}}\nwendcode{}\nwbegindocs{34}\nwdocspar
+
+\begin{example}
+To publish the same material to three different mirrors, we can do the 
+following.
+\begin{lstlisting}
+PUB_SITES=            main mirror1 mirror2
+PUB_SERVER =          foo.bar
+PUB_SERVER-mirror1 =  foo.bar.mirror1
+PUB_SERVER-mirror2 =  foo.bar.mirror2
+\end{lstlisting}
+\end{example}
+
+
+\section{Implementation}
+
+This is an include file, so we will first use the C-style technique to prevent 
+inclusion more than once.
+Thus the structure is as follows.
+\nwenddocs{}\nwbegincode{35}\sublabel{NW3VYM2B-uLTNW-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-uLTNW-1}}}\moddef{pub.mk~{\nwtagstyle{}\subpageref{NW3VYM2B-uLTNW-1}}}\endmoddef\nwstartdeflinemarkup\nwenddeflinemarkup
+ifndef PUB_MK
+PUB_MK=true
+
+INCLUDE_MAKEFILES?=.
+include $\{INCLUDE_MAKEFILES\}/portability.mk
+
+\LA{}variables~{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-1}}\RA{}
+
+.PHONY: publish upload gh-release
+
+ifeq ($\{PUB_AUTOTAG\},true)
+upload: autotag
+gh-release: autotag
+else ifeq ($\{PUB_AUTOCOMMIT\},true)
+upload: autocommit
+gh-release: autocommit
+endif
+
+\LA{}upload target~{\nwtagstyle{}\subpageref{NW3VYM2B-40UdZN-1}}\RA{}
+\LA{}gh-release target~{\nwtagstyle{}\subpageref{NW3VYM2B-3T7lIn-1}}\RA{}
+\LA{}autotag and autocommit targets~{\nwtagstyle{}\subpageref{NW3VYM2B-4JVm8B-1}}\RA{}
+
+endif
+\nwnotused{pub.mk}\nwendcode{}\nwbegindocs{36}\nwdocspar
+
+We will now cover the different parts below.
+The {\Tt{}\LA{}variables~{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-1}}\RA{}\nwendquote} block has been covered in the usage section, but the 
+remaining are discussed below.
+
+\subsection{The upload publication mechanism, {\Tt{}upload\nwendquote}}
+
+The upload target consists of two parts.
+\nwenddocs{}\nwbegincode{37}\sublabel{NW3VYM2B-40UdZN-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-40UdZN-1}}}\moddef{upload target~{\nwtagstyle{}\subpageref{NW3VYM2B-40UdZN-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-uLTNW-1}}\nwenddeflinemarkup
+\LA{}target for uploading~{\nwtagstyle{}\subpageref{NW3VYM2B-43mNUv-1}}\RA{}
+\LA{}publication methods~{\nwtagstyle{}\subpageref{NW3VYM2B-HucVc-1}}\RA{}
+\nwused{\\{NW3VYM2B-uLTNW-1}}\nwendcode{}\nwbegindocs{38}\nwdocspar
+
+We have a general publication mechanism that drives the publication process and
+uses the methods described below.
+We have a general target {\Tt{}upload\nwendquote} to be invoked by the user.
+Then we have a specific {\Tt{}upload-site\nwendquote} target for each site, which does the 
+actual publication.
+We add all those as prerequisites to the main target.
+\nwenddocs{}\nwbegincode{39}\sublabel{NW3VYM2B-43mNUv-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-43mNUv-1}}}\moddef{target for uploading~{\nwtagstyle{}\subpageref{NW3VYM2B-43mNUv-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-40UdZN-1}}\nwprevnextdefs{\relax}{NW3VYM2B-43mNUv-2}\nwenddeflinemarkup
+.PHONY: upload
+upload: $(foreach site,$\{PUB_SITES\},upload-$\{site\})
+\nwalsodefined{\\{NW3VYM2B-43mNUv-2}\\{NW3VYM2B-43mNUv-3}}\nwused{\\{NW3VYM2B-40UdZN-1}}\nwendcode{}\nwbegindocs{40}Depending on the settings for automatic commits and tags, we also add targets
+for those functionalities as prerequisites.
+\nwenddocs{}\nwbegincode{41}\sublabel{NW3VYM2B-43mNUv-2}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-43mNUv-2}}}\moddef{target for uploading~{\nwtagstyle{}\subpageref{NW3VYM2B-43mNUv-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-40UdZN-1}}\nwprevnextdefs{NW3VYM2B-43mNUv-1}{NW3VYM2B-43mNUv-3}\nwenddeflinemarkup
+ifeq ($\{PUB_AUTOTAG\},true)
+upload: autotag
+else ifeq ($\{PUB_AUTOCOMMIT\},true)
+upload: autocommit
+endif
+\nwused{\\{NW3VYM2B-40UdZN-1}}\nwendcode{}\nwbegindocs{42}\nwdocspar
+
+Next up is the actual site-specific targets.
+The prerequisites are the files that should be uploaded.
+Then the recipe is simply a call to the relevant publication method.
+\nwenddocs{}\nwbegincode{43}\sublabel{NW3VYM2B-43mNUv-3}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-43mNUv-3}}}\moddef{target for uploading~{\nwtagstyle{}\subpageref{NW3VYM2B-43mNUv-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-40UdZN-1}}\nwprevnextdefs{NW3VYM2B-43mNUv-2}{\relax}\nwenddeflinemarkup
+define upload_target
+.PHONY: upload-$(1)
+upload-$(1): $(foreach file,$\{PUB_FILES-$(1)\},$\{file\})
+  $$(call upload-$\{PUB_METHOD-$(1)\},$(1))
+endef
+
+$(foreach site,$\{PUB_SITES\},$(eval $(call upload_target,$\{site\})))
+\nwused{\\{NW3VYM2B-40UdZN-1}}\nwendcode{}\nwbegindocs{44}\nwdocspar
+
+\subsection{Publication methods}
+\label{PubMethods}
+
+We will now cover the different publication methods.
+The outline is as follows.
+\nwenddocs{}\nwbegincode{45}\sublabel{NW3VYM2B-HucVc-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-HucVc-1}}}\moddef{publication methods~{\nwtagstyle{}\subpageref{NW3VYM2B-HucVc-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-40UdZN-1}}\nwenddeflinemarkup
+\LA{}helper functions~{\nwtagstyle{}\subpageref{NW3VYM2B-47YflN-1}}\RA{}
+\LA{}ssh method~{\nwtagstyle{}\subpageref{NW3VYM2B-1HTrUN-1}}\RA{}
+\LA{}at method~{\nwtagstyle{}\subpageref{NW3VYM2B-1GtM1x-1}}\RA{}
+\LA{}git method~{\nwtagstyle{}\subpageref{NW3VYM2B-1MIJmV-1}}\RA{}
+\nwused{\\{NW3VYM2B-40UdZN-1}}\nwendcode{}\nwbegindocs{46}We will first discuss two helper functions, {\Tt{}chown\nwendquote} and {\Tt{}chmod\nwendquote}.
+Then we will process with the different methods discussed in the introduction.
+
+Both {\Tt{}chown\nwendquote} and {\Tt{}chmod\nwendquote} takes one argument, the name of the site.
+Then each function can use the site name to find the relevant configuration.
+The {\Tt{}chown\nwendquote} function simply runs chown(1) on the {\Tt{}PUB{\_}DIR\nwendquote} directory on the 
+server.
+\nwenddocs{}\nwbegincode{47}\sublabel{NW3VYM2B-47YflN-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-47YflN-1}}}\moddef{helper functions~{\nwtagstyle{}\subpageref{NW3VYM2B-47YflN-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-HucVc-1}}\nwprevnextdefs{\relax}{NW3VYM2B-47YflN-2}\nwenddeflinemarkup
+define chown
+$(if $\{PUB_GROUP-$(1)\},\\
+  $(if $\{PUB_SERVER-$(1)\},$\{SSH\} $\{PUB_SERVER-$(1)\})\\
+  $\{CHOWN\} $\{PUB_USER-$(1)\}:$(strip $\{PUB_GROUP-$(1)\})\\
+  $(foreach f,$\{PUB_FILES-$(1)\},$\{PUB_DIR-$(1)\}/$f );\\
+  ,)
+endef
+\nwalsodefined{\\{NW3VYM2B-47YflN-2}}\nwused{\\{NW3VYM2B-HucVc-1}}\nwendcode{}\nwbegindocs{48}Conversely, the {\Tt{}chmod\nwendquote} function does the same but with the chmod(1) 
+command.
+Note, however, that we do not run these commands if {\Tt{}PUB{\_}GROUP\nwendquote} or 
+{\Tt{}PUB{\_}CHMOD\nwendquote}, respectively, are empty.
+\nwenddocs{}\nwbegincode{49}\sublabel{NW3VYM2B-47YflN-2}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-47YflN-2}}}\moddef{helper functions~{\nwtagstyle{}\subpageref{NW3VYM2B-47YflN-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-HucVc-1}}\nwprevnextdefs{NW3VYM2B-47YflN-1}{\relax}\nwenddeflinemarkup
+define chmod
+$(if $\{PUB_CHMOD-$(1)\},\\
+  $(if $\{PUB_SERVER-$(1)\},$\{SSH\} $\{PUB_SERVER-$(1)\})\\
+  $\{CHMOD\} $\{PUB_CHMOD-$(1)\}\\
+  $(foreach f,$\{PUB_FILES-$(1)\},$\{PUB_DIR-$(1)\}/$f );\\
+  ,)
+endef
+\nwused{\\{NW3VYM2B-HucVc-1}}\nwendcode{}\nwbegindocs{50}\nwdocspar
+
+\paragraph{ssh}
+
+Now to the first publication method, the one using copying over \ac{SSH}.
+We define the method as a make function which takes one argument, the name of 
+the site.
+\nwenddocs{}\nwbegincode{51}\sublabel{NW3VYM2B-1HTrUN-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-1HTrUN-1}}}\moddef{ssh method~{\nwtagstyle{}\subpageref{NW3VYM2B-1HTrUN-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-HucVc-1}}\nwenddeflinemarkup
+define upload-ssh
+\LA{}create directory on server~{\nwtagstyle{}\subpageref{NW3VYM2B-2djy1f-1}}\RA{}; \\
+\LA{}pack the files and pipe them to the server~{\nwtagstyle{}\subpageref{NW3VYM2B-46OsJj-1}}\RA{}; \\
+$(call chown,$(1)) \\
+$(call chmod,$(1))
+endef
+\nwused{\\{NW3VYM2B-HucVc-1}}\nwendcode{}\nwbegindocs{52}To create the directory on the server is straight-forward, we simply run the 
+command over \ac{SSH}.
+\nwenddocs{}\nwbegincode{53}\sublabel{NW3VYM2B-2djy1f-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-2djy1f-1}}}\moddef{create directory on server~{\nwtagstyle{}\subpageref{NW3VYM2B-2djy1f-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-1HTrUN-1}\\{NW3VYM2B-1GtM1x-1}}\nwenddeflinemarkup
+$(if $\{PUB_SERVER-$(1)\},$\{SSH\} $\{PUB_SERVER-$(1)\}) $\{MKDIR\} $\{PUB_DIR-$(1)\}
+\nwused{\\{NW3VYM2B-1HTrUN-1}\\{NW3VYM2B-1GtM1x-1}}\nwendcode{}\nwbegindocs{54}\nwdocspar
+
+Next is the packing of the files.
+\nwenddocs{}\nwbegincode{55}\sublabel{NW3VYM2B-46OsJj-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-46OsJj-1}}}\moddef{pack the files and pipe them to the server~{\nwtagstyle{}\subpageref{NW3VYM2B-46OsJj-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-1HTrUN-1}}\nwenddeflinemarkup
+\LA{}generate file list~{\nwtagstyle{}\subpageref{NW3VYM2B-4gFyvq-1}}\RA{} | \\
+\LA{}pack the files~{\nwtagstyle{}\subpageref{NW3VYM2B-1jSywx-1}}\RA{} | \\
+\LA{}extract the files on the server~{\nwtagstyle{}\subpageref{NW3VYM2B-rfzKk-1}}\RA{}
+\nwused{\\{NW3VYM2B-1HTrUN-1}}\nwendcode{}\nwbegindocs{56}Before we do anything with the files, we must ensure that the list of files 
+is not empty --- if it was empty, that would break all of the following 
+commands.
+If not, we will use find(1) to generate a list of files to include.
+We do this in case there is a directory in the list {\Tt{}PUB{\_}FILES\nwendquote}.
+If there is a directory in there, we cannot filter it using {\Tt{}PKG{\_}IGNORE\nwendquote}, so 
+we must generate a list of the entire hierarchy included.
+\nwenddocs{}\nwbegincode{57}\sublabel{NW3VYM2B-4gFyvq-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-4gFyvq-1}}}\moddef{generate file list~{\nwtagstyle{}\subpageref{NW3VYM2B-4gFyvq-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-46OsJj-1}\\{NW3VYM2B-1GtM1x-1}}\nwenddeflinemarkup
+[ -n "$\{PUB_FILES-$(1)\}" ] && find $\{PUB_FILES-$(1)\} -type f -or -type l
+\nwused{\\{NW3VYM2B-46OsJj-1}\\{NW3VYM2B-1GtM1x-1}}\nwendcode{}\nwbegindocs{58}Once we have the list we can use pax(1) to put them into an archive, an 
+archive which is written to standard out.
+\nwenddocs{}\nwbegincode{59}\sublabel{NW3VYM2B-1jSywx-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-1jSywx-1}}}\moddef{pack the files~{\nwtagstyle{}\subpageref{NW3VYM2B-1jSywx-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-46OsJj-1}\\{NW3VYM2B-1GtM1x-1}}\nwenddeflinemarkup
+xargs $\{PAX\} \\
+  $(foreach regex,$\{PUB_REGEX-$(1)\},-s $\{regex\}) \\
+  -s "|^.*/$(strip $\{PUB_IGNORE-$(1)\})/.*$$||p"
+\nwused{\\{NW3VYM2B-46OsJj-1}\\{NW3VYM2B-1GtM1x-1}}\nwendcode{}\nwbegindocs{60}We also filter the file list through a series of regular expressions.
+The user may add regular expressions as a space-separated list in the following
+variable.
+\nwenddocs{}\nwbegincode{61}\sublabel{NW3VYM2B-29jjeg-I}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-I}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-uLTNW-1}}\nwprevnextdefs{NW3VYM2B-29jjeg-H}{NW3VYM2B-29jjeg-J}\nwenddeflinemarkup
+PUB_REGEX?=     "|^(.*)$$$$|\\1|p"
+$(foreach site,$\{PKG_SITES\},$(eval PUB_REGEX-$\{site\}?=$\{PUB_REGEX\}))
+\nwused{\\{NW3VYM2B-uLTNW-1}}\nwendcode{}\nwbegindocs{62}\nwdocspar
+
+Finally, we extract the files on the server by running the corresponding pax(1) 
+instance over \ac{SSH}.
+\nwenddocs{}\nwbegincode{63}\sublabel{NW3VYM2B-rfzKk-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-rfzKk-1}}}\moddef{extract the files on the server~{\nwtagstyle{}\subpageref{NW3VYM2B-rfzKk-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-46OsJj-1}}\nwenddeflinemarkup
+$(if $\{PUB_SERVER-$(1)\},$\{SSH\} $\{PUB_SERVER-$(1)\}) $\{UNPAX\} \\
+  -s "\\"|^|$(strip $\{PUB_DIR-$(1)\})/|p\\""
+\nwused{\\{NW3VYM2B-46OsJj-1}}\nwendcode{}\nwbegindocs{64}\nwdocspar
+
+\paragraph{at}
+
+The next method is very similar to the first.
+The difference here is a middle step where we copy the files to a temporary 
+place on the server and an additional final step where we upload them in the 
+destination at some predefined time.
+\nwenddocs{}\nwbegincode{65}\sublabel{NW3VYM2B-1GtM1x-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-1GtM1x-1}}}\moddef{at method~{\nwtagstyle{}\subpageref{NW3VYM2B-1GtM1x-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-HucVc-1}}\nwenddeflinemarkup
+define upload-at
+\LA{}create directory on server~{\nwtagstyle{}\subpageref{NW3VYM2B-2djy1f-1}}\RA{}; \\
+\LA{}create temporary directory~{\nwtagstyle{}\subpageref{NW3VYM2B-46A5g0-1}}\RA{}; \\
+\LA{}generate file list~{\nwtagstyle{}\subpageref{NW3VYM2B-4gFyvq-1}}\RA{} | \\
+\LA{}pack the files~{\nwtagstyle{}\subpageref{NW3VYM2B-1jSywx-1}}\RA{} | \\
+\LA{}extract the files in the temporary directory~{\nwtagstyle{}\subpageref{NW3VYM2B-12cFmF-1}}\RA{}; \\
+\LA{}add at-job on the server~{\nwtagstyle{}\subpageref{NW3VYM2B-20baS4-1}}\RA{}
+endef
+\nwused{\\{NW3VYM2B-HucVc-1}}\nwendcode{}\nwbegindocs{66}We have already seen some of these code blocks above, we will now cover the 
+new ones.
+
+The first thing we want to do is to create a temporary directory on the server.
+We do this in the proper way.
+\nwenddocs{}\nwbegincode{67}\sublabel{NW3VYM2B-46A5g0-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-46A5g0-1}}}\moddef{create temporary directory~{\nwtagstyle{}\subpageref{NW3VYM2B-46A5g0-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-1GtM1x-1}}\nwenddeflinemarkup
+TMPPUB=$$($(if $\{PUB_SERVER-$(1)\},$\{SSH\} $\{PUB_SERVER-$(1)\}) \\
+  "export TMPDIR=$\{PUB_TMPDIR-$(1)\} && $\{MKTMPDIR-$(1)\}")
+\nwused{\\{NW3VYM2B-1GtM1x-1}}\nwendcode{}\nwbegindocs{68}We allow the user to override the {\Tt{}mktemp\nwendquote} command per server, since this 
+command might differ on different servers.
+\nwenddocs{}\nwbegincode{69}\sublabel{NW3VYM2B-29jjeg-J}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-J}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-uLTNW-1}}\nwprevnextdefs{NW3VYM2B-29jjeg-I}{NW3VYM2B-29jjeg-K}\nwenddeflinemarkup
+$(foreach site,$\{PUB_SITES\},$(eval MKTMPDIR-$\{site\}?=$\{MKTMPDIR\}))
+\nwused{\\{NW3VYM2B-uLTNW-1}}\nwendcode{}\nwbegindocs{70}\nwdocspar
+
+Next we upload the files to the temporary directory on the server.
+The difference between this and previous upload is the extraction.
+We will now use a different regular expression, one which prepends the 
+temporary directory to all files.
+\nwenddocs{}\nwbegincode{71}\sublabel{NW3VYM2B-12cFmF-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-12cFmF-1}}}\moddef{extract the files in the temporary directory~{\nwtagstyle{}\subpageref{NW3VYM2B-12cFmF-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-1GtM1x-1}}\nwenddeflinemarkup
+$(if $\{PUB_SERVER-$(1)\},$\{SSH\} $\{PUB_SERVER-$(1)\}) $\{UNPAX\} \\
+  -s "\\"|^|$$\{TMPPUB\}/|p\\""
+\nwused{\\{NW3VYM2B-1GtM1x-1}}\nwendcode{}\nwbegindocs{72}\nwdocspar
+
+Finally, we must add the at(1) job on the server.
+This is done by changing the directory to the temporary directory, then we echo
+the commands we want to execute later and pipe those to the at(1) command.
+\nwenddocs{}\nwbegincode{73}\sublabel{NW3VYM2B-20baS4-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-20baS4-1}}}\moddef{add at-job on the server~{\nwtagstyle{}\subpageref{NW3VYM2B-20baS4-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-1GtM1x-1}}\nwenddeflinemarkup
+$(if $\{PUB_SERVER-$(1)\},$\{SSH\} $\{PUB_SERVER-$(1)\}) "cd $$\{TMPPUB\} && (\\
+  echo 'mv $\{PUB_FILES-$(1)\} $\{PUB_DIR-$(2)\};' \\
+  $(if $\{PUB_CHMOD-$(1)\},\\
+    echo '$\{CHMOD-$(1)\} $\{PUB_CHMOD-$(1)\} $\{PUB_DIR-$(1)\};',) \\
+  $(if $\{PUB_GROUP-$(1)\},\\
+    echo '$\{CHOWN-$(1)\} $\{PUB_USER-$(1)\}:$(strip $\{PUB_GROUP-$(1)\}) $\{PUB_DIR-$(1)\};',) \\
+  ) | at $\{PKG_AT\}"
+\nwused{\\{NW3VYM2B-1GtM1x-1}}\nwendcode{}\nwbegindocs{74}We note that we allow the user to specify different {\Tt{}CHOWN\nwendquote} and {\Tt{}CHMOD\nwendquote} 
+variables for different servers, since these commands might differ per server.
+\nwenddocs{}\nwbegincode{75}\sublabel{NW3VYM2B-29jjeg-K}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-K}}}\moddef{variables~{\nwtagstyle{}\subpageref{NW3VYM2B-29jjeg-1}}}\plusendmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-uLTNW-1}}\nwprevnextdefs{NW3VYM2B-29jjeg-J}{\relax}\nwenddeflinemarkup
+define chown_and_chmod
+CHOWN-$(1)?=  $\{CHOWN\}
+CHMOD-$(1)?=  $\{CHMOD\}
+endef
+$(foreach site,$\{PUB_SITES\},$(eval $(call chown_and_chmod,$\{site\})))
+\nwused{\\{NW3VYM2B-uLTNW-1}}\nwendcode{}\nwbegindocs{76}\nwdocspar
+
+\paragraph{git}
+
+The last method uses Git's functionality to pack the files.
+We simply use {\Tt{}git\ archive\nwendquote} and specify which branch to use.
+Then we pipe the archive to the server, unpack as before and finally run 
+{\Tt{}chown\nwendquote} and {\Tt{}chmod\nwendquote}.
+\nwenddocs{}\nwbegincode{77}\sublabel{NW3VYM2B-1MIJmV-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-1MIJmV-1}}}\moddef{git method~{\nwtagstyle{}\subpageref{NW3VYM2B-1MIJmV-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-HucVc-1}}\nwenddeflinemarkup
+define upload-git
+git archive $\{PUB_BRANCH-$(1)\} $\{PUB_FILES-$(1)\} \\
+  | $(if $\{PUB_SERVER-$(1)\},$\{SSH\} $\{PUB_SERVER-$(1)\}) \\
+    $\{UNPAX\} -s ",^,$(strip $\{PUB_DIR-$(1)\}),"; \\
+$(call chown,$(1)) \\
+$(call chmod,$(1))
+endef
+\nwused{\\{NW3VYM2B-HucVc-1}}\nwendcode{}\nwbegindocs{78}\nwdocspar
+
+
+\subsection{GitHub releases, {\Tt{}gh-release\nwendquote}}
+
+Now let's turn our attention to the {\Tt{}gh-release\nwendquote} target.
+It's important that we push any changes, since the tag and release are created 
+on the server.
+\nwenddocs{}\nwbegincode{79}\sublabel{NW3VYM2B-3T7lIn-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-3T7lIn-1}}}\moddef{gh-release target~{\nwtagstyle{}\subpageref{NW3VYM2B-3T7lIn-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-uLTNW-1}}\nwenddeflinemarkup
+.PHONY: gh-release
+gh-release: $\{PUB_FILES\}
+  git push --all
+  git push --tags
+  gh release create -t $\{PUB_TAG_NAME\} $\{PUB_TAG_NAME\} $\{PUB_FILES\}
+\nwused{\\{NW3VYM2B-uLTNW-1}}\nwendcode{}\nwbegindocs{80}\nwdocspar
+
+
+\subsection{Automatically committing and tagging,
+  {\Tt{}autotag\nwendquote} and {\Tt{}autocommit\nwendquote}}
+
+The last feature allows us to automatically commit and make a tag when we 
+publish.
+We accomplish this by two targets that we have already seen above.
+These targets use functions specific to the selected \ac{VCS}.
+\nwenddocs{}\nwbegincode{81}\sublabel{NW3VYM2B-4JVm8B-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-4JVm8B-1}}}\moddef{autotag and autocommit targets~{\nwtagstyle{}\subpageref{NW3VYM2B-4JVm8B-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-uLTNW-1}}\nwenddeflinemarkup
+\LA{}commit and tag functions~{\nwtagstyle{}\subpageref{NW3VYM2B-1YJ6QK-1}}\RA{}
+
+.PHONY: autocommit
+autocommit:
+  $(call autocommit-$\{PUB_VCS\})
+
+.PHONY: autotag
+autotag:
+  $(call autotag-$\{PUB_VCS\})
+\nwused{\\{NW3VYM2B-uLTNW-1}}\nwendcode{}\nwbegindocs{82}Below we will cover the different \acp{VCS}.
+
+For now there are two functions, one for committing and one for tagging.
+The commit functions are quite straight-forward for all three \acp{VCS}.
+The tagging is similarly straight-forward for two, but not the third.
+\nwenddocs{}\nwbegincode{83}\sublabel{NW3VYM2B-1YJ6QK-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-1YJ6QK-1}}}\moddef{commit and tag functions~{\nwtagstyle{}\subpageref{NW3VYM2B-1YJ6QK-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-4JVm8B-1}}\nwenddeflinemarkup
+\LA{}autocommit for git, svn and cvs~{\nwtagstyle{}\subpageref{NW3VYM2B-1yqbUH-1}}\RA{}
+\LA{}autotag for git and cvs~{\nwtagstyle{}\subpageref{NW3VYM2B-2vEoeV-1}}\RA{}
+\LA{}autotag for svn~{\nwtagstyle{}\subpageref{NW3VYM2B-49EyGO-1}}\RA{}
+\nwused{\\{NW3VYM2B-4JVm8B-1}}\nwendcode{}\nwbegindocs{84}\nwdocspar
+
+The commit functions are as expected for all three \acp{VCS}.
+\nwenddocs{}\nwbegincode{85}\sublabel{NW3VYM2B-1yqbUH-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-1yqbUH-1}}}\moddef{autocommit for git, svn and cvs~{\nwtagstyle{}\subpageref{NW3VYM2B-1yqbUH-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-1YJ6QK-1}}\nwenddeflinemarkup
+autocommit-git = git diff --quiet || git commit $\{PUB_COMMIT_OPTS\}
+autocommit-svn = svn commit $\{PUB_COMMIT_OPTS\}
+autocommit-cvs = cvs commit $\{PUB_COMMIT_OPTS\}
+\nwused{\\{NW3VYM2B-1YJ6QK-1}}\nwendcode{}\nwbegindocs{86}The tagging is similarly straight-forward for Git and \ac{CVS}.
+\nwenddocs{}\nwbegincode{87}\sublabel{NW3VYM2B-2vEoeV-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-2vEoeV-1}}}\moddef{autotag for git and cvs~{\nwtagstyle{}\subpageref{NW3VYM2B-2vEoeV-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-1YJ6QK-1}}\nwenddeflinemarkup
+autotag-git = git tag $\{PUB_TAG_OPTS\} $\{PUB_TAG_NAME\}
+autotag-cvs = cvs tag $\{PUB_TAG_OPTS\} $\{PUB_TAG_NAME\}
+\nwused{\\{NW3VYM2B-1YJ6QK-1}}\nwendcode{}\nwbegindocs{88}\nwdocspar
+
+The tagging function for \ac{SVN} is not as easy though.
+The outline is as follows.
+\nwenddocs{}\nwbegincode{89}\sublabel{NW3VYM2B-49EyGO-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-49EyGO-1}}}\moddef{autotag for svn~{\nwtagstyle{}\subpageref{NW3VYM2B-49EyGO-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-1YJ6QK-1}}\nwenddeflinemarkup
+\LA{}helper functions for svn tagging~{\nwtagstyle{}\subpageref{NW3VYM2B-GdlXA-1}}\RA{}
+
+define autotag-svn
+\LA{}find the root of repo~{\nwtagstyle{}\subpageref{NW3VYM2B-4LQ9QC-1}}\RA{}
+\LA{}go to root and create tag~{\nwtagstyle{}\subpageref{NW3VYM2B-274jZF-1}}\RA{}
+endef
+\nwused{\\{NW3VYM2B-1YJ6QK-1}}\nwendcode{}\nwbegindocs{90}To find the root of the repository, or more exactly where the directories 
+{\Tt{}trunk\nwendquote} and {\Tt{}tags\nwendquote} are located, we must search through the parent 
+directories.
+We start in the current working directory and add one level per iteration.
+\nwenddocs{}\nwbegincode{91}\sublabel{NW3VYM2B-4LQ9QC-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-4LQ9QC-1}}}\moddef{find the root of repo~{\nwtagstyle{}\subpageref{NW3VYM2B-4LQ9QC-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-49EyGO-1}}\nwenddeflinemarkup
+ROOT=.
+while ! [ -d $$\{ROOT\}/trunk ]; do \\
+  $(call exit_if_fs_root,$$\{ROOT\})
+  ROOT=$$\{ROOT\}/.. \\
+done \\
+\nwused{\\{NW3VYM2B-49EyGO-1}}\nwendcode{}\nwbegindocs{92}We must check if we reach the root of the file system.
+We use the function {\Tt{}exit{\_}if{\_}fs{\_}root\nwendquote} for this.
+This function exits with value {\Tt{}1\nwendquote} if the current directory examined is the 
+root of the file system.
+If this happens, make(1) will abort the recipe and the code after will not be 
+executed.
+The way we check for equality is to check that the device identifiers and the 
+inode numbers are equal, we can do that using stat(1).
+\nwenddocs{}\nwbegincode{93}\sublabel{NW3VYM2B-GdlXA-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-GdlXA-1}}}\moddef{helper functions for svn tagging~{\nwtagstyle{}\subpageref{NW3VYM2B-GdlXA-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-49EyGO-1}}\nwenddeflinemarkup
+define exit_if_fs_root
+if [ $(stat -c %i $(1)) = $(stat -c %i /) \\
+     -a $(stat -c %d $(1)) = $(stat -c %d /) ]; then \\
+    exit 1; \\
+fi
+endef
+\nwused{\\{NW3VYM2B-49EyGO-1}}\nwendcode{}\nwbegindocs{94}\nwdocspar
+
+Finally, if the recipe is still executing, this means that we have found the 
+root and we can copy the trunk to tags.
+\nwenddocs{}\nwbegincode{95}\sublabel{NW3VYM2B-274jZF-1}\nwmargintag{{\nwtagstyle{}\subpageref{NW3VYM2B-274jZF-1}}}\moddef{go to root and create tag~{\nwtagstyle{}\subpageref{NW3VYM2B-274jZF-1}}}\endmoddef\nwstartdeflinemarkup\nwusesondefline{\\{NW3VYM2B-49EyGO-1}}\nwenddeflinemarkup
+cd $\{ROOT\} \\
+  && svn copy trunk tags/$\{PUB_TAG_NAME\} \\
+  && svn commit $\{PUB_COMMIT_OPTS\};
+\nwused{\\{NW3VYM2B-49EyGO-1}}\nwendcode{}
+
+\nwixlogsorted{c}{{add at-job on the server}{NW3VYM2B-20baS4-1}{\nwixu{NW3VYM2B-1GtM1x-1}\nwixd{NW3VYM2B-20baS4-1}}}%
+\nwixlogsorted{c}{{at method}{NW3VYM2B-1GtM1x-1}{\nwixu{NW3VYM2B-HucVc-1}\nwixd{NW3VYM2B-1GtM1x-1}}}%
+\nwixlogsorted{c}{{autocommit for git, svn and cvs}{NW3VYM2B-1yqbUH-1}{\nwixu{NW3VYM2B-1YJ6QK-1}\nwixd{NW3VYM2B-1yqbUH-1}}}%
+\nwixlogsorted{c}{{autotag and autocommit targets}{NW3VYM2B-4JVm8B-1}{\nwixu{NW3VYM2B-uLTNW-1}\nwixd{NW3VYM2B-4JVm8B-1}}}%
+\nwixlogsorted{c}{{autotag for git and cvs}{NW3VYM2B-2vEoeV-1}{\nwixu{NW3VYM2B-1YJ6QK-1}\nwixd{NW3VYM2B-2vEoeV-1}}}%
+\nwixlogsorted{c}{{autotag for svn}{NW3VYM2B-49EyGO-1}{\nwixu{NW3VYM2B-1YJ6QK-1}\nwixd{NW3VYM2B-49EyGO-1}}}%
+\nwixlogsorted{c}{{commit and tag functions}{NW3VYM2B-1YJ6QK-1}{\nwixu{NW3VYM2B-4JVm8B-1}\nwixd{NW3VYM2B-1YJ6QK-1}}}%
+\nwixlogsorted{c}{{create directory on server}{NW3VYM2B-2djy1f-1}{\nwixu{NW3VYM2B-1HTrUN-1}\nwixd{NW3VYM2B-2djy1f-1}\nwixu{NW3VYM2B-1GtM1x-1}}}%
+\nwixlogsorted{c}{{create temporary directory}{NW3VYM2B-46A5g0-1}{\nwixu{NW3VYM2B-1GtM1x-1}\nwixd{NW3VYM2B-46A5g0-1}}}%
+\nwixlogsorted{c}{{extract the files in the temporary directory}{NW3VYM2B-12cFmF-1}{\nwixu{NW3VYM2B-1GtM1x-1}\nwixd{NW3VYM2B-12cFmF-1}}}%
+\nwixlogsorted{c}{{extract the files on the server}{NW3VYM2B-rfzKk-1}{\nwixu{NW3VYM2B-46OsJj-1}\nwixd{NW3VYM2B-rfzKk-1}}}%
+\nwixlogsorted{c}{{find the root of repo}{NW3VYM2B-4LQ9QC-1}{\nwixu{NW3VYM2B-49EyGO-1}\nwixd{NW3VYM2B-4LQ9QC-1}}}%
+\nwixlogsorted{c}{{generate file list}{NW3VYM2B-4gFyvq-1}{\nwixu{NW3VYM2B-46OsJj-1}\nwixd{NW3VYM2B-4gFyvq-1}\nwixu{NW3VYM2B-1GtM1x-1}}}%
+\nwixlogsorted{c}{{gh-release target}{NW3VYM2B-3T7lIn-1}{\nwixu{NW3VYM2B-uLTNW-1}\nwixd{NW3VYM2B-3T7lIn-1}}}%
+\nwixlogsorted{c}{{git method}{NW3VYM2B-1MIJmV-1}{\nwixu{NW3VYM2B-HucVc-1}\nwixd{NW3VYM2B-1MIJmV-1}}}%
+\nwixlogsorted{c}{{go to root and create tag}{NW3VYM2B-274jZF-1}{\nwixu{NW3VYM2B-49EyGO-1}\nwixd{NW3VYM2B-274jZF-1}}}%
+\nwixlogsorted{c}{{helper functions}{NW3VYM2B-47YflN-1}{\nwixu{NW3VYM2B-HucVc-1}\nwixd{NW3VYM2B-47YflN-1}\nwixd{NW3VYM2B-47YflN-2}}}%
+\nwixlogsorted{c}{{helper functions for svn tagging}{NW3VYM2B-GdlXA-1}{\nwixu{NW3VYM2B-49EyGO-1}\nwixd{NW3VYM2B-GdlXA-1}}}%
+\nwixlogsorted{c}{{pack the files}{NW3VYM2B-1jSywx-1}{\nwixu{NW3VYM2B-46OsJj-1}\nwixd{NW3VYM2B-1jSywx-1}\nwixu{NW3VYM2B-1GtM1x-1}}}%
+\nwixlogsorted{c}{{pack the files and pipe them to the server}{NW3VYM2B-46OsJj-1}{\nwixu{NW3VYM2B-1HTrUN-1}\nwixd{NW3VYM2B-46OsJj-1}}}%
+\nwixlogsorted{c}{{pub.mk}{NW3VYM2B-uLTNW-1}{\nwixd{NW3VYM2B-uLTNW-1}}}%
+\nwixlogsorted{c}{{publication methods}{NW3VYM2B-HucVc-1}{\nwixu{NW3VYM2B-40UdZN-1}\nwixd{NW3VYM2B-HucVc-1}}}%
+\nwixlogsorted{c}{{ssh method}{NW3VYM2B-1HTrUN-1}{\nwixu{NW3VYM2B-HucVc-1}\nwixd{NW3VYM2B-1HTrUN-1}}}%
+\nwixlogsorted{c}{{target for uploading}{NW3VYM2B-43mNUv-1}{\nwixu{NW3VYM2B-40UdZN-1}\nwixd{NW3VYM2B-43mNUv-1}\nwixd{NW3VYM2B-43mNUv-2}\nwixd{NW3VYM2B-43mNUv-3}}}%
+\nwixlogsorted{c}{{upload target}{NW3VYM2B-40UdZN-1}{\nwixu{NW3VYM2B-uLTNW-1}\nwixd{NW3VYM2B-40UdZN-1}}}%
+\nwixlogsorted{c}{{variables}{NW3VYM2B-29jjeg-1}{\nwixd{NW3VYM2B-29jjeg-1}\nwixd{NW3VYM2B-29jjeg-2}\nwixd{NW3VYM2B-29jjeg-3}\nwixd{NW3VYM2B-29jjeg-4}\nwixd{NW3VYM2B-29jjeg-5}\nwixd{NW3VYM2B-29jjeg-6}\nwixd{NW3VYM2B-29jjeg-7}\nwixd{NW3VYM2B-29jjeg-8}\nwixd{NW3VYM2B-29jjeg-9}\nwixd{NW3VYM2B-29jjeg-A}\nwixd{NW3VYM2B-29jjeg-B}\nwixd{NW3VYM2B-29jjeg-C}\nwixd{NW3VYM2B-29jjeg-D}\nwixd{NW3VYM2B-29jjeg-E}\nwixd{NW3VYM2B-29jjeg-F}\nwixd{NW3VYM2B-29jjeg-G}\nwixd{NW3VYM2B-29jjeg-H}\nwixu{NW3VYM2B-uLTNW-1}\nwixd{NW3VYM2B-29jjeg-I}\nwixd{NW3VYM2B-29jjeg-J}\nwixd{NW3VYM2B-29jjeg-K}}}%
+\nwbegindocs{96}\nwdocspar
+\nwenddocs{}
