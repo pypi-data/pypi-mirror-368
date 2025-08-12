@@ -1,0 +1,38 @@
+name: Linting and testing
+
+on:
+  - push
+
+jobs:
+  build:
+    strategy:
+      fail-fast: true
+      matrix:
+        os: ["windows-latest", "macos-latest"]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: "Set up Python"
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: ".python-version"
+
+      - name: Install the project
+        run: uv sync --locked --all-extras --dev
+
+      - name: Run Ruff
+        run: uv run ruff check --output-format=github .
+
+      - name: Test with pytest
+        run: |
+          uv run pytest -v -p no:cacheprovider --exitfirst --benchmark-time-unit="s" --benchmark-autosave
+        env:
+          API_KEY: ${{ secrets.API_KEY }}

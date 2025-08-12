@@ -1,0 +1,91 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "babylab"
+dynamic = ["version"]
+description = 'A GUI for the SJD Babylab REDCap database'
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+keywords = []
+authors = [
+  { name = "gongcastro", email = "gongarciacastro@gmail.com" },
+]
+
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+  "Operating System :: Microsoft :: Windows"
+]
+dependencies = [
+  "auto-py-to-exe>=2.46.0",
+  "dotenv>=0.9.9",
+  "flask>=3.1.1",
+  "flask-babel>=4.0.0",
+  "flaskwebgui>=1.1.6",
+  "markupsafe>=3.0.2",
+  "pandas",
+  "pydotenv>=0.0.7",
+  "pyinstaller>=6.14.2",
+  "pytest>=8.4.1",
+  "pytest-benchmark>=5.1.0",
+  "pytest-cov>=6.2.1",
+  "requests",
+  "ruff>=0.12.7",
+  "waitress>=3.0.2",
+]
+
+[project.urls]
+Documentation = "https://github.com/NeuroDevComp/babylab-redcap#readme"
+Issues = "https://github.com/NeuroDevComp/babylab-redcap/issues"
+Source = "https://github.com/NeuroDevComp/babylab-redcap"
+
+[tool.hatch.version]
+path = "babylab/__about__.py"
+
+[tool.hatch.envs.types]
+extra-dependencies = [
+  "mypy>=1.0.0",
+]
+[tool.hatch.envs.types.scripts]
+check = "mypy --install-types --non-interactive {args:babylab tests}"
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+  ".env",
+  ".gitignore",
+]
+
+[tool.coverage.run]
+source_pkgs = ["babylab", "tests"]
+branch = true
+parallel = true
+omit = [
+  "babylab/__about__.py",
+  "babylab/__init__.py",
+
+]
+
+[tool.coverage.paths]
+babylab = ["babylab", "*/babylab-redcap/babylab"]
+tests = ["tests", "*/babylab/tests"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
+
+[tool.djlint]
+profile="jinja"
+
+[dependency-groups]
+dev = []
