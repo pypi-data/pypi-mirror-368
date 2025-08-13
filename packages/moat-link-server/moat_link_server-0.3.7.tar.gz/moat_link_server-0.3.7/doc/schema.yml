@@ -1,0 +1,341 @@
+_path: !P ':'
+$id: https://M-o-a-T.org/schema/
+$schema: https://json-schema.org/draft/2020-12/schema
+title: Root Schema
+description: Descriptive tag at the root of the hierarchy
+type: object
+properties:
+  root:
+    $ref: _/path
+  home:
+    type: string
+    format: uri
+  email:
+    type: string
+    format: email
+required:
+- root
+- home
+- email
+additionalProperties: true
+---
+_path: !P doc
+title: Documentation
+description: Human-readable text about an item
+type: object
+properties:
+  title: string
+  doc: string
+  ext: 
+    $ref: _/ext
+  items:
+    type: object
+    title: describes entries below this, unless nothed otherwise
+    properties:
+      title: string
+      doc: string
+      ext: 
+        $ref: _/ext
+    required:
+    - title
+required:
+- title
+---
+_path: !P error
+title: Error states
+type: object
+properties: TODO
+---
+_path: !P gate._
+title: Gateway sppecification
+properties:
+  driver:
+    type: str
+    title: Name of driver
+  name:
+    type: str
+    title: Name of gateway
+    doc: |
+      This is used when debugging (to impersonate another gateway)
+      or when different sub-gateways should use the same name for convenience.
+  src:
+    type: Path
+    title: Local path
+    doc: |
+      The MQTT path of the data, relative to the MoaT-Link root.
+  dst:
+    type: Path
+    title: Remote path
+    doc: |
+      The path to the data, relative to the destination which
+      this gate's driver addresses.
+---
+_path: !P conv._._
+title: Data conversion specification
+doc: |
+  Gateways look up the codec to use here, based on the element's subpath.
+  Elements `+` and `#` are wildcards just as in MQTT;
+  `#` does not have to be at the end.
+properties:
+  codec:
+    type: Path|str
+    doc: |
+      if a path, look up in `codec.`
+      if a string, the name of the codec to use.
+---
+_path: !P codec._
+title: Specialized codecs
+properties:
+  decode:
+    type: str
+    doc: |
+      Python script snippet to decode `value`.
+  encode:
+    type: str
+    doc: |
+      Python script snippet to encode `value`.
+  in:
+    type: array
+    doc: |
+      List of test values (source/result) for `decode`.
+  out:
+    type: array
+    doc: |
+      List of test values (source/result) for `encode`.
+---
+_path: !P gate.moat._._
+title: Gateway between MQTT and MoaT-Link data TODO DRAFT
+type: object
+properties:
+  dir:
+    type: str
+    doc: |
+      rd: read from MoaT-Link, send to MQTT
+      wr: read from MQTT, send to MoaT-Link
+      rs: stream from MoaT-Link, send to MQTT
+      ws: read from MQTT, stream to MoaT-Link
+  src:
+    type: Path
+    doc: Source to read from
+  args:
+    type: list
+    doc: Positional arguments for the MoaT-Link call
+  kw:
+    type: dict
+    doc: Keyword arguments for the MoaT-Link call
+  dst:
+    type: Path
+    doc: destination to send to
+  raw:
+    type: bool
+    doc: set if the MQTT path is outside the MoaT root
+  srcpath:
+    type: Path
+    doc: attribute to read from source data
+  dstpath:
+    type: Path
+    doc: attribute to write to dest data
+  t_min:
+    type: float
+    doc: how often to read (non-streaming) / reduce frequency (streaming)
+  t_max:
+    type: float
+    doc: trigger an error if the update didn't work for t_max
+
+---
+_path: !P run.service.conn.main
+title: Address of the main MoaT-Link server
+type: object
+properties:
+  link:
+    anyOf:
+    - type: array
+      items:
+        type: object
+        properties:
+          host: string
+          port: integer
+    - type: object
+      properties:
+        host: string
+        port: integer
+  auth:
+    type: binary
+
+required:
+- host
+---
+_path: !P run.service.client.main.NAME
+title: Notice that named client NAME has connected/disconnected
+doc: content is the name of the server, or empty when disconnected
+type: string
+---
+_path: !P run.service.down.main
+title: Notice that a server is down
+type: string
+---
+_path: !P run.service.stamp.main
+title: Sync message
+type: integer
+---
+_path: !P run.service.ping.main
+title: AsyncActor channel
+type: object
+---
+_path: !P schema
+$ref: https://json-schema.org/draft/2020-12/schema
+properties:
+  ext:
+    $ref: _/ext
+  items:
+    title: documents the next hierarchy level(s)
+    description: applies if the entries below this don't have their own schema entry
+    $ref: /schema/
+---
+_path: !P schema._.api.root
+title: OpenAPI root meta-schema
+$ref: https://spec.openapis.org/oas/3.1/schema/2022-10-07
+---
+_path: !P _.api
+title: Various (possibly partial) API schemas
+---
+_path: !P _.api.root
+title: Our OpenAPI root schema
+---
+_path: !P error
+title: error reports
+type: object
+properties:
+  msg:
+    title: short text about the problem
+    type: string
+  level:
+    default: 0
+    title: error level. Zero: clear it.
+    type: integer
+  data:
+    title: value that triggered the error
+    description: error-generating datum, or its repr if unencodeable
+  path:
+    title: some other path associated with the error
+    $ref: _/path
+---
+_path: !P _.path
+title: Path object
+description: Object accessor path
+$id: Path
+type: array
+items:
+  anyOf:
+    - type: string
+    - type: integer
+    - $ref: Path
+---
+_path: !P _.ext
+title: External data flag
+description: set if the entry was loaded from MoaT
+type: bool
+---
+_path: !P _.frame
+title: Metadata for MoaT messages
+description: set if the entry was loaded from MoaT
+$id: Path
+type: object
+properties:
+  timestamp:
+    type: number
+    title: original timestamp of this message
+  origin:
+    type: string
+    title: node that created the message
+---
+_path: !P _.link.server.i.hello.req
+title: "Hello" sent to the server, initial message
+type: array
+prefixItems:
+  - type: array
+    title: protocol version
+    items:
+      type: integer
+  - type: string
+    title: local name
+  - type: string
+    title: remote name
+  - type: bool
+    title: Server flag
+  - anyOf:
+    - type: array
+      title: auth support
+      items:
+        type: string
+        title: auth method name
+        description: supported auth methods
+    - type: string
+      title: auth token
+      deacription: Client: from broadcast; Server: use this method
+    - type: bool
+      title: authorized
+      description: |2
+        Flag for authorization shortcut
+        Client: won't do auth if False. Default ("hit me with auth methods") is True.
+        Server: can't do you if False. "Token OK" or "no login required" if True.
+---
+_path: !P _.link.server.i.hello.resp
+$ref: _/links/server(i/hello/req
+---
+_path: !P _.save.data
+title: Save file entry, except for the first and last item
+type: array
+prefixItems:
+  - type: integer
+    title: Path prefix
+    description: The first n items in the previous entry's path atr prepended to this entry's path
+  - type: array
+    $ref: _/path
+  - type: any
+  - type: array
+    $ref: _/meta
+---
+_path: !P _.save.header
+type: object
+title: Saved-file and Data dump transmission header+trailer
+properties:
+  root:
+    title: base directory
+    $ref: _/path
+  timestamp:
+    type: number
+    title: the file contains changes logged after this time
+  prev:
+    type: string
+    title: Previous savefile
+    description: Written after switching to @next
+  next:
+    type: string
+    title: Next savefile
+    description: replaces
+  sup:
+    type: string
+    title: Name of the savefile this one supersedes
+    description: also read @sup if @prev is incomplete
+  level:
+    type: int
+    title: Save level of this file
+
+required:
+  - root
+  - timestamp
+  - level
+
+---
+_path: !P _.meta
+title: metadata
+type: array
+prefixItems:
+  - type: string
+    title: Name of originator
+  - title: Timestamp
+    type: number
+  - type: object
+    title: optionally, random key/value data
+
