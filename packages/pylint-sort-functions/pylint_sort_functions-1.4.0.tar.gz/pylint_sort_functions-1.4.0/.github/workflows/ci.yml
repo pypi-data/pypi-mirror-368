@@ -1,0 +1,100 @@
+name: pylint-sort-functions CI
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  commit-messages:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate commit messages
+        uses: wagoid/commitlint-github-action@v6
+        with:
+          configFile: .commitlintrc.json
+
+  build:
+    name: Test on ${{ matrix.os }} with Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - name: checkout source code
+        uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: |
+          uv venv
+          uv sync
+
+      - name: Ruff check
+        run: uv run ruff check src tests
+
+      - name: Ruff format
+        run: uv run ruff format --check src tests
+
+      - name: Check types with mypy
+        run: uv run mypy src/ tests/
+
+      - name: Check RST documentation syntax
+        run: uv run bash scripts/rstcheck.sh --recursive
+
+      - name: Check RST list formatting
+        run: uv run python scripts/check_rst_list_format.py --recursive docs/
+
+      - name: Plugin full check
+        shell: bash
+        run: |
+          source scripts/pylint-config.sh
+          pylint_check_relaxed
+
+      - name: Code coverage
+        run: |
+          source scripts/coverage-config.sh
+          uv run bash -c "coverage_unit_with_report"
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  documentation-validation:
+    name: Documentation Validation (Docker)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: |
+          uv venv
+          uv sync
+
+      - name: Validate documentation examples
+        run: |
+          # Validate all configuration examples in docs/ against the plugin
+          make test-documentation

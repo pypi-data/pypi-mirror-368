@@ -1,0 +1,74 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+    -   id: trailing-whitespace
+    -   id: end-of-file-fixer
+    -   id: check-yaml
+-   repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.6.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [feat, fix, docs, style, refactor, test, chore, ci, perf, build, revert]
+-   repo: https://github.com/astral-sh/ruff-pre-commit.git
+    rev: v0.12.5
+    hooks:
+      - id: ruff
+        args: [ "--fix" ]
+      - id: ruff-format
+-   repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        language: system
+        entry: bash -c "source .venv/bin/activate && mypy src tests"
+        types: [python]
+        pass_filenames: false
+        always_run: true
+-   repo: local
+    hooks:
+      - id: rstcheck
+        name: rstcheck
+        language: system
+        entry: bash scripts/rstcheck.sh
+        pass_filenames: false
+        always_run: true
+-   repo: local
+    hooks:
+      - id: rst-list-format
+        name: RST list format check
+        language: system
+        entry: python scripts/check_rst_list_format.py --recursive docs/
+        files: '\.rst$'
+        pass_filenames: false
+        always_run: false
+-   repo: local
+    hooks:
+      - id: rst-toml-blocks
+        name: RST TOML code blocks validation
+        language: system
+        entry: python scripts/check_rst_toml_blocks.py
+        files: '\.rst$'
+        pass_filenames: true
+        always_run: false
+-   repo: local
+    hooks:
+      - id: pylint-sort-functions
+        name: pylint-sort-functions full check
+        language: system
+        entry: bash -c "source scripts/pylint-config.sh && pylint_check_relaxed"
+        types: [python]
+        pass_filenames: false
+        always_run: true
+-   repo: local
+    hooks:
+      - id: coverage
+        name: coverage
+        language: system
+        entry: bash -c "source .venv/bin/activate && source scripts/coverage-config.sh && coverage_unit_with_report"
+        always_run: true
+        pass_filenames: false
