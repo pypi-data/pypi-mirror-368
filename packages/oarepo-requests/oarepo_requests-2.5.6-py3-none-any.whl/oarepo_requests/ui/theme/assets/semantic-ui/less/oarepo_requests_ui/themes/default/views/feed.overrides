@@ -1,0 +1,278 @@
+.ui.feed {
+  word-break: break-word;
+  .requests.comment-event-container {
+    position: relative;
+    .event {
+      border: @commentEventBorder;
+      border-radius: @commentEventBorderRadius;
+      padding: @commentEventPadding;
+      .requests.comment-event-avatar {
+        width: @commentEventAvatarWidth;
+        height: @commentEventAvatarHeight;
+        position: absolute;
+        bottom: 0.5rem;
+        left: calc(@verticalLineLeftMargin - @commentEventAvatarWidth / 2);
+        z-index: 1;
+      }
+    }
+    .comment-event-vertical-line {
+      height: 3rem;
+      width: 0;
+      border-left: @commentEventBorder;
+      margin-left: @verticalLineLeftMargin;
+    }
+  }
+  .requests.action-event-container {
+    position: relative;
+    min-height: 3rem;
+    .event {
+      padding-top: 1rem;
+      padding-bottom: 2rem;
+      .requests.action-event-avatar {
+        width: @actionEventAvatarWidth;
+        height: @actionEventAvatarHeight;
+      }
+      .summary {
+        .requests.action-event-avatar {
+          flex-shrink: 0;
+        }
+        position: relative;
+        z-index: 1;
+        margin-left: calc(
+          @verticalLineLeftMargin - @actionEventIconSize / 2 -
+            @commentEventBorderWidth
+        );
+      }
+      .extra {
+        margin-left: calc(
+          @verticalLineLeftMargin + @actionEventIconSize / 1.5
+        );
+
+        .diff-tables-container {          
+          .ui.accordion.operation-accordion {            
+            &:last-child {
+              margin-bottom: 0;
+            }
+
+            &.add {
+              border-left: 3px solid @green;
+              .operation-title {
+                color: @green;
+              }
+            }
+            
+            &.remove {
+              border-left: 3px solid @red;
+              .operation-title {
+                color: @red;
+              }
+            }
+            
+            &.replace {
+              border-left: 3px solid @orange;
+              .operation-title {
+                color: @orange;
+              }
+            }
+            
+            .operation-title {
+              padding: 0.2rem 0.5rem !important;
+              font-weight: 600;
+
+              &.active.title {
+                display: unset;
+
+                .icon:not(.dropdown) {
+                  transform: unset;
+                }
+              }
+              
+              .operation-icon {
+                margin-left: 0.2rem;
+              }
+              
+              .operation-count {
+                margin-left: 0.5rem;
+                font-weight: normal;
+                color: lighten(@grey, 10%);
+                font-size: 0.9em;
+              }
+            }
+                        
+            .record-diff-table {
+              margin-top: 0;
+              padding-left: 0.5rem;
+              width: 100%;
+              word-break: normal;
+
+              code {
+                padding: 0;
+                overflow-wrap: normal;
+              }
+
+              em {
+                color: lighten(@grey, 10%);
+              }
+              
+              pre {
+                margin: 0;
+                font-size: 0.9em;
+                white-space: pre-wrap;
+                overflow-wrap: anywhere;
+              }
+            }
+          }
+        }
+      }
+    }
+    .requests.action-event-icon {
+      font-size: @actionEventIconSize;
+      line-height: normal;
+      background-color: white;
+    }
+    .action-event-vertical-line {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 0;
+      border-left: @commentEventBorder;
+      margin-left: @verticalLineLeftMargin;
+    }
+  }
+  .requests.edit-comment-buttons {
+    text-align: right;
+    margin-top: 5px;
+  }
+}
+
+.ui.feed {
+  // override SUI defaults  to bypass immediate parent rule for feed
+  .event > .content .user {
+    display: inline-block;
+    font-weight: @userFontWeight;
+    margin-right: @userDistance;
+    vertical-align: baseline;
+  }
+
+  .event > .content .user img {
+    margin: @userImageMargin;
+    width: @userImageWidth;
+    height: @userImageHeight;
+    vertical-align: @userImageVerticalAlign;
+  }
+
+  /*--------------
+     Inline Date
+  ---------------*/
+
+  /* Date inside Summary */
+
+  .event > .content .summary > .date {
+    display: @summaryDateDisplay;
+    float: @summaryDateFloat;
+    font-weight: @summaryDateFontWeight;
+    font-size: @summaryDateFontSize;
+    font-style: @summaryDateFontStyle;
+    margin: @summaryDateMargin;
+    padding: @summaryDatePadding;
+    color: @summaryDateColor;
+  }
+
+  /*--------------
+    Extra Summary
+  ---------------*/
+
+  .event > .content .extra {
+    margin: @extraMargin;
+    background: @extraBackground;
+    padding: @extraPadding;
+    color: @extraColor;
+  }
+
+  /* Images */
+
+  .event > .content .extra.images img {
+    display: inline-block;
+    margin: @extraImageMargin;
+    width: @extraImageWidth;
+  }
+
+  /* Text */
+
+  .event > .content .extra.text {
+    padding: @extraTextPadding;
+    border-left: @extraTextPointer;
+    font-size: @extraTextFontSize;
+    line-height: @extraTextLineHeight;
+  }
+
+  /*--------------
+        Meta
+  ---------------*/
+
+  .event > .content .meta {
+    display: @metadataDisplay;
+    font-size: @metadataFontSize;
+    margin: @metadataMargin;
+    background: @metadataBackground;
+    border: @metadataBorder;
+    border-radius: @metadataBorderRadius;
+    box-shadow: @metadataBoxShadow;
+    padding: @metadataPadding;
+    color: @metadataColor;
+  }
+
+  .event > .content .meta > * {
+    position: relative;
+    margin-left: @metadataElementSpacing;
+  }
+
+  .event > .content .meta > *:after {
+    content: @metadataDivider;
+    color: @metadataDividerColor;
+    top: 0;
+    left: @metadataDividerOffset;
+    opacity: 1;
+    position: absolute;
+    vertical-align: top;
+  }
+
+  .event > .content .meta .like {
+    color: @likeColor;
+    transition: @likeTransition;
+  }
+
+  .event > .content .meta .like:hover .icon {
+    color: @likeHoverColor;
+  }
+
+  .event > .content .meta .active.like .icon {
+    color: @likeActiveColor;
+  }
+
+  /* First element */
+
+  .event > .content .meta > :first-child {
+    margin-left: 0em;
+  }
+
+  .event > .content .meta > :first-child::after {
+    display: none;
+  }
+
+  /* Action */
+
+  .event > .content .meta a,
+  .event > .content .meta > .icon {
+    cursor: @metadataActionCursor;
+    opacity: @metadataActionOpacity;
+    color: @metadataActionColor;
+    transition: @metadataActionTransition;
+  }
+
+  .event > .content .meta a:hover,
+  .event > .content .meta a:hover .icon,
+  .event > .content .meta > .icon:hover {
+    color: @metadataActionHoverColor;
+  }
+}
