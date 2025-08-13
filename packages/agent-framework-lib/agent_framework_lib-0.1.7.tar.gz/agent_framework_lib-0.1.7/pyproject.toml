@@ -1,0 +1,154 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agent-framework-lib"
+version = "0.1.7"
+description = "A comprehensive Python framework for building and serving conversational AI agents with FastAPI"
+readme = "README.md"
+license = "MIT"
+authors = [
+    {name = "Sebastian Pavel", email = "sebastian@cinco.ai"}
+]
+maintainers = [
+    {name = "Sebastian Pavel", email = "sebastian@cinco.ai"}
+]
+keywords = [
+    "ai", 
+    "agents", 
+    "fastapi", 
+    "autogen", 
+    "framework", 
+    "conversational-ai",
+    "multi-agent",
+    "llm",
+    "openai",
+    "gemini",
+    "chatbot",
+    "session-management"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11", 
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Communications :: Chat",
+    "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+    "Framework :: FastAPI",
+    "Environment :: Web Environment",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "aiofiles>=24.1.0",
+    "autogen-agentchat>=0.7.2",
+    "autogen-core>=0.7.2",
+    "autogen-ext[mcp,openai]>=0.7.2",
+    "fastapi>=0.115.12",
+    "fastmcp>=2.2.7",
+    "pyyaml>=6.0.2",
+    "uvicorn>=0.34.2",
+    "opentelemetry-sdk>=1.33.1",
+    "opentelemetry-api>=1.33.1",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.33.1",
+    "mcp-python-interpreter",
+    "pymongo>=4.10.1",
+    "motor>=3.6.0",
+    "black>=25.1.0",
+    "llama-index-core>=0.13.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=6.2.1",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.5.0",
+    "aiohttp>=3.12.13",
+    "httpx>=0.28.1",
+]
+mongodb = [
+    "pymongo>=4.10.1",
+    "motor>=3.6.0",
+]
+all = [
+    "agent-framework-lib[dev,mongodb]"
+]
+
+[project.urls]
+Homepage = "https://github.com/Cinco-AI/AgentFramework"
+Repository = "https://github.com/Cinco-AI/AgentFramework.git"
+Issues = "https://github.com/Cinco-AI/AgentFramework/issues"
+Documentation = "https://github.com/Cinco-AI/AgentFramework/blob/main/README.md"
+Changelog = "https://github.com/Cinco-AI/AgentFramework/blob/main/CHANGELOG.md"
+
+[project.scripts]
+# No CLI scripts currently, but can be added in future versions
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["agent_framework*"]
+exclude = ["tests*", "docs*", "specs*", "examples*", "mcp-server*"]
+
+[tool.setuptools.package-data]
+agent_framework = ["*.json", "*.yaml", "*.yml", "*.html", "*.css", "*.js"]
+
+# Development tools configuration
+[tool.black]
+line-length = 100
+target-version = ["py310", "py311", "py312", "py313"]
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --tb=short"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[dependency-groups]
+dev = [
+    "build>=1.2.2.post1",
+    "twine>=6.1.0",
+]
