@@ -1,0 +1,38 @@
+name: pre-commit autoupdate
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 4 * *"
+
+defaults:
+  run:
+    shell: bash -el {0}
+
+jobs:
+  check_update:
+    name: Check if newer version exists
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        # We need to checkout with SSH here to have actions run on the PR.
+        with:
+          ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@b1ab8f237b57292b58384631d89ce0b0863766bc # v0.8.13
+        with:
+          environments: default lint
+      - name: Update pre-commit hooks and run
+        id: versions
+        run: |
+          pixi run pre-commit-update
+          pixi run pre-commit-run --color=always --show-diff-on-failure || true
+      - uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e
+        with:
+          commit-message: "Auto-update pre-commit hooks"
+          title: "Auto-update pre-commit hooks"
+          body: |
+            New versions of the used pre-commit hooks were detected.
+            This PR updates them to the latest and already ran `pre-commit run -a` for you to fix any changes in formatting.
+          branch: pre-commit-autoupdate
+          delete-branch: true
