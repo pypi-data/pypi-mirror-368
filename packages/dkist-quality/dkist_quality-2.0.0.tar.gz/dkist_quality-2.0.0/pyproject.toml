@@ -1,0 +1,75 @@
+[build-system]
+
+requires = [
+    "setuptools>=62.1",
+    "setuptools_scm[toml]>=6.2",
+]
+
+build-backend = 'setuptools.build_meta'
+
+[project]
+name = "dkist-quality"
+description = "DKIST library for generating quality report pdf"
+readme = "README.rst"
+requires-python = ">=3.10"
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+license = { text = "MIT" }
+authors = [
+  { name = "NSO / AURA", email = "dkistdc@nso.edu" },
+]
+dependencies = [
+    "reportlab>=4.0.4",
+    "matplotlib>=3.8",
+    "seaborn>=0.13.0",
+    "dacite!=1.9.0,>=1.8.0",
+    "natsort>=8.0.0",
+    "pydantic>=2.0.0",
+]
+dynamic = ["version"]
+
+# tox is not required to run the tests, but simplifies IDE integration
+# Pygments is solely to support README.rst rendering
+[project.optional-dependencies]
+test = [
+    "tox>=4",
+    "pypdf",
+    "pytest",
+    "pytest-cov",
+    "Pygments",
+]
+
+[project.urls]
+repository = "https://bitbucket.org/dkistdc/dkist-quality"
+
+[tool.setuptools]
+zip-safe = false
+include-package-data = true
+
+[tool.setuptools.packages.find]
+
+[tool.setuptools.package-data]
+# include .ttf files from any directory
+"*" = ["*.ttf"]
+
+[tool.setuptools_scm]
+write_to = "dkist_quality/_version.py"
+
+[tool.pytest.ini_options]
+testpaths = [
+  "dkist_quality",
+]
+markers = [
+  "development: For tests that can only be  run while developing with a sidecar proxy (as opposed to in bitbucket pipelines)"
+]
+
+[tool.coverage.run]
+omit = [
+ "*/dkist_quality/_version*",
+ "*/dkist_quality/tests/*",
+ "*/dkist_quality/version*",
+]
