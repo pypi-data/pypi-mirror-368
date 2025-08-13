@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="title">
+  My assigned issues and pull request reviews
+</h1>
+
+{%- include "flash.html" %} {# Show flash messages #}
+
+<p>
+  ℹ️ <strong>Overview</strong>:
+  {{ stats.total }} items, {{ stats.issues }} issues and {{ stats.pulls }} PRs/MRs.
+  {{ stats.gitlab }} from GitLab, {{ stats.github }} from GitHub.
+  {{ stats.due_dates_total }} have due dates, {{ stats.milestones_total }} milestones, and {{ stats.epics_total }} epics.
+</p>
+
+{%- if new_issues %}
+<div class="new_issues">
+  <p>
+    🆕 <strong>New issues</strong>: {% for id, title in new_issues.items() %}{{ title }}&nbsp;<a href="#{{ id }}" title="Jump to issue"><i class="fa-solid fa-arrow-turn-down"></i></a>{{ ", " if not loop.last else "" }}
+    {% endfor %}
+    <a href="/mark-as-seen?issues={{ new_issues|join(',')}}"><button class="secondary x-small" id="mark-as-seen"><i class="fa-solid fa-check"></i> Mark all issues as seen</button></a>
+  </p>
+</div>
+{%- endif %}
+
+<div class="action-buttons">
+  {%- if private_private_tasks_repo_configured %}
+  <a href="/new">
+    <button class="secondary small">
+      <i class="fa-solid fa-plus"></i> Create new private task
+    </button>
+  </a>
+  {%- endif %}
+  <a href="/reload">
+    <button class="secondary small">
+      <i class="fa-solid fa-rotate-right"></i> Reload all issues
+    </button>
+  </a>
+  {%- if issue_filter %}
+  <a href="/">
+    <button class="secondary small">
+      <i class="fa-solid fa-filter"></i> Clear filter
+    </button>
+  </a>
+  {%- else %}
+  <a href="/?filter=todolist">
+    <button class="secondary small">
+      <i class="fa-solid fa-clipboard-list"></i> Show todo list
+    </button>
+  </a>
+  {%- endif %}
+</div>
+
+{%- for issue in issues|sort(attribute="rank") %}
+<div class="issue" id="{{ issue.uid }}">
+  <div class="rank">
+    <!-- Rank: {{ issue.rank }} -->
+    <a href="/ranking?issue={{ issue.uid }}&rank=pin" class="pin {% if issue.rank == -1 %}enabled{% endif %}" title="Toggle pin issue"><i class="fa-solid fa-thumbtack"></i></a>
+    <a href="/ranking?issue={{ issue.uid }}&rank=high" class="high {% if issue.rank == 1 %}enabled{% endif %}" title="Increase priority"><i class="fa-solid fa-up-long"></i></a>
+    <a href="/ranking?issue={{ issue.uid }}&rank=low" class="low {% if issue.rank == 99 %}enabled{% endif %}" title="Decrease priority"><i class="fa-solid fa-down-long"></i></a>
+    <a href="/todolist?issue={{ issue.uid }}&state={% if issue.todolist %}false{% else %}true{% endif %}" class="todo {% if issue.todolist %}enabled{% endif %}" title="Toggle ToDo list"><i class="fa-solid fa-clipboard-list"></i></a>
+  </div>
+  <div>
+    {# First line: Icon, Title and Service #}
+    <div class="title">
+      {%- if display_cfg.show_type %}
+      <span class="icon">
+        {%- if issue.pull %}
+        <i title="Pull / Merge Request" class="fa-solid fa-code-pull-request"></i>
+        {%- else %}
+        <i title="Issue" class="fa-regular fa-circle-dot"></i>
+        {%- endif %}
+      </span>
+      {%- endif %}
+      <a href="{{ issue.web_url }}" target="_blank" class="link">{{- issue.title }}</a>
+      {%- if display_cfg.show_service %}
+      {%- if issue.service == "gitlab" %}
+      <i class="fa-brands fa-square-gitlab" title="GitLab"></i>
+      {%- elif issue.service == "github" %}
+      <i class="fa-brands fa-square-github" title="GitHub"></i>
+      {%- elif issue.service == "todo" %}
+      <i class="fa-solid fa-arrow-up-right-from-square" title="To Do"></i>
+      {%- endif %}
+      {%- endif %}
+    </div>
+    <div class="metadata">
+      {%- if issue.ref and display_cfg.show_ref %}
+      <span title="Reference"><i class="fa-solid fa-map"></i> {{ issue.ref }}</span>
+      {%- endif %}
+      {%- if issue.due_date and display_cfg.show_due_date %}
+      <span title="Due date"><i class="fa-regular fa-calendar"></i> {{ issue.due_date }}</span>
+      {%- endif %}
+      {%- if issue.milestone_title and display_cfg.show_milestone %}
+      <span title="Milestone"><i class="fa-regular fa-circle-dot"></i> {{ issue.milestone_title }}
+      </span>
+      {%- endif %}
+      {%- if issue.epic_title and display_cfg.show_epic %}
+      <span title="Epic"><i class="fa-regular fa-circle-dot"></i> {{ issue.epic_title }}</span>
+      {%- endif %}
+      {%- if issue.labels and display_cfg.show_labels %}
+      <span title="Labels"><i class="fa-solid fa-tags"></i> {{ issue.labels | join(", ") }}
+      </span>
+      {%- endif %}
+      {%- if issue.assignee_users and display_cfg.show_assignees %}
+      <span title="Assignees"><i class="fa-solid fa-user-group"></i> {{ issue.assignee_users }}</span>
+      {%- endif %}
+      {%- if display_cfg.show_updated_at %}
+      <span title="Updated at {{ issue.updated_at }}"><i class="fa-regular fa-clock"></i> {{ issue.updated_at_display }}</span>
+      {%- endif %}
+      {%- if issue.web_url and display_cfg.show_web_url %}
+      <span title="Open"><a href="{{ issue.web_url }}" target="_blank" title="Open in browser"><i class="fa-solid fa-arrow-up-right-from-square"></i></a></span>
+      {%- endif %}
+    </div>
+  </div>
+  <div class="markseen">
+    <a href="/mark-as-seen?issues={{ issue.uid }}" title="Mark issue as seen">
+      <button><i class="fa-solid fa-check"></i> Mark as seen</button>
+    </a>
+  </div>
+</div>
+{%- endfor %}
+{% endblock %}
