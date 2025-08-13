@@ -1,0 +1,323 @@
+Metadata-Version: 2.4
+Name: mapper-lib
+Version: 1.0.4
+Summary: Uma biblioteca C++ para mapeamento e transformação de dados
+Home-page: https://github.com/compre-sua-peca/csp_mapper
+Author: Gustavo de Oliveira
+Author-email: Gustavo de Oliveira <devops15@compresuapeca.com.br>
+Maintainer-email: Compre Sua Peça <devops4@compresuapeca.com.br>
+License: MIT
+Project-URL: Homepage, https://github.com/compre-sua-peca/csp_mapper
+Project-URL: Repository, https://github.com/compre-sua-peca/csp_mapper
+Project-URL: Issues, https://github.com/compre-sua-peca/csp_mapper/issues
+Keywords: mapping,data transformation,c++,performance
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: C++
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: pybind11>=2.0.0
+Dynamic: author
+Dynamic: home-page
+Dynamic: license-file
+Dynamic: requires-python
+
+# Mapper Lib
+
+A high-performance Python library for data mapping and transformation, built with C++ extensions for maximum efficiency.
+
+## 📋 Description
+
+**Mapper Lib** is a specialized library for transforming and mapping complex JSON data structures. It provides functionality for:
+
+- **Flattening**: Convert nested dictionaries into flat structures
+- **Field Mapping**: Map fields between different formats using JSON configurations
+- **High Performance**: C++ implementation for fast data transformation operations
+
+## 🚀 Features
+
+- ⚡ **High Performance**: C++ implementation with Python bindings
+- 🔧 **Configurable**: Mapping based on JSON configuration files
+- 🐍 **Python Native**: Simple and intuitive API for Python
+- 🎯 **Flexible**: Support for customizable separators and parent keys
+- 🏗️ **Cross-Platform**: Support for Windows and Linux
+
+## 📦 Installation
+
+### Prerequisites
+
+- Python 3.7+
+- C++ compiler with C++17 support
+- pybind11
+
+### Installation via pip
+
+```bash
+pip install -r requirements.txt
+pip install -e .
+```
+
+### Manual installation
+
+```bash
+# Clone the repository
+git clone https://github.com/compre-sua-peca/csp_mapper.git
+cd csp_mapper
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Compile and install
+python setup.py build_ext --inplace
+python setup.py install
+```
+
+## 💻 Usage Examples
+
+### 📝 How Configuration Works
+
+The library **reads JSON configuration files** from the file system. The file must contain a dictionary where each key represents a "trigger" that defines how to map the fields.
+
+**Typical configuration file structure:**
+```json
+{
+    "trigger_1": {
+        "output_field_1": "input.field.path.1",
+        "output_field_2": "input.field.path.2"
+    },
+    "trigger_2": {
+        "another_field": "another.field.path"
+    }
+}
+```
+
+### Example 1: Basic Mapping
+
+**First, create the configuration file `mapping_config.json`:**
+```json
+{
+    "user_mapping": {
+        "nome": "user.personal.name",
+        "idade": "user.personal.age",
+        "endereco": "user.address.street",
+        "cidade": "user.address.city",
+        "pedido_id": "order.id",
+        "valor_total": "order.total"
+    }
+}
+```
+
+**Then, use Python:**
+```python
+from mapper import mapper
+
+# Create mapper instance
+mapper_instance = mapper(sep=".", parent_key="data")
+
+# Nested input data
+input_data = {
+    "user": {
+        "personal": {
+            "name": "João Silva",
+            "age": 30
+        },
+        "address": {
+            "street": "Rua das Flores",
+            "city": "São Paulo"
+        }
+    },
+    "order": {
+        "id": "12345",
+        "total": 99.99
+    }
+}
+
+# Mapping using configuration file
+result = mapper_instance.map_dic(
+    input_dict=input_data,
+    config_path="mapping_config.json",
+    trigger="user_mapping"
+)
+print(result)
+```
+
+### Example 2: Mapping with Configuration File
+
+**config_file.json:**
+```json
+{
+    "user_mapping": {
+        "nome_completo": "user.personal.name",
+        "idade_usuario": "user.personal.age",
+        "endereco_completo": "user.address.street",
+        "cidade_usuario": "user.address.city"
+    },
+    "order_mapping": {
+        "id_pedido": "order.id",
+        "valor": "order.total"
+    }
+}
+```
+
+**Python:**
+```python
+# Mapping using configuration file
+result = mapper_instance.map_dic(
+    input_dict=input_data,
+    config_path="config_file.json",
+    trigger="user_mapping"
+)
+
+print(result)
+```
+
+**Output:**
+```json
+{
+    "nome_completo": "João Silva",
+    "idade_usuario": 30,
+    "endereco_completo": "Rua das Flores",
+    "cidade_usuario": "São Paulo"
+}
+```
+
+### Example 3: Mapping without Trigger (Complete Configuration)
+
+```python
+# Mapping using entire configuration (without specific trigger)
+result = mapper_instance.map_dic(
+    input_dict=input_data,
+    config_path="config_file.json"
+    # trigger=None (default)
+)
+
+print(result)
+```
+
+**Output:**
+```json
+{
+    "user_mapping": {
+        "nome_completo": "João Silva",
+        "idade_usuario": 30,
+        "endereco_completo": "Rua das Flores",
+        "cidade_usuario": "São Paulo"
+    },
+    "order_mapping": {
+        "id_pedido": "12345",
+        "valor": 99.99
+    }
+}
+```
+
+### Example 4: Different Separators
+
+```python
+# Use dot as separator
+mapper_dot = mapper(sep=".", parent_key="")
+result_dot = mapper_dot.map_dic(input_data, "config.json", "user_mapping")
+
+# Use underscore as separator
+mapper_underscore = mapper(sep="_", parent_key="")
+result_underscore = mapper_underscore.map_dic(input_data, "config.json", "user_mapping")
+
+# Use slash as separator
+mapper_bar = mapper(sep="/", parent_key="")
+result_bar = mapper_bar.map_dic(input_data, "config.json", "user_mapping")
+
+print("Result with dot:", result_dot)
+print("Result with underscore:", result_underscore)
+print("Result with slash:", result_bar)
+```
+
+### Example 5: Mapping with Parent Key
+
+```python
+# Mapper with parent key "api_data"
+mapper_with_parent = mapper(sep=".", parent_key="api_data")
+
+result_with_parent = mapper_with_parent.map_dic(input_data, "config.json", "user_mapping")
+print("Result with parent key 'api_data':")
+print(result_with_parent)
+```
+
+## 🔧 API Reference
+
+### Class `mapper`
+
+#### Constructor
+```python
+mapper(sep: str = "|", parent_key: str = "")
+```
+
+**Parameters:**
+- `sep`: Separator to concatenate nested keys (default: "|")
+- `parent_key`: Parent key to prefix all keys (default: "")
+
+#### Methods
+
+##### `map_dic(input_dict: dict, config_path: str, trigger: str = None) -> dict`
+Main method that combines flattening and field mapping.
+
+**Parameters:**
+- `input_dict`: Input dictionary to be mapped
+- `config_path`: Path to the JSON configuration file
+- `trigger`: Specific key in the configuration to be used (optional)
+
+**Returns:**
+- Dictionary with mapped data according to the configuration
+
+**Note:** This method internally uses the private methods `_flatten_dict()` and `_mapping_fields()` to perform processing, but the user only needs to know this public method.
+
+## 🛠️ Development
+
+### Compilation
+
+```bash
+# Compile C++ extensions
+python setup.py build_ext --inplace
+
+# Install in development mode
+pip install -e .
+```
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 👥 Contributing
+
+Contributions are welcome! Please feel free to:
+
+1. Fork the project
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📞 Support
+
+For support and questions:
+
+- **Author:** Gustavo de Oliveira
+- **Email:** devops15@compresuapeca.com.br
+- **Repository:** https://github.com/compre-sua-peca/csp_mapper
+
+## 🔄 Version History
+
+- **v1.0.4** - Current version with cross-platform support
+- **v1.0.1** - Performance improvements
+- **v1.0.0** - Initial release
+
+---
+
+⭐ If this project was useful to you, consider giving it a star in the repository!
