@@ -1,0 +1,143 @@
+Metadata-Version: 2.4
+Name: koi-mcp
+Version: 0.1.4
+Summary: KOI Security MCP Server
+License-File: LICENSE
+Requires-Python: >=3.10
+Requires-Dist: fastmcp>=2.10.0
+Requires-Dist: httpx>=0.27
+Description-Content-Type: text/markdown
+
+# KOI MCP Server
+
+A Model Context Protocol (MCP) server for KOI Security that connects to the KOI API using environment variables. This server enables Claude Desktop to interact with KOI Security's API for enhanced security analysis and monitoring capabilities.
+
+## Prerequisites
+
+- Python 3.10 or higher
+- A KOI API token (obtainable from the KOI Security app)
+
+
+## Setup Options
+
+### Option 1: Claude Desktop Integration - Using package
+
+1. **Install the package with any package manager**
+   ```bash
+   pip install koi-mcp
+   ```
+2. Make sure where the package was installed, you will need the path in the next step.
+   ```bash
+   which koi-mcp
+   ```
+
+2. **Configure Claude Desktop**
+   - Use the example in `example_claude_config_package.json` file
+    - **IMPORTANT**:
+        - Claude Desktop looks for packages in specific paths so make sure your package exists in one of the paths, or symlinked to it:
+          - '/usr/local/bin',
+          - '/opt/homebrew/bin',
+          - '/usr/bin',
+          - '/usr/bin',
+          - '/bin',
+          - '/usr/sbin',
+          - '/sbin'
+        - Replace `YOUR_KOI_API_TOKEN_HERE` with your actual KOI API token
+   - Edit your Claude Desktop config file (usually located at `~/Library/Application Support/Claude/claude_desktop_config.json`)
+   - Add the KOI MCP server configuration to the `mcpServers` section
+
+   ```json
+    {
+      "mcpServers": {
+        "koi": {
+        "command": "uv",
+        "args": [
+          "run",
+          "koi-mcp"
+        ],
+        "env": {
+          "KOI_API_TOKEN": "YOUR_KOI_API_TOKEN_HERE"
+        }
+        }
+      }
+    }
+   ```
+
+   **Note**: You can obtain your KOI API token from the KOI Security app by going to Settings → API Access.
+
+3. **Restart Claude Desktop**
+   - Close Claude Desktop completely
+   - Reopen the application for the changes to take effect
+
+
+### Option 2: Claude Desktop Integration - Using local directory
+
+1. **Download or clone this repository**
+   ```bash
+   git clone https://github.com/koi-sec/koi-mcp-server
+   cd koi-mcp
+   ```
+
+2. **Configure Claude Desktop**
+   - Use the example in `example_claude_config.json` file
+    - **IMPORTANT**:
+        - Update the path in the `args` array to point to your local repository location
+        - Replace `YOUR_KOI_API_TOKEN_HERE` with your actual KOI API token
+   - Edit your Claude Desktop config file (usually located at `~/Library/Application Support/Claude/claude_desktop_config.json`)
+   - Add the KOI MCP server configuration to the `mcpServers` section
+
+
+   ```json
+   {
+     "mcpServers": {
+       "koi": {
+         "command": "uv",
+         "args": [
+           "--directory",
+           "/path/to/koi-mcp",
+           "run",
+           "koi_mcp"
+         ],
+         "env": {
+           "KOI_API_TOKEN": "YOUR_KOI_API_TOKEN_HERE"
+         }
+       }
+     }
+   }
+   ```
+
+   **Note**: You can obtain your KOI API token from the KOI Security app by going to Settings → API Access.
+
+3. **Restart Claude Desktop**
+   - Close Claude Desktop completely
+   - Reopen the application for the changes to take effect
+
+### Option 3: Standalone Server Installation
+
+1. **Install the package via pip**
+   ```bash
+   pip install koi-mcp
+   ```
+
+2. **Run the server**
+   ```bash
+   koi-mcp
+   ```
+
+   The server communicates using stdio and can be integrated with any MCP-compatible client.
+
+## Environment Variables
+
+- `KOI_API_TOKEN`: Your KOI Security API token (required)
+
+
+
+## How to Use the Koi MCP Server
+Ask your AI assistant to query Koi for security insights, fleet visibility, and policy context - all in natural language. Once your Koi MCP is connected, you can investigate item risks, check device coverage, review audit activity, inspect policy configurations, manage approvals, and generate executive-ready summaries, all without touching the API directly.
+
+Some ideas:
+1. Analyze the risk of this item: ITEM_ID
+2. How many devices are currently protected by Koi?
+3. Which devices were added to Koi in the last 24 hours?
+4. List pending approval requests, grouped by marketplace and requester; highlight anything older than 3 days
+5. List policies set in my org
