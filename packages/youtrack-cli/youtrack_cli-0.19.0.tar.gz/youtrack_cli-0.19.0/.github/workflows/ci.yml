@@ -1,0 +1,184 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      with:
+        persist-credentials: false
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@e92bafb6253dcd438e0484186d7669ea7a8ca1cc # v4
+      with:
+        version: "latest"
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: uv sync --dev
+
+    - name: Run tests
+      run: uv run pytest --cov=youtrack_cli --cov-report=xml
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v4
+      with:
+        files: ./coverage.xml
+        fail_ci_if_error: false
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      continue-on-error: true
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      with:
+        persist-credentials: false
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@e92bafb6253dcd438e0484186d7669ea7a8ca1cc # v4
+      with:
+        version: "latest"
+
+    - name: Set up Python
+      uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      run: uv sync --dev
+
+    - name: Run ruff check
+      run: uv run ruff check
+
+    - name: Run ruff format check
+      run: uv run ruff format --check
+
+  type-check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      with:
+        persist-credentials: false
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@e92bafb6253dcd438e0484186d7669ea7a8ca1cc # v4
+      with:
+        version: "latest"
+
+    - name: Set up Python
+      uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      run: uv sync --dev
+
+    - name: Run ty
+      run: uv run ty check --ignore call-non-callable --ignore unresolved-attribute youtrack_cli
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      with:
+        persist-credentials: false
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@e92bafb6253dcd438e0484186d7669ea7a8ca1cc # v4
+      with:
+        version: "latest"
+
+    - name: Set up Python
+      uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      run: uv sync --dev
+
+    - name: Run zizmor
+      run: uv run zizmor .github/workflows/
+
+  documentation:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      with:
+        persist-credentials: false
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@e92bafb6253dcd438e0484186d7669ea7a8ca1cc # v4
+      with:
+        version: "latest"
+
+    - name: Set up Python
+      uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      run: uv sync --dev --group docs
+
+    - name: Verify Sphinx installation
+      run: uv run python -c "import sphinx; print('Sphinx version:', sphinx.__version__)"
+
+    - name: Build documentation
+      run: uv run python -m sphinx -b html docs docs/_build/html --keep-going
+
+    - name: Run doctests
+      run: uv run python -m sphinx -b doctest docs docs/_build/doctest
+
+    - name: Check documentation links
+      run: uv run python -m sphinx -b linkcheck docs docs/_build/linkcheck
+      continue-on-error: true  # Allow link check failures initially
+
+    - name: Validate documentation structure
+      run: |
+        echo "Documentation testing infrastructure is in place"
+        echo "RST files found:" && find docs/ -name "*.rst" | wc -l
+
+  # Summary job for branch protection
+  tests-complete:
+    name: test
+    if: always()
+    runs-on: ubuntu-latest
+    needs: [test, lint, type-check, security, documentation]
+    steps:
+      - name: Check all jobs
+        env:
+          TEST_RESULT: ${{ needs.test.result }}
+          LINT_RESULT: ${{ needs.lint.result }}
+          TYPE_CHECK_RESULT: ${{ needs.type-check.result }}
+          SECURITY_RESULT: ${{ needs.security.result }}
+          DOCUMENTATION_RESULT: ${{ needs.documentation.result }}
+        run: |
+          if [[ "$TEST_RESULT" == "success" &&
+                "$LINT_RESULT" == "success" &&
+                "$TYPE_CHECK_RESULT" == "success" &&
+                "$SECURITY_RESULT" == "success" &&
+                "$DOCUMENTATION_RESULT" == "success" ]]; then
+            echo "All checks passed"
+            exit 0
+          else
+            echo "Some checks failed"
+            exit 1
+          fi
