@@ -1,0 +1,39 @@
+name: Update pre-commit hooks
+
+on:
+  schedule:
+    - cron: "0 0 * * 1" # Every Monday at midnight
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  pre-commit-update-hooks:
+    name: Automatically update pre-commit hooks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.6.14"
+
+      - name: Install project
+        run: uv sync
+
+      - name: Update hooks
+        run: uv run pre-commit autoupdate
+
+      - name: Create pull request from changes (if any)
+        id: create-pull-request
+        uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7.0.8
+        with:
+          token: ${{ secrets.GH_REPO_TOKEN }}
+          branch: pre-commit/update-hooks
+          title: "chore: Update pre-commit hooks"
+          commit-message: "chore: Update pre-commit hooks"
+          body: "This is a GitHub workflow (`.github/workflows/pre-commit-update-hooks.yml`) running periodically to update our pre-commit hooks' versions to their latest version."

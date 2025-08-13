@@ -1,0 +1,38 @@
+name: Run test suite
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    name: "Python ${{ matrix.python-version }} with ${{ matrix.session }}"
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        session: ["memory", "localstack"] # TODO: we don't test against production AWS
+    steps:
+      - name: Start Docker container with localstack
+        if: matrix.session == 'localstack'
+        run: docker run -d -p 4566:9324 --rm softwaremill/elasticmq-native
+
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.6.14"
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install project
+        run: uv sync --group dev
+
+      - name: Test with pytest
+        run: uv run pytest -vv -k ${{ matrix.session }}

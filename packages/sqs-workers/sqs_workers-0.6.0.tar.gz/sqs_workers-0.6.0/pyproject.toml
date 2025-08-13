@@ -1,0 +1,97 @@
+[project]
+name = "sqs-workers"
+version = "0.6.0"
+description = "An opinionated queue processor for Amazon SQS"
+authors = [{ name = "Doist Developers", email = "dev@doist.com" }]
+requires-python = ">=3.9,<3.14"
+readme = "README.md"
+license = "MIT"
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+dependencies = ["boto3>=1.37.33,<2"]
+
+[project.urls]
+Homepage = "https://github.com/Doist/sqs-workers"
+
+[dependency-groups]
+dev = [
+  "typing-extensions>=4.13.2",
+  "tox>=4.15.1,<5",
+  "tox-uv>=1.25.0,<2",
+  "pytest>=8.3.5,<9",
+  "pytest-runner>=6.0.1,<7",
+  "localstack-client~=2.10",
+  "pre-commit>=4.2.0",
+  "mypy>=1.15",
+  "ruff>=0.11.5",
+]
+
+[tool.hatch.build.targets.sdist]
+exclude = ["tests/"]
+
+[tool.hatch.build.targets.wheel]
+exclude = ["tests/"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+extend-exclude = ["env", "runtime"]
+
+[tool.ruff.lint]
+select = [
+  "ASYNC", # flake8-async
+  "C4",    # flake8-comprehensions
+  "D",     # pydocstyle,
+  "E",     # pycodestyle errors
+  "W",     # pycodestyle warnings
+  "W",     # pycodestyle
+  "F",     # pyflakes
+  "I",     # isort
+  "PL",    # pylint
+  "RUF",   # ruff
+  "S",     # flake8-bandit
+  "SIM",   # flake8-simplify
+  "UP",    # pyupgrade
+]
+
+ignore = [
+  ## D - pydocstyle ##
+  # D1XX errors are OK. Don't force people into over-documenting.
+  "D100",
+  "D101",
+  "D102",
+  "D103",
+  "D104",
+  "D105",
+  "D107",
+  # These need to be fixed.
+  "D205",
+  "D400",
+  "D401",
+
+  ## E / W - pycodestyle ##
+  "E501", # line too long
+
+  # ## PL - pylint ##
+  "PLR0913", # too-many-arguments
+  "PLR2004", # magic-value-comparison
+  "PLW0603", # global-statement
+
+  "S101", # assert
+  "S301", # suspicious-pickle-usage
+  "S311", # suspicious-non-cryptographic-random-usage
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"

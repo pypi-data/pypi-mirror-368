@@ -1,0 +1,309 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [0.6.0] - 2025-08-12
+
+### Changed
+
+- Update all dependenices.
+- Move to uv for package and project management.
+- Update the maximum SQS message size, following AWS changes.
+
+### Removed
+
+- Python 3.8 is no longer supported.
+
+### Added
+
+- Support Python 3.13.
+
+## [0.5.22] - 2025-02-28
+
+### Changed
+
+- Removes uses of naive datetimes, which should result in 0 warnings when run on Python 3.12
+
+## [0.5.19] - 2024-07-31
+
+### Changed
+
+- Fixes a bug where we might try to send AWS an empty batch request, which it does not like
+
+## [0.5.18] - 2024-07-31
+
+### Changed
+
+- Updates the in-memory toy SQS implementation to be a little closer to real SQS
+
+## [0.5.17] - 2024-07-31
+
+### Changed
+
+- Hotfix, previous release accidentally removed a method from a class used for tests!
+
+## [0.5.16] - 2024-07-31
+
+### Changed
+
+- Various Dependabot updates
+- Added retries, batching, and error-logging around SQS deletion and change-visibility operations
+
+## [0.5.11] - 2023-04-21
+
+### Changed
+
+- Extended the set of supported Python versions to include 3.11
+
+## [0.5.10] - 2023-02-08
+
+### Added
+
+- Allow to override `sqs_client`, `sqs_resource` by passing them the `SQSEnv` constructor.
+
+## [0.5.9] - 2023-01-11
+
+### Added
+
+- New codec (message encoding) that uses the default version of the Pickle protocol instead of one compatible with Python 2.
+- Possibility to change default codec in SQSEnv.
+
+### Changed
+
+- When a processor for a job can't be found, we now log this as an error (rather than a warning) and provide a more helpful error message.
+- Default codec is renamed from "pickle" to "pickle_compat".
+
+## [0.5.8] - 2022-08-31
+
+### Changed
+
+- Supporting batch read sizes over 10 messages by using multiple calls to SQS
+
+## [0.5.7] - 2022-08-30
+
+### Added
+
+- Ability to configure a queue to send batches of messages to a
+  handling function rather than processing them individually
+- Contributing file to guide submitting PRs
+
+### Changed
+
+- Using `%s` string interpolation for logging, easier for tools
+  like Sentry / DataDog to group similar messages when parsing
+- Using type annotations over type comments now Python 2.7 support has been dropped
+- Moved to Poetry for dependency management & packaging
+
+## [0.5.6] - 2022-05-10
+
+### Fixed
+
+- Fixed a behavior change for the utils.validate_arguments function
+
+
+## [0.5.5] - 2022-05-05
+
+### Changed
+
+- Dropped support for Python 2
+- Declared Python 3.8 as the minimum version supported
+- Dropped 2 dependencies (werkzeug and future) that are not needed anymore
+- Updated README a bit
+
+### Fixed
+
+- Fixed a bug with recent versions of Werkzeug (#20)
+
+
+## [0.5.4] - 2020-11-12
+
+### Changed
+
+- API: Processor.process() now returns the result of the execution (#9)
+- Documentation: Improved README. Added the "Contributing" section and improved the
+  testing documentation.
+
+### Fixed
+
+- Fixed batch logic (#11)
+
+
+## [0.5.3] - 2020-07-23
+
+- Updated README with examples on how to process a dead-letter queue in-place
+- Added a way to add tasks in batch
+
+
+## [0.5.2] - 2020-06-10
+
+### Changed
+
+- Declared support for Python3.8
+- Made sqs-workers work better in Python2 / Python3 mixed environment
+
+## [0.5.1] - 2019-11-05
+
+### Changed
+
+- Deprecated calling AsyncTask(**kwargs). Now, if you want to run it
+  synchronously, you should use AsyncTask.run(**kwargs) instead.
+  Use AsyncTask.delay(**kwargs) as always to add the task to the queue.
+
+
+## [0.5.0] - 2019-10-28
+
+### Changed
+
+- Removed support for batched processors
+- On top of existing @sqs.processor("queue", "job_name") added
+  @sqs.raw_processor("queue") to process unstructured messages from the qeueue
+- Extracted functions to create and delete queues for SQSEnv to a separate module
+- Remove most of the "proxy methods" for SQSEnv: purge_queue, drain_queue,
+  process_queue, process_batch, get_raw_messages. SQSEnv.queue() has to be used
+  instead.
+
+### Added
+
+- Added support for baked async tasks (async tasks + arguments)
+
+
+## [0.4.1] - 2019-01-16
+
+### Fixed
+
+- Fixed DeadLetterProcessor with FIFO queues
+
+### Changed
+
+is_deadletter() and get_deadletter_upstream_name() extracted from
+methods to independent functions.
+
+
+## [0.4.0] - 2019-01-15
+
+### Added
+
+- Added support for implicit context for tasks
+- Added ASAP_SHUTDOWN shutdown policy to stop processing of the queue
+  as soon it's found empty
+
+### Fixed
+
+- Fixed batch processor which used to reorder messages from FIFO queues
+
+### Changed
+
+Made a refactoring of SQS environments and extracted in two separate classes
+ProcessorManager and ProcessorManagerProxy.
+
+It's changed the API of SQSEnv, so that instead of
+`sqs.connect_processor(queue, 'say_hello', say_hello)` the API of
+`sqs.processors.connect(queue, 'say_hello', say_hello)` has to be used.
+
+Also overwriting "makers" after the initialization of SQSEnv needs to be done
+in a different way. Instead of `sqs.fallback_processor_maker = DeadLetterProcessor`
+the syntax of `sqs.processors.fallback_processor_maker = DeadLetterProcessor`
+should be used instead.
+
+
+## [0.3.7] - 2019-01-10
+
+### Added
+
+- Added custom processors and batch processors
+
+
+## [0.3.6] - 2019-01-10
+
+### Added
+
+- Added proper support for FIFO queues by sending message deduplication id and
+  group id
+
+
+## [0.3.5] - 2018-11-27
+
+### Added
+
+- Added and documented sqs.copy_processors to process dead-letter queues
+
+## [0.3.4] - 2018-11-27
+
+### Added
+
+- Added ability to configure SQS environment with custom fallback processors
+- Implemented DeadLetterProcessor to push back messages from dead-letter
+  queue to the main one.
+
+## [0.3.3] - 2018-11-07
+
+### Fixed
+
+- Fixed the encoding problem with the PickleCodec, MemoryEnv and python27
+
+## [0.3.2] - 2018-11-07
+
+### Added
+
+- Added MemoryEnv, a stub queue environment to use mostly in unit tests
+
+
+## [0.3.1] - 2018-10-12
+
+### Changed
+
+- Tests for py3.6 replaced with tests for py3.7
+- Added support for custom visibility_timeout on queue creation
+
+### Added
+
+- Issue warning if async tasks are called synchronously. This is usually
+  not what you had in mind
+- Added support for _delay_seconds argument in add_job and delay methods
+
+## [0.3.0] - 2018-08-23
+
+### Added
+
+- Added support for shutdown policies
+- Added support for setting message_retention_period on queue creation
+
+
+## [0.2.3] - 2018-08-22
+
+### Added
+
+- Added method drain_queue() to clean up the queue in tests
+
+## [0.2.2] - 2018-08-22
+
+### Fixed
+
+- Fixed python2-specific issue of visibility timeout being a float number
+
+## [0.2.1] - 2018-08-22
+
+### Added
+
+- Add support for testing with localstack: http://github.com/localstack/localstack
+- Add argument validation and and proper binding on .delay() calls
+
+## [0.2.0] - 2018-08-10
+
+### Added
+
+- Support for different backoff policies
+- Support for RedrivePolicy
+- CHANGELOG
+
+## [0.1.1] - 2018-08-09
+
+### Added
+
+- First version of sqs-workers
+- README.md with basic information about the project and its API
