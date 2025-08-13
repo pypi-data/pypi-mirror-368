@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  Test:
+    runs-on: ${{ matrix.os }}-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        os: ["ubuntu"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+    continue-on-error: false
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Setup navix
+        run: |
+          pip install . -v
+      - name: Check code quality
+        run: |
+          pip install pylint
+          MESSAGE=$(pylint -ry $(git ls-files '*.py') ||:)
+          echo "$MESSAGE"
+      - name: Run unit tests with pytest
+        run: |
+          wandb offline
+          pytest
+      - name: Run examples
+        run: |
+          for example in examples/*.py; do
+            python $example
+          done
+
+  Compliance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: PEP8 Compliance
+        run: |
+          pip install pylint
+          PR_BRANCH=${{ github.event.pull_request.target.ref }}
+          MAIN_BRANCH=origin/${{ github.event.pull_request.base.ref }}
+          CURRENT_DIFF=$(git diff --name-only --diff-filter=d $MAIN_BRANCH $PR_BRANCH  | grep -E '\.py$' | tr '\n' ' ')
+          if [[ $CURRENT_DIFF == "" ]];
+            then MESSAGE="Diff is empty and there is nothing to pylint."
+          else
+            MESSAGE=$(pylint -ry --disable=E0401 $CURRENT_DIFF ||:)
+          fi
+          echo 'MESSAGE<<EOF' >> $GITHUB_ENV
+          echo "<pre><code>$MESSAGE</code></pre>" >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+          echo "Printing PR message: $MESSAGE"
+      - uses: mshick/add-pr-comment@v2
+        with:
+          issue: ${{ github.event.pull_request.number }}
+          message: ${{ env.MESSAGE }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+  Check-next-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+      - name: Get version from file
+        run: |
+          VERSION_FILE="navix/_version.py"
+          NAVIX_VERSION="$(cat navix/_version.py | grep '__version__ = ' |  cut -d'=' -f2 | sed 's,\",,g' | sed "s,\',,g" | sed 's, ,,g')"
+          echo "Current version is:"
+          echo "$NAVIX_VERSION"
+          echo "NAVIX_VERSION=$NAVIX_VERSION" >> $GITHUB_ENV
+      - name: Check that git tag does not exist
+        run: |
+          NAVIX_VERSION=${{ env.NAVIX_VERSION }}
+          git fetch --tags
+          if  [ $(git tag -l "$NAVIX_VERSION") ]; then
+            echo "Tag $NAVIX_VERSION already exists. Please update the version in navix/_version.py file."
+            exit 1
+          fi
+          echo "Tag $NAVIX_VERSION will be the deployed version."
