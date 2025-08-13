@@ -1,0 +1,32 @@
+{#def record, form_config, extra_context, ui #}
+
+{%- set title = _("Request") ~ ": " ~ record.name ~ " | " ~ _(config.THEME_SITENAME) %}
+
+{% extends "oarepo_ui/detail.html" %}
+
+{%- block page_body %}
+    {# Custom Dashboard Header #}
+    <div class="ui container fluid page-subheader-outer shadowless with-submenu ml-0-mobile mr-0-mobile mb-0 rel-pt-2" id="dashboard-user-header-container">
+      <div class="ui container secondary pointing menu page-subheader pl-0">
+        {% for item in current_menu.submenu('user_dashboard').children %}
+        {# loop.index = 3 is the index of the Requests menu item #}
+        <a
+          class="item {{ 'active' if loop.index == 3 }} {{ 'disabled' if not item.url }}"
+          href="{{ item.url }}">{{ item.text }}</a>
+    
+        {% endfor %}
+      </div>
+    </div>
+    {# Main content #}
+    <div class="ui main container" id="request-detail" data-form-config='{{form_config | tojson }}' data-request='{{ record | tojson }}'></div>
+    {# <pre>{{ record | pprint }}</pre>
+    <pre>{{ extra_context | pprint }}</pre>
+    <pre>{{ ui | pprint }}</pre> #}
+{%- endblock page_body %}
+
+{%- block javascript %}
+  {{super()}}
+  {{webpack["oarepo_requests_ui_request_detail.js"]}}
+  {{webpack["oarepo_requests_ui_components.js"]}}
+  {{webpack["oarepo_requests_ui_components.css"]}}
+{%- endblock javascript %}
