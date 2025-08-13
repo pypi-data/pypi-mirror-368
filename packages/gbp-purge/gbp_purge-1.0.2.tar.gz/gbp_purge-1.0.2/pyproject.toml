@@ -1,0 +1,73 @@
+[project]
+name = "gbp-purge"
+dynamic = []
+description = "Purge old builds from Gentoo Build Publisher"
+authors = [
+    { name = "Albert Hopkins", email = "marduk@letterboxes.org" },
+]
+dependencies = [
+    "gentoo-build-publisher>=2.4.0rc1",
+]
+requires-python = ">=3.11"
+readme = "README.md"
+version = "1.0.2"
+
+[project.license]
+text = "GPL3+"
+
+[project.entry-points."gentoo_build_publisher.plugins"]
+gbp_purge = "gbp_purge:plugin"
+
+[project.urls]
+homepage = "https://github.com/enku/gbp-purge"
+repository = "https://github.com/enku/gbp-purge"
+
+[build-system]
+requires = [
+    "pdm-backend",
+]
+build-backend = "pdm.backend"
+
+[dependency-groups]
+dev = [
+    "black>=25.1.0",
+    "coverage[toml]>=7.6.12",
+    "mypy>=1.15.0",
+    "pylint>=3.3.4",
+    "pylint-django>=2.6.1",
+    "django-stubs>=5.1.3",
+    "typos>=1.29.9",
+    "unittest-fixtures",
+    "gentoo-build-publisher[test] @ git+https://github.com/enku/gentoo-build-publisher.git@master",
+]
+
+[tool.black]
+skip-magic-trailing-comma = true
+
+[tool.pdm]
+distribution = true
+
+[tool.pdm.version]
+source = "scm"
+
+[tool.coverage.run]
+branch = true
+source = [
+    "gbp_purge",
+]
+
+[tool.mypy]
+plugins = [
+    "mypy_django_plugin.main",
+]
+files = [
+    "src",
+]
+mypy_path = [
+    "tests",
+    "stubs",
+]
+strict = true
+
+[tool.django-stubs]
+django_settings_module = "gbp_testkit.settings"
