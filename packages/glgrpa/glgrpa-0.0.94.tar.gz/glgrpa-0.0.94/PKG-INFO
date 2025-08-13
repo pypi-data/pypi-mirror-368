@@ -1,0 +1,187 @@
+Metadata-Version: 2.2
+Name: glgrpa
+Version: 0.0.94
+Summary: Librería para automatización de tareas en RPA dentro de Grupo Los Grobo
+Home-page: https://GrupoLosGrobo@dev.azure.com/GrupoLosGrobo/GrupoLosGrobo%20RPA/_git/GrupoLosGrobo%20RPA
+Author: Bellome, Gabriel <gabriel.bellome@losgrobo.com>
+Author-email: gabriel.bellome@losgrobo.com
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+Requires-Dist: selenium
+Requires-Dist: pandas
+Requires-Dist: colorama
+Requires-Dist: openpyxl
+Requires-Dist: office365-rest-python-client
+Requires-Dist: pyautogui
+Requires-Dist: pywinauto
+Requires-Dist: psutil
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+# glgrpa
+
+`glgrpa` es una librería diseñada para automatizar tareas relacionadas con RPA (Robotic Process Automation) dentro del entorno del Grupo Los Grobo. Esta librería proporciona herramientas para interactuar con navegadores web, manejar archivos Excel, gestionar descargas y realizar operaciones específicas en aplicaciones como ARCA.
+
+## Instalación
+
+Puedes instalar la librería directamente desde PyPI (cuando esté publicada) utilizando pip:
+
+```bash
+pip install glgrpa
+```
+
+## Características
+
+- **Automatización de Navegadores** : Basado en Selenium, permite interactuar con elementos web, realizar clics, ingresar texto, manejar ventanas y más.
+- **Gestión de Descargas** : Facilita la organización y limpieza de carpetas de descargas personalizadas.
+- **Manejo de Archivos Excel** : Permite leer archivos Excel y convertirlos en DataFrames de pandas.
+- **Interacción con ARCA** : Automatiza tareas específicas en la plataforma ARCA, como el inicio de sesión, selección de relaciones y descarga de cartas de porte electrónicas.
+- **Terminal y Logs** : Incluye herramientas para mostrar mensajes en la consola con colores y formatos para facilitar el seguimiento de la ejecución.
+
+## Estructura del Proyecto
+
+La librería está organizada en los siguientes módulos:
+
+- **`src/Terminal`** : Proporciona herramientas para mostrar mensajes en la consola y gestionar tiempos de espera.
+- **`src/Chrome`** : Contiene funcionalidades para interactuar con el navegador Chrome utilizando Selenium.
+- **`src/Windows`** : Maneja operaciones relacionadas con el sistema de archivos en Windows, como mover archivos y crear estructuras de carpetas.
+- **`src/Excel`** : Facilita la lectura de archivos Excel.
+- **`src/ARCA`** : Incluye clases específicas para interactuar con la plataforma ARCA.
+
+## Uso
+
+### Ejemplo de Uso Básico
+
+```python
+from glgrpa.src.ARCA.Cartas_de_porte_electronicas.AplicativoCartasDePorteElectronicas import AplicativoCartaDePorteElectronica
+
+# Inicializar la clase
+app = AplicativoCartaDePorteElectronica(dev=True)
+
+# Abrir navegador y navegar a ARCA
+app.abrir_navegador()
+app.navegar_inicio()
+
+# Ingresar credenciales
+app.ingresar_credenciales()
+
+# Cambiar relación
+app.cambiar_relacion("Nombre de la relación")
+
+# Descargar cartas de porte
+cpe_list = app.obtener_listado_cpe()
+for cpe in cpe_list:
+    app.descargar_carta_de_porte(cpe)
+```
+
+### Leer un Archivo Excel
+
+```python
+from glgrpa.src.Excel.Excel import Excel
+
+# Leer un archivo Excel
+excel = Excel("ruta_del_archivo.xlsx")
+dataframe = excel.leer_excel("NombreHoja")
+print(dataframe)
+```
+
+## Resolución de Rutas para Tareas Programadas
+
+Al ejecutar aplicaciones empaquetadas (`.exe`) desde tareas programadas de Windows, es común que ocurra un problema de duplicación de rutas donde el directorio de trabajo actual no es el mismo que el directorio del ejecutable.
+
+### Problema Común
+
+```
+❌ Error: No se encontró el archivo de variables de entorno:
+C:\Trabajadores Virtuales\GLGRPA - CONTABILIDAD - RODOLFO\ap1_TipoCambioSAP\ap1_TipoCambioSAP\.env.production
+```
+
+### Solución
+
+La librería `glgrpa` incluye métodos utilitarios para resolver este problema:
+
+```python
+import os
+from glgrpa import ControlEjecucion
+from dotenv import load_dotenv
+
+# ✅ Forma correcta de cargar variables de entorno
+ruta_env = ControlEjecucion.resolver_ruta_variables_entorno('.env.production')
+
+if os.path.exists(ruta_env):
+    load_dotenv(ruta_env)
+    print(f"✅ Variables cargadas desde: {ruta_env}")
+else:
+    print(f"❌ No se encontró archivo: {ruta_env}")
+
+# ✅ Para otros tipos de archivos de configuración
+from glgrpa.Windows import Windows
+
+ruta_config = Windows.resolver_ruta_archivo('config.ini')
+ruta_datos = Windows.resolver_ruta_archivo('datos.json')
+```
+
+### Uso con ControlEjecucion
+
+```python
+from glgrpa import ControlEjecucion
+import os
+from dotenv import load_dotenv
+
+@ControlEjecucion.decorador_ejecucion_controlada(
+    intentos_maximos=3,
+    permitir_multiples_ejecuciones_diarias=False,
+    email_destinatarios=['admin@empresa.com'],
+    smtp_server='smtp.outlook.com',
+    smtp_port=587,
+    smtp_username='robot@empresa.com',
+    smtp_password='password'
+)
+def mi_proceso_rpa():
+    # Cargar variables de entorno correctamente
+    ruta_env = ControlEjecucion.resolver_ruta_variables_entorno()
+    if os.path.exists(ruta_env):
+        load_dotenv(ruta_env)
+
+    # Tu lógica de automatización aquí
+    pass
+
+if __name__ == "__main__":
+    mi_proceso_rpa()
+```
+
+### Configuración de Tareas Programadas
+
+Para evitar problemas con tareas programadas, asegúrate de configurar:
+
+1. **Directorio de inicio**: Configura que la tarea programada inicie en el directorio donde está el `.exe`
+2. **Permisos**: Ejecutar con privilegios de usuario apropiados
+3. **Sesión interactiva**: Para procesos RPA que requieren GUI, asegurar sesión de escritorio activa
+
+## Requisitos
+
+Los requisitos de la librería están especificados en el archivo `requirements.txt`:
+
+- `selenium`
+- `pandas`
+- `colorama`
+- `openpyxl`
+- `office365-rest-python-client`
+
+## Autor
+
+**Gabriel Bellome** < [gabriel.bellome@losgrobo.com](vscode-file://vscode-app/c:/Users/gabriel.bellome/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/code/electron-sandbox/workbench/workbench.html) >
+
+## Licencia
+
+Este proyecto está bajo una licencia privada y es propiedad del Grupo Los Grobo.
