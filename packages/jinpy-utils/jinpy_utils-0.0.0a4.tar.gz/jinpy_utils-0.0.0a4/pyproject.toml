@@ -1,0 +1,223 @@
+[project]
+name = "jinpy-utils"
+dynamic = ["version"]
+description = "Various Python utils for Caching, Logging, Settings, ORM"
+readme = "README.md"
+authors = [{ name = "Jinto A G", email = "project.jintoag@gmail.com" }]
+requires-python = ">=3.12.10"
+dependencies = [
+    "aiofiles>=24.1.0",
+    "aiohttp>=3.12.15",
+    "alembic>=1.16.4",
+    "cachetools>=6.1.0",
+    "pydantic[email]>=2.11.7",
+    "python-dotenv>=1.1.1",
+    "sqlmodel>=0.0.24",
+    "structlog>=25.4.0",
+    "websockets>=15.0.1",
+]
+
+[build-system]
+requires = ["hatchling>=1.25.0", "hatch-vcs>=0.4.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["jpy_utils"]
+only-include = ["jpy_utils"]
+sources = ["src"]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.semantic_release]
+version_source = "tag"
+tag_format = "v{version}"
+allow_initial_release = true
+initial_version = "0.1.0-alpha.2"
+prerelease = true
+prerelease_token = "alpha"
+
+[dependency-groups]
+dev = [
+    "aioresponses>=0.7.8",
+    "bandit>=1.8.6",
+    "black>=25.1.0",
+    "coverage>=7.10.2",
+    "flake8>=7.3.0",
+    "mypy>=1.17.1",
+    "pre-commit>=4.2.0",
+    "pytest>=8.4.1",
+    "pytest-asyncio>=1.1.0",
+    "pytest-cov>=6.2.1",
+    "pytest-html>=4.1.1",
+    "ruff>=0.6.9",
+    "safety>=3.2.9",
+    "types-aiofiles>=24.1.0.20250809",
+]
+
+# Black Configuration
+[tool.black]
+line-length = 88
+target-version = ['py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+# Ruff Configuration
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+lint.select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+    "ARG001", # unused-function-argument
+    "C901",   # too-complex
+    "SIM",    # flake8-simplify
+    "TID",    # flake8-tidy-imports
+    "Q",      # flake8-quotes
+    "PL",     # pylint
+    "PT",     # flake8-pytest-style
+    "TC",     # flake8-type-checking
+    "RUF",    # Ruff-specific rules
+]
+lint.ignore = [
+    "E501", # line-too-long (handled by black)
+    "B008", # do-not-perform-function-calls-in-argument-defaults
+    "C901", # too-complex
+    "W191", # indentation-contains-tabs
+]
+lint.per-file-ignores = {"tests/*" = ["E501", "PLR2004", "PLC0415", "SIM117", "SIM105", "PT011", "F401"]}
+lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.isort]
+known-first-party = ["jpy_utils"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+# MyPy Configuration
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+show_error_codes = true
+pretty = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_untyped_decorators = false
+
+# Pytest Configuration
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+    "--cov=jpy_utils",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+    "--cov-fail-under=80",
+    "-W", "ignore::RuntimeWarning:asyncio",
+    "-W", "ignore::RuntimeWarning:unittest.mock",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "unit: marks tests as unit tests",
+    "integration: marks tests as integration tests",
+    "asyncio: marks tests as asynchronous",
+]
+
+# Coverage Configuration
+[tool.coverage.run]
+source = ["jpy_utils"]
+branch = true
+omit = [
+    "tests/*",
+    "*/migrations/*",
+    "*/venv/*",
+    "*/.venv/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*(Protocol):",
+    "@(abc.)?abstractmethod",
+]
+ignore_errors = true
+show_missing = true
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+# Bandit Configuration (Security)
+[tool.bandit]
+exclude_dirs = ["tests", "build", "dist"]
+tests = ["B201", "B301"]
+skips = ["B101", "B601"]

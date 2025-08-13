@@ -1,0 +1,66 @@
+name: Publish to PyPI
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  release:
+    types: [published, prereleased]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 0.1.0)'
+        required: false
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # When triggered from a release event, explicitly check out the tag that was released
+          ref: ${{ github.event_name == 'release' && github.event.release.tag_name || '' }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "${HOME}/.local/bin" >> $GITHUB_PATH
+      - name: Ensure repo name and version
+        run: |
+          python - <<'PY'
+          import tomllib, pathlib, re, os
+          p = pathlib.Path('pyproject.toml')
+          data = tomllib.loads(p.read_text())
+          name = data['project']['name']
+          assert name == 'jinpy-utils', f"project.name must be 'jinpy-utils', got {name!r}"
+          PY
+      - name: Run CI checks
+        uses: ./.github/workflows/ci.yml
+        if: false # cannot call job; CI should have run on the commit. Keep step placeholder.
+      - name: Build sdist and wheel
+        run: |
+          uv build
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/*
+      - name: Publish to PyPI
+        # Publish when running for a tag push or a release event
+        if: ${{ github.ref_type == 'tag' || github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.version != '') }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
+      # If manually dispatched with a version, create the tag so publishing can proceed
+      - name: If workflow_dispatch, create tag
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.version != '' }}
+        run: |
+          VERSION="${{ inputs.version }}"
+          git tag -a "v${VERSION}" -m "Release v${VERSION}"
+          git push origin "v${VERSION}"
