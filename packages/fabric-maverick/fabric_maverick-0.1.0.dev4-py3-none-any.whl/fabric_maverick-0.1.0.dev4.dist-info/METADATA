@@ -1,0 +1,124 @@
+Metadata-Version: 2.4
+Name: fabric_maverick
+Version: 0.1.0.dev4
+Summary: A Fabric Package for Semantic/Dataset validation
+Author: MAQ Software
+Author-email: Nisarg Patel <nisargp@maqsoftware.com>
+Maintainer-email: Nisarg Patel <nisargp@maqsoftware.com>, Kunal Sarda <kunals@maqsoftware.com>
+License-Expression: MIT
+Keywords: Fabric,Microsoft Fabric,Sempy,Semantic Model,Report,Report Compare
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Education
+Classifier: Intended Audience :: Science/Research
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Framework :: Jupyter
+Requires-Python: >=3.10,<3.12
+Description-Content-Type: text/markdown
+License-File: LICENSE
+License-File: AUTHORS.md
+Requires-Dist: thefuzz
+Requires-Dist: semantic-link-sempy>=0.11.0
+Provides-Extra: test
+Requires-Dist: pytest>=8.2.1; extra == "test"
+Dynamic: license-file
+Dynamic: requires-python
+
+# Fabric Maverick
+
+![Python Version](https://img.shields.io/badge/Python-3.9%2B-blue.svg)
+![License](https://img.shields.io/badge/License-MIT-green.svg)
+
+## Table of Contents
+
+* [Overview](#overview)
+* [Features](#features)
+* [Installation](#installation)
+* [Usage](#usage)
+    * [Comparing Reports](#comparing-reports)
+    * [Authentication](#authentication)
+* [License](#license)
+* [Contact](#contact)
+
+## Overview
+
+`fabric_maverick` is a Python package designed for **semantic level validation and comparison of Power BI reports across different workspaces**. It provides a robust framework to programmatically compare the metadata and structure of your Fabric Analytics Reports (formerly Power BI datasets/reports) to ensure consistency and identify discrepancies.
+
+This package is particularly useful for:
+* **CI/CD pipelines:** Automating report validation as part of your deployment process.
+* **Regression testing:** Ensuring that changes to reports or underlying data models do not introduce unintended breaking changes.
+* **Maintaining consistency:** Verifying that reports deployed to different environments (Dev, QA, Prod) are structurally identical or conform to expected variations.
+
+## Features
+
+* **Report Comparison:** Easily compare the structure (tables, columns, measures) of two Fabric Analytics Reports from different workspaces.
+* **Flexible Input:** Supports comparing reports by providing individual report/workspace names or a consolidated dictionary structure.
+* **Authentication Management:** Integrates with a flexible token provider for seamless authentication with Fabric/Power BI services.
+* **Detailed Insights:** [TODO: Briefly describe what kind of comparison results/details the `ReportComparison` object provides. E.g., "Identifies added, removed, or modified tables, columns, and measures."]
+* **Extensible:** Built with a modular design to allow for future expansion of comparison metrics and validation rules.
+
+## Installation
+
+`fabric_maverick` can be installed directly from PyPI using `pip`:
+```bash
+pip install fabric_maverick
+```
+
+## Usage
+# Comparing Reports
+The primary function for comparing reports is ReportCompare. It offers two ways to specify the reports:
+
+```python
+import knnpy
+
+Compare = knnpy.ReportCompare(
+    OldReport="MySalesDashboard_V1",
+    OldReportWorkspace="Development",
+    NewReport="MySalesDashboard_V2",
+    NewReportWorkspace="Production",
+    Stream="SalesDashboard_Deployment",
+    ExplicitToken="YOUR_ACCESS_TOKEN_IF_NEEDED" # Optional
+)
+
+# Use the Compare object to run validations and view results
+Compare.run_all_validations()
+```
+# Authentication
+
+By default, fabric_maverick will use token from fabric enviornment. However, you can explicitly provide an authentication token using the ExplicitToken parameter in ReportCompare:
+
+```python
+import knnpy
+
+# Obtain your Power BI/Fabric access token
+my_token = "eyJ..." # Replace with your actual token
+
+comparison_result = knnpy.ReportCompare(
+    # ... report details ...
+    Stream="MyStream",
+    ExplicitToken=my_token
+)
+```
+Alternatively, you can initialize a token globally for the session using initializeToken:
+
+```python
+import knnpy
+
+# Initialize token globally (this affects all subsequent calls without ExplicitToken)
+knnpy.initializeToken("YOUR_GLOBAL_ACCESS_TOKEN")
+
+# Now, ReportCompare calls can omit ExplicitToken
+comparison_result = knnpy.ReportCompare(
+    OldReport="ReportA",
+    OldReportWorkspace="WS_A",
+    NewReport="ReportB",
+    NewReportWorkspace="WS_B",
+    Stream="AnotherStream"
+)
+```
+## License
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Contact
+For questions or feedback, please reach out to the maintainers.
