@@ -1,0 +1,382 @@
+Metadata-Version: 2.4
+Name: fw-gear-dcm2niix
+Version: 2.1.8
+Summary: A Flywheel Gear for implementing Chris Rorden's dcm2niix for converting DICOM (or PAR/REC) to NIfTI (or NRRD).
+Project-URL: Repository, https://gitlab.com/flywheel-io/scientific-solutions/gears/dcm2niix/
+Author-email: Flywheel <support@flywheel.io>
+License-File: LICENSE
+Keywords: Flywheel,Gears
+Classifier: Topic :: Scientific/Engineering
+Requires-Python: ~=3.12
+Requires-Dist: flywheel-gear-toolkit<0.7,>=0.6.10
+Requires-Dist: fw-gear-file-metadata-importer<2,>=1.5.2
+Requires-Dist: jinja2<4,>=3.1.5
+Requires-Dist: matplotlib==3.9.0
+Requires-Dist: nipype~=1.8.4
+Requires-Dist: numpy<2.0
+Requires-Dist: pydicom<3,>=2.1.0
+Description-Content-Type: text/markdown
+
+# dcm2niix Gear
+
+## Overview
+
+A [Flywheel Gear](https://github.com/flywheel-io/gears/tree/master/spec) for
+implementing [Chris Rorden's dcm2niix](https://github.com/rordenlab/dcm2niix) for
+converting DICOM (or PAR/REC) to NIfTI (or NRRD).
+
+### Summary
+
+[Chris Rorden's dcm2niix](https://github.com/rordenlab/dcm2niix) is a popular tool for
+converting images from the complicated formats used by scanner manufacturers (DICOM,
+PAR/REC) to the NIfTI format used by many scientific tools. Alternatively, this tool
+also outputs the NRRD format. dcm2niix works for all modalities (CT, MRI, PET, SPECT)
+and sequence types.
+
+### Cite
+
+dcm2niix doi: 10.1016/j.jneumeth.2016.03.001
+
+### License
+
+License: Other
+
+[Chris Rorden's dcm2niix](https://github.com/rordenlab/dcm2niix) is provided through
+its [license](https://github.com/rordenlab/dcm2niix/blob/v1.0.20230411/license.txt).
+
+### Classification
+
+Category: converter
+
+Gear Level:
+
+- [ ] Project
+- [ ] Subject
+- [ ] Session
+- [X] Acquisition
+- [ ] Analysis
+
+----
+
+[[_TOC_]]
+
+----
+
+### Inputs
+
+- Required
+  - __Name__: dcm2niix_input
+  - __Type__: file, dicom or parrec
+  - __Optional__: False
+  - __Description__: Main input file for the Gear. This can be either a DICOM archive (`<dicom>.zip`), a PAR/REC archive (`<parrec>.zip`), or a single PAR file (`image.PAR` or `image.par`).
+- Optional
+  - __Name__: rec_file_input
+  - __Type__: file, parrec
+  - __Optional__: True
+  - __Description__: If dcm2niix_input is a single PAR file, the corresponding REC file (`image.REC` or `image.rec`) for one PAR/REC file pair as inputs to the Gear.
+
+### Config
+
+- anonymize_bids
+  - __Name__: anonymize_bids
+  - __Type__: Boolean
+  - __Description__: Anonymize BIDS. Options: true (default), false. bids_sidecar config option must be enabled (i.e., 'y' or 'o' options).
+  - __Default__: True
+- bids_sidecar
+  - __Name__: bids_sidecar
+  - __Type__: string
+  - __Description__: Output BIDS sidecar in JSON format. Options are 'y'=yes(default), 'n'=no, 'o'=only (whereby no NIfTI file will be generated). Note: bids_sidecar is always invoked when running dcm2niix to be used as metadata. User configuration preference is handled after acquiring metadata. If JSON file not present, NIfTI(s), even if produced may not be copied into final output.
+  - __Default__: "y"
+- coil_combine
+  - __Name__: coil_combine
+  - __Type__: Boolean
+  - __Description__: For sequences with individual coil data, saved as individual volumes, this option will save a NIfTI file with ONLY the combined coil data (i.e., the last volume). Options: true, false (default). WARNING: Expert Option. We make no effort to check for independent coil data; we trust that you know what you are asking for if you have selected this option.
+  - __Default__: False
+- comment
+  - __Name__: comment
+  - __Type__: string
+  - __Description__: If non-empty, store comment as NIfTI aux_file. Options: non-empty string, 24 characters maximum. Note: The 24 character comment is placed in (1) all NIfTI output files in the aux_file variable. You can use fslhdr to access the NIfTI header data and see this comment; and (2) all JSON files (i.e., BIDS sidecars), which means the comment is stored as metadata for all associated output files and would be included in the 'bids_sidecar' file, if invoked.
+  - __Default__: ""
+- compress_images
+  - __Name__: compress_images
+  - __Type__: string
+  - __Description__: Gzip compress images. Options: 'y'=yes (default), 'i'=internal, 'n'=no, '3'=no,3D. Note: If option '3' is chosen, the filename flag will be set to '-f %p_%s' to prevent overwriting files. Tip: For .nrrd output, select 'n'.
+  - __Default__: "y"
+- compression_level
+  - __Name__: compression_level
+  - __Type__: number, minimum:1, maximum:9
+  - __Description__: Set the gz compression level. Options: 1 (fastest) to 9 (smallest), 6 (default).
+  - __Default__: 6
+- convert_only_series
+  - __Name__: convert_only_series
+  - __Type__: string
+  - __Description__: Selectively convert by series number - can be used up to 16 times. Options: 'all' (default), space-separated list of series numbers (e.g., '2 12 20'). WARNING: Expert Option. We trust that if you have selected this option, you know what you are asking for.
+  - __Default__: "all"
+- crop
+  - __Name__: crop
+  - __Type__: Boolean
+  - __Description__: Crop 3D T1 images. Options: true, false (default).
+  - __Default__: False
+- dcm2niix_verbose
+  - __Name__: dcm2niix_verbose
+  - __Type__: Boolean
+  - __Description__: Whether to include verbose output from dcm2niix call. Options: true, false (default).
+  - __Default__: False
+- debug
+  - __Name__: debug
+  - __Type__: Boolean
+  - __Description__: Log debug messages.
+  - __Default__: False
+- decompress_dicoms
+  - __Name__: decompress_dicoms
+  - __Type__: Boolean
+  - __Description__: Decompress DICOM files before conversion. This will perform decompression using gdcmconv and then perform the conversion using dcm2niix. Options: true, false (default).
+  - __Default__: False
+- filename
+  - __Name__: filename
+  - __Type__: string
+  - __Description__: Output filename template. Options: %a=antenna (coil) name, %b=basename, %c=comments, %d=series description, %e=echo number, %f=folder name, %i=ID of patient, %j=seriesInstanceUID, %k=studyInstanceUID, %m=manufacturer, %n=name of patient, %o=mediaObjectInstanceUID, %p=protocol, %r=instance number, %s=series number, %t=time, %u=acquisition number, %v=vendor, %x=study ID, %z=sequence name tag(0018,0024), %q sequence name tag(0018,1020). Defaults: dcm2niix tool `%f_%p_%t_%s`. Tip: A more informative filename can be useful for downstream BIDS curation by simply accessing relevant information in the extracted filename. For example, including echo number or protocol.
+  - __Default__: "%f_%p_%t_%s"
+- ignore_derived
+  - __Name__: ignore_derived
+  - __Type__: Boolean
+  - __Description__: Ignore derived, localizer, and 2D images. Options: true, false (default).
+  - __Default__: False
+- ignore_errors
+  - __Name__: ignore_errors
+  - __Type__: Boolean
+  - __Description__: Ignore dcm2niix errors and the exit status, and preserve outputs. Options: true, false (default). By default, when dcm2niix exits non-zero, outputs are not preserved. WARNING: Expert Option. We trust that if you have selected this option, you know what you are asking for.
+  - __Default__: False
+- lossless_scaling
+  - __Name__: lossless_scaling
+  - __Type__: string
+  - __Description__: Losslessly scale 16-bit integers to use dynamic range. Options: 'y'=scale, 'n'=no, but unit16->int16, 'o'=original (default).
+  - __Default__: "o"
+- merge2d
+  - __Name__: merge2d
+  - __Type__: number
+  - __Description__: Merge 2D slices from the same series regardless of study time, echo, coil, orientation, etc. Options: 0=no, 1=yes, 2=auto (default)
+  - __Default__: 2
+- output_nrrd
+  - __Name__: output_nrrd
+  - __Type__: Boolean
+  - __Description__: Export as NRRD instead of NIfTI. Options: true, false (default). Tip: To export .nrrd, change the **compress_images** config option to 'n'; otherwise, the output will split into two files (.raw.gz and .nhdr).
+  - __Default__: False
+- philips_scaling
+  - __Name__: philips_scaling
+  - __Type__: Boolean
+  - __Description__: Philips precise float (not display) scaling. Options: true (default), false.
+  - __Default__: True
+- remove_incomplete_volumes
+  - __Name__: remove_incomplete_volumes
+  - __Type__: Boolean
+  - __Description__: Remove incomplete trailing volumes for 4D scans aborted mid-acquisition before dcm2niix conversion. Options: true, false (default).
+  - __Default__: False
+- sanitize_filename
+  - __Name__: sanitize_filename
+  - __Type__: Boolean
+  - __Description__: Sanitize filename by removing invalid characters.
+  - __Default__: True
+- save_sidecar_as_metadata
+  - __Name__: save_sidecar_as_metadata
+  - __Type__: string
+  - __Description__: Whether to save sidecar information in `file.info` metadata to be compatible with previous BIDS workflow. Options: 'y'=yes, 'n'=no, or leave blank (default). If left blank, gear will check `project.info` and attempt to identify if the previous BIDS curation method is being utilized for the parent project.
+  - __Default__: ""
+- single_file_mode
+  - __Name__: single_file_mode
+  - __Type__: Boolean
+  - __Description__: Single file mode, do not convert other images in the folder. Options: true, false (default).
+  - __Default__: False
+- tag
+  - __Name__: tag
+  - __Type__: string
+  - __Description__: The tag to be added to one output file upon run completion.
+  - __Default__: ""
+- tag_on_failure
+  - __Name__: tag_on_failure
+  - __Type__: Boolean
+  - __Description__: If `True`, tag the input file with "dcm2nii-failure" if the gear fails to generate any nifti images.
+  - __Default__: False
+- text_notes_private
+  - __Name__: text_notes_private
+  - __Type__: Boolean
+  - __Description__: Text notes include private patient details. Options: true, false (default).
+  - __Default__: False
+
+
+### Outputs
+
+#### Files
+
+- Default
+  - __Name__: `<filename>.nii.gz`
+  - __Type__: Compressed NIfTI
+
+- Modifications:
+  - If compress_images == "n":
+    - __Name__: `<filename>.nii`
+    - __Type__: NIfTI
+  - If output_nrrd == True:
+    - __Name__: `<filename>.nrrd`
+    - __Type__: NRRD
+    - __Note__: If compress_images == y, output will split into two files (.raw.gz and .nhdr).
+  - If bids_sidecar == "y":
+    - __Name__: `<filename>.json`
+    - __Type__: JSON
+
+#### Metadata
+
+The dcm2niix tool extracts DICOM tags and collates these into a JSON file
+(i.e., the BIDS sidecar). What is extracted depends on the input DICOM header.
+If `save_sidecar_as_metadata` is set to `"y"` or `""` and the parent project
+is determined to utilize the previous BIDS curation method, the sidecar will be
+utilized to populate `file.info` to be backwards compatible. If
+`save_sidecar_as_metadata` is set to `"n"` or `""` and the parent project is
+determined to *not* utilize the previous BIDS curation method (either project is
+not BIDS-curated or is curated to utilize the sidecar file as the ground truth),
+the sidecar metadata will *not* be saved as metadata on the file.
+
+If present, the following DICOM tags are extracted via the dcm2niix tool
+and saved to the output sidecar file, and can be configured to also be
+applied as `file.info` metadata to the output files of the dcm2niix Gear:
+
+* AcquisitionMatrixPE
+* AcquisitionTime
+* BaseResolution
+* BodyPartExamined
+* CoilString
+* ConversionSoftware
+* ConversionSoftwareVersion
+* DeviceSerialNumber
+* EchoTime
+* EchoTrainLength
+* EffectiveEchoSpacing
+* EstimatedEffectiveEchoSpacing
+* EstimatedTotalReadoutTime
+* FlipAngle
+* FrameTimesStart
+* ImageComments
+* ImageOrientationPatientDICOM
+* ImageType
+* ImagingFrequency
+* InPlanePhaseEncodingDirectionDICOM
+* InstitutionAddress
+* InstitutionalDepartmentName
+* InstitutionName
+* InternalPulseSequenceName
+* MagneticFieldStrength
+* Manufacturer
+* ManufacturersModelName
+* Modality
+* MRAcquisitionType
+* ParallelReductionFactorInPlane
+* ParallelReductionOutOfPlane
+* PartialFourier
+* PatientPosition
+* PercentPhaseFOV
+* PercentSampling
+* PhaseEncodingAxis
+* PhaseEncodingDirection
+* PhaseEncodingPolarityGE
+* PhaseEncodingSteps
+* PhaseResolution
+* PhilipsRescaleIntercept
+* PhilipsRescaleSlope
+* PhilipsRWVIntercept
+* PhilipsRWVSlope
+* PixelBandwidth
+* ProcedureStepDescription
+* ProtocolName
+* PulseSequenceDetails
+* ReceiveCoilName
+* ReconMatrixPE
+* RepetitionTime
+* SAR
+* ScanningSequence
+* ScanOptions
+* SequenceName
+* SequenceVariant
+* SeriesDescription
+* SeriesNumber
+* ShimSetting
+* SliceThickness
+* SliceTiming
+* SoftwareVersions
+* SpacingBetweenSlices
+* StationName
+* TotalReadoutTime
+* TxRefAmp
+* UsePhilipsFloatNotDisplayScaling
+* WaterFatShift
+
+If the input file is a DICOM file, additional metadata is extracted using
+[Pydicom](https://pydicom.github.io/) and applied as `file.info.header.dicom`
+metadata to the output files of the dcm2niix gear. The following DICOM tags are
+extracted if present in the input DICOM header:
+
+* AcquisitionDuration, tag(0018,9073)
+* AcquisitionMatrix
+* Columns
+* InPlanePhaseEncodingDirection
+* PercentPhaseFieldOfView
+* PercentSampling
+* PixelSpacing
+* PrepulseDelay, tag(2001,101B)
+* PrepulseType, tag(2001,101C)
+* Rows
+* ScanningTechnique, tag(2001,1020)
+* ScanType, tag(2005,10A1)
+* SliceOrientation, tag(2001,100B)
+* SpacingBetweenSlices
+* NumberOfEchos, tag(2001,1014)
+* NumberOfSlices, tag(2001,1018)
+* NumberOfTemporalPositions
+
+All metadata applied to the output files from the dcm2niix Gear are extracted from the
+raw DICOM tags. As such, the units of measurement remain consistent with the DICOM standard.
+
+##### Tags
+If a value is provided in the "tag" config option, that tag will be added to the input file on completion of the gear execution.
+
+If the "tag_on_failure" config option is checked, the tag "dcm2niix-failure" will be added to the input file
+if the gear does not complete successfully.
+
+The gear will REMOVE a "dcm2niix-failure" tag from a file if it is present and the gear completes successfully.
+
+### Workflow
+
+```mermaid
+graph LR
+    dz["dicom.zip"] --> A[One Required] ===> dcm[dcm2niix_input]
+    dt["dicom.tgz"] --> A
+    pz["parrec.zip"] --> A
+    pt["parrec.tgz"] --> A
+    par["image.par"] --> A
+    rec["image.rec"] -.->|optional| B[rec_file_input]
+    dcm ==> gear
+    B -.-> gear
+    C["configuration"] ==> gear{{Dcm2niix Gear}}
+    gear ==>|default| E["filename.nii.gz"]
+    gear -.->|if diffusion| F["filename.bval, filename.bvec"]
+    gear -.->|if not compress_images| G["filename.nii"]
+    gear -.->|if output_nrrd and not compress_images| H["filename.nrrd"]
+    gear -.->|if output_nrrd and compress_images| I["filename.nhdr, filename.raw.gz"]
+    gear -.->|if bids_sidecar| J["filename.json"]
+
+```
+
+Description of workflow
+
+1. Upload compressed DICOM or PAR/REC file(s) to container
+1. Select file as dcm2niix_input to gear, with optional rec_file_input for .rec file if dcm2niix_input is a .par file
+1. Gear converts files to NIfTI (or NRRD) as specified by configuration
+
+## FAQ
+
+[FAQ.md](FAQ.md)
+
+## Contributing
+
+[For more information about how to get started contributing to this gear,
+check out [CONTRIBUTING.md](CONTRIBUTING.md).]
+<!-- markdownlint-disable-file -->
