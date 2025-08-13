@@ -1,0 +1,141 @@
+[build-system]
+requires = ["setuptools>=64.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "image-filename-ai"
+version = "0.1.0"
+description = "AI-powered image filename generator using Google Gemini - Transform generic image files into descriptive, SEO-friendly names"
+readme = "README.md"
+license = "MIT"
+authors = [
+    {name = "Matija Ziberna", email = "matijazib@gmail.com"},
+]
+maintainers = [
+    {name = "Matija Ziberna", email = "matijazib@gmail.com"},
+]
+keywords = [
+    "ai", "image", "filename", "gemini", "google-cloud", "cli", "batch-processing", 
+    "seo", "automation", "computer-vision", "machine-learning"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12", 
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Utilities",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+]
+requires-python = ">=3.11"
+dependencies = [
+    "google-cloud-aiplatform>=1.71.0",
+    "vertexai>=1.71.0",
+    "python-dotenv>=1.1.0",
+    "Pillow>=10.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/matija2209/image-filename-ai"
+Repository = "https://github.com/matija2209/image-filename-ai"
+Issues = "https://github.com/matija2209/image-filename-ai/issues"
+Documentation = "https://github.com/matija2209/image-filename-ai#readme"
+
+[project.scripts]
+image-filename-ai = "cli:main"
+
+[project.optional-dependencies]
+api = [
+    "fastapi>=0.115.0",
+    "uvicorn>=0.34.0",
+    "firebase-admin>=6.5.0",
+    "google-cloud-storage>=2.19.0",
+    "google-cloud-firestore>=2.20.0",
+]
+dev = [
+    "black>=24.0.0",
+    "ruff>=0.1.0",
+    "pytest>=8.0.0",
+    "pytest-mock>=3.14.0",
+]
+
+[tool.black]
+line-length = 100
+target-version = ['py311', 'py312', 'py313']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.pytest_cache
+  | \.venv
+  | venv
+  | _build
+  | build
+  | dist
+)/
+'''
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"scripts/*.py" = ["E402"]  # Allow imports after sys.path modifications
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.setuptools]
+packages = ["app", "app.api", "app.api.endpoints", "app.core", "app.models", "app.services", "app.utils"]
+py-modules = ["cli"]
+
+[tool.setuptools.package-data]
+"*" = ["*.md", "*.txt", "*.json"]
