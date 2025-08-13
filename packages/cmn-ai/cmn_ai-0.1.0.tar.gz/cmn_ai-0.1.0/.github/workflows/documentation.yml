@@ -1,0 +1,39 @@
+name: Documentation builder
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "cmn_ai/**"
+      - "docs/**"
+      - "mkdocs.yml"
+      - "pyproject.toml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "cmn_ai/**"
+      - "docs/**"
+      - "mkdocs.yml"
+      - "pyproject.toml"
+permissions:
+  contents: write
+jobs:
+  build-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install docs dependencies
+        run: |
+          uv sync --extra docs
+      - name: Deploy documentation
+        run: uv run mkdocs gh-deploy --force
