@@ -1,0 +1,160 @@
+[build-system]
+requires = [
+    "meson-python",
+    "setuptools_scm",
+    "Cython >= 3.0.10",
+    "numpy",
+]
+build-backend = "mesonpy"
+
+[project]
+name = "versioned-hdf5"
+dynamic = ["version"]
+authors = [
+  { name="Quansight" },
+]
+description = "Versioned HDF5 provides a versioned abstraction on top of h5py"
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "numpy>=1.24.4",
+    "h5py>=3.8.0",
+    "ndindex>=1.5.1",
+]
+urls = { Homepage = "https://github.com/deshaw/versioned-hdf5" }
+license = { file = 'LICENSE' }
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    "W",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+    # pep8 naming
+    "N",
+    # pydocstyle
+    # "D",  # TODO review and fix errors
+    # annotations
+    # "ANN",  # TODO review and fix errors
+    # debugger
+    "T10",
+    # flake8-pytest
+    "PT",
+    # flake8-return
+    "RET",
+    # flake8-unused-arguments
+    "ARG",
+    # flake8-fixme
+    # "FIX",  # Typically this should be uncommented in one-off reviews
+    # flake8-eradicate
+    "ERA",
+    # pandas-vet
+    "PD",
+    # numpy-specific rules
+    "NPY",
+]
+ignore = [
+    "D104", # Missing docstring in public package
+    "D100", # Missing docstring in public module
+    "D213", # Multiline summary second line
+    "PD901", # Avoid using 'df' for pandas dataframes. Perfectly fine in functions with limited scope
+    "ANN204", # Missing return type annotation for special method
+    "ANN002", # Missing type annotation for `*args`
+    "ANN003", # Missing type annotation for `**kwargs`
+    "D105", # Missing docstring in magic method
+    "D203", # 1 blank line before after class docstring
+    "D413", # 1 black line after parameters
+    "N806", # Variable name should be lowercase; uppercase indicates constants
+    "SIM108", # Simplify if/else to one line; not always clearer
+    "SIM114", # Combine `if` branches using logical `or` operator; not always clearer
+    "SIM300", # Yoda condition `a < var`; clearer in `a < var and var < b`
+    "RET505", # Unnecessary elif after return statement; not always clearer
+    "UP032", # Use f-string instead of `format` call; not always clearer
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"test_*.py" = [
+    "ANN001",
+    "N802",  # Function name should be lowercase
+]
+
+
+[project.optional-dependencies]
+dev = ["pre-commit>=3.6.0", 'cython', 'meson-python', 'setuptools-scm']
+test = ["pytest", "pytest-env", "hypothesis", "packaging"]
+doc = ["sphinx", "sphinx-multiversion", "myst-parser"]
+bench = ["asv"]
+
+[tool.setuptools_scm]
+
+[tool.isort]
+profile = "black"
+
+[tool.pytest_env]
+ENABLE_CHUNK_REUSE_VALIDATION = 1
+
+[tool.pytest.ini_options]
+addopts = "--doctest-modules --ignore=ci/ --ignore=analysis/ --import-mode=importlib"
+doctest_optionflags = "NORMALIZE_WHITESPACE"
+markers = [
+    "setup_args : kwargs for setup fixture.",
+    "slow: slow tests",
+    "api: api smoke tests",
+]
+filterwarnings = ["error"]  # Fail on all unhandled warnings
+
+[tool.mypy]
+allow_incomplete_defs = true  # FIXME
+allow_untyped_decorators = true  # FIXME
+allow_untyped_defs = true  # FIXME
+ignore_missing_imports = true
+no_implicit_optional = true
+show_error_codes = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = ["*.tests.*"]
+allow_untyped_defs = true
+
+[tool.cibuildwheel]
+build-verbosity = 1
+build-frontend = { name = "pip", args = ["--only-binary", "numpy"] }
+manylinux-x86_64-image = "ghcr.io/h5py/manylinux2014_x86_64-hdf5"
+manylinux-aarch64-image = "ghcr.io/h5py/manylinux2014_aarch64-hdf5"
+
+[tool.cibuildwheel.linux]
+environment-pass = ["GITHUB_ACTIONS"]
+
+[tool.cibuildwheel.linux.environment]
+CFLAGS = "-g1"
+
+[tool.cibuildwheel.macos]
+# https://cibuildwheel.pypa.io/en/stable/faq/#macos-passing-dyld_library_path-to-delocate
+repair-wheel-command = """\
+DYLD_FALLBACK_LIBRARY_PATH=$HDF5_DIR/lib \
+delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel} \
+"""
+
+[tool.cibuildwheel.macos.environment]
+H5PY_ROS3 = "0"
+H5PY_DIRECT_VFD = "0"

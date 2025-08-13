@@ -1,0 +1,85 @@
+name: Build and deploy docs to github pages
+
+on:
+  push:
+    branches: ["master"]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# Cancel in-progress deployment jobs so only the latest one succeeds.
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      # Always checkout master branch, even if triggered by a tag.
+      # Otherwise sphinx-multiversion does not pull the master branch.
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+
+      - name: Setup Graphviz
+        run: |
+          sudo apt update -y
+          sudo apt install -y graphviz libhdf5-dev
+
+      - name: Install versioned-hdf5
+        run: |
+          pip install '.[doc]'
+
+      - name: Update git tags for sphinx-multiversion
+        run: |
+          git fetch --tags
+
+      - name: Build docs
+        working-directory: docs
+        run: |
+          # Need to set timezone to avoid a sphinx/babel issue
+          # when using act to run locally:
+          # https://github.com/nektos/act/issues/1853
+          TZ=UTC sphinx-multiversion . _build/html
+
+      # sphinx-multiversion only builds docs for every tag;
+      # this redirects users who visit ./index.html ->
+      # ./master/index.html, which is the development branch docs.
+      - name: Write redirect to development branch
+        run: |
+          echo "<!DOCTYPE html>
+                  <html>
+                    <head>
+                      <title>Redirecting to master branch</title>
+                      <meta charset='utf-8'>
+                      <meta http-equiv='refresh' content='0; url=./master/index.html'>
+                      <link rel='canonical' href='./master/index.html'>
+                    </head>
+                  </html>" >> docs/_build/html/index.html
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'docs/_build/html'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
