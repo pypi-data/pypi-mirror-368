@@ -1,0 +1,112 @@
+[project]
+name = "gbp-fl"
+dynamic = []
+description = "pfl-inspired plugin for Gentoo Build Publisher"
+authors = [
+    { name = "Albert Hopkins", email = "marduk@letterboxes.org" },
+]
+requires-python = ">=3.11"
+readme = "README.md"
+dependencies = [
+    "gbpcli>=2.4.1",
+    "yarl>=1.18.3",
+    "requests>=2.32.3",
+    "rich>=13.9.4",
+]
+version = "0.4.1"
+
+[project.license]
+text = "GPL-3+"
+
+[project.entry-points."gbp_fl.records"]
+memory = "gbp_fl.records.memory"
+django = "gbp_fl.records.django_orm"
+
+[project.entry-points."gbpcli.subcommands"]
+fl = "gbp_fl.cli"
+
+[project.entry-points."gentoo_build_publisher.plugins"]
+gbp_fl = "gbp_fl:plugin"
+
+[project.optional-dependencies]
+server = [
+    "gentoo-build-publisher>=2.4.1.dev24",
+    "ariadne>=0.26.0",
+]
+
+[project.urls]
+homepage = "https://github.com/enku/gbp-fl"
+repository = "https://github.com/enku/gbp-fl"
+
+[build-system]
+requires = [
+    "pdm-backend",
+]
+build-backend = "pdm.backend"
+
+[tool.black]
+skip-magic-trailing-comma = true
+
+[tool.django-stubs]
+django_settings_module = "gbp_testkit.settings"
+
+[tool.mypy]
+plugins = [
+    "mypy_django_plugin.main",
+]
+exclude = [
+    "/migrations/",
+]
+files = [
+    "src/gbp_fl",
+]
+mypy_path = [
+    "tests",
+    "stubs",
+]
+strict = true
+
+[tool.pylint.master]
+load-plugins = "pylint_django,pylint.extensions.bad_builtin"
+django-settings-module = "gbp_testkit.settings"
+init-hook = "import sys; sys.path.insert(0, 'tests')"
+bad-functions = [
+    "print",
+]
+ignore = [
+    "/migrations/",
+]
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.coverage.run]
+branch = true
+source = [
+    "gbp_fl",
+]
+omit = [
+    "src/gbp_fl/migrations/*",
+]
+
+[tool.pdm]
+distribution = true
+
+[tool.pdm.version]
+source = "scm"
+
+[dependency-groups]
+dev = [
+    "black>=25.1.0",
+    "coverage[toml]>=7.6.12",
+    "pylint>=3.3.4",
+    "pylint-django>=2.6.1",
+    "gentoo-build-publisher[test] @ git+https://github.com/enku/gentoo-build-publisher.git@master",
+    "gbp-ps>=1.5.0rc1",
+    "mypy>=1.15.0",
+    "isort>=6.0.0",
+    "django-stubs>=5.1.3",
+    "types-requests>=2.32.0.20241016",
+    "typos>=1.29.7",
+]
