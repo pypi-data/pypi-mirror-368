@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunk_atoti_branding_app_extension=self.webpackChunk_atoti_branding_app_extension||[]).push([[538,57],{538:(a,e,i)=>{i.r(e),i.d(e,{default:()=>n});let n={async activate(a){a.applicationName="_ATOTI_TITLE_PLACEHOLDER",a.isBrandSignatureVisible=!1}}}}]);

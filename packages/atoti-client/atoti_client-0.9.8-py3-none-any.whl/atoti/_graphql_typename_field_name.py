@@ -1,0 +1,1 @@
+GRAPHQL_TYPENAME_FIELD_NAME = "__typename"
