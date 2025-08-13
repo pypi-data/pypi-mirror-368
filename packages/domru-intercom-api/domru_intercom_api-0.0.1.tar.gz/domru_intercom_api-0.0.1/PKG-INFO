@@ -1,0 +1,82 @@
+Metadata-Version: 2.4
+Name: domru_intercom_api
+Version: 0.0.1
+Summary: API wrapper for managing the dom.ru intercom.
+Author-email: regenara <jakebv.22@gmail.com>
+License: MIT License
+        
+        Copyright (c) 2025 regenara
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE.
+        
+Project-URL: repository, https://github.com/regenara/domru_intercom_api
+Project-URL: homepage, https://github.com/regenara/domru_intercom_api
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: certifi>=2022.0.0
+Requires-Dist: pydantic<3.0.0,>=2.0.0
+Requires-Dist: aiohttp<4.0.0,>=3.0.0
+Dynamic: license-file
+
+# Ufanet Intercom API
+
+### Описание / Description
+[Обёртка API](https://pypi.org/project/domru-intercom-api/) для управления домофоном провайдера **Дом.ру**.
+<br>[A wrapper](https://pypi.org/project/domru-intercom-api/) for the **Dom.ru** intercom system API.
+
+## Установка / Installation
+```bash
+pip install domru-intercom-api
+```
+## Использование / Usage
+```python
+import asyncio
+
+from domru_intercom_api import DomruIntercomAPI
+
+LOGIN = 'your_login'
+PASSWORD = 'your_password'
+ACCESS_TOKEN = 'your_access_token'
+
+async def main():
+    domru_api = DomruIntercomAPI(login=LOGIN, password=PASSWORD)
+    print(domru_api.access_token) # save access token
+    # OR
+    domru_api = DomruIntercomAPI(access_token=ACCESS_TOKEN)
+
+    # Получение списка мест / Get subscriber places
+    places = await domru_api.get_subscriber_places()
+    place_id = places[0].place.id
+    devices = await domru_api.get_devices(place_id=place_id)
+
+    # Открытие всех доступных домофонов / Unlocking all available intercoms
+    for device in devices:
+        await domru_api.open_intercom(place_id=place_id, device_id=device.id)
+
+    # Получение истории событий / Retrieving event history
+    events = await domru_api.get_events(place_id, page=0, sort='ASC')
+    for event in events:
+        print(event.message)
+
+    # Закрытие сессии / Closing the session
+    await domru_api.close() 
+
+asyncio.run(main())
+
+```
