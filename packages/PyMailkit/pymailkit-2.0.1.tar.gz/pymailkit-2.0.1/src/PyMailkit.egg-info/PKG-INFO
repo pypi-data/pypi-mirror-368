@@ -1,0 +1,164 @@
+Metadata-Version: 2.4
+Name: PyMailkit
+Version: 2.0.1
+Summary: A modern Python library for sending and receiving emails with SMTP and IMAP support
+Author-email: Kailas P S <kailaspsudheer@gmail.com>
+License: MIT License
+        
+        Copyright (c) [year] [fullname]
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE.
+Project-URL: Homepage, https://github.com/kailasps/pymailkit
+Project-URL: Repository, https://github.com/kailasps/pymailkit.git
+Project-URL: Bug Tracker, https://github.com/kailasps/pymailkit/issues
+Project-URL: License, https://github.com/kailasps/pymailkit/blob/main/LICENSE
+Keywords: email,smtp,imap,mail,email-client,pymail
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Topic :: Communications :: Email
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Dynamic: license-file
+
+# PyMailkit
+
+PyMailkit is a lightweight Python library designed to simplify sending and receiving emails. It provides an easy-to-use interface for interacting with email servers, making it ideal for automation, notifications, and email-based workflows.
+
+[![PyPI Downloads](https://static.pepy.tech/badge/pymailkit)](https://pepy.tech/projects/pymailkit)
+[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
+
+
+## Project Structure
+
+- Send emails with attachments and custom headers
+- Fetch and filter emails from your inbox
+- Simple authentication using app passwords
+- Minimal dependencies and easy setup
+
+```
+PyMailkit/
+├── LICENSE
+├── pyproject.toml
+├── README.md
+├── setup.py
+└── src/
+    └── pymailkit/
+        ├── __init__.py
+        ├── auth.py
+        ├── receiver.py
+        ├── sender.py
+        └── tests/
+            ├── test_receiver.py
+            └── test_sender.py
+```
+
+
+## Installation
+
+Install PyMailkit with pip:
+
+```bash
+pip install PyMailkit
+```
+
+## Modules
+
+### 1. Sender Module (`pymailkit.sender`)
+
+The sender module allows you to send emails easily, including support for attachments and custom subjects/bodies.
+
+**Key Features:**
+- Send plain text or HTML emails
+- Add attachments
+- Specify sender, recipients, subject, and body
+
+**Example:**
+
+```python
+from pymailkit.sender import EmailSender
+
+# Initialize the email sender
+mail_server = EmailSender()
+
+# Connect to your email account (prompts for app password)
+mail_server.connect(username="example@gmail.com")
+
+# Email details
+from_add = "fromsomeone@gmail.com"
+to_add = "tosomeone@gmail.com"
+sub = "Sample Subject"
+body = "Sample body for email sending example"
+
+# Send the email
+mail_server.send_email(
+    to_addresses=to_add,
+    from_address=from_add,
+    subject=sub,
+    body=body,
+    attachments = "/content/sample_data/mnist_test.csv" # Provide absolute path
+)
+
+# Close the connection to the server
+mail_server.close()
+```
+
+
+### 2. Receiver Module (`pymailkit.receiver`)
+
+The receiver module lets you fetch emails from your inbox, with options to limit the number of emails and filter by criteria.
+
+**Key Features:**
+- Fetch emails from inbox
+- Limit number of emails retrieved
+- Access email metadata (subject, sender, date, body)
+
+**Example:**
+
+```python
+from pymailkit.receiver import EmailReceiver
+
+# Initialize the email receiver
+mail_server = EmailReceiver()
+
+# Connect to your email account (prompts for app password)
+mail_server.connect(username="example@gmail.com")
+
+# Fetch the latest 3 emails
+emails = mail_server.fetch_emails(limit=3)
+
+# Print subjects of fetched emails
+for email in emails:
+    print(email['subject'])
+
+# Close the connection to the server
+mail_server.close()
+```
+
+
+## Authors
+- [@kailas711](https://github.com/kailas711)
