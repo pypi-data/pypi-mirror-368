@@ -1,0 +1,1 @@
+ALTER TABLE {table_name} ADD IF NOT EXISTS {all_partitions}
