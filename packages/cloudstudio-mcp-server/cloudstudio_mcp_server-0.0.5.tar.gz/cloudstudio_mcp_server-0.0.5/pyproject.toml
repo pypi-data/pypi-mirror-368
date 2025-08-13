@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling>=1.18.0"]  # 保持Hatchling版本要求
+build-backend = "hatchling.build"
+
+[project]
+name = "cloudstudio-mcp-server"
+version = "0.0.5"
+description = "Cloud Studio MCP Server"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+  { name = "hongxuwu", email = "hongxuwu@tencent.com" },
+  { name = "chrisclye", email = "chrisclye@tencent.com" },
+]
+keywords = ["mcp", "cloudstudio", "deploy"]
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+    "httpx",
+    "mcp",
+    "requests",
+    "fastmcp>=2.11.3",
+]
+
+[project.scripts]
+# 脚本入口：指向 `src/mcp_deploy/__main__.py` 中的 `main` 函数
+cloudstudio-mcp-deploy = "mcp_deploy.__main__:main"
+
+[tool.hatch.build.targets.wheel]
+# 明确包路径：代码在 `src/mcp_deploy` 目录下
+packages = ["src/mcp_deploy"]
+
+[tool.uv]
+dev-dependencies = ["pyright>=1.1.389", "ruff>=0.7.3"]
