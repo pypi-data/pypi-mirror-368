@@ -1,0 +1,45 @@
+---
+globs: "*.py"
+description: SOLID principles and design patterns for the project architecture
+---
+
+# Architecture Patterns & SOLID Principles
+
+## SOLID Design Principles
+
+### Single Responsibility Principle
+- **Extractor**: [extractor.py](mdc:src/claude_conversation_extractor/extractor.py) handles only conversation extraction and streaming
+- **Converter**: [markdown_converter.py](mdc:src/claude_conversation_extractor/markdown_converter.py) handles only markdown formatting
+- **CLI**: [cli.py](mdc:src/claude_conversation_extractor/cli.py) handles only user interface and command routing
+- **Models**: [models.py](mdc:src/claude_conversation_extractor/models.py) defines only data structures
+
+### Open/Closed Principle
+- **Extensible design**: New output formats can be added without modifying existing code
+- **Plugin architecture**: Markdown converter can be extended for different formats
+- **Command system**: New CLI commands can be added without changing core logic
+
+### Dependency Inversion
+- **Interface-based design**: Core logic depends on abstractions, not concrete implementations
+- **Dependency injection**: Components receive dependencies through constructor injection
+- **Loose coupling**: Modules interact through well-defined interfaces
+
+## Design Patterns
+
+### Streaming Pattern
+- **Generator functions**: Use `yield` for memory-efficient data processing
+- **Iterator protocol**: Implement `__iter__` for custom iterable objects
+- **Lazy evaluation**: Process data only when needed
+
+### Factory Pattern
+- **Model validation**: Use Pydantic's `model_validate()` for creating objects
+- **Error handling**: Factory methods handle validation errors gracefully
+
+### Strategy Pattern
+- **Output formatting**: Different formatters can be plugged in for various output types
+- **Processing strategies**: Different extraction strategies for various input formats
+
+## Module Organization
+- **Separation of concerns**: Each module has a single, well-defined purpose
+- **Clear interfaces**: Public APIs are well-documented and stable
+- **Minimal dependencies**: Modules depend only on what they absolutely need
+- **Testable design**: Each component can be tested in isolation

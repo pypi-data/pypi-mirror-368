@@ -1,0 +1,55 @@
+
+---
+globs: "src/claude_conversation_extractor/extractor.py,src/claude_conversation_extractor/models.py"
+description: Streaming JSON processing, memory efficiency, and data validation patterns
+---
+
+# Data Processing & Memory Efficiency
+
+## Streaming JSON Processing
+- **Use ijson library**: Implement streaming JSON parsing for memory efficiency
+- **Generator functions**: Use `yield` to process data incrementally
+- **Memory constant**: Maintain constant memory usage regardless of file size
+- **Large file support**: Handle files of any size without memory issues
+
+## ijson Implementation Details
+- **Direct item parsing**: Use `ijson.items(f, "item")` for streaming conversation objects
+- **Binary file mode**: Open files in `"rb"` mode for optimal ijson performance
+- **Error handling**: Catch `ijson.JSONError` for malformed JSON files
+- **Streaming validation**: Validate each conversation as it's streamed
+
+## Data Validation with Pydantic
+- **Model validation**: Use Pydantic models for all data structures
+- **Type safety**: Ensure runtime type safety with automatic validation
+- **Error handling**: Catch validation errors and provide meaningful feedback
+- **Default values**: Use `Field(default_factory=list)` for mutable defaults
+
+## Memory Management Patterns
+- **Streaming iterators**: Process data one item at a time
+- **Lazy evaluation**: Only load data when needed
+- **Resource cleanup**: Properly close file handles and release resources
+- **Memory profiling**: Monitor memory usage during development and testing
+
+## Data Model Design
+- **Immutable data**: Use Pydantic models for data validation and serialization
+- **Clear structure**: Define clear, hierarchical data models
+- **Optional fields**: Use `| None` for fields that may not be present
+- **Nested models**: Break complex data into logical, reusable components
+
+## Error Handling in Data Processing
+- **Validation errors**: Handle Pydantic validation failures gracefully
+- **File errors**: Catch and handle file I/O errors appropriately
+- **JSON errors**: Handle malformed JSON with clear error messages
+- **Continue on error**: Skip invalid items but continue processing valid ones
+
+## Performance Considerations
+- **Streaming overhead**: Minimize per-item processing overhead
+- **Efficient lookups**: Use linear search for UUID matching (acceptable for typical use cases)
+- **Batch processing**: Consider batching for operations that can benefit from it
+- **Memory profiling**: Monitor memory usage patterns during development
+
+## Data Flow Architecture
+- **Input validation**: Validate file format and structure early
+- **Streaming extraction**: Extract conversations one at a time
+- **Model conversion**: Convert raw JSON to validated Pydantic models
+- **Output generation**: Generate formatted output incrementally

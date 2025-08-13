@@ -1,0 +1,73 @@
+
+---
+globs: "tests/*.py,test_*.py"
+description: Testing requirements, patterns, and best practices for the project
+---
+
+# Testing Standards & Requirements
+
+## Test Coverage Requirements
+- **100% pass rate**: All tests must pass before any code changes
+- **Core functionality**: Test all public APIs and critical paths
+- **Error conditions**: Test edge cases, invalid inputs, and failure scenarios
+- **Integration testing**: Test end-to-end workflows and component interactions
+
+## Testing Framework
+- **Pytest**: Use pytest as the primary testing framework
+- **Test discovery**: Follow pytest naming conventions (`test_*.py`, `test_*` functions)
+- **Fixtures**: Use pytest fixtures for common test setup and teardown
+- **Parametrized tests**: Use `@pytest.mark.parametrize` for testing multiple scenarios
+
+## Test Organization
+- **Unit tests**: Test individual functions and methods in isolation
+- **Integration tests**: Test component interactions and data flow
+- **Mock testing**: Use `unittest.mock` for external dependencies (file I/O, JSON parsing)
+- **Test data**: Use realistic test data that mirrors production scenarios
+
+## Testing Patterns
+
+### File Operations Testing
+- **Mock file system**: Use `unittest.mock` to mock file operations
+- **Temporary files**: Use `tempfile` for testing with real files when needed
+- **Error scenarios**: Test file not found, permission errors, and malformed data
+
+### JSON Processing Testing
+- **Valid data**: Test with properly formatted JSON data
+- **Invalid data**: Test with malformed JSON and validation errors
+- **Large data**: Test with realistic conversation data structures
+
+### CLI Testing
+- **Command execution**: Test all CLI commands and options
+- **Error handling**: Test invalid arguments and error conditions
+- **Output validation**: Verify correct output format and content
+
+## Current Test Structure
+- **Test file**: `tests/test_extractor.py` - Tests for the core extraction logic
+- **Test class**: `TestConversationExtractor` - Organized test cases
+- **Mock usage**: Extensive use of `unittest.mock` for file operations and ijson
+- **Coverage**: Tests cover initialization, streaming, searching, and error handling
+
+## Running Tests
+```bash
+# Run all tests
+uv run pytest tests/ -v
+
+# Run with coverage
+uv run pytest tests/ --cov=src/
+
+# Run specific test file
+uv run pytest tests/test_extractor.py -v
+```
+
+## Test Quality Standards
+- **Descriptive names**: Test names should clearly describe what is being tested
+- **Arrange-Act-Assert**: Follow AAA pattern for test structure
+- **Minimal assertions**: Each test should verify one specific behavior
+- **Fast execution**: Tests should run quickly (< 1 second per test)
+- **No side effects**: Tests should not modify global state or external resources
+
+## Mock Testing Strategy
+- **File operations**: Mock `pathlib.Path.exists` and `builtins.open`
+- **JSON parsing**: Mock `ijson.items` for controlled test data
+- **Error simulation**: Use mocks to simulate various error conditions
+- **Isolation**: Ensure each test is completely independent
