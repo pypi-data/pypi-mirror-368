@@ -1,0 +1,5 @@
+from src.mcp_deploy.mcp_handlers import createLiteapp
+
+
+result = createLiteapp(api_token="eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjM2NzI5NCwiaWF0IjoxNzU0OTc4OTQwLCJleHAiOjE3NjI3MDQwMDAsImp0aSI6IjA3MzcwZThjLWRkMjctNGQ0Yi1iOTU1LWYzYjg1OTUxM2Y3YyJ9.OYHgEX3njwKVSsSsr7DBoFL2dCE0kiMEoe0IXe8_dcQ",title="1234")
+print(result)
