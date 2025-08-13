@@ -1,0 +1,108 @@
+Metadata-Version: 2.4
+Name: hacs-infrastructure
+Version: 0.4.3
+Summary: Infrastructure components for HACS (Healthcare Agent Communication Standard) - DI container, configuration, and service management
+Project-URL: Homepage, https://github.com/solanovisitor/hacs-ai
+Project-URL: Documentation, https://github.com/solanovisitor/hacs-ai/blob/main/docs/
+Project-URL: Repository, https://github.com/solanovisitor/hacs-ai
+Project-URL: Issues, https://github.com/solanovisitor/hacs-ai/issues
+Project-URL: Changelog, https://github.com/solanovisitor/hacs-ai/blob/main/CHANGELOG.md
+Author-email: Solano Todeschini <solanovisitor@gmail.com>
+Maintainer-email: Solano Todeschini <solanovisitor@gmail.com>
+License: MIT
+Keywords: ai-agents,configuration,container,dependency-injection,fhir,healthcare,infrastructure,service-management
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Healthcare Industry
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Scientific/Engineering :: Medical Science Apps.
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: System :: Systems Administration
+Classifier: Typing :: Typed
+Requires-Python: >=3.11
+Requires-Dist: aiohttp>=3.11.10
+Requires-Dist: hacs-auth>=0.4.3
+Requires-Dist: hacs-models>=0.4.3
+Requires-Dist: psutil>=6.1.0
+Requires-Dist: pydantic-settings>=2.7.0
+Requires-Dist: pydantic>=2.11.7
+Provides-Extra: async
+Requires-Dist: aiofiles>=24.1.0; extra == 'async'
+Requires-Dist: asyncio-mqtt>=0.14.0; extra == 'async'
+Provides-Extra: dev
+Requires-Dist: aiofiles>=24.1.0; extra == 'dev'
+Requires-Dist: asyncio-mqtt>=0.14.0; extra == 'dev'
+Requires-Dist: mypy>=1.14.0; extra == 'dev'
+Requires-Dist: pre-commit>=4.0.1; extra == 'dev'
+Requires-Dist: prometheus-client>=0.21.0; extra == 'dev'
+Requires-Dist: pytest-asyncio>=0.25.0; extra == 'dev'
+Requires-Dist: pytest-cov>=6.0.0; extra == 'dev'
+Requires-Dist: pytest>=8.3.3; extra == 'dev'
+Requires-Dist: redis>=5.2.0; extra == 'dev'
+Requires-Dist: ruff>=0.8.18; extra == 'dev'
+Requires-Dist: structlog>=24.4.0; extra == 'dev'
+Provides-Extra: monitoring
+Requires-Dist: prometheus-client>=0.21.0; extra == 'monitoring'
+Requires-Dist: structlog>=24.4.0; extra == 'monitoring'
+Provides-Extra: redis
+Requires-Dist: redis>=5.2.0; extra == 'redis'
+Provides-Extra: test
+Requires-Dist: pytest-asyncio>=0.25.0; extra == 'test'
+Requires-Dist: pytest-cov>=6.0.0; extra == 'test'
+Requires-Dist: pytest>=8.3.3; extra == 'test'
+Description-Content-Type: text/markdown
+
+# HACS Infrastructure
+
+Infrastructure components for HACS (Healthcare Agent Communication Standard) providing dependency injection, configuration management, service discovery, and monitoring capabilities.
+
+## Features
+
+- **Dependency Injection Container**: Type-safe DI with singleton, transient, and scoped lifetimes
+- **Configuration Management**: Environment-based configuration with validation
+- **Service Registry & Discovery**: Service registration, health monitoring, and load balancing
+- **Event System**: Pub/sub event bus with filtering and async handling
+- **Lifecycle Management**: Graceful startup and shutdown orchestration
+- **Monitoring**: Health checks, metrics collection, and performance monitoring
+
+## Installation
+
+```bash
+pip install hacs-infrastructure
+```
+
+## Quick Start
+
+```python
+from hacs_infrastructure import Container, Injectable, get_config
+
+# Dependency Injection
+@Injectable
+class DatabaseService:
+    def __init__(self):
+        self.connection = "database_connection"
+
+@Injectable  
+class UserService:
+    def __init__(self, db: DatabaseService):
+        self.db = db
+
+container = Container()
+container.register(DatabaseService)
+container.register(UserService)
+
+user_service = container.get(UserService)
+
+# Configuration
+config = get_config()
+print(f"Environment: {config.environment}")
+print(f"Debug mode: {config.debug}")
+```
+
+## License
+
+MIT License - see LICENSE file for details.
