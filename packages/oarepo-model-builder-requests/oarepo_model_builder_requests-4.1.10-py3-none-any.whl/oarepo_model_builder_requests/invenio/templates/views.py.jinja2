@@ -1,0 +1,8 @@
+def init_addons_{{ vars.module.suffix_snake }}_requests(state):
+    app = state.app
+    requests = app.extensions["invenio-requests"]
+
+    {{ vars.config.module|generate_import(alias='config') }}
+
+    for er in getattr(config, "{{ vars.module.base_upper }}_ENTITY_RESOLVERS", []):
+        requests.entity_resolvers_registry.register_type(er)

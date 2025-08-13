@@ -1,0 +1,33 @@
+{{ vars.record.class|generate_import }}
+{% if not vars.record_resolver.skip %}
+{% for resolver in vars.requests.additional_resolvers %}
+{{ resolver|code_imports }}
+{% endfor %}
+{{ vars.record_resolver.class|generate_import }}
+{% endif %}
+{% if not vars.ui_record_resolver.skip %}
+{% for resolver in vars.requests.additional_ui_resolvers.values() %}
+{{ resolver|code_imports }}
+{% endfor %}
+{{ vars.ui_record_resolver.class|generate_import }}
+{% endif %}
+{% for resolver in vars.requests.notification_resolver %}
+{{ resolver|code_imports }}
+{% endfor %}
+
+{% if not vars.record_resolver.skip %}
+{{ vars.module.base_upper }}_ENTITY_RESOLVERS = [
+        {{ vars.requests.additional_resolvers|generate_list(end=True) }}
+        {{ vars.record_resolver.class|base_name }}(record_cls={{ vars.record.class|base_name }}, service_id="{{ vars.service_config.service_id }}", type_key="{{ vars.module.prefix_snake }}")
+    ]
+{% endif %}
+{% if not vars.ui_record_resolver.skip %}
+ENTITY_REFERENCE_UI_RESOLVERS = {
+        {{ vars.requests.additional_ui_resolvers|generate_dict(end=True) }}
+        "{{ vars.module.prefix_snake }}": {{ vars.ui_record_resolver.class|base_name }}("{{ vars.module.prefix_snake }}"),
+    }
+REQUESTS_UI_SERIALIZATION_REFERENCED_FIELDS = [
+    {{ vars.requests.ui_serialization_referenced_fields|generate_list }}
+]
+NOTIFICATIONS_ENTITY_RESOLVERS = [{{ vars.requests.notification_resolver|generate_list }}]
+{% endif %}

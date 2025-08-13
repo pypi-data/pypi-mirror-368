@@ -1,0 +1,16 @@
+{{ vars.record_resolver|generate_import }}
+{% if vars.record_resolver.custom_proxy_class %}
+{{ vars.record_resolver.custom_proxy_class|generate_import }}
+{% endif %}
+
+class {{ vars.record_resolver|class_header }}:
+    # invenio_requests.registry.TypeRegistry
+    # requires name of the resolver for the model; needs only to be unique for the model, so use the name of the model
+    type_id = "{{ vars.module.prefix_snake }}"
+{% if vars.record_resolver.custom_proxy_class %}
+    proxy_cls = {{ vars.record_resolver.custom_proxy_class|base_name }}
+    def __init__(
+        self, record_cls, service_id, type_key
+    ):
+        super().__init__(record_cls, service_id, type_key=type_key, proxy_cls=self.proxy_cls)
+{% endif %}
