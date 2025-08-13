@@ -1,0 +1,758 @@
+Metadata-Version: 2.4
+Name: image-filename-ai
+Version: 0.1.0
+Summary: AI-powered image filename generator using Google Gemini - Transform generic image files into descriptive, SEO-friendly names
+Author-email: Matija Ziberna <matijazib@gmail.com>
+Maintainer-email: Matija Ziberna <matijazib@gmail.com>
+License-Expression: MIT
+Project-URL: Homepage, https://github.com/matija2209/image-filename-ai
+Project-URL: Repository, https://github.com/matija2209/image-filename-ai
+Project-URL: Issues, https://github.com/matija2209/image-filename-ai/issues
+Project-URL: Documentation, https://github.com/matija2209/image-filename-ai#readme
+Keywords: ai,image,filename,gemini,google-cloud,cli,batch-processing,seo,automation,computer-vision,machine-learning
+Classifier: Development Status :: 4 - Beta
+Classifier: Environment :: Console
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: End Users/Desktop
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Topic :: Multimedia :: Graphics
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Utilities
+Classifier: Topic :: Internet :: WWW/HTTP :: Dynamic Content
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: google-cloud-aiplatform>=1.71.0
+Requires-Dist: vertexai>=1.71.0
+Requires-Dist: python-dotenv>=1.1.0
+Requires-Dist: Pillow>=10.0.0
+Provides-Extra: api
+Requires-Dist: fastapi>=0.115.0; extra == "api"
+Requires-Dist: uvicorn>=0.34.0; extra == "api"
+Requires-Dist: firebase-admin>=6.5.0; extra == "api"
+Requires-Dist: google-cloud-storage>=2.19.0; extra == "api"
+Requires-Dist: google-cloud-firestore>=2.20.0; extra == "api"
+Provides-Extra: dev
+Requires-Dist: black>=24.0.0; extra == "dev"
+Requires-Dist: ruff>=0.1.0; extra == "dev"
+Requires-Dist: pytest>=8.0.0; extra == "dev"
+Requires-Dist: pytest-mock>=3.14.0; extra == "dev"
+Dynamic: license-file
+
+# Image Filename AI
+
+## Overview
+
+This application uses AI (Gemini) to automatically rename image files based on their content and generate descriptive alt text. It supports both flat and nested folder structures, making it perfect for organizing project-based image collections.
+
+## Features
+
+- **AI-powered image analysis**: Uses Google's Gemini model to understand image content
+- **Intelligent filename generation**: Creates descriptive, SEO-friendly filenames
+- **Alt text generation**: Generates accessible alt text for images
+- **Nested folder support**: Preserves directory structure for project-based organization
+- **Image processing**: Resize and reformat images during processing
+- **Multiple logging modes**: Flexible logging options for different use cases
+- **Language support**: Generate filenames and alt text in multiple languages
+
+## Requirements
+
+- **Python**: 3.11+ (tested on 3.11, 3.12, 3.13)
+- **Google Cloud Platform**: Project with Vertex AI enabled
+- **Service Account**: With required permissions (see Authentication section)
+
+## Installation
+
+### Option 1: Install from PyPI (Recommended)
+
+```bash
+# Install the core CLI tool
+pip install image-filename-ai
+
+# Or install with API dependencies
+pip install "image-filename-ai[api]"
+
+# Or install with development dependencies  
+pip install "image-filename-ai[dev]"
+```
+
+### Option 2: Local Development
+
+1. Clone the repository:
+```bash
+git clone https://github.com/matija2209/image-filename-ai.git
+cd image-filename-ai
+```
+
+2. Create virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+3. Install in development mode:
+```bash
+pip install -e ".[dev,api]"
+```
+
+4. Set up credentials (see Authentication section below)
+
+### Option 3: Docker (Recommended for API)
+
+1. Clone the repository
+2. Copy `.env.example` to `.env` and configure
+3. Run with Docker Compose:
+```bash
+docker-compose up --build
+```
+
+## Authentication & Credentials
+
+Choose **one** of the following methods:
+
+### Method 1: Environment Variable (Recommended)
+```bash
+export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your/service-account-key.json"
+```
+
+### Method 2: Place credentials in repo root
+Place your `serviceAccountKey.json` file in the project root directory (automatically gitignored).
+
+### For Docker Usage
+Uncomment the volume mount in `compose.yml`:
+```yaml
+volumes:
+  - ./serviceAccountKey.json:/app/credentials/credentials.json:ro
+```
+
+### Required GCP Permissions
+Your service account needs:
+- `aiplatform.endpoints.predict` (Vertex AI predictions)
+- `storage.objects.get` (read images from GCS) 
+- `storage.objects.create` (create processed images)
+- `firestore.documents.read/write` (if using job tracking)
+
+## Usage
+
+### CLI Usage (Local Processing)
+
+For a full, step-by-step CLI tutorial, see: [CLI_GUIDE.md](CLI_GUIDE.md)
+
+For minimal GCP setup steps, see: [GCP_SETUP.md](GCP_SETUP.md)
+
+**Basic command:**
+```bash
+python cli.py --input-dir input --output-dir output --lang en
+```
+
+**With custom settings:**
+```bash
+python cli.py \
+  --input-dir ./images \
+  --output-dir ./processed \
+  --lang de \
+  --log-mode nested \
+  --max-size 1920 \
+  --quality 85 \
+  --format webp
+```
+
+### API Usage (Docker/Server)
+
+**Start the API server:**
+```bash
+# Using Docker Compose (recommended)
+docker-compose up
+
+# Or locally
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+**Access the API:**
+- Interactive docs: http://localhost:8000/docs
+- API endpoint: http://localhost:8000/api/v1/process
+- Health check: http://localhost:8000/
+
+**⚠️ Note**: The API is currently **unauthenticated** - suitable for development only.
+
+### Environment Configuration
+
+Copy `.env.example` to `.env` and adjust:
+```bash
+cp .env.example .env
+# Edit .env with your settings
+```
+
+**Key environment variables:**
+```bash
+# Core GCP settings (used by both CLI and API)
+PROJECT_ID=your-gcp-project-id
+LOCATION=us-central1
+MODEL_NAME=gemini-2.0-flash-exp
+GOOGLE_APPLICATION_CREDENTIALS=/path/to/credentials.json
+
+# CLI-specific settings (optional)
+MAX_RETRIES=5           # Number of retry attempts
+BASE_RETRY_DELAY=10     # Base delay between retries (seconds)
+MAX_RETRY_DELAY=300     # Maximum delay cap (seconds)
+RATE_LIMIT_DELAY=60     # Extra delay for rate limit errors
+
+# Docker settings
+COMPOSE_PORT_API=8000   # Port mapping for Docker Compose
+```
+
+**📝 Note**: The CLI automatically loads `.env` file from the project root if present.
+
+### Advanced Options
+
+```bash
+python cli.py \
+  --input-dir input/laneks \
+  --output-dir output/laneks \
+  --lang sl \
+  --format webp \
+  --max-width 1920 \
+  --log-mode project_level
+```
+
+### Arguments
+
+- `--input-dir`: Directory containing input images (default: "input")
+- `--output-dir`: Base directory for processed images and logs (default: "output")
+- `--lang`: Target language code (e.g., 'en', 'sl', 'de') (default: "en")
+- `--format`: Output image format - jpg, png, webp, avif (default: original format)
+- `--max-width`: Maximum width in pixels for output images (default: original size)
+- `--log-mode`: Logging mode for results (default: "per_folder")
+
+### Logging Modes
+
+The application supports three different logging modes to suit different organizational needs:
+
+#### `per_folder` (Default)
+Creates `results.json` and `results.csv` files in each folder where images are processed.
+```
+output/
+├── project1/
+│   ├── results.json
+│   ├── results.csv
+│   └── renamed-images...
+└── project2/
+    ├── results.json
+    ├── results.csv
+    └── renamed-images...
+```
+
+#### `project_level`
+Creates one log file per top-level project folder.
+```
+output/
+├── project1/
+│   ├── results.json
+│   ├── results.csv
+│   ├── subfolder1/renamed-images...
+│   └── subfolder2/renamed-images...
+└── project2/
+    ├── results.json
+    ├── results.csv
+    └── renamed-images...
+```
+
+#### `central`
+Creates a single log file in the main output directory.
+```
+output/
+├── results.json
+├── results.csv
+├── project1/renamed-images...
+└── project2/renamed-images...
+```
+
+#### `flat`
+Flattens the output structure - all processed images go directly to the main output directory with a single central log file. Perfect for processing deeply nested input folders when you want a simple flat output structure.
+```
+output/
+├── results.json
+├── results.csv
+├── descriptive-name-1.webp
+├── descriptive-name-2.webp
+├── descriptive-name-3.webp
+└── descriptive-name-4.webp
+```
+*Note: In flat mode, filename conflicts are automatically resolved by adding a counter suffix (e.g., `name-1.webp`, `name-2.webp`).*
+
+## Nested Folder Support
+
+The application automatically preserves your input directory structure in the output:
+
+**Input Structure:**
+```
+input/
+├── laneks/
+│   ├── projekt1/
+│   │   ├── image1.jpg
+│   │   └── image2.jpg
+│   └── projekt2/
+│       └── image3.jpg
+└── other-client/
+    └── flat-images/
+        └── image4.jpg
+```
+
+**Output Structure:**
+```
+output/
+├── laneks/
+│   ├── projekt1/
+│   │   ├── descriptive-name-1.webp
+│   │   └── descriptive-name-2.webp
+│   └── projekt2/
+│       └── descriptive-name-3.webp
+└── other-client/
+    └── flat-images/
+        └── descriptive-name-4.webp
+```
+
+This makes it perfect for:
+- **Project-based workflows**: Each client/project maintains its own folder structure
+- **Mixed structures**: Support both flat folders and deeply nested hierarchies
+- **Team collaboration**: Preserve organizational structure that teams are familiar with
+
+## Authentication
+
+Set up Google Cloud authentication by placing your service account key file as `serviceAccountKey.json` in the project root, or use other Google Cloud authentication methods.
+
+## API Documentation
+
+For web API usage, see [API_DOCUMENTATION.md](API_DOCUMENTATION.md).
+
+## Examples
+
+See [EXAMPLE_DATA.json](EXAMPLE_DATA.json) for sample API responses and data structures.
+
+git pull && docker compose build && export GOOGLE_APPLICATION_CREDENTIALS='filename-ai-21694d9b8f6c.json' && docker compose up
+
+## FastAPI Application
+
+A FastAPI application for processing images stored in Google Cloud Storage.
+
+### Features (FastAPI)
+
+- Process images from Google Cloud Storage
+- Generate descriptive, SEO-friendly filenames
+- Create alt text for accessibility and SEO
+- Support for multiple languages
+- REST API for easy integration
+
+### Docker Setup
+
+1. Build and start the container:
+   ```
+   docker compose build
+   docker compose up -d
+   ```
+
+2. Alternatively, pass the credentials path at runtime:
+   ```
+   export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your/service-account-key.json"
+   docker compose up -e GOOGLE_APPLICATION_CREDENTIALS
+   ```
+
+3. To run with specific environment variables:
+   ```
+   docker compose run -e GOOGLE_APPLICATION_CREDENTIALS="/path/to/your/credentials.json" api
+   ```
+
+### Requirements
+
+- Python 3.9+
+- Google Cloud Project with Vertex AI API enabled
+- Google Cloud credentials configured
+
+### Setup
+
+1. Clone the repository
+2. Install dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
+3. Configure the application (optional):
+   Create a `.env` file in the project root with:
+   ```
+   PROJECT_ID=your-gcp-project-id
+   LOCATION=us-central1
+   MODEL_NAME=gemini-2.0-flash-exp
+   ```
+
+### Usage
+
+1. Start the server:
+   ```
+   python run.py
+   ```
+2. Access the API documentation at `http://localhost:8000/docs`
+3. Make API requests:
+   ```
+   curl -X POST http://localhost:8000/api/v1/process \
+     -H "Content-Type: application/json" \
+     -d '{
+       "gcs_input_path": "gs://your-bucket/images",
+       "language_code": "en"
+     }'
+   ```
+
+### API Endpoints
+
+- **GET /** - Health check endpoint
+- **POST /api/v1/process** - Process images from GCS bucket
+
+### Configuration (FastAPI)
+
+The application can be configured using environment variables or a `.env` file:
+
+- `PROJECT_ID` - Google Cloud project ID
+- `LOCATION` - Google Cloud region
+- `MODEL_NAME` - Gemini model to use
+- `HOST` - Server host (default: 0.0.0.0)
+- `PORT` - Server port (default: 8000)
+
+## Command-Line Interface (CLI)
+
+A CLI script (`cli.py`) for processing local image files.
+
+### Features (CLI)
+
+- Process images recursively from a local input directory.
+- Generate descriptive, SEO-friendly filenames using Vertex AI Gemini.
+- Create alt text for accessibility and SEO using Vertex AI Gemini.
+- Support for multiple languages for filenames and alt text.
+- Optionally convert images to different formats (JPG, PNG, WEBP, AVIF).
+- Optionally resize images to a maximum width, preserving aspect ratio.
+- Mirrors the input directory structure in the output directory.
+- Logs processing results to JSON and CSV files within each output subdirectory.
+
+### Requirements (CLI)
+
+- Python 3.9+
+- Google Cloud Project with Vertex AI API enabled
+- Google Cloud credentials configured (e.g., via `gcloud auth application-default login`)
+- Dependencies installed: `pip install -r requirements.txt` (Ensure `Pillow` is included for image processing)
+
+### Usage (CLI)
+
+Run the script from the project root directory.
+
+```bash
+python cli.py --input-dir <path/to/input> --output-dir <path/to/output> [options]
+```
+
+**Arguments:**
+
+*   `--input-dir`: Path to the directory containing input images (default: `input`).
+*   `--output-dir`: Path to the base directory for processed images and logs (default: `output`). The script will maintain the subdirectory structure from the input directory.
+*   `--lang`: Target language code for filename/alt text (e.g., 'en', 'sl', 'de') (default: `en`).
+*   `--format`: Optional output image format ('jpg', 'png', 'webp', 'avif'). If omitted, the original format is kept.
+*   `--max-width`: Optional maximum width in pixels for output images. Aspect ratio is preserved. If omitted, the original size is kept.
+
+**Examples:**
+
+1.  **Basic usage (English, keep original format/size):**
+    ```bash
+    python cli.py --input-dir path/to/your/images --output-dir processed/images
+    ```
+
+2.  **Process images, translate to German, resize to 800px max width:**
+    ```bash
+    python cli.py --input-dir images_raw --output-dir images_processed --lang de --max-width 800
+    ```
+
+3.  **Process images, convert to WEBP format:**
+    ```bash
+    python cli.py --input-dir photos --output-dir web_ready --format webp
+    ```
+
+4.  **Process specific subfolder, convert to AVIF (see Known Issues), max width 900px:**
+    ```bash
+    python cli.py --input-dir input/specific_folder --output-dir output --format avif --max-width 900
+    ```
+
+## Known Issues
+
+*   **AVIF Conversion:** There is a known issue when using the `--format avif` option with the CLI tool (`cli.py`). The underlying Pillow library might raise an error (`Error processing image: 'AVIF'`) during the save operation, causing images to be skipped. This might be related to specific image modes (e.g., RGBA) or Pillow's AVIF encoder capabilities. 
+    *   **Troubleshooting (macOS):** AVIF support in Pillow often depends on the `libavif` system library. If you encounter errors with AVIF:
+        1.  Install the library using Homebrew: `brew install libavif`
+        2.  Reinstall Pillow *from source* within your virtual environment to ensure it detects `libavif`: `pip install --force-reinstall --no-cache-dir --no-binary Pillow Pillow`
+    *   Using other formats like JPG, PNG, or WEBP is recommended if AVIF conversion fails or the troubleshooting steps are not feasible.
+
+## License
+
+MIT 
+
+## Practical Examples
+
+### Example 1: Process a single project folder
+```bash
+# Process images from a specific project, resize to max 1920px width, convert to WebP
+python cli.py \
+  --input-dir input/laneks/projekt2 \
+  --output-dir output/laneks/projekt2 \
+  --lang en \
+  --format webp \
+  --max-width 1920 \
+  --log-mode per_folder
+```
+
+### Example 2: Process all projects for a client with project-level logs
+```bash
+# Process all projects for the 'laneks' client, create one log per project
+python cli.py \
+  --input-dir input/laneks \
+  --output-dir output/laneks \
+  --lang sl \
+  --format webp \
+  --max-width 1920 \
+  --log-mode project_level
+```
+
+### Example 3: Batch process multiple clients with central logging
+```bash
+# Process everything with a single centralized log file
+python cli.py \
+  --input-dir input \
+  --output-dir output \
+  --lang en \
+  --format avif \
+  --max-width 1600 \
+  --log-mode central
+```
+
+### Example 4: Keep original format but resize
+```bash
+# Just resize images without changing format
+python cli.py \
+  --input-dir input/large-images \
+  --output-dir output/resized \
+  --max-width 800 \
+  --log-mode per_folder
+```
+
+### Example 5: Flatten deeply nested structure
+```bash
+# Process deeply nested folders but output everything to a flat structure
+python cli.py \
+  --input-dir input/complex-nested-structure \
+  --output-dir output/flattened \
+  --lang en \
+  --format webp \
+  --max-width 1600 \
+  --log-mode flat
+```
+
+## Common Use Cases
+
+### Photography Studios
+- **Input**: Client folders with project subfolders
+- **Settings**: `--log-mode project_level --format webp --max-width 2048`
+- **Result**: Each project gets its own log, images optimized for web
+
+### E-commerce
+- **Input**: Product category folders  
+- **Settings**: `--log-mode central --format webp --max-width 1200`
+- **Result**: All products processed with central tracking
+
+### Web Development
+- **Input**: Mixed folder structures
+- **Settings**: `--format avif --max-width 1920 --log-mode per_folder`
+- **Result**: Modern format with excellent compression, detailed logs
+
+### Digital Asset Management
+- **Input**: Complex nested folder structures from various sources
+- **Settings**: `--log-mode flat --format webp --max-width 1600`
+- **Result**: All assets in one flat directory with descriptive names, single tracking log 
+
+```bash
+# Simple renaming in English
+python cli.py --input-dir input/photos --output-dir output/renamed --lang en
+
+# German language with WebP conversion and resizing
+python cli.py --input-dir input/photos --output-dir output/optimized \
+  --lang de --format webp --max-width 1024
+
+# Project-level logging for organized results
+python cli.py --input-dir input/company-photos --output-dir output/processed \
+  --lang en --log-mode project_level
+```
+
+## 📖 Command Line Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--input-dir` | Directory containing input images | `input` |
+| `--output-dir` | Base directory for processed images | `output` |
+| `--lang` | Target language code (en, de, sl, fr, etc.) | `en` |
+| `--format` | Output format (jpg, png, webp, avif) | Original |
+| `--max-width` | Maximum width in pixels | Original |
+| `--log-mode` | Logging mode (central, project_level, per_folder, flat) | `per_folder` |
+| `--max-retries` | Maximum retry attempts for API calls | `5` |
+
+## 📊 Logging Modes
+
+### `per_folder` (Default)
+Creates `results.json` and `results.csv` in each output subdirectory.
+
+### `project_level`
+Creates one log file per top-level project folder.
+
+### `central`
+Single log file in the main output directory.
+
+### `flat`
+Flattens directory structure with central logging.
+
+## 🔄 Resume Functionality
+
+The tool automatically resumes interrupted processing:
+
+1. **Scans existing logs**: Checks all `results.json` files in output directory
+2. **Identifies processed files**: Uses `original_filename` field for tracking
+3. **Skips completed work**: Only processes new or failed images
+4. **Handles rate limits**: Exponential backoff with up to 5 retry attempts
+
+Example resume scenario:
+```bash
+# First run - processes 20 files, hits rate limit
+python cli.py --input-dir photos --output-dir output --lang de
+
+# Resume run - skips 20 completed files, continues with remaining
+python cli.py --input-dir photos --output-dir output --lang de
+```
+
+## 🛠️ Advanced Configuration
+
+### Retry Logic
+- **Base delay**: 10 seconds, doubles with each retry
+- **Rate limit delay**: Additional 60 seconds for quota errors
+- **Maximum delay**: Capped at 5 minutes
+- **Smart detection**: Recognizes various rate limiting error messages
+
+### Image Processing
+- **Supported formats**: JPG, JPEG, PNG, WebP
+- **Output formats**: JPG, PNG, WebP, AVIF
+- **Resizing**: Maintains aspect ratio when using `--max-width`
+- **Quality**: WebP output at 90% quality
+
+## 📁 Project Structure
+
+```
+image-filename-ai/
+├── cli.py                    # Main application
+├── app/
+│   └── utils/
+│       ├── ai_handler.py     # Gemini AI integration
+│       ├── file_utils.py     # File operations and logging
+│       └── image_processor.py # Image processing and conversion
+├── input/                    # Your source images
+└── output/                   # Generated results
+    ├── project1/
+    │   ├── results.json      # Processing log
+    │   ├── results.csv       # CSV export
+    │   └── *.webp           # Renamed images
+    └── project2/
+        └── ...
+```
+
+## 📈 Example Output
+
+### Generated Filenames
+- `IMG_1234.jpg` → `sunset-mountain-landscape-golden-hour.webp`
+- `photo.png` → `office-desk-computer-workspace-clean.webp`
+- `image.jpg` → `family-portrait-garden-summer-happy.webp`
+
+### Log Entry
+```json
+{
+  "timestamp": "2025-05-25 09:21:31",
+  "original_path": "input/photos/IMG_1234.jpg",
+  "new_path": "output/photos/sunset-mountain-landscape.webp",
+  "original_filename": "IMG_1234.jpg",
+  "new_filename": "sunset-mountain-landscape.webp",
+  "alt_text": "A beautiful sunset over mountain peaks with golden light illuminating the landscape."
+}
+```
+
+## 🌍 Language Support
+
+The tool supports any language supported by Gemini AI. Common examples:
+
+- `--lang en` - English
+- `--lang de` - German (Deutsch)
+- `--lang sl` - Slovenian
+- `--lang fr` - French
+- `--lang es` - Spanish
+- `--lang it` - Italian
+- `--lang pt` - Portuguese
+
+## 🔧 Development & Testing
+
+### Running Tests
+```bash
+# Run all tests
+pytest tests/ -v
+
+# Run with coverage
+pytest tests/ --cov=app --cov=cli
+
+# Test specific module
+pytest tests/test_cli.py -v
+```
+
+### Code Quality
+```bash
+# Format code
+black .
+
+# Lint code
+ruff check .
+
+# Fix linting issues
+ruff check . --fix
+```
+
+### Development Setup
+```bash
+# Install development dependencies (included in requirements.txt)
+pip install -r requirements.txt
+
+# Run API in development mode with auto-reload
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### Architecture
+
+**CLI Mode**: Direct local processing using Gemini API
+- Input: Local image directories
+- Output: Processed images with generated names  
+- Use case: Batch processing, one-time organization
+
+**API Mode**: Web service for on-demand processing
+- Input: GCS bucket URLs or direct uploads
+- Output: Background job processing with status tracking
+- Use case: Integration with other systems, web applications
+
+## 📋 Production TODO
+
+- [ ] **Add API authentication** (API keys, JWT, OAuth)
+- [ ] **Add rate limiting** per client/endpoint  
+- [ ] **Add input validation** and sanitization
+- [ ] **Add comprehensive logging** and monitoring
+- [ ] **Add image virus scanning** before processing
+- [ ] **Add batch processing** for large image sets
+- [ ] **Add webhook notifications** for job completion
+- [ ] **Add cost monitoring** for Vertex AI usage
+- [ ] **Package CLI as standalone executable** (PyInstaller)
+- [ ] **Add retry logic** for failed AI requests
+- [ ] **Add progress bars** for CLI processing
+
