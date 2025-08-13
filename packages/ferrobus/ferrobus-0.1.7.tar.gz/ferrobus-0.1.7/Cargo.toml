@@ -1,0 +1,63 @@
+[workspace]
+resolver = "3"
+
+[package]
+name = "ferrobus"
+version.workspace = true
+edition.workspace = true
+repository.workspace = true
+license.workspace = true
+readme = "README.md"
+
+[workspace.package]
+edition = "2024"
+version = "0.1.7"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/chingiztob/ferrobus"
+
+[lib]
+name = "ferrobus"
+path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+[dependencies]
+pyo3 = { version = "0.25.1", features = ["chrono"] }
+pyo3-log = "0.12.4"
+ferrobus_core = { path = "ferrobus-core" }
+ferrobus_macros = { path = "ferrobus-macros" }
+geo.workspace = true
+geojson.workspace = true
+rayon.workspace = true
+chrono.workspace = true
+serde_json.workspace = true
+wkt = "0.14.0"
+
+[workspace.dependencies]
+geo = "0.30.0"
+geojson = "0.24.0"
+rayon = "1.10"
+chrono = { version = "0.4", default-features = false, features = [
+    "std",
+    "serde",
+] }
+serde_json = "1"
+
+[dependencies.pyo3-stub-gen]
+version = "0.12"
+optional = true
+
+[features]
+stubgen = ["pyo3-stub-gen"]
+extension-module = ["pyo3/extension-module"]
+default = ["extension-module"]
+
+[profile.release]
+lto = "fat"
+
+[profile.heaptrack]
+inherits = "release"
+debug = true
+
+[profile.test]
+opt-level = 1
