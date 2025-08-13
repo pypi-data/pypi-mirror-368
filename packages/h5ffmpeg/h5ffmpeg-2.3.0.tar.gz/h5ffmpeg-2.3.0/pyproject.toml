@@ -1,0 +1,328 @@
+[build-system]
+requires = [
+    "setuptools>=42",
+    "wheel",
+    "numpy>=1.15.0",
+]
+build-backend = "setuptools.build_meta"
+
+[tool.cibuildwheel]
+build = ["cp311-*", "cp312-*", "cp313-*"]
+skip = [
+    "*-musllinux*", 
+    "*-win32", 
+    "*-manylinux_i686",
+    "*-macosx_x86_64"
+]
+test-requires = "pytest numpy h5py"
+test-command = "python -c \"import h5ffmpeg; print('Import successful')\""
+
+[tool.cibuildwheel.linux]
+manylinux-x86_64-image = "dockcross/manylinux_2_34-x64"
+
+before-all = [
+    """
+    yum update -y || (apt-get update && apt-get upgrade -y)
+    yum groupinstall -y "Development Tools" || apt-get install -y build-essential
+    yum install -y epel-release cmake nasm yasm pkg-config zlib-devel bzip2-devel xz-devel openssl-devel git wget which || apt-get install -y cmake nasm yasm pkg-config libz-dev libbz2-dev liblzma-dev libssl-dev git wget
+    
+    curl -L https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -o miniconda.sh
+    bash miniconda.sh -b -p /opt/miniconda
+    
+    /opt/miniconda/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+    /opt/miniconda/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+
+    /opt/miniconda/bin/conda config --add channels conda-forge
+    /opt/miniconda/bin/conda config --set channel_priority strict
+    /opt/miniconda/bin/conda update -y conda
+    /opt/miniconda/bin/conda update -y conda
+    
+    /opt/miniconda/bin/conda install -y hdf5 hdf5-external-filter-plugins pkg-config cmake ninja meson nasm yasm git wget autoconf automake libtool make -c conda-forge
+    /opt/miniconda/bin/conda install -y x264 x265 aom libvpx dav1d rav1e svt-av1 zlib bzip2 xz lz4 zstd -c conda-forge
+    /opt/miniconda/bin/conda install -y libva libdrm libvpl -c conda-forge || echo "Hardware acceleration libs not available"
+    /opt/miniconda/bin/conda install -y xvidcore -c dnachun
+    /opt/miniconda/bin/conda install -y openssl -c conda-forge
+
+    pip install nvidia-cuda-nvcc
+    
+    export PATH="/opt/miniconda/bin:$PATH"
+    export PKG_CONFIG_PATH="/opt/miniconda/lib/pkgconfig:/opt/miniconda/share/pkgconfig"
+    export LD_LIBRARY_PATH="/opt/miniconda/lib"
+    export CC=gcc
+    export CXX=g++
+    export CFLAGS="-I/opt/miniconda/include -fPIC"
+    export CXXFLAGS="-I/opt/miniconda/include -fPIC"
+    export LDFLAGS="-L/opt/miniconda/lib"
+    
+    mkdir -p /tmp/hwaccel_src /opt/ffmpeg/include /opt/ffmpeg/lib /opt/ffmpeg/lib/pkgconfig
+    cd /tmp/hwaccel_src
+    
+    echo "Cloning nv-codec-headers..."
+    git clone --depth 1 https://github.com/FFmpeg/nv-codec-headers.git
+    cd nv-codec-headers
+    make install PREFIX="/opt/ffmpeg"
+    cd /tmp/hwaccel_src
+    
+    export PKG_CONFIG_PATH="/opt/ffmpeg/lib/pkgconfig:/opt/miniconda/lib/pkgconfig:/opt/miniconda/share/pkgconfig"
+    
+    if [ ! -f "/opt/miniconda/lib/pkgconfig/dav1d.pc" ]; then
+        echo "Building dav1d from source..."
+        git clone --depth 1 https://code.videolan.org/videolan/dav1d.git
+        cd dav1d
+        meson setup build --prefix=/opt/miniconda --libdir=lib
+        ninja -C build
+        ninja -C build install
+        cd /tmp/hwaccel_src
+    fi
+    
+    echo "Cloning FFmpeg..."
+    git config --global http.postBuffer 524288000
+    git config --global http.maxRequestBuffer 100M
+    git config --global core.compression 0
+    
+    if ! git clone --depth 1 https://github.com/FFmpeg/FFmpeg.git ffmpeg; then
+        echo "Shallow clone failed, trying full clone..."
+        git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg
+    fi
+    
+    cd ffmpeg
+    
+    which nvcc
+
+    if command -v nvcc &> /dev/null; then
+        CUDA_FLAGS="--enable-cuda-nvcc --enable-libnpp --enable-nvenc --enable-nvdec"
+    else
+        CUDA_FLAGS=""
+    fi
+    
+    echo "Configuring FFmpeg..."
+    ./configure --prefix="/opt/ffmpeg" --extra-cflags="-I/opt/miniconda/include -I/opt/ffmpeg/include -fPIC" --extra-ldflags="-L/opt/miniconda/lib" --extra-libs="-lm -lstdc++" --enable-shared --disable-static --enable-pic --enable-gpl --enable-nonfree --enable-version3 --enable-pthreads --enable-libxvid --enable-libx264 --enable-libx265 --enable-libaom --enable-libdav1d --enable-librav1e --enable-libsvtav1 --enable-libvpx --enable-libvpl ${CUDA_FLAGS} --enable-openssl --enable-lzma --enable-bzlib --enable-zlib --enable-runtime-cpudetect --enable-hardcoded-tables --enable-optimizations --disable-doc --disable-ffplay --disable-debug
+    
+    echo "Building FFmpeg..."
+    make -j$(nproc)
+    make install
+    
+    echo "/opt/ffmpeg/lib" > /etc/ld.so.conf.d/ffmpeg.conf
+    echo "/opt/miniconda/lib" >> /etc/ld.so.conf.d/ffmpeg.conf
+    ldconfig
+    
+    export LD_LIBRARY_PATH="/opt/ffmpeg/lib:/opt/miniconda/lib:$LD_LIBRARY_PATH"
+    
+    echo "Verifying FFmpeg installation..."
+    /opt/ffmpeg/bin/ffmpeg -version
+    """
+]
+
+repair-wheel-command = [
+    "echo 'Before repair:'",
+    "auditwheel show {wheel}",
+    "echo 'Available libraries:'",
+    "ls -la /opt/ffmpeg/lib/*.so* /opt/miniconda/lib/libhdf5*.so* || true",
+    "echo 'Repairing with LD_LIBRARY_PATH:'",
+    "LD_LIBRARY_PATH=/opt/ffmpeg/lib:/opt/miniconda/lib:/usr/local/lib:/usr/lib auditwheel repair --plat manylinux_2_34_x86_64 -w {dest_dir} {wheel}",
+    "echo 'After repair:'",
+    "auditwheel show {dest_dir}/*.whl"
+]
+
+[tool.cibuildwheel.linux.environment]
+FFMPEG_ROOT = "/opt/ffmpeg"
+HDF5_ROOT = "/opt/miniconda"
+PKG_CONFIG_PATH = "/opt/ffmpeg/lib/pkgconfig:/opt/miniconda/lib/pkgconfig:/opt/miniconda/share/pkgconfig"
+LD_LIBRARY_PATH = "/opt/ffmpeg/lib:/opt/miniconda/lib"
+CPPFLAGS = "-I/opt/miniconda/include -I/opt/ffmpeg/include"
+LDFLAGS = "-L/opt/miniconda/lib -L/opt/ffmpeg/lib"
+
+[tool.cibuildwheel.macos]
+before-all = [
+    """
+    curl -L https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.sh -o miniconda.sh
+    bash miniconda.sh -b -p $HOME/miniconda
+    
+    $HOME/miniconda/bin/conda config --add channels conda-forge
+    $HOME/miniconda/bin/conda config --set channel_priority strict
+    $HOME/miniconda/bin/conda update -y conda
+    
+    $HOME/miniconda/bin/conda install -y \
+        hdf5 \
+        hdf5-external-filter-plugins \
+        pkg-config \
+        cmake \
+        ninja \
+        meson \
+        nasm \
+        yasm \
+        git \
+        autoconf \
+        automake \
+        libtool \
+        make \
+        -c conda-forge
+    
+    $HOME/miniconda/bin/conda install -y \
+        x264 \
+        x265 \
+        aom \
+        libvpx \
+        dav1d \
+        rav1e \
+        svt-av1 \
+        zlib \
+        bzip2 \
+        xz \
+        lz4 \
+        zstd \
+        -c conda-forge
+
+    $HOME/miniconda/bin/conda install -y xvidcore -c dnachun
+    
+    $HOME/miniconda/bin/conda install -y \
+        openssl \
+        -c conda-forge
+    
+    export PKG_CONFIG_PATH="$HOME/miniconda/lib/pkgconfig"
+    export DYLD_LIBRARY_PATH="$HOME/miniconda/lib"
+    export CFLAGS="-I$HOME/miniconda/include"
+    export ARCHFLAGS="-arch arm64"
+    
+    export MACOSX_DEPLOYMENT_TARGET=12.0
+    export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
+    export CC=/usr/bin/clang
+    export CXX=/usr/bin/clang++
+    export CFLAGS="-isysroot $SDKROOT -arch arm64 -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET"
+    export LDFLAGS="-isysroot $SDKROOT -arch arm64 -mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET"
+    
+    mkdir -p /tmp/hwaccel_src $HOME/ffmpeg/include $HOME/ffmpeg/lib $HOME/ffmpeg/lib/pkgconfig
+    cd /tmp/hwaccel_src
+
+    echo "Building dav1d from source..."
+    rm -rf dav1d
+    /usr/bin/git clone --depth 1 https://code.videolan.org/videolan/dav1d.git
+    mkdir -p dav1d/build
+    cd dav1d/build
+
+    MESON_ARGS=(
+        "--prefix=$HOME/ffmpeg"
+        "--libdir=lib"
+        "--default-library=shared"
+        "-Db_pgo=generate"
+        "-Dc_args=-march=native"
+        "-Dcpp_args=-march=native"
+    )
+    
+    $HOME/miniconda/bin/meson setup "${MESON_ARGS[@]}" ..
+    $HOME/miniconda/bin/ninja
+    $HOME/miniconda/bin/ninja install
+    cd /tmp/hwaccel_src
+    
+    /usr/bin/git clone --depth 1 https://github.com/FFmpeg/FFmpeg.git ffmpeg
+    cd ffmpeg
+    
+    which pkg-config
+    export PATH="$HOME/miniconda/bin:$PATH"
+    which pkg-config
+
+    export PKG_CONFIG_PATH="$HOME/ffmpeg/lib/pkgconfig:$PKG_CONFIG_PATH"
+    ./configure \
+        --prefix="$HOME/ffmpeg" \
+        --extra-cflags="-I$HOME/miniconda/include -I$HOME/ffmpeg/include" \
+        --extra-ldflags="-L$HOME/miniconda/lib -L$HOME/ffmpeg/lib" \
+        --extra-libs="-lm -lstdc++" \
+        --pkg-config-flags="--static" \
+        --enable-shared \
+        --disable-static \
+        --enable-pic \
+        --enable-gpl \
+        --enable-nonfree \
+        --enable-version3 \
+        --enable-pthreads \
+        --enable-libxvid \
+        --enable-libx264 \
+        --enable-libx265 \
+        --enable-libaom \
+        --enable-libdav1d \
+        --enable-librav1e \
+        --enable-libsvtav1 \
+        --enable-libvpx \
+        --enable-openssl \
+        --enable-lzma \
+        --enable-bzlib \
+        --enable-zlib \
+        --enable-runtime-cpudetect \
+        --enable-hardcoded-tables \
+        --enable-optimizations \
+        --disable-doc \
+        --disable-ffplay \
+        --disable-debug \
+        --cc=$CC \
+        --cxx=$CXX
+    
+    make -j$(sysctl -n hw.ncpu)
+    make install
+    
+    echo "Fixing library paths with install_name_tool..."
+    
+    fix_library_paths() {
+        local lib_path="$1"
+        echo "Fixing paths for: $lib_path"
+        
+        local deps=$(otool -L "$lib_path" | grep '@rpath' | awk '{print $1}')
+        
+        for dep in $deps; do
+            local lib_name=$(basename "$dep")
+            
+            local found_lib=""
+            for search_path in "$HOME/miniconda/lib" "$HOME/ffmpeg/lib" "/usr/lib" "/System/Library/Frameworks/"; do
+                if [ -f "$search_path/$lib_name" ]; then
+                    found_lib="$search_path/$lib_name"
+                    break
+                fi
+            done
+            
+            if [ -n "$found_lib" ]; then
+                echo "  Changing $dep to $found_lib"
+                install_name_tool -change "$dep" "$found_lib" "$lib_path" 2>/dev/null || true
+            else
+                echo "  Warning: Could not find $lib_name"
+            fi
+        done
+    }
+
+    for lib in "$HOME/ffmpeg/lib"/*.dylib; do
+        if [ -f "$lib" ]; then
+            fix_library_paths "$lib"
+        fi
+    done
+    
+    for lib in "$HOME/miniconda/lib"/*.dylib; do
+        if [ -f "$lib" ]; then
+            fix_library_paths "$lib"
+        fi
+    done
+    
+    $HOME/ffmpeg/bin/ffmpeg -version
+    
+    $HOME/ffmpeg/bin/ffmpeg -encoders | grep -E "(libx264|libx265|libaom|librav1e|libsvtav1|libvpx)" || echo "Some video encoders missing"
+    $HOME/ffmpeg/bin/ffmpeg -decoders | grep -E "(h264|hevc|av1|vp9)" || echo "Some video decoders missing"
+    """
+]
+
+repair-wheel-command = "delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel}"
+
+[tool.cibuildwheel.macos.environment]
+FFMPEG_ROOT = "$HOME/ffmpeg"
+HDF5_ROOT = "$HOME/miniconda"
+MACOSX_DEPLOYMENT_TARGET = "12.0"
+
+[tool.cibuildwheel.windows]
+before-all = '''
+call scripts\build_windows.bat
+'''
+
+before-build = "pip install delvewheel"
+
+repair-wheel-command = [
+    "echo Showing wheel dependencies...",
+    "delvewheel show {wheel}",
+    "echo Repairing wheel with explicit paths...",
+    "delvewheel repair --add-path D:\\a\\ffmpeg_build\\bin --add-path D:\\a\\ffmpeg_build\\lib -w {dest_dir} {wheel} -v"
+]
