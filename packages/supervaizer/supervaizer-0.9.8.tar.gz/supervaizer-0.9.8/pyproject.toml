@@ -1,0 +1,112 @@
+[project]
+name = "supervaizer"
+description = "Controller system for Supervaize"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "Alain Prasquier - Supervaize", email = "alain@supervaize.com" },
+]
+dependencies = [
+    "art>=6.5",
+    "cryptography>=45.0.6",
+    "demjson3>=3.0.6",
+    "deprecated>=1.2.18",
+    "fastapi>=0.116.1",
+    "httpx>=0.28.1",
+    "jinja2>=3.1.6",
+    "loguru>=0.7.3",
+    "orjson>=3.11.1",
+    "psutil>=6.1.0",
+    "pydantic>=2.11.7",
+    "pymongo>=4.14.0",
+    "python-slugify>=8.0.4",
+    "rich>=14.1.0",
+    "shortuuid>=1.0.13",
+    "sse-starlette>=3.0.2",
+    "tinydb>=4.8.1",
+    "typer>=0.16",
+    "uvicorn>=0.35.0",
+]
+license = "MPL-2.0"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+]
+keywords = ["AI", "controller", "workflow", "supervaize", "agent", "agentic"]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://supervaize.com"
+Repository = "https://github.com/supervaize/supervaizer"
+Documentation = "https://doc.supervaize.com"
+
+[project.scripts]
+supervaizer = "supervaizer.cli:app"
+
+[project.optional-dependencies]
+dev = [
+    "hatch>=1.14.0",
+    "jsonschema>=4.25.0",
+    "mypy>=1.17.1",
+    "pre-commit>=3.7.0",
+    "pytest-asyncio>=1.1.0",
+    "pytest-cov>=6.2.1",
+    "pytest-mock>=3.14.1",
+    "pytest-sugar>=1.0.0",
+    "pytest>=8.4.1",
+    "respx>=0.22.0",
+    "ruff>=0.12.8",
+    "types-deprecated>=1.2.15.20250304",
+    "types-python-slugify>=8.0.2.20240310",
+
+]
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "db: calls to the database",
+    "current: test under development",
+]
+#addopts = "--cov=supervaizer --cov-report=term --cov-report=html"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool]
+[tool.hatch]
+[tool.hatch.build.targets.sdist]
+include = ["src/", "README.md"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/supervaizer/py.typed" = "supervaizer/py.typed"
+
+[tool.hatch.version]
+path = "src/supervaizer/__version__.py"
+
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]             # unused imports
+"tests/*" = ["N802", "N803", "N806"] # test function naming
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+force-wrap-aliases = true
+
+[tool.commitizen]
+name = "cz_gitmoji"
+
+[tool.mypy]
+ignore_missing_imports = true
+disallow_untyped_defs = true
+warn_unused_ignores = true
+allow_untyped_globals = false
+no_implicit_optional = true
+mypy_path = "src"
+disallow_any_expr = false
