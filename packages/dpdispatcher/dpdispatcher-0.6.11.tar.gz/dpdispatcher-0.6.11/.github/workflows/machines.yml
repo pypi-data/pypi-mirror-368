@@ -1,0 +1,21 @@
+name: Test on different machines
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        machine:
+          - slurm
+          - pbs
+          - ssh
+          - ssh_rsync
+    steps:
+    - uses: actions/checkout@v5
+    - run: ./ci/${{ matrix.machine }}.sh
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
