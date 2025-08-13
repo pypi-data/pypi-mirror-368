@@ -1,0 +1,314 @@
+default:
+  image: python:latest
+  interruptible: true
+
+variables:
+  PYTEST_ADDOPTS: >-
+    --import-mode=importlib -n logical --dist worksteal
+    -p no:cacheprovider --disable-warnings -x
+  PYFIXED_TEST_INT_RANGE_SAMPLES: 1024
+  PYFIXED_TEST_FLOAT_RANGE_SAMPLES: 524288
+
+workflow:
+  auto_cancel:
+    on_new_commit: interruptible
+
+stages:
+  - lint
+  - build
+  - test
+  - deploy
+
+lint:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+  stage: lint
+  script:
+    - pip3 install autopep8 gitlint yamllint
+    - apt update && apt install -y ripgrep
+    - autopep8 . -r --max-line-length 100 --diff -j 0 --exit-code
+    - gitlint --commits HEAD
+    - yamllint .
+    - diff <(echo "$(rg -i '#\s*TODO' .)") <(echo "")  # Look for TODO comments
+
+build:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_TAG'
+  stage: build
+  artifacts:
+    paths:
+      - dist
+      - gmpy/dist
+  script:
+    - pip3 install build
+    - python3 -m build
+    - cd dist
+    - ln -s *.whl pyfixed.whl
+    - cd -
+    # Build latest gmpy2 (has fewer memory leaks)
+    - apt update && apt install -y libgmp-dev libmpfr-dev libmpc-dev
+    - git clone https://github.com/aleaxit/gmpy.git
+    - python3 -m build gmpy/
+
+sphinx:
+  rules:
+    # SPHINX_DEPLOY == 1 && (CI_COMMIT_TAG || merge request)
+    - if: '$SPHINX_DEPLOY == "1" && $CI_COMMIT_TAG'
+    - if: $SPHINX_DEPLOY == "1" && $CI_PIPELINE_SOURCE == "merge_request_event"
+  stage: build
+  needs:
+    - job: build
+      artifacts: true
+  artifacts:
+    paths:
+      - build
+  script:
+    - pip3 install $(realpath dist/pyfixed.whl)[docs]
+    - sphinx-apidoc -e -f --remove-old -o docs/generated pyfixed
+    - sphinx-apidoc -e -f --remove-old -o docs/generated/tests tests
+    - sphinx-build -j auto -W -T -b html docs build
+
+.test_template:
+  tags: [saas-linux-medium-amd64]
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+  needs:
+    - job: build
+      artifacts: true
+  stage: test
+  before_script:
+    - pip3 install $(realpath dist/pyfixed.whl)[dev] gmpy/dist/*.whl
+
+test_fixed_cmp:
+  tags: []
+  extends: .test_template
+  script:
+    - fixed_cmp --help
+
+test_int_backend:
+  extends: .test_template
+  tags: [saas-linux-xlarge-amd64]
+  parallel: 2
+  script:
+    - >
+      PYFIXED_NOGMPY=1
+      PYFIXED_TEST_BITS_START=$CI_NODE_INDEX
+      PYFIXED_TEST_BITS_END=$CI_NODE_INDEX
+      PYFIXED_TEST_FLOAT_RANGE_SAMPLES=128
+      pytest
+      tests/fixed
+      tests/complex/test_complex_cast.py
+      tests/complex/test_complex_init.py
+      tests/complex/test_complex_rounding.py
+      tests/complex/test_complex_unary.py
+    - >
+      PYFIXED_NOGMPY=1
+      PYFIXED_TEST_BITS_START=$CI_NODE_INDEX
+      PYFIXED_TEST_BITS_END=$CI_NODE_INDEX
+      PYFIXED_TEST_FLOAT_RANGE_SAMPLES=128
+      pytest tests/complex/test_complex_arith.py
+
+test_mpmath_int_backend:
+  extends: .test_template
+  tags: [saas-linux-xlarge-amd64]
+  parallel: 2
+  script:
+    - >
+      MPMATH_NOGMPY=1
+      PYFIXED_TEST_BITS_START=$CI_NODE_INDEX
+      PYFIXED_TEST_BITS_END=$CI_NODE_INDEX
+      PYFIXED_TEST_FLOAT_RANGE_SAMPLES=128
+      pytest
+      tests/fixed
+      tests/complex/test_complex_cast.py
+      tests/complex/test_complex_init.py
+      tests/complex/test_complex_rounding.py
+      tests/complex/test_complex_unary.py
+    - >
+      MPMATH_NOGMPY=1
+      PYFIXED_TEST_BITS_START=$CI_NODE_INDEX
+      PYFIXED_TEST_BITS_END=$CI_NODE_INDEX
+      PYFIXED_TEST_FLOAT_RANGE_SAMPLES=128
+      pytest tests/complex/test_complex_arith.py
+
+test_no_gmpy:
+  extends: .test_template
+  tags: [saas-linux-xlarge-amd64]
+  parallel: 2
+  script:
+    - pip3 uninstall gmpy2 --yes
+    - >
+      PYFIXED_TEST_BITS_START=$CI_NODE_INDEX
+      PYFIXED_TEST_BITS_END=$CI_NODE_INDEX
+      PYFIXED_TEST_FLOAT_RANGE_SAMPLES=128
+      pytest
+      tests/fixed
+      tests/complex/test_complex_cast.py
+      tests/complex/test_complex_init.py
+      tests/complex/test_complex_rounding.py
+      tests/complex/test_complex_unary.py
+    - >
+      PYFIXED_TEST_BITS_START=$CI_NODE_INDEX
+      PYFIXED_TEST_BITS_END=$CI_NODE_INDEX
+      PYFIXED_TEST_FLOAT_RANGE_SAMPLES=128
+      pytest tests/complex/test_complex_arith.py
+
+test_fixed_cast:
+  extends: .test_template
+  parallel: 32
+  script:
+    - >
+      PYFIXED_TEST_BITS_START=$CI_NODE_INDEX
+      PYFIXED_TEST_BITS_END=$CI_NODE_INDEX
+      PYFIXED_TEST_INT_RANGE_SAMPLES=0
+      PYFIXED_TEST_FLOAT_RANGE_SAMPLES=0
+      pytest
+      tests/fixed/test_cast.py
+
+test_fixed_init:
+  extends: .test_template
+  parallel: 32
+  script:
+    - >
+      PYFIXED_TEST_BITS_START=$CI_NODE_INDEX
+      PYFIXED_TEST_BITS_END=$CI_NODE_INDEX
+      pytest
+      tests/fixed/test_init.py
+
+test_fixed_rounding:
+  extends: .test_template
+  parallel: 32
+  script:
+    - >
+      PYFIXED_TEST_BITS_START=$CI_NODE_INDEX
+      PYFIXED_TEST_BITS_END=$CI_NODE_INDEX
+      pytest
+      tests/fixed/test_rounding.py
+
+test_fixed_unary:
+  extends: .test_template
+  parallel: 32
+  script:
+    - >
+      PYFIXED_TEST_BITS_START=$CI_NODE_INDEX
+      PYFIXED_TEST_BITS_END=$CI_NODE_INDEX
+      pytest
+      tests/fixed/test_unary.py
+
+test_fixed_util:
+  extends: .test_template
+  parallel: 32
+  script:
+    - >
+      PYFIXED_TEST_BITS_START=$CI_NODE_INDEX
+      PYFIXED_TEST_BITS_END=$CI_NODE_INDEX
+      PYFIXED_TEST_FLOAT_RANGE_SAMPLES=1024
+      pytest
+      tests/fixed/test_util.py
+
+test_fixed_arith_basic:
+  tags: [saas-linux-xlarge-amd64]
+  extends: .test_template
+  parallel: 4
+  script:
+    - >
+      PYFIXED_TEST_BITS_START=$CI_NODE_INDEX
+      PYFIXED_TEST_BITS_END=$CI_NODE_INDEX
+      PYFIXED_TEST_FLOAT_RANGE_SAMPLES=1024
+      pytest
+      tests/fixed/test_arith.py
+
+test_fixed_arith_higher:
+  tags: [saas-linux-xlarge-amd64]
+  extends: .test_template
+  parallel: 28
+  script:
+    - >
+      PYFIXED_TEST_BITS_START=$(($CI_NODE_INDEX + 4))
+      PYFIXED_TEST_BITS_END=$(($CI_NODE_INDEX + 4))
+      PYFIXED_TEST_INT_RANGE_SAMPLES=64
+      PYFIXED_TEST_FLOAT_RANGE_SAMPLES=64
+      pytest
+      tests/fixed/test_arith.py
+
+test_complex_cast:
+  tags: [saas-linux-large-amd64]
+  extends: .test_template
+  parallel: 32
+  script:
+    - >
+      PYFIXED_TEST_BITS_START=$CI_NODE_INDEX
+      PYFIXED_TEST_BITS_END=$CI_NODE_INDEX
+      pytest
+      tests/complex/test_complex_cast.py
+
+test_complex_init:
+  tags: [saas-linux-large-amd64]
+  extends: .test_template
+  parallel: 32
+  script:
+    - >
+      PYFIXED_TEST_BITS_START=$CI_NODE_INDEX
+      PYFIXED_TEST_BITS_END=$CI_NODE_INDEX
+      pytest
+      tests/complex/test_complex_init.py
+
+test_complex_rounding:
+  tags: [saas-linux-large-amd64]
+  extends: .test_template
+  parallel: 32
+  script:
+    - >
+      PYFIXED_TEST_BITS_START=$CI_NODE_INDEX
+      PYFIXED_TEST_BITS_END=$CI_NODE_INDEX
+      pytest
+      tests/complex/test_complex_rounding.py
+
+test_complex_unary:
+  tags: [saas-linux-large-amd64]
+  extends: .test_template
+  parallel: 32
+  script:
+    - >
+      PYFIXED_TEST_BITS_START=$CI_NODE_INDEX
+      PYFIXED_TEST_BITS_END=$CI_NODE_INDEX
+      pytest
+      tests/complex/test_complex_unary.py
+
+test_complex_arith:
+  tags: [saas-linux-xlarge-amd64]
+  extends: .test_template
+  parallel: 8
+  script:
+    - >
+      PYFIXED_TEST_BITS_START=$CI_NODE_INDEX
+      PYFIXED_TEST_BITS_END=$CI_NODE_INDEX
+      PYFIXED_TEST_INT_RANGE_SAMPLES=64
+      PYFIXED_TEST_FLOAT_RANGE_SAMPLES=64
+      pytest
+      tests/complex/test_complex_arith.py
+
+pypi:
+  stage: deploy
+  dependencies:
+    - build
+  rules:
+    - if: '$PYPI_DEPLOY == "1" && $CI_COMMIT_TAG'
+  script:
+    - pip3 install twine
+    - rm dist/pyfixed.whl
+    - TWINE_USERNAME=__token__ twine upload dist/* --non-interactive --verbose
+
+deploy_pages:
+  stage: deploy
+  pages: true
+  needs:
+    - job: sphinx
+      artifacts: true
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: '$SPHINX_DEPLOY == "1" && $CI_COMMIT_TAG'
+  script:
+    - cp -r build public
