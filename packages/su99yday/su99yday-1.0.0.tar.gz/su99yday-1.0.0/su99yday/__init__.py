@@ -1,0 +1,1 @@
+from su99yday.sunnyday import Weather
