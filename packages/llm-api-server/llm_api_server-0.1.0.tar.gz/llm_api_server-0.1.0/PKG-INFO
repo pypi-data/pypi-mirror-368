@@ -1,0 +1,266 @@
+Metadata-Version: 2.4
+Name: llm-api-server
+Version: 0.1.0
+Summary: LLM plugin to expose a FastAPI server with compatible APIs for popular LLM clients
+Project-URL: Homepage, https://github.com/danielcorin/llm-api
+Project-URL: Documentation, https://github.com/danielcorin/llm-api#readme
+Project-URL: Repository, https://github.com/danielcorin/llm-api
+Project-URL: Issues, https://github.com/danielcorin/llm-api/issues
+Author-email: Daniel Corin <dan@wvlen.llc>
+License: MIT
+License-File: LICENSE
+Keywords: api,fastapi,llm,openai,server
+Classifier: Development Status :: 3 - Alpha
+Classifier: Framework :: FastAPI
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Requires-Python: >=3.9
+Requires-Dist: fastapi>=0.104.0
+Requires-Dist: httpx>=0.25.0
+Requires-Dist: llm>=0.15
+Requires-Dist: pydantic>=2.0
+Requires-Dist: uvicorn>=0.24.0
+Description-Content-Type: text/markdown
+
+# llm-api
+
+A FastAPI-based server plugin for the [`llm`](https://github.com/simonw/llm) CLI that exposes LLM models through API interfaces compatible with popular LLM clients.
+This allows you to use local or remote LLM models with any client that expects standard LLM API formats.
+
+## Installation
+
+### As an LLM Plugin
+
+Install this plugin to  [`llm`](https://llm.datasette.io/):
+
+```sh
+# Install from PyPI (once published)
+llm install llm-api
+
+# Or install from GitHub
+llm install https://github.com/danielcorin/llm-api.git
+
+# Or install from local development directory
+cd /path/to/llm-api
+llm install -e .
+```
+
+Verify installation:
+
+```sh
+# Check the plugin is installed
+llm plugins
+
+# The 'api' command should be available
+llm api --help
+```
+
+### Development Installation
+
+For development, use [`uv`](https://github.com/astral-sh/uv):
+
+```sh
+# Clone the repository
+git clone https://github.com/danielcorin/llm-api.git
+cd llm-api
+
+# Create a virtual environment and install dependencies
+uv venv
+source .venv/bin/activate
+uv sync --dev
+
+# Install as an editable LLM plugin
+llm install -e .
+```
+
+## Usage
+
+Start the API server:
+
+```sh
+llm api --port 8000
+```
+
+The server provides OpenAI [Chat Completions API](https://platform.openai.com/docs/api-reference/chat) endpoints:
+- `GET /v1/models` - List available models
+- `POST /v1/chat/completions` - Create chat completions with:
+  - Streaming support
+  - Tool/function calling (for models with `supports_tools=True`)
+  - Structured output via `response_format` (for models with `supports_schema=True`)
+  - Conversation history with tool results
+
+## Features
+
+### Basic Usage
+
+```python
+from openai import OpenAI
+
+# Point the client to your local llm-server
+client = OpenAI(
+    base_url="http://localhost:8000/v1",
+    api_key="not-needed"  # API key is not required for local server
+)
+
+# Use any model available in your llm CLI
+response = client.chat.completions.create(
+    model="gpt-4o-mini",
+    messages=[
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "Hello, how are you?"}
+    ]
+)
+
+print(response.choices[0].message.content)
+```
+
+Streaming is also supported
+
+```python
+stream = client.chat.completions.create(
+    model="gpt-4o-mini",
+    messages=[{"role": "user", "content": "Tell me a story"}],
+    stream=True
+)
+
+for chunk in stream:
+    if chunk.choices[0].delta.content:
+        print(chunk.choices[0].delta.content, end="")
+```
+
+### Tool/Function Calling
+
+Models that support tools (indicated by `supports_tools=True`) can use OpenAI-compatible function calling:
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="http://localhost:8000/v1",
+    api_key="not-needed"  # API key is not required for local server
+)
+
+response = client.chat.completions.create(
+    model="gpt-4o-mini",
+    messages=[{"role": "user", "content": "What's the weather in San Francisco?"}],
+    tools=[{
+        "type": "function",
+        "function": {
+            "name": "get_weather",
+            "description": "Get weather for a location",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "location": {"type": "string", "description": "City name"}
+                },
+                "required": ["location"]
+            }
+        }
+    }]
+)
+```
+
+### Structured Output with Schema
+
+Models that support schema (indicated by `supports_schema=True`) can generate structured JSON output:
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="http://localhost:8000/v1",
+    api_key="not-needed"
+)
+
+response = client.chat.completions.create(
+    model="gpt-4o-mini",
+    messages=[{"role": "user", "content": "Generate a person's profile"}],
+    response_format={
+        "type": "json_schema",
+        "json_schema": {
+            "name": "person",
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "age": {"type": "integer"},
+                    "email": {"type": "string"}
+                },
+                "required": ["name", "age", "email"]
+            }
+        }
+    }
+)
+
+# The response will contain valid JSON matching the schema
+print(response.choices[0].message.content)
+```
+
+## Testing
+
+Run the test script to verify the OpenAI-compliant API:
+
+```sh
+python -m pytest tests/test_openai_api.py
+```
+
+## Development
+
+### Prerequisites
+
+- Python 3.9+
+- [`llm`](https://github.com/simonw/llm) CLI tool installed
+- One or more LLM models configured in `llm`
+
+### Code Quality
+
+Format code:
+
+```sh
+ruff format .
+```
+
+Lint code:
+
+```sh
+ruff check --fix .
+```
+
+### Running Tests
+
+Run all tests:
+
+```sh
+pytest
+```
+
+## Configuration
+
+The server integrates with the `llm` CLI tool's configuration.
+Make sure you follow the [setup instructions](https://llm.datasette.io/en/stable/setup.html).
+
+1. Installed and configured `llm` with your preferred models
+2. Set up any necessary API keys for cloud-based models
+3. Verified models are available with `llm models`
+
+## Supported API Specifications
+
+### Currently Implemented
+- **OpenAI Chat Completions API** (`/v1/chat/completions`)
+  - Compatible with OpenAI Python/JavaScript SDKs
+  - Works tools expecting OpenAI format
+  - Full support for streaming, tool calling, and structured output
+
+### Help Wanted
+- [OpenAI Responses API](https://platform.openai.com/docs/api-reference/responses) (`/v1/responses`)
+- [Anthropic Messages API](https://docs.anthropic.com/en/api/messages) (`/v1/messages`)
+
+## License
+
+MIT
