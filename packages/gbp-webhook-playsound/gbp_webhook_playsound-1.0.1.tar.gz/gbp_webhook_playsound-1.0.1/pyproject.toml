@@ -1,0 +1,69 @@
+[project]
+name = "gbp-webhook-playsound"
+dynamic = []
+description = "gbp-webhook to play a sound when a build is pulled"
+authors = [
+    { name = "Albert Hopkins", email = "marduk@letterboxes.org" },
+]
+dependencies = []
+requires-python = ">=3.12"
+readme = "README.md"
+version = "1.0.1"
+
+[project.license]
+text = "GPL3+"
+
+[project.entry-points."gbp_webhook.handlers"]
+build_pulled = "gbp_webhook_playsound.handlers:build_pulled"
+
+[project.urls]
+homepage = "https://github.com/enku/gbp-webhook-playsound"
+repository = "https://github.com/enku/gbp-webhook-playsound"
+
+[build-system]
+requires = [
+    "pdm-backend",
+]
+build-backend = "pdm.backend"
+
+[tool.black]
+skip-magic-trailing-comma = true
+
+[tool.coverage.run]
+source = [
+    "gbp_webhook_playsound",
+    "tests",
+]
+omit = [
+    "tests/__main__.py",
+]
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+
+[tool.mypy]
+files = [
+    "src/gbp_webhook_playsound",
+]
+strict = true
+
+[tool.pdm]
+distribution = true
+
+[tool.pdm.version]
+source = "scm"
+
+[tool.pylint.master]
+load-plugins = "pylint.extensions.bad_builtin"
+bad-functions = "print"
+
+[dependency-groups]
+dev = [
+    "pylint>=3.3.7",
+    "black>=25.1.0",
+    "mypy>=1.15.0",
+    "isort>=6.0.1",
+    "coverage>=7.8.2",
+    "unittest-fixtures>=1.0.0",
+]
