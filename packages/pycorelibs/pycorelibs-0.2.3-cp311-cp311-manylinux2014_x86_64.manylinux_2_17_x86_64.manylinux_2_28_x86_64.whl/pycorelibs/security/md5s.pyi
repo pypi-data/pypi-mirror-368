@@ -1,0 +1,3 @@
+from typing import Any
+
+def md5(text: Any, length: int = 32, isHex: bool = True) -> tuple[bool, str | None]: ...
