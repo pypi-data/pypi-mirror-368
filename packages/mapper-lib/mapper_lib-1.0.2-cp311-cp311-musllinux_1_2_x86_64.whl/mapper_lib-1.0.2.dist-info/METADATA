@@ -1,0 +1,346 @@
+Metadata-Version: 2.4
+Name: mapper-lib
+Version: 1.0.2
+Summary: Uma biblioteca C++ para mapeamento e transformação de dados
+Home-page: https://github.com/compre-sua-peca/csp_mapper
+Author: Gustavo de Oliveira
+Author-email: Gustavo de Oliveira <devops15@compresuapeca.com.br>
+Maintainer-email: Compre Sua Peça <devops4@compresuapeca.com.br>
+License: MIT
+Project-URL: Homepage, https://github.com/compre-sua-peca/csp_mapper
+Project-URL: Repository, https://github.com/compre-sua-peca/csp_mapper
+Project-URL: Issues, https://github.com/compre-sua-peca/csp_mapper/issues
+Keywords: mapping,data transformation,c++,performance
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: C++
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: pybind11>=2.0.0
+Dynamic: author
+Dynamic: home-page
+Dynamic: license-file
+Dynamic: requires-python
+
+# Mapper Lib
+
+Uma biblioteca Python de alta performance para mapeamento e transformação de dados, construída com extensões C++ para máxima eficiência.
+
+## 📋 Descrição
+
+O **Mapper Lib** é uma biblioteca especializada em transformar e mapear estruturas de dados JSON complexas. Ela oferece funcionalidades para:
+
+- **Flattening**: Converter dicionários aninhados em estruturas planas
+- **Field Mapping**: Mapear campos entre diferentes formatos usando configurações JSON
+- **High Performance**: Implementação em C++ para operações rápidas de transformação de dados
+
+## 🚀 Características
+
+- ⚡ **Alta Performance**: Implementação em C++ com bindings Python
+- 🔧 **Configurável**: Mapeamento baseado em arquivos JSON de configuração
+- 🐍 **Python Native**: API simples e intuitiva para Python
+- 🎯 **Flexível**: Suporte a separadores customizáveis e chaves pai
+- 🏗️ **Cross-Platform**: Suporte para Windows e Linux
+
+## 📦 Instalação
+
+### Pré-requisitos
+
+- Python 3.7+
+- Compilador C++ com suporte a C++17
+- pybind11
+
+### Instalação via pip
+
+```bash
+pip install -r requirements.txt
+pip install -e .
+```
+
+### Instalação manual
+
+```bash
+# Clone o repositório
+git clone https://github.com/compre-sua-peca/csp_mapper.git
+cd csp_mapper
+
+# Instale as dependências
+pip install -r requirements.txt
+
+# Compile e instale
+python setup.py build_ext --inplace
+python setup.py install
+```
+
+## 💻 Exemplos de Uso
+
+### 📝 Como Funciona a Configuração
+
+A biblioteca **lê arquivos JSON de configuração** do sistema de arquivos. O arquivo deve conter um dicionário onde cada chave representa um "trigger" (gatilho) que define como mapear os campos.
+
+**Estrutura típica do arquivo de configuração:**
+```json
+{
+    "trigger_1": {
+        "campo_saida_1": "caminho.campo.entrada.1",
+        "campo_saida_2": "caminho.campo.entrada.2"
+    },
+    "trigger_2": {
+        "outro_campo": "outro.caminho.campo"
+    }
+}
+```
+
+### Exemplo 1: Mapeamento Básico
+
+**Primeiro, crie o arquivo de configuração `mapping_config.json`:**
+```json
+{
+    "user_mapping": {
+        "nome": "user.personal.name",
+        "idade": "user.personal.age",
+        "endereco": "user.address.street",
+        "cidade": "user.address.city",
+        "pedido_id": "order.id",
+        "valor_total": "order.total"
+    }
+}
+```
+
+**Depois, use o Python:**
+```python
+from mapper import mapper
+
+# Criar instância do mapper
+mapper_instance = mapper(sep=".", parent_key="data")
+
+# Dados de entrada aninhados
+input_data = {
+    "user": {
+        "personal": {
+            "name": "João Silva",
+            "age": 30
+        },
+        "address": {
+            "street": "Rua das Flores",
+            "city": "São Paulo"
+        }
+    },
+    "order": {
+        "id": "12345",
+        "total": 99.99
+    }
+}
+
+# Mapeamento usando arquivo de configuração
+result = mapper_instance.map_dic(
+    input_dict=input_data,
+    config_path="mapping_config.json",
+    trigger="user_mapping"
+)
+print(result)
+```
+
+### Exemplo 2: Mapeamento com Arquivo de Configuração
+
+**arquivo_config.json:**
+```json
+{
+    "user_mapping": {
+        "nome_completo": "user.personal.name",
+        "idade_usuario": "user.personal.age",
+        "endereco_completo": "user.address.street",
+        "cidade_usuario": "user.address.city"
+    },
+    "order_mapping": {
+        "id_pedido": "order.id",
+        "valor": "order.total"
+    }
+}
+```
+
+**Python:**
+```python
+# Mapeamento usando arquivo de configuração
+result = mapper_instance.map_dic(
+    input_dict=input_data,
+    config_path="arquivo_config.json",
+    trigger="user_mapping"
+)
+
+print(result)
+```
+
+**Saída:**
+```json
+{
+    "nome_completo": "João Silva",
+    "idade_usuario": 30,
+    "endereco_completo": "Rua das Flores",
+    "cidade_usuario": "São Paulo"
+}
+```
+
+### Exemplo 3: Mapeamento sem Trigger (Configuração Completa)
+
+```python
+# Mapeamento usando toda a configuração (sem trigger específico)
+result = mapper_instance.map_dic(
+    input_dict=input_data,
+    config_path="arquivo_config.json"
+    # trigger=None (padrão)
+)
+
+print(result)
+```
+
+**Saída:**
+```json
+{
+    "user_mapping": {
+        "nome_completo": "João Silva",
+        "idade_usuario": 30,
+        "endereco_completo": "Rua das Flores",
+        "cidade_usuario": "São Paulo"
+    },
+    "order_mapping": {
+        "id_pedido": "12345",
+        "valor": 99.99
+    }
+}
+```
+
+### Exemplo 4: Diferentes Separadores
+
+```python
+# Usar ponto como separador
+mapper_dot = mapper(sep=".", parent_key="")
+result_dot = mapper_dot.map_dic(input_data, "config.json", "user_mapping")
+
+# Usar underscore como separador
+mapper_underscore = mapper(sep="_", parent_key="")
+result_underscore = mapper_underscore.map_dic(input_data, "config.json", "user_mapping")
+
+# Usar barra como separador
+mapper_bar = mapper(sep="/", parent_key="")
+result_bar = mapper_bar.map_dic(input_data, "config.json", "user_mapping")
+
+print("Resultado com ponto:", result_dot)
+print("Resultado com underscore:", result_underscore)
+print("Resultado com barra:", result_bar)
+```
+
+### Exemplo 5: Mapeamento com Chave Pai
+
+```python
+# Mapper com chave pai "api_data"
+mapper_with_parent = mapper(sep=".", parent_key="api_data")
+
+result_with_parent = mapper_with_parent.map_dic(input_data, "config.json", "user_mapping")
+print("Resultado com chave pai 'api_data':")
+print(result_with_parent)
+```
+
+## 🔧 API Reference
+
+### Classe `mapper`
+
+#### Construtor
+```python
+mapper(sep: str = "|", parent_key: str = "")
+```
+
+**Parâmetros:**
+- `sep`: Separador para concatenar chaves aninhadas (padrão: "|")
+- `parent_key`: Chave pai para prefixar todas as chaves (padrão: "")
+
+#### Métodos
+
+##### `map_dic(input_dict: dict, config_path: str, trigger: str = None) -> dict`
+Método principal que combina flattening e mapeamento de campos.
+
+**Parâmetros:**
+- `input_dict`: Dicionário de entrada a ser mapeado
+- `config_path`: Caminho para o arquivo JSON de configuração
+- `trigger`: Chave específica na configuração a ser usada (opcional)
+
+**Retorna:**
+- Dicionário com dados mapeados conforme a configuração
+
+**Nota:** Este método internamente utiliza os métodos privados `_flatten_dict()` e `_mapping_fields()` para realizar o processamento, mas o usuário só precisa conhecer este método público.
+
+## 📁 Estrutura do Projeto
+
+```
+mapper-lib/
+├── mapper/                 # Módulo principal
+│   ├── __init__.py        # Inicializador do módulo
+│   ├── main.cpp           # Implementação principal em C++
+│   ├── mapping_fields.cpp # Lógica de mapeamento de campos
+│   ├── flattener.cpp      # Lógica de flattening
+│   └── includes/          # Headers específicos por plataforma
+├── setup.py               # Configuração de build
+├── pyproject.toml         # Configuração do projeto
+├── requirements.txt       # Dependências Python
+└── main.py               # Interface Python principal
+```
+
+## 🛠️ Desenvolvimento
+
+### Compilação
+
+```bash
+# Compilar extensões C++
+python setup.py build_ext --inplace
+
+# Instalar em modo desenvolvimento
+pip install -e .
+```
+
+### Testes
+
+```bash
+# Executar testes (quando implementados)
+python -m pytest tests/
+```
+
+## 📄 Licença
+
+Este projeto está licenciado sob a Licença MIT - veja o arquivo [LICENSE](LICENSE) para detalhes.
+
+## 👥 Contribuição
+
+Contribuições são bem-vindas! Por favor, sinta-se à vontade para:
+
+1. Fazer fork do projeto
+2. Criar uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
+5. Abrir um Pull Request
+
+## 📞 Suporte
+
+Para suporte e dúvidas:
+
+- **Autor:** Gustavo de Oliveira
+- **Email:** devops15@compresuapeca.com.br
+- **Repositório:** https://github.com/compre-sua-peca/csp_mapper
+
+## 🔄 Histórico de Versões
+
+- **v1.0.2** - Versão atual com suporte cross-platform
+- **v1.0.1** - Melhorias de performance
+- **v1.0.0** - Lançamento inicial
+
+---
+
+⭐ Se este projeto foi útil para você, considere dar uma estrela no repositório!
