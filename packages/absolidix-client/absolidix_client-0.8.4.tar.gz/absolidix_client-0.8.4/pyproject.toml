@@ -1,0 +1,87 @@
+[build-system]
+requires = ["setuptools", "cython"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "absolidix-client"
+readme = { file = "README.md", content-type = "text/markdown" }
+description = """Absolidix infra API client in Python"""
+version = "0.8.4"
+authors = [{ name = "Sergei Korolev", email = "knopki@duck.com" }]
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Chemistry",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
+keywords = ["absolidix", "client"]
+requires-python = ">=3.9"
+dependencies = [
+    "aiohttp >= 3.7.4",
+    "aiohttp-sse-client >= 0.2.1",
+    "typing-extensions >= 4.2.0; python_version < '3.11'",
+    "yarl >= 1.6.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "build",
+    "commitizen",
+    "freezegun",
+    "pyright",
+    "pytest-aiohttp >= 1.0.4, <2",
+    "pytest-asyncio",
+    "pytest-cov",
+    "pyupgrade",
+    "ruff",
+    "twine",
+    "wdb",
+]
+
+[project.urls]
+Home = "https://bitbucket.org/tilde-mi/absolidix-client"
+Changelog = "https://bitbucket.org/tilde-mi/absolidix-client/blob/master/CHANGELOG.md"
+Issues = "https://bitbucket.org/tilde-mi/absolidix-client/issues"
+Source = "https://bitbucket.org/tilde-mi/absolidix-client"
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+annotated_tag = true
+tag_format = "v$version"
+major_version_zero = true
+version_files = ["pyproject.toml:^version"]
+version_provider = "pep621"
+update_changelog_on_bump = true
+
+[tool.pyright]
+pythonVersion = "3.9"
+
+[tool.pytest.ini_options]
+addopts = "--cov=absolidix_client --cov-report=term-missing --no-cov-on-fail"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.ruff]
+# Target python version
+target-version = "py39"
+
+[tool.ruff.lint]
+# Enable specific rules
+select = ["E", "F"]
+# Disable specific rules
+ignore = ["E501"]
+
+[tool.setuptools.packages.find]
+include = ["absolidix_client*"]
