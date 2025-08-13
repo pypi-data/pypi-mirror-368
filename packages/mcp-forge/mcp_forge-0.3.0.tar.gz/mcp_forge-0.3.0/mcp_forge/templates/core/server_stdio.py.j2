@@ -1,0 +1,66 @@
+"""{{ config.project_name }} MCP Server implementation with stdio transport."""
+
+from fastmcp import FastMCP
+from typing import List
+
+from {{ config.package_name }}.services.tool_service import ToolService
+from {{ config.package_name }}.services.resource_service import ResourceService
+from {{ config.package_name }}.interfaces.tool import Tool
+from {{ config.package_name }}.interfaces.resource import Resource
+from {{ config.package_name }}.tools import (
+    AddNumbersTool,
+    DateDifferenceTool,
+    ReverseStringTool,
+    CurrentTimeTool,
+    RandomNumberTool
+)
+from {{ config.package_name }}.resources import HelloWorldResource, UserProfileResource
+
+
+def get_available_tools() -> List[Tool]:
+    """Get list of all available tools."""
+    return [
+        AddNumbersTool(),
+        DateDifferenceTool(),
+        ReverseStringTool(),
+        CurrentTimeTool(),
+        RandomNumberTool(),
+    ]
+
+
+def get_available_resources() -> List[Resource]:
+    """Get list of all available resources."""
+    return [
+        HelloWorldResource(),
+        UserProfileResource(),
+    ]
+
+
+def create_server() -> FastMCP:
+    """Create and configure the MCP server."""
+    mcp = FastMCP(
+        name="{{ config.project_name }}"
+    )
+    
+    tool_service = ToolService()
+    resource_service = ResourceService()
+
+    # Register all tools and their MCP handlers
+    tool_service.register_tools(get_available_tools())
+    tool_service.register_mcp_handlers(mcp)
+
+    # Register all resources and their MCP handlers
+    resource_service.register_resources(get_available_resources())
+    resource_service.register_mcp_handlers(mcp)
+    
+    return mcp
+
+
+def main():
+    """Entry point for stdio transport."""
+    mcp = create_server()
+    mcp.run(transport="stdio")
+
+
+if __name__ == "__main__":
+    main()
