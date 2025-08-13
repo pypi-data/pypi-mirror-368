@@ -1,0 +1,87 @@
+[project]
+name = "mosheh"
+description = "Mosheh, automatic and elegant documentation of Python code with MkDocs."
+readme = { file = ".github/README.md", content-type = "text/markdown" }
+license = { file = "LICENSE" }
+authors = [{ name = "LucasGonc", email = "lucasgoncsilva04@gmail.com" }]
+maintainers = [{ name = "LucasGonc", email = "lucasgoncsilva04@gmail.com" }]
+keywords = [
+    "CLI",
+    "Python",
+    "documentation",
+    "MkDocs",
+    "automation",
+    "generation",
+]
+version = "2.0.3"
+requires-python = ">=3.12"
+dependencies = [
+    "mkdocs>=1.6.1",
+    "mkdocs-git-revision-date-localized-plugin>=1.4.7",
+    "mkdocs-material>=9.6.15",
+    "mkdocs-material-extensions>=1.3.1",
+    "pyyaml>=6.0.2",
+    "rich>=14.0.0",
+    "stdlib-list>=0.11.1",
+]
+
+[dependency-groups]
+dev = [
+    "asciinema>=2.4.0",
+    "hypothesis>=6.136.9",
+    "mypy>=1.17.0",
+    "pytest>=8.4.1",
+    "ruff>=0.12.4",
+    "taskipy>=1.14.1",
+    "types-pyyaml>=6.0.12.20250516",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.scripts]
+mosheh = "mosheh.main:main"
+
+[project.urls]
+Documentation = "https://lucasgoncsilva.github.io/mosheh/"
+Repository = "https://github.com/lucasGoncSilva/mosheh/"
+Issues = "https://github.com/LucasGoncSilva/mosheh/issues"
+Changelog = "https://github.com/LucasGoncSilva/mosheh/blob/main/.github/CHANGELOG.md"
+
+[tool.taskipy.tasks]
+lint = "uv run ruff check; uv run ruff format; uv run mypy mosheh"
+makedoc = "cd ./documentation/; uv run mosheh --verbose 3 update"
+pytest = "uv run pytest"
+doctest = "cd ./tests/DOC/; uv run mosheh --verbose 3 update"
+test = "uv run task pytest; uv run task doctest"
+
+[tool.ruff]
+line-length = 88
+exclude = [".env", ".venv"]
+fix = true
+
+[tool.ruff.format]
+quote-style = "single"
+docstring-code-format = true
+
+[tool.ruff.lint]
+select = ["I", "E", "UP", "F"]
+fixable = ["ALL"]
+
+[tool.ruff.lint.isort]
+case-sensitive = true
+lines-after-imports = 2
+
+[tool.pytest.ini_options]
+addopts = "-s -vv"
+python_files = "tests/unittest/*.py"
+
+[tool.setuptools]
+packages = ["mosheh"]
+
+[tool.setuptools.package-data]
+mosheh = ["py.typed"]
+
+[tool.mypy]
+strict = true
