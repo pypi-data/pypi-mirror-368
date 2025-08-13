@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% load i18n %}
+
+{% block page_title %}{% trans "Extended search" %}{% endblock %}
+
+{% block bootstrap5_extra_head %}
+{{ block.super }}
+<meta name="robots" content="noindex">
+<style>
+.footer-panel.bottom-right { visibility: hidden; }
+</style>
+{% endblock %}
+
+{% block side_navigation %}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12 transparent-frame">
+        <div class="panel-white">
+            <form action="{% url "lite_cms_core:search" %}" role="search">
+                 <div class="mb-3">
+                     <label class="form-label" for="id_search">{% trans 'Search string' %}</label>
+                     <input id="id_search" class="form-control" placeholder="{% trans "Search" %}"
+                            type="text" name="q" value="{{ request.REQUEST.q }}" required>
+                 </div>
+                 <div class="mb-3">
+                    <label class="form-label" for="id_model">{% trans 'Search in' %}</label>
+                    <select id="id_model" class="form-select" name="type">
+                        <option value="">{% trans "Everything" %}</option>
+                        {% for verbose_name, model in search_model_choices %}
+                        <option value="{{ model }}"
+                            {% if model == request.REQUEST.type  %}selected{% endif %}>
+                            {{ verbose_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                 </div>
+                <div class="form-group">
+                    <button class="btn btn-primary" type="submit">
+                        {% trans 'Search' %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

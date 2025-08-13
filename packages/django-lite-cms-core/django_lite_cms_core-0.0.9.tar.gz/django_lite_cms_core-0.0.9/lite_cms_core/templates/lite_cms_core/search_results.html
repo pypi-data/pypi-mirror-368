@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% load i18n static base_tags django_bootstrap5 %}
+
+{% block bootstrap5_extra_head %}
+{{ block.super }}
+<meta name="robots" content="noindex">
+<link rel="stylesheet" type="text/css" href="{% static "blog/css/blog.css" %}" />
+{% endblock %}
+
+{% block page_title %}{% trans "Search Results" %}{% endblock %}
+
+{% block side_navigation %}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12 transparent-frame">
+        <div class="panel-white">
+            <p>
+            {% blocktrans trimmed %}
+            Showing {{ total }} result(s) in {{ search_type }} matching your query: {{ query }}
+            {% endblocktrans %}
+            </p>
+
+            <ul class="list-group">
+                {% for result in results %}
+                <li class="list-group-item">
+                {% with result.get_absolute_url as result_url %}
+                    <div class="post-meta">
+                        {{ result|get_search_type }}
+                    </div>
+                    <h4>
+                    {% if result_url %}
+                        <a href="{{ result_url }}">{{ result }}</a>
+                    {% else %}
+                        {{ result }}
+                    {% endif %}
+                    </h4>
+{#                    {% if result.content != result|stringformat:"s" %}#}
+{#                        <p>{{ result.content|truncatewords_html:20|safe }}</p>#}
+{#                    {% endif %}#}
+{#                    {% if result_url %}#}
+{#                        <a href="{{ result_url }}">{% trans "read more" %}</a>#}
+{#                    {% endif %}#}
+                {% endwith %}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="panel-white mt-3">
+            {% if results.has_other_pages %}
+                {% bootstrap_pagination results extra=request.GET.urlencode size="sm" %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
