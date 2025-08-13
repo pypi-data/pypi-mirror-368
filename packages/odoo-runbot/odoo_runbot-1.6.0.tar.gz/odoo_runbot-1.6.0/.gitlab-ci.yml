@@ -1,0 +1,142 @@
+# yaml-language-server: $schema=https://gitlab.com/gitlab-org/gitlab/-/raw/master/app/assets/javascripts/editor/schema/ci.json
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_REF_PROTECTED == "true"
+include:
+  - template: Jobs/Secret-Detection.gitlab-ci.yml
+  - component: $CI_SERVER_FQDN/gitlab-ci/project-quality/project-files@1
+    inputs:
+      file_path: "README.md"
+      name: "README"
+  - component: $CI_SERVER_FQDN/gitlab-ci/code-quality/ruff@1
+  - component: $CI_SERVER_FQDN/$CI_PROJECT_PATH/runbot@$CI_COMMIT_SHA
+    inputs:
+      runbot_workdir: "tests/odoo_project"
+      odoo_version: "12.0"
+  - component: $CI_SERVER_FQDN/$CI_PROJECT_PATH/runbot@$CI_COMMIT_SHA
+    inputs:
+      runbot_workdir: "tests/odoo_project"
+      odoo_version: "13.0"
+  - component: $CI_SERVER_FQDN/$CI_PROJECT_PATH/runbot@$CI_COMMIT_SHA
+    inputs:
+      runbot_workdir: "tests/odoo_project"
+      odoo_version: "14.0"
+  - component: $CI_SERVER_FQDN/$CI_PROJECT_PATH/runbot@$CI_COMMIT_SHA
+    inputs:
+      runbot_workdir: "tests/odoo_project"
+      odoo_version: "15.0"
+  - component: $CI_SERVER_FQDN/$CI_PROJECT_PATH/runbot@$CI_COMMIT_SHA
+    inputs:
+      runbot_workdir: "tests/odoo_project"
+      odoo_version: "16.0"
+  - component: $CI_SERVER_FQDN/$CI_PROJECT_PATH/runbot@$CI_COMMIT_SHA
+    inputs:
+      runbot_workdir: "tests/odoo_project"
+      odoo_version: "17.0"
+  - component: $CI_SERVER_FQDN/$CI_PROJECT_PATH/runbot@$CI_COMMIT_SHA
+    inputs:
+      runbot_workdir: "tests/odoo_project"
+      odoo_version: "18.0"
+  - component: $CI_SERVER_FQDN/gitlab-ci/code-quality/ruff@~latest
+  - component: $CI_SERVER_FQDN/python-libs/ci-component/pytest@~latest
+  - component: $CI_SERVER_FQDN/python-libs/ci-component/pytest@~latest
+    inputs:
+      python_version: "3.8"
+  - component: $CI_SERVER_FQDN/python-libs/ci-component/pytest@~latest
+    inputs:
+      python_version: "3.10"
+  - component: $CI_SERVER_FQDN/python-libs/ci-component/pytest@~latest
+    inputs:
+      python_version: "3.12"
+  - component: $CI_SERVER_FQDN/python-libs/ci-component/build@~latest
+    inputs:
+      python_version: "3.8"
+  - component: $CI_SERVER_FQDN/python-libs/ci-component/upload-pypi@~latest
+    rules:
+      - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH && $CI_COMMIT_TAG == null
+    inputs:
+      registry_token_var: $TESTPYPI_REGISTRY_TOKEN
+      dependencies: [ "build:python" ]
+      registry_name: "testpypi"
+      name: "pypi:test"
+  - component: $CI_SERVER_FQDN/python-libs/ci-component/upload-pypi@~latest
+    rules:
+      - if: $CI_COMMIT_TAG && $CI_COMMIT_REF_PROTECTED
+    inputs:
+      registry_token_var: $PYPI_REGISTRY_TOKEN
+      registry_name: "pypi"
+      dependencies: [ "build:python" ]
+  - component: $CI_SERVER_FQDN/python-libs/ci-component/upload-pypi@~latest
+    rules:
+      - if: $CI_COMMIT_TAG && $CI_COMMIT_REF_PROTECTED
+    inputs:
+      registry_token_var: $CI_JOB_TOKEN
+      registry_name: "$CI_SERVER_HOST"
+      dependencies: [ "build:python" ]
+
+.tmpl:runbot:self:ci:
+  variables:
+    ADDONS_GIT_PRIVATE_PROJECT: odoo-addons/blank-private
+    ADDONS_GIT_IMG_TESTER: dockers/odoo-img-tester
+  before_script:
+    - pip install .
+    - odoo-runbot --verbose --workdir="tests/odoo_project" diag
+
+odoo:runbot:12.0:
+  extends: ".tmpl:runbot:self:ci"
+odoo:runbot:13.0:
+  extends: ".tmpl:runbot:self:ci"
+odoo:runbot:14.0:
+  extends: ".tmpl:runbot:self:ci"
+odoo:runbot:15.0:
+  extends: ".tmpl:runbot:self:ci"
+odoo:runbot:16.0:
+  extends: ".tmpl:runbot:self:ci"
+odoo:runbot:17.0:
+  extends: ".tmpl:runbot:self:ci"
+odoo:runbot:18.0:
+  extends: ".tmpl:runbot:self:ci"
+
+secret_detection:
+  stage: .pre
+  tags: ["lint"]
+  rules:
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_TAG # overriding rules to ensure it runs on tags before the release.
+
+check:mkdocs:
+  stage: test
+  tags: ["lint"]
+  image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+  before_script:
+    - uv sync --group doc
+    - source .venv/bin/activate
+  script:
+    - mkdocs build --strict --verbose --site-dir test
+
+publish:mkdocs:
+  extends: ["check:mkdocs"]
+  stage: deploy
+  tags: ["lint"]
+  pages: true  # specifies that this is a Pages job
+  script:
+    - mkdocs build --site-dir=public
+  artifacts:
+    paths:
+    - public
+  rules:
+    - if: $CI_COMMIT_TAG =~ /\d+/
+# If we are tagging a release with a specific convention ("v" + number) and all
+# previous checks succeeded, we proceed with creating a release automatically.
+publish:release:
+  tags: ["lint"]
+  stage: deploy
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  script: echo "Creating release $CI_COMMIT_TAG"
+  rules:
+    - if: $CI_COMMIT_TAG =~ /\d+/
+  release:
+    tag_name: $CI_COMMIT_TAG
+    description: "Release $CI_COMMIT_TAG of components repository $CI_PROJECT_PATH"

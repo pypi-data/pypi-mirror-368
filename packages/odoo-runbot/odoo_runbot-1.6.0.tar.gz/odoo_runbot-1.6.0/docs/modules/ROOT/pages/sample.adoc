@@ -1,0 +1,50 @@
+= Exemples
+
+La configuration du `runbot` se trouve dans le fichier `pyproject.toml` à la racine de votre projet.
+
+NOTE: La configuration via le fichier `pyproject.toml` est définie dans le https://peps.python.org/pep-0621/[PEP 621].
+
+[[sample_minimal]]
+== Configuration minimale
+
+[,toml]
+----
+include::partial$sample_config/pyproject_minimal.toml[]
+----
+<.> Section principale du runbot
+<.> Définition du module à installer
+
+Dans cet exemple, aucun filtre `test-tags` n'est appliqué. Le `runbot` jouera donc tous les tests de `base` jusqu'au module `module_to_test`.
+
+== Configuration classic en 2 étapes
+
+La première étape installe uniquement les modules voulus.
+La seconde installe les modules et exécute les tests.
+
+[,toml]
+----
+include::partial$sample_config/pyproject_classic.toml[]
+----
+<.> Section principale du `runbot`
+<.> Les modules à installer (dans les 2 `step`)
+<.> Les https://www.odoo.com/documentation/18.0/fr/developer/reference/backend/testing.html#test-selection[test tags (Odoo 18)] disponibles depuis Odoo version 12
+<.> Les 2 `step` au format rapide.
+
+Dans cet exemple, les `step` sont décrites au format le plus simpliste possible : juste un nom et une action (si nécessaire).
+
+Au format verbeux, cela donne :
+
+[,toml]
+----
+include::partial$sample_config/pyproject_classic.full.toml[]
+----
+
+== Configuration complexe
+
+[,toml]
+----
+include::partial$sample_config/pyproject_complex.toml[]
+----
+<1> Step avec l'action install. Voir xref:config_step.adoc#default_act_by_name[]
+<2> Deuxieme phase d'installation.  Voir xref:config_step.adoc#default_act_by_name[]
+<3> Phase de test post install avec un nom complexe

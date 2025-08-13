@@ -1,0 +1,64 @@
+= Configuration générale
+
+La configuration du `runbot` se trouve dans le fichier `pyproject.toml` à la racine de votre projet.
+
+NOTE: La configuration via le fichier `pyproject.toml` est définie dans le https://peps.python.org/pep-0621/[PEP 621].
+
+== Description du format
+
+La configuration se trouve dans un fichier au format https://toml.io/en/v1.0.0#objectives[toml]. +
+Le point d'entrée est `tool.runbot`.
+
+Certaines parties de la config sont des https://toml.io/en/v1.0.0#array-of-tables[listes d'attributs], il faudra l'écrire avec `\[[tool.runbot.sub-part]]`.
+
+IMPORTANT: L'ordre de déclaration des sections a une importance pour le langage `toml` ainsi que pour le `runbot`.
+
+
+
+[[runbot_format]]
+== Runbot - `tool.runbot`
+
+C'est le point d'entrée de la configuration du `runbot`.
+Cette section n'est pas obligatoire, vous pouvez tout faire étape par étape comme expliqué xref:config_step.adoc[ici]. Son but est de permettre de déclarer des `log-filters` à appliquer à toutes les étapes, ou de mettre des valeurs par défaut sur certains champs.
+
+
+== Champs possibles
+
+Dans chaque `warning-filter` vous pouvez préciser les attributs suivants.
+
+|===
+| name | Type Toml | Par défaut
+
+| step | https://toml.io/en/v1.0.0#array-of-tables[liste d'objet] ou https://toml.io/en/v1.0.0#array[list de string] | Voir <<default_step>> et xref::config_step.adoc[doc des étapes]
+| warning_filters | https://toml.io/en/v1.0.0#array-of-tables[liste d'objet] ou https://toml.io/en/v1.0.0#array[list de string] | Voir <<default_step>> et xref::config_global_warning_filter.adoc[doc des filtres `warning`]
+| include_current_project | https://toml.io/en/v1.0.0#boolean[boolean] | `true`
+| log_filters | voir xref:config_step_log_filter.adoc[] | `[]`
+|===
+
+NOTE: Les `log_filters` seront ajoutés à chaque étape en plus de celle spécifiée par elle.
+
+
+[[default_step]]
+== Étape par défaut
+
+Si aucune déclaration d'étape n'existe, une par défaut sera créée à partir de valeur de l'entête.
+
+[,toml]
+----
+include::partial$sample_config/pyproject_minimal.toml[]
+----
+<1> Configuration d'entête
+<2> Le nom du module à installer et tester
+
+Donnera :
+
+[,toml]
+----
+[tool.runbot]
+[tool.runbot.step.default] # <1>
+modules = ["module_to_test"] # <2>
+action = "tests"
+log-filters = []
+----
+<1> Reprends les valeurs de la section `tool.runbot`
+<2> Le nom du module à installer et tester

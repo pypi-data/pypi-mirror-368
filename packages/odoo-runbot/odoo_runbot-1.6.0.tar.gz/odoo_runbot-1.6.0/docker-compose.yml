@@ -1,0 +1,80 @@
+x-common-env: &common-env
+  POSTGRES_USER: "runbot"
+  POSTGRES_PASSWORD: "runbot_password"
+  DB_HOST: "database"
+  DB_PORT: "5432"
+#  DB_USER: "runbot"
+#  DB_PASSWORD: "runbot_password"
+
+x-ci-env: &ci-env
+  <<: *common-env
+  GITLAB_READ_API_TOKEN: "glpat-y4j1USxY93PHUAziWtjb" # Local Gitlab token
+  CI_JOB_TOKEN: "glpat-y4j1USxY93PHUAziWtjb" # Local Gitlab token
+  CI_PROJECT_NAME: "mangono-runbot"
+  CI_SERVER_URL: https://gitlab.mangono.io
+  CI_PROJECT_PATH: gitlab-ci/mangono-runbot
+  CI_PROJECT_ID: 463
+  CI_JOB_ID: 1235
+  CI_BUILDS_DIR: /tmp/build
+  CI_PROJECT_DIR: /tmp/build/odoo_runbot
+  PATH_TO_TEST: "tests/odoo_project"
+
+x-default-config-odoo: &default-config
+  entrypoint: /tmp/project/runbot-entrypoint.sh
+  depends_on:
+    - database
+  volumes:
+    - ./:/tmp/project
+    - ./:/tmp/build/odoo_runbot:rw
+  environment:
+    <<: *ci-env
+    ADDONS_GIT_PRIVATE_PROJECT: odoo-addons/blank-private
+    ADDONS_GIT_IMG_TESTER: dockers/odoo-img-tester
+
+x-raud: &raud-config
+  <<: *default-config
+  environment:
+    <<: *ci-env
+    CI_PROJECT_NAME: "raud"
+    CI_PROJECT_PATH: odoo/v15/tms/raud
+    CI_PROJECT_ID: 307
+    PATH_TO_TEST: tmp/raud
+    COVERAGE_CORE: "sysmon"
+    CI_COMMIT_REF_NAME: 'sf_new_runbot'
+    ADDONS_GIT_COMMON_MODULES: "odoo/v15/common-modules"  # New format for ODOO_DEPENDS
+    ADDONS_GIT_COMMUNITY_MODULES: "odoo-addons/community-addons"  # New format for ODOO_DEPENDS
+    ADDONS_GIT_CORE: "odoo/v15/tms/core"
+    ADDONS_GIT_WEB_ATTACHMENT_PROGRESSBAR: "odoo/proprietary-addons/web_attachment_progressbar"
+
+services:
+  database:
+    image: postgres:15
+    environment:
+      <<: *common-env
+  runbot11:
+    image: registry.mangono.io/odoo-cloud/container:11.0
+    <<: *default-config
+  runbot12:
+    image: registry.mangono.io/odoo-cloud/container:12.0
+    <<: *default-config
+  runbot13:
+    image: registry.mangono.io/odoo-cloud/container:13.0
+    <<: *default-config
+  runbot14:
+    image: registry.mangono.io/odoo-cloud/container:14.0
+    <<: *default-config
+  runbot15:
+    image: registry.mangono.io/odoo-cloud/container:15.0
+    <<: *default-config
+  raud:
+    image: registry.mangono.io/odoo-cloud/container:15.0
+    <<: *raud-config
+  runbot16:
+    image: registry.mangono.io/odoo-cloud/container:16.0
+    <<: *default-config
+  runbot17:
+    image: registry.mangono.io/odoo-cloud/container:17.0
+    <<: *default-config
+  runbot18:
+    image: registry.mangono.io/odoo-cloud/container:18.0
+    <<: *default-config

@@ -1,0 +1,76 @@
+spec:
+  inputs:
+    odoo_version:
+      description: "The Odoo version of your project"
+    name:
+      default: "runbot"
+      description: "The name of the job"
+    docker_registry:
+      description: "The docker registry used by the runbot job"
+      default: "registry.mangono.io/odoo-cloud/container"
+    stage:
+      description: "The stage where to add this job"
+      default: test
+    tag:
+      default: "runbot2"
+      description: "The name of the tag for this job"
+    other_services:
+      type: array
+      default: []
+      description: "Allow to add other next to Odoo+postgresql"
+    runbot_args:
+      default: ""
+      description: "The option used by the `odoo-runbot run` command"
+    runbot_version:
+      default: "==1.5.0"
+      description: "Force the runbot to another version"
+    runbot_workdir:
+      default: "$CI_PROJECT_DIR"
+      description: "Allow to change were the runbot run"
+    runbot_config_file:
+      default: "$RUNBOT_CONFIG_FILE"
+      description: "Allow to change were the runbot find it's config"
+
+---
+
+".scripts:odoo:$[[ inputs.name ]]:$[[ inputs.odoo_version ]]":
+  script_install:
+    - pip install "odoo-runbot$[[ inputs.runbot_version ]]"
+  script_diag:
+    - odoo-runbot --verbose --workdir=$[[ inputs.runbot_workdir ]] --config=$[[ inputs.runbot_config_file ]] diag
+  script_init:
+    - odoo-runbot --verbose --workdir=$[[ inputs.runbot_workdir ]] --config=$[[ inputs.runbot_config_file ]] init
+  script_run:
+    - odoo-runbot --workdir=$[[ inputs.runbot_workdir ]] --config=$[[ inputs.runbot_config_file ]] run || EXIT=$?
+  script_report:
+    - echo "Execute coverage report in $[[ inputs.runbot_workdir ]]/runbot_result"
+    - odoo-runbot --workdir=$[[ inputs.runbot_workdir ]] --config=$[[ inputs.runbot_config_file ]] report
+
+".base:odoo:$[[ inputs.name ]]:$[[ inputs.odoo_version ]]":
+  extends:
+    - ".tmpl:odoo:$[[ inputs.name ]]:$[[ inputs.odoo_version ]]"
+  tags:
+    - $[[ inputs.tag ]]
+  image:
+    name: $[[ inputs.docker_registry ]]:$[[ inputs.odoo_version ]]
+    entrypoint: [ "" ]
+  stage: $[[ inputs.stage ]]
+  interruptible: true
+  variables:
+    DB_PORT: 5432
+    POSTGRES_USER: "runbot"
+    POSTGRES_PASSWORD: "runbot-password"
+    POSTGRES_HOST_AUTH_METHOD: trust
+  services:
+    - $[[ inputs.other_services ]]
+    - name: postgres:15
+      alias: database
+  before_script:
+    - !reference [".scripts:odoo:$[[ inputs.name ]]:$[[ inputs.odoo_version ]]", "script_install"]
+    - !reference [".scripts:odoo:$[[ inputs.name ]]:$[[ inputs.odoo_version ]]", "script_diag"]
+  script:
+    - export DB_HOST="database" # Force this variable this is the `alias` of the postgresql service
+    - !reference [ ".scripts:odoo:$[[ inputs.name ]]:$[[ inputs.odoo_version ]]", "script_init" ]
+    - !reference [ ".scripts:odoo:$[[ inputs.name ]]:$[[ inputs.odoo_version ]]", "script_run" ]
+    - !reference [ ".scripts:odoo:$[[ inputs.name ]]:$[[ inputs.odoo_version ]]", "script_report" ]
+    - exit $EXIT
