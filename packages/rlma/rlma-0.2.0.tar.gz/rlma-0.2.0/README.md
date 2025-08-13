@@ -1,0 +1,95 @@
+# rlma
+
+**Robust Linear Matching Algorithm (RLMA)**
+
+A Python package to detect and quantify relationships between variables using a novel linear matching algorithm that:
+
+- Groups variables by categorical levels based on mean and standard deviation  
+- Compares independent variables (IVs) and dependent variables (DVs) via category matching  
+- Supports binary, continuous, and multivariate variables  
+- Includes permutation testing for significance  
+- Allows composite variable analysis via PCA, Ridge, or Random Forest predictions  
+
+## Features
+
+- Simple and intuitive method to detect relationships beyond classic linear correlation  
+- Handles different types of variables: continuous, categorical, and binary  
+- Permutation test to estimate the significance of the relationship  
+- Batch processing for multiple IVs with ranking by relationship strength  
+- Composite analysis to handle many IVs in high-dimensional data  
+
+## Installation
+
+Install the package using pip:
+
+pip install rlma
+
+## Usage Examples
+import pandas as pd
+from rlma import compute_RMI, permutation_test, batch_pairwise_rlma, composite_rlma
+
+# Sample data for demonstration
+data = {
+    'burnout': [4.87, 4.83, 3.83, 4.31, 4.73, 1.41, 2.80, 4.50],
+    'anxiety': [4.80, 4.55, 4.30, 4.30, 3.95, 1.25, 4.85, 4.00],
+    'metacognition': [2.60, 2.50, 4.20, 4.16, 2.93, 1.76, 3.56, 4.90],
+}
+
+X = pd.DataFrame(data)
+y = X['anxiety']  # For example, treat anxiety as dependent variable
+
+### 1. Compute RLMA between one IV and DV
+rmi_value = compute_RMI(X['burnout'], y)
+print(f"RMI between burnout and anxiety: {rmi_value:.4f}")
+
+### 2. Perform permutation test for significance
+perm_results = permutation_test(X['burnout'], y, n_perm=2000)
+print(f"Permutation test p-value: {perm_results['emp_p']:.4f}")
+
+### 3. Run batch RLMA on all IVs against anxiety
+batch_results = batch_pairwise_rlma(X, y, n_perm=1000)
+print("Batch RLMA results:")
+print(batch_results)
+
+### 4. Composite RLMA using ridge regression to combine IVs predicting anxiety
+comp_result = composite_rlma(X, y, method='ridge', n_perm=1000)
+print(f"Composite RMI: {comp_result['rmi_result']:.4f}")
+print(f"Composite permutation p-value: {comp_result['perm_result']['emp_p']:.4f}")
+API Reference
+compute_RMI(X, y, num_categories=3, alpha=0.5)
+Calculate the Robust Linear Matching Index between variables X and y.
+
+X, y: pandas Series or numpy arrays
+
+num_categories: Number of categories to divide data into (default 3)
+alpha: Weight for near-matches (default 0.5)
+Returns a float between 0 and 1 indicating the strength of the relationship.
+
+permutation_test(X, y, n_perm=1000)
+Perform a permutation test to assess the significance of the RLMA relationship.
+n_perm: Number of permutations (default 1000)
+
+Returns a dictionary with empirical p-value under 'emp_p'.
+
+batch_pairwise_rlma(X_df, y, n_perm=1000)
+Apply RLMA to all columns of X_df against y, including permutation testing.
+
+Returns a pandas DataFrame ranking IVs by RLMA strength and significance.
+
+composite_rlma(X_df, y, method='ridge', n_perm=1000)
+Generate a composite IV prediction using PCA, Ridge, or Random Forest, then compute RLMA.
+
+method: One of 'pca', 'ridge', 'rf' (default 'ridge')
+
+Returns a dict with RLMA value and permutation test result.
+
+## Contributing
+Contributions, issues, and feature requests are welcome! Please open an issue or pull request.
+
+### License
+This project is licensed under the MIT License.
+
+# Author
+Francis Jemisiham Amofa
+Email: jemisihamamofa@gmail.com
+GitHub: https://github.com/francisamofa
