@@ -1,0 +1,4 @@
+
+### Added
+
+- CDF reader endpoint
