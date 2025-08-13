@@ -1,0 +1,15 @@
+-- TODO: Add your database schema here
+-- 
+-- Example:
+-- 
+-- CREATE SCHEMA IF NOT EXISTS scientific;
+-- 
+-- CREATE TABLE IF NOT EXISTS scientific.your_table (
+--     id SERIAL PRIMARY KEY,
+--     name VARCHAR(255),
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- );
+-- 
+-- INSERT INTO scientific.your_table (name) VALUES
+-- ('Example 1'),
+-- ('Example 2');
