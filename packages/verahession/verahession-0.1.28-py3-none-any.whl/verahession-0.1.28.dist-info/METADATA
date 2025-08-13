@@ -1,0 +1,107 @@
+Metadata-Version: 2.1
+Name: verahession
+Version: 0.1.28
+Summary: Python client library for Vera AI chatbot by Hession Dynamics
+Home-page: https://github.com/hession-dynamics/verahession
+Author: Jack Hession
+Author-email: support@hessiondynamics.com
+License: MIT
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: Operating System :: OS Independent
+Classifier: License :: OSI Approved :: MIT License
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+Requires-Dist: requests (>=2.20.0)
+
+# verahession — Quick Start Guide
+
+This guide explains how to install and use the **verahession** library to train an intent classifier and connect it to an LLM API.
+
+---
+
+### 1. Installation
+
+Install the library using pip:
+
+```bash
+python3 -m pip install verahession
+```
+
+---
+
+### 2. Train the Intent Classifier
+
+Create a file named `train.py` with the following content:
+
+```python
+from verahession.assistant import train_model
+
+if __name__ == "__main__":
+    INTENTS_PATH = "intents.json"
+    MODEL_SAVE_PATH = "model.pth"
+    train_model(INTENTS_PATH, MODEL_SAVE_PATH)
+```
+
+Make sure you have an `intents.json` file containing your training data.
+
+Run the script:
+
+```bash
+python3 train.py
+```
+
+This will generate a model file named `model.pth`.
+
+---
+
+### 3. Use the Classifier for Chat
+
+Create a file named `chat.py` with the following content:
+
+```python
+from verahession.assistant import Classifier
+from verahession.assistant import export_to_numpy
+
+export_to_numpy("model.pth", "model.pkl")
+
+clf = Classifier("model.pkl")
+
+while True:
+    sentence = input("You: ")
+    if sentence == "quit":
+        break
+    tag, confidence = clf.classify(sentence)
+    print(f"Intent: {tag} (Confidence: {confidence:.2f})")
+```
+
+Run the script:
+
+```bash
+python3 chat.py
+```
+
+Enter sentences to classify intents. Type `quit` to exit.
+
+---
+
+### 4. Connect to an LLM API
+
+To send input to the LLM API, use the following code:
+
+```python
+from verahession.api import *
+
+vera_llm = vera_interface(API_KEY, AGENTNAME)
+response = vera_llm.send(sentence)
+```
+
+Replace `API_KEY` and `AGENTNAME` with the appropriate values.
+
+---
+
+If you do not yet have an API key, you need to create an account at https://hessiondynamics.com/login - and then press 'create API key' - do NOT share the key with nanyone.
+
+This completes the basic usage instructions for the verahession library. For additional help, consult the documentation or support channels.
+
+
