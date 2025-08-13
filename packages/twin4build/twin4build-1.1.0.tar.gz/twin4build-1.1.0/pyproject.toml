@@ -1,0 +1,160 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages]
+find = {}  # Scan the project directory with the default parameters
+
+[tool.setuptools.package-data]
+"*" = ["*.xlsm", "*.ttl", "*.csv"]
+"twin4build.model.semantic_model.mappings" = ["*.yml"]
+
+[project]
+name = "twin4build"
+version = "1.1.0"
+authors = [
+    { name = "Jakob Bjørnskov", email = "jakob.bjornskov@gmail.com" },
+]
+description = "Dynamic simulation of buildings and integration with semantic modeling."
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+keywords = [
+    "Digital Twins",
+    "Building Performance Simulation",
+    "Semantic Modeling",
+    "Energy Modeling",
+]
+dependencies = [
+    "matplotlib",
+    "seaborn",
+    "pandas",
+    "torch",
+    "pydot<=2.0.0",
+    "tqdm",
+    "fmpy",
+    "scipy",
+    "numpy",
+    "prettytable",
+    "jupyter",
+    "nbformat",
+    "rdflib",
+    "brickschema[persistence]",
+    "click_spinner",
+    "xlrd",
+    "rdflib_sqlalchemy",
+    "pydotplus",
+    "typer",
+    "openpyxl",
+    "psycopg2",
+    "pyarrow",
+    "beautifulsoup4",
+    "python-dateutil",
+    "pathlib"
+]
+
+[project.optional-dependencies]
+dev = [
+    "coverage",
+    "black",
+    "flake8",
+    "isort",
+    "sphinx",
+    "sphinx-rtd-theme",
+    "sphinx-autodoc-typehints",
+    "myst-parser",
+    "twine"
+]
+database = [
+    "psycopg2-binary",
+    "sqlalchemy",
+]
+all = [
+    "coverage",
+    "black",
+    "flake8",
+    "isort",
+    "sphinx",
+    "sphinx-rtd-theme",
+    "sphinx-autodoc-typehints",
+    "myst-parser",
+    "psycopg2-binary",
+    "sqlalchemy",
+    "twine"
+]
+
+[project.urls]
+homepage = "https://github.com/JBjoernskov/Twin4Build/"
+documentation = "https://twin4build.readthedocs.io/"
+repository = "https://github.com/JBjoernskov/Twin4Build/"
+
+# Development tool configurations
+[tool.black]
+line-length = 88
+target-version = ['py39']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+# Coverage configuration for unittest
+[tool.coverage.run]
+source = ["twin4build"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__pycache__/*",
+    "*/migrations/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+]
+show_missing = true
+precision = 2
+
+[tool.isort]
+profile = "black"
+line_length = 88
+# Preserve order within sections to avoid circular import issues
+force_sort_within_sections = false
+# Group related imports together
+import_heading_stdlib = "Standard library imports"
+import_heading_thirdparty = "Third party imports"
+import_heading_firstparty = "Local application imports"
+import_heading_localfolder = "Local folder imports"
+# Don't split long imports that are working
+split_on_trailing_comma = true
+# Known first party package
+known_first_party = ["twin4build"]
+# Skip files with critical import order dependencies using glob patterns
+skip_glob = [
+    "twin4build\\__init__.py",     # Windows paths
+    "twin4build\\core\\__init__.py",
+    "twin4build/__init__.py",      # Linux/Unix paths  
+    "twin4build/core/__init__.py"
+]
+
