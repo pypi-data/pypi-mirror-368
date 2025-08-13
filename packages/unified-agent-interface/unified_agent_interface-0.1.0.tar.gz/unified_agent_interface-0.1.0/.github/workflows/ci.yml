@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+permissions:
+  contents: read
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --all-extras --group dev
+
+      - name: Run pre-commit (ruff, mypy, etc.)
+        run: uv run pre-commit run --all-files --show-diff-on-failure
+
+      - name: Run tests
+        env:
+          # Ensure inline execution for queue to avoid DB in CI
+          UAI_PROCRASTINATE_INLINE: "1"
+        run: uv run pytest -q
