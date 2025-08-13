@@ -1,0 +1,41 @@
+Metadata-Version: 2.4
+Name: selene-core
+Version: 0.2.1
+Summary: The core interop library for Selene python interfaces
+Project-URL: homepage, https://github.com/CQCL/selene/selene-core
+Project-URL: repository, https://github.com/CQCL/selene/selene-core
+Requires-Python: >=3.10
+Requires-Dist: networkx<4,>=2.6
+Requires-Dist: pydot>=4.0.0
+Requires-Dist: pyyaml~=6.0
+Requires-Dist: typing-extensions>=4
+Description-Content-Type: text/markdown
+
+# Selene-Core
+
+Selene is designed to be extensible through the use of plugins, in the form
+of compiled libraries and lightweight python interfaces that provide configuration
+for the selene-sim frontend. We achieve this through this selene-core crate and
+python module.
+
+Each plugin should comprise a python component and a compiled library component.
+The compiled library implements the Selene plugin API, and the python component
+provides configuration, link information and the path to the compiled library to
+the selene frontend.
+
+The selene-core python module provides interfaces for plugins to adhere to. It also
+provides a bundled include directory, containing C headers for the Selene plugin API
+for each type of component.
+
+To access the C headers in the build stage of a python package, depend on selene-core
+as a build dependency and call `selene_core.get_include_directory()`. The resulting
+path can be provided to a build system for C or C++ and the plugin APIs can be included
+through:
+```c
+#include <selene/simulator.h>   # for the simulator API
+#include <selene/error_model.h> # for the error model API
+#include <selene/runtime.h>     # for the runtime API
+```
+
+By implementing the required functions, the plugin can be dynamically loaded by Selene
+at runtime.
