@@ -1,0 +1,2188 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/external/v1/auditlog": {
+      "get": {
+        "description": "Retrieve audit logs",
+        "operationId": "AuditlogController_getAuditlog",
+        "parameters": [
+          {
+            "name": "startDate",
+            "required": false,
+            "in": "query",
+            "description": "Start date for filtering audit logs",
+            "schema": {
+              "example": "2024-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "required": false,
+            "in": "query",
+            "description": "End date for filtering audit logs",
+            "schema": {
+              "example": "2024-12-31",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Maximum number of records to return",
+            "schema": {
+              "maximum": 500,
+              "default": 500,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Number of records to skip",
+            "schema": {
+              "example": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "order",
+            "required": false,
+            "in": "query",
+            "description": "Sort order for results",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get audit logs",
+        "tags": [
+          "Audit Log"
+        ]
+      }
+    },
+    "/api/external/v1/alerts/history": {
+      "get": {
+        "description": "Retrieve alerts history.",
+        "operationId": "AlertsController_getAlertsHistory",
+        "parameters": [
+          {
+            "name": "startDate",
+            "required": false,
+            "in": "query",
+            "description": "Start date for filtering alerts",
+            "schema": {
+              "example": "2023-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "required": false,
+            "in": "query",
+            "description": "End date for filtering alerts",
+            "schema": {
+              "example": "2023-12-31",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Maximum number of results to return",
+            "schema": {
+              "maximum": 500,
+              "default": 500,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Number of results to skip",
+            "schema": {
+              "example": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "order",
+            "required": false,
+            "in": "query",
+            "description": "Sort order for results",
+            "schema": {
+              "example": "desc",
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get alerts history",
+        "tags": [
+          "Alerts"
+        ]
+      }
+    },
+    "/api/external/v1/koidex/risk-report": {
+      "get": {
+        "description": "Retrieves a risk report for a specific item. This includes risk scores, vulnerabilities, and other relevant information.",
+        "operationId": "KoidexController_getRiskReport",
+        "parameters": [
+          {
+            "name": "itemId",
+            "required": true,
+            "in": "query",
+            "description": "The ID of the item",
+            "schema": {
+              "example": "00669eec-63de-49b4-896e-a27c999d726d",
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "required": false,
+            "in": "query",
+            "description": "The version of the item",
+            "schema": {
+              "example": "0.32.0",
+              "type": "string"
+            }
+          },
+          {
+            "name": "marketplace",
+            "required": true,
+            "in": "query",
+            "description": "The marketplace where the item is published",
+            "schema": {
+              "example": "vsc",
+              "type": "string",
+              "enum": [
+                "chrome",
+                "edge",
+                "vs",
+                "vsc",
+                "jet",
+                "office",
+                "koi",
+                "firefox",
+                "homebrew",
+                "huggingface",
+                "npp",
+                "npm",
+                "openvsx",
+                "windsurf",
+                "cursor",
+                "unknown",
+                "pypi",
+                "software_mac",
+                "software_windows",
+                "software_linux"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get risk report for an item",
+        "tags": [
+          "Koidex"
+        ]
+      }
+    },
+    "/api/external/v1/koidex/fetch": {
+      "post": {
+        "description": "Triggers the fetch process for a specific item. This will update the item's data in the KOI system.",
+        "operationId": "KoidexController_fetch",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FetchItemsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Trigger fetch of an item",
+        "tags": [
+          "Koidex"
+        ]
+      }
+    },
+    "/api/external/v1/koidex/search": {
+      "post": {
+        "description": "Search for an items in the Koidex",
+        "operationId": "KoidexController_searchItems",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Search for an items in the Koidex",
+        "tags": [
+          "Koidex"
+        ]
+      }
+    },
+    "/api/external/v1/koidex/get-item-data": {
+      "post": {
+        "description": "Search for an items in the Koidex",
+        "operationId": "KoidexController_getItem",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetItemDataRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Search for an items in the Koidex",
+        "tags": [
+          "Koidex"
+        ]
+      }
+    },
+    "/api/external/v1/koidex/risk-report-by-id": {
+      "post": {
+        "description": "Get risk report for an item by extension id",
+        "operationId": "KoidexController_getRiskReportByExtensionId",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScannersReportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Get risk report for an item by extension id",
+        "tags": [
+          "Koidex"
+        ]
+      }
+    },
+    "/api/external/v1/koidex/catch-of-the-day": {
+      "post": {
+        "description": "Get catch of the day",
+        "operationId": "KoidexController_getCatchOfTheDay",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CatchOfTheDayRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Get catch of the day",
+        "tags": [
+          "Koidex"
+        ]
+      }
+    },
+    "/api/external/v1/devices": {
+      "get": {
+        "description": "Retrieves a list of all devices registered.",
+        "operationId": "DevicesController_listDevices",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListDevicesDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "List all devices",
+        "tags": [
+          "Devices"
+        ]
+      }
+    },
+    "/api/external/v1/devices/groups": {
+      "get": {
+        "description": "Retrieves a list of all device groups for the customer with device counts.",
+        "operationId": "DevicesController_listGroups",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "List all device groups",
+        "tags": [
+          "Devices"
+        ]
+      },
+      "post": {
+        "description": "Creates a new device group for the customer. Maximum 9 groups per customer.",
+        "operationId": "DevicesController_createGroup",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGroupDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Create a new device group",
+        "tags": [
+          "Devices"
+        ]
+      }
+    },
+    "/api/external/v1/devices/groups/add-device": {
+      "post": {
+        "description": "Adds a device to a specified group.",
+        "operationId": "DevicesController_addDeviceToGroup",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddDeviceToGroupDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Add device to group",
+        "tags": [
+          "Devices"
+        ]
+      }
+    },
+    "/api/external/v1/devices/groups/remove-device": {
+      "delete": {
+        "description": "Removes a device from a specified group.",
+        "operationId": "DevicesController_removeDeviceFromGroup",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveDeviceFromGroupDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Remove device from group",
+        "tags": [
+          "Devices"
+        ]
+      }
+    },
+    "/api/external/v1/devices/groups/{groupId}": {
+      "put": {
+        "description": "Renames an existing device group.",
+        "operationId": "DevicesController_renameGroup",
+        "parameters": [
+          {
+            "name": "groupId",
+            "required": true,
+            "in": "path",
+            "description": "ID of the group to rename",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameGroupDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Rename device group",
+        "tags": [
+          "Devices"
+        ]
+      }
+    },
+    "/api/external/v1/findings/customize-risk": {
+      "post": {
+        "description": "Allows adjusting the risk level for a specific finding.",
+        "operationId": "FindingsController_customizeRisk",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomizeRiskRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Customize risk level for a finding",
+        "tags": [
+          "Findings"
+        ]
+      }
+    },
+    "/api/external/v1/findings/list": {
+      "get": {
+        "description": "Retrieves a list of all findings.",
+        "operationId": "FindingsController_listFindings",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListFindingsBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "List all findings",
+        "tags": [
+          "Findings"
+        ]
+      }
+    },
+    "/api/external/v1/users": {
+      "post": {
+        "description": "Creates a new user with specified details.",
+        "operationId": "UsersController_createUser",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Create user",
+        "tags": [
+          "Users"
+        ]
+      },
+      "get": {
+        "description": "Retrieves a list of users, optionally filtered by email.",
+        "operationId": "UsersController_listUsers",
+        "parameters": [
+          {
+            "name": "email",
+            "required": false,
+            "in": "query",
+            "description": "Filter by user email address",
+            "schema": {
+              "example": "user@example.com",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "List users",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/external/v1/users/invite": {
+      "post": {
+        "description": "Invites a new user with specified role.",
+        "operationId": "UsersController_inviteUser",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Invite user",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/external/v1/users/revoke": {
+      "delete": {
+        "description": "Revokes access for the specified user.",
+        "operationId": "UsersController_revokeUserAccess",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeUserAccessDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Revoke user access",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/external/v1/users/reset-2fa": {
+      "put": {
+        "description": "Resets the two-factor authentication setting for a user.",
+        "operationId": "UsersController_resetTwoFactor",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetTwoFactorDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Reset user 2FA",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/external/v1/users/role": {
+      "put": {
+        "description": "Updates the role for the specified user.",
+        "operationId": "UsersController_setUserRole",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetUserRoleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Set user role",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/external/v1/policies/allowlist": {
+      "post": {
+        "description": "Adds an item to the allowlist.",
+        "operationId": "PoliciesController_addAllowList",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddAllowListRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Add an item to allowlist",
+        "tags": [
+          "Policies"
+        ]
+      },
+      "delete": {
+        "description": "Removes an item from the allowlist.",
+        "operationId": "PoliciesController_removeAllowList",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveAllowListRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Remove an item from allowlist",
+        "tags": [
+          "Policies"
+        ]
+      }
+    },
+    "/api/external/v1/policies/allowlist/bulk": {
+      "post": {
+        "description": "Adds multiple items to the allowlist.",
+        "operationId": "PoliciesController_addMultipleToAllowlist",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddMultipleToAllowlistRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Add multiple items to allowlist",
+        "tags": [
+          "Policies"
+        ]
+      },
+      "delete": {
+        "description": "Removes multiple items from the allowlist.",
+        "operationId": "PoliciesController_removeMultipleFromAllowlist",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveMultipleFromAllowlistRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Remove multiple items from allowlist",
+        "tags": [
+          "Policies"
+        ]
+      }
+    },
+    "/api/external/v1/policies/blocklist": {
+      "post": {
+        "description": "Adds an item to the blocklist.",
+        "operationId": "PoliciesController_addBlockList",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddBlockListRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Add an item to blocklist",
+        "tags": [
+          "Policies"
+        ]
+      },
+      "delete": {
+        "description": "Removes an item from the blocklist.",
+        "operationId": "PoliciesController_removeBlockList",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveBlockListRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Remove an item from blocklist",
+        "tags": [
+          "Policies"
+        ]
+      }
+    },
+    "/api/external/v1/policies/blocklist/bulk": {
+      "post": {
+        "description": "Adds multiple items to the blocklist.",
+        "operationId": "PoliciesController_addMultipleToBlocklist",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddMultipleToBlocklistRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Add multiple items to blocklist",
+        "tags": [
+          "Policies"
+        ]
+      },
+      "delete": {
+        "description": "Removes multiple items from the blocklist.",
+        "operationId": "PoliciesController_removeMultipleFromBlocklist",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveMultipleFromBlocklistRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Remove multiple items from blocklist",
+        "tags": [
+          "Policies"
+        ]
+      }
+    },
+    "/api/external/v1/policies/update-enabled": {
+      "patch": {
+        "description": "Enables or disables a policy.",
+        "operationId": "PoliciesController_updatePolicyEnabled",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePolicyEnabledRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Update policy enabled status",
+        "tags": [
+          "Policies"
+        ]
+      }
+    },
+    "/api/external/v1/policies": {
+      "get": {
+        "description": "Retrieves a list of all policies.",
+        "operationId": "PoliciesController_listPolicies",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListPoliciesRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "List all policies",
+        "tags": [
+          "Policies"
+        ]
+      }
+    },
+    "/api/external/v1/policies/global-allowlist": {
+      "get": {
+        "description": "Retrieves the global allowlist.",
+        "operationId": "PoliciesController_getGlobalAllowList",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of allowed items"
+          }
+        },
+        "summary": "Get global allowlist",
+        "tags": [
+          "Policies"
+        ]
+      }
+    },
+    "/api/external/v1/policies/global-blocklist": {
+      "get": {
+        "description": "Retrieves the global blocklist.",
+        "operationId": "PoliciesController_getGlobalBlockList",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of blocked items"
+          }
+        },
+        "summary": "Get global blocklist",
+        "tags": [
+          "Policies"
+        ]
+      }
+    },
+    "/api/external/v1/policies/approval-requests/list": {
+      "get": {
+        "description": "Retrieves a list of approval requests.",
+        "operationId": "ApprovalRequestsController_listApprovalRequests",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetApprovalRequestsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "List approval requests",
+        "tags": [
+          "Approval Requests"
+        ]
+      }
+    },
+    "/api/external/v1/policies/approval-requests/approve": {
+      "post": {
+        "description": "Approves a pending approval request. Updates the request status to approved and triggers any associated workflows.",
+        "operationId": "ApprovalRequestsController_approveApprovalRequest",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveApprovalRequestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Approve an approval request for an item",
+        "tags": [
+          "Approval Requests"
+        ]
+      }
+    },
+    "/api/external/v1/policies/approval-requests/reject": {
+      "post": {
+        "description": "Rejects a pending approval request. Updates the request status to rejected.",
+        "operationId": "ApprovalRequestsController_rejectApprovalRequest",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectApprovalRequestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Reject an approval request for an item",
+        "tags": [
+          "Approval Requests"
+        ]
+      }
+    },
+    "/api/external/v1/policies/approval-requests/request": {
+      "post": {
+        "description": "Creates a new approval request for an item.",
+        "operationId": "ApprovalRequestsController_requestApproval",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestApprovalRequestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Request an approval for an item",
+        "tags": [
+          "Approval Requests"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "KOI API",
+    "description": "The KOI API documentation",
+    "version": "1.1",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [
+    {
+      "url": "https://api.prod.koi.security",
+      "description": "Production"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "GetExtensionInstancesDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateProvisioningTaskDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ExtensionDetails": {
+        "type": "object",
+        "properties": {
+          "extensionId": {
+            "type": "string",
+            "description": "The unique identifier of the item, if not provided, the name must be provided"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the item, if not provided, the extensionId must be provided"
+          },
+          "version": {
+            "type": "string",
+            "description": "The version of the item",
+            "example": "1.0.0"
+          },
+          "platform": {
+            "type": "string",
+            "description": "The platform where the item is hosted, if not provided, the marketplace must be provided"
+          },
+          "marketplace": {
+            "type": "string",
+            "description": "The marketplace where the item is published, if not provided, the platform must be provided"
+          },
+          "includeAiInsights": {
+            "type": "boolean",
+            "description": "Whether to include AI insights in the response"
+          }
+        }
+      },
+      "FetchRequest": {
+        "type": "object",
+        "properties": {
+          "extensionsDetails": {
+            "description": "Array of details of items to fetch",
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExtensionDetails"
+            }
+          }
+        },
+        "required": [
+          "extensionsDetails"
+        ]
+      },
+      "EvaluatorRequest": {
+        "type": "object",
+        "properties": {}
+      },
+      "PolicyDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ProtectionPolicyRequest": {
+        "type": "object",
+        "properties": {}
+      },
+      "SwitchGovernanceModeRequest": {
+        "type": "object",
+        "properties": {}
+      },
+      "PolicyStatisticsRequest": {
+        "type": "object",
+        "properties": {}
+      },
+      "AddToGlobalListsRequest": {
+        "type": "object",
+        "properties": {
+          "customerId": {
+            "type": "string",
+            "description": "The ID of the item to add to the global allowlist"
+          }
+        },
+        "required": [
+          "customerId"
+        ]
+      },
+      "RemoveFromGlobalListsRequest": {
+        "type": "object",
+        "properties": {}
+      },
+      "setGuardrailConfigurationRequestDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "AddGuardrailExclusionRequestDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "RemoveGuardrailExclusionRequestDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "LoginBody": {
+        "type": "object",
+        "properties": {}
+      },
+      "RegisterDeviceRequest": {
+        "type": "object",
+        "properties": {}
+      },
+      "MdmLogRequest": {
+        "type": "object",
+        "properties": {}
+      },
+      "ManagedMdmLogRequest": {
+        "type": "object",
+        "properties": {}
+      },
+      "DirectLogRequest": {
+        "type": "object",
+        "properties": {}
+      },
+      "InstalledInstancesRequest": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateRemediatedInstancesRequest": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateChangedInstancesRequest": {
+        "type": "object",
+        "properties": {}
+      },
+      "MdmRunResult": {
+        "type": "object",
+        "properties": {}
+      },
+      "LogFilterQueryDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "LogInstallDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "LogUninstallDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ValidateAwsCustomerDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "NotificationDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "NotificationSettingsDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ItemDetails": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "description": "The unique identifier of the item, if not provided, the name must be provided"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the item, if not provided, the itemId must be provided"
+          },
+          "version": {
+            "type": "string",
+            "description": "The version of the item",
+            "example": "1.0.0"
+          },
+          "platform": {
+            "type": "string",
+            "description": "The platform where the item is hosted, if not provided, the marketplace must be provided"
+          },
+          "marketplace": {
+            "type": "string",
+            "description": "The marketplace where the item is published, if not provided, the platform must be provided"
+          },
+          "includeAiInsights": {
+            "type": "boolean",
+            "description": "Whether to include AI insights in the response"
+          }
+        }
+      },
+      "FetchItemsRequest": {
+        "type": "object",
+        "properties": {
+          "itemsDetails": {
+            "description": "Array of details of items to fetch",
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ItemDetails"
+            }
+          }
+        },
+        "required": [
+          "itemsDetails"
+        ]
+      },
+      "SearchRequest": {
+        "type": "object",
+        "properties": {
+          "searchTerm": {
+            "type": "string",
+            "description": "The search term",
+            "example": "koidex"
+          },
+          "marketplace": {
+            "type": "string",
+            "description": "The marketplace where the item is published",
+            "enum": [
+              "chrome",
+              "edge",
+              "vs",
+              "vsc",
+              "jet",
+              "office",
+              "koi",
+              "firefox",
+              "homebrew",
+              "huggingface",
+              "npp",
+              "npm",
+              "openvsx",
+              "windsurf",
+              "cursor",
+              "unknown",
+              "pypi",
+              "software_mac",
+              "software_windows",
+              "software_linux"
+            ],
+            "example": "vsc"
+          },
+          "pageSize": {
+            "type": "object",
+            "description": "The page size",
+            "example": 5,
+            "default": 5
+          },
+          "page": {
+            "type": "object",
+            "description": "The page number",
+            "example": 1,
+            "default": 1
+          }
+        },
+        "required": [
+          "searchTerm",
+          "marketplace"
+        ]
+      },
+      "GetItemDataRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the item",
+            "example": "00669eec-63de-49b4-896e-a27c999d726d"
+          },
+          "version": {
+            "type": "string",
+            "description": "The version of the item",
+            "example": "0.32.0"
+          },
+          "marketplace": {
+            "type": "string",
+            "description": "The marketplace where the item is published",
+            "enum": [
+              "chrome",
+              "edge",
+              "vs",
+              "vsc",
+              "jet",
+              "office",
+              "koi",
+              "firefox",
+              "homebrew",
+              "huggingface",
+              "npp",
+              "npm",
+              "openvsx",
+              "windsurf",
+              "cursor",
+              "unknown",
+              "pypi",
+              "software_mac",
+              "software_windows",
+              "software_linux"
+            ],
+            "example": "vsc"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "marketplace"
+        ]
+      },
+      "ScannersReportRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the item",
+            "example": "00669eec-63de-49b4-896e-a27c999d726d"
+          },
+          "version": {
+            "type": "string",
+            "description": "The version of the item",
+            "example": "0.32.0"
+          },
+          "marketplace": {
+            "type": "string",
+            "description": "The marketplace where the item is published",
+            "enum": [
+              "chrome",
+              "edge",
+              "vs",
+              "vsc",
+              "jet",
+              "office",
+              "koi",
+              "firefox",
+              "homebrew",
+              "huggingface",
+              "npp",
+              "npm",
+              "openvsx",
+              "windsurf",
+              "cursor",
+              "unknown",
+              "pypi",
+              "software_mac",
+              "software_windows",
+              "software_linux"
+            ],
+            "example": "vsc"
+          },
+          "scanners": {
+            "type": "string",
+            "description": "The scanners to include in the risk report",
+            "enum": [
+              "apiCalls",
+              "secrets",
+              "externalCommunications",
+              "dependencies",
+              "license",
+              "vulnerabilities",
+              "aiInsights",
+              "permissions",
+              "repository"
+            ],
+            "example": [
+              "apiCalls",
+              "vulnerabilities"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "marketplace",
+          "scanners"
+        ]
+      },
+      "CatchOfTheDayRequest": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "number",
+            "description": "The number of items to return",
+            "default": 6,
+            "example": 6
+          }
+        }
+      },
+      "ListDevicesDto": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "description": "Page number for pagination",
+            "minimum": 0,
+            "default": 0
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Number of devices to return per page",
+            "minimum": 1,
+            "maximum": 500,
+            "default": 100
+          }
+        }
+      },
+      "CreateGroupDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the device group",
+            "maxLength": 100,
+            "minLength": 1,
+            "example": "Development Team"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "AddDeviceToGroupDto": {
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "type": "integer",
+            "description": "ID of the device group",
+            "example": 1
+          },
+          "deviceId": {
+            "type": "string",
+            "description": "ID of the device to add to the group",
+            "example": "123e4567-e89b-12d3-a456-426614174001"
+          }
+        },
+        "required": [
+          "groupId",
+          "deviceId"
+        ]
+      },
+      "RemoveDeviceFromGroupDto": {
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "type": "integer",
+            "description": "ID of the device group",
+            "example": 1
+          },
+          "deviceId": {
+            "type": "string",
+            "description": "ID of the device to remove from the group",
+            "example": "123e4567-e89b-12d3-a456-426614174001"
+          }
+        },
+        "required": [
+          "groupId",
+          "deviceId"
+        ]
+      },
+      "RenameGroupDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "New name for the device group",
+            "maxLength": 100,
+            "minLength": 1,
+            "example": "Updated Development Team"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "CustomizeRiskRequest": {
+        "type": "object",
+        "properties": {
+          "findingName": {
+            "type": "string",
+            "description": "The name of the finding to customize risk for"
+          },
+          "risk": {
+            "type": "number",
+            "description": "The risk level to set, between 0 and 10",
+            "minimum": 0,
+            "maximum": 10
+          }
+        },
+        "required": [
+          "findingName",
+          "risk"
+        ]
+      },
+      "ListFindingsBody": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "description": "Number of findings to return per page",
+            "minimum": 0,
+            "maximum": 500,
+            "default": 500
+          },
+          "page": {
+            "type": "integer",
+            "description": "Page number for pagination",
+            "minimum": 0,
+            "default": 0
+          }
+        }
+      },
+      "CreateUserDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "User email address",
+            "example": "user@example.com"
+          },
+          "first_name": {
+            "type": "string",
+            "description": "User first name",
+            "example": "John"
+          },
+          "last_name": {
+            "type": "string",
+            "description": "User last name",
+            "example": "Doe"
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Whether the user is active",
+            "example": true
+          }
+        },
+        "required": [
+          "email",
+          "first_name",
+          "last_name",
+          "active"
+        ]
+      },
+      "InviteUserDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "User email address",
+            "example": "user@example.com"
+          },
+          "first_name": {
+            "type": "string",
+            "description": "User first name",
+            "example": "John"
+          },
+          "last_name": {
+            "type": "string",
+            "description": "User last name",
+            "example": "Doe"
+          },
+          "role": {
+            "type": "string",
+            "description": "User role",
+            "enum": [
+              "admin",
+              "user",
+              "viewer"
+            ],
+            "example": "user"
+          }
+        },
+        "required": [
+          "email",
+          "first_name",
+          "last_name",
+          "role"
+        ]
+      },
+      "RevokeUserAccessDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "User email address to revoke access for",
+            "example": "user@example.com"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "ResetTwoFactorDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "User email address to reset 2FA for",
+            "example": "user@example.com"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "SetUserRoleDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "User email address",
+            "example": "user@example.com"
+          },
+          "role": {
+            "type": "string",
+            "description": "New user role",
+            "enum": [
+              "admin",
+              "user",
+              "viewer"
+            ],
+            "example": "admin"
+          }
+        },
+        "required": [
+          "email",
+          "role"
+        ]
+      },
+      "AddAllowListRequest": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "description": "The ID of the item to add to allowlist"
+          },
+          "marketplace": {
+            "type": "string",
+            "description": "The marketplace of the item",
+            "enum": [
+              "chrome",
+              "edge",
+              "vs",
+              "vsc",
+              "jet",
+              "office",
+              "koi",
+              "firefox",
+              "homebrew",
+              "huggingface",
+              "npp",
+              "npm",
+              "openvsx",
+              "windsurf",
+              "cursor",
+              "unknown",
+              "pypi",
+              "software_mac",
+              "software_windows",
+              "software_linux"
+            ],
+            "example": "vsc"
+          }
+        },
+        "required": [
+          "itemId",
+          "marketplace"
+        ]
+      },
+      "AddMultipleToAllowlistRequest": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "description": "The items to add to the allowlist",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "RemoveAllowListRequest": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "description": "The ID of the item to remove from allowlist"
+          },
+          "marketplace": {
+            "type": "string",
+            "description": "The marketplace of the item",
+            "enum": [
+              "chrome",
+              "edge",
+              "vs",
+              "vsc",
+              "jet",
+              "office",
+              "koi",
+              "firefox",
+              "homebrew",
+              "huggingface",
+              "npp",
+              "npm",
+              "openvsx",
+              "windsurf",
+              "cursor",
+              "unknown",
+              "pypi",
+              "software_mac",
+              "software_windows",
+              "software_linux"
+            ],
+            "example": "vsc"
+          }
+        },
+        "required": [
+          "itemId",
+          "marketplace"
+        ]
+      },
+      "RemoveMultipleFromAllowlistRequest": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "description": "The items to remove from the allowlist",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "AddBlockListRequest": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "description": "The ID of the item to add to blocklist"
+          },
+          "marketplace": {
+            "type": "string",
+            "description": "The marketplace of the item",
+            "enum": [
+              "chrome",
+              "edge",
+              "vs",
+              "vsc",
+              "jet",
+              "office",
+              "koi",
+              "firefox",
+              "homebrew",
+              "huggingface",
+              "npp",
+              "npm",
+              "openvsx",
+              "windsurf",
+              "cursor",
+              "unknown",
+              "pypi",
+              "software_mac",
+              "software_windows",
+              "software_linux"
+            ],
+            "example": "vsc"
+          }
+        },
+        "required": [
+          "itemId",
+          "marketplace"
+        ]
+      },
+      "AddMultipleToBlocklistRequest": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "description": "The items to add to the blocklist",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "RemoveBlockListRequest": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "description": "The ID of the item to remove from blocklist"
+          },
+          "marketplace": {
+            "type": "string",
+            "description": "The marketplace of the item",
+            "enum": [
+              "chrome",
+              "edge",
+              "vs",
+              "vsc",
+              "jet",
+              "office",
+              "koi",
+              "firefox",
+              "homebrew",
+              "huggingface",
+              "npp",
+              "npm",
+              "openvsx",
+              "windsurf",
+              "cursor",
+              "unknown",
+              "pypi",
+              "software_mac",
+              "software_windows",
+              "software_linux"
+            ],
+            "example": "vsc"
+          }
+        },
+        "required": [
+          "itemId",
+          "marketplace"
+        ]
+      },
+      "RemoveMultipleFromBlocklistRequest": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "description": "The items to remove from the blocklist",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "UpdatePolicyEnabledRequest": {
+        "type": "object",
+        "properties": {
+          "policyId": {
+            "type": "number",
+            "description": "The ID of the policy to update"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether to enable or disable the policy, true to enable, false to disable"
+          }
+        },
+        "required": [
+          "policyId",
+          "enabled"
+        ]
+      },
+      "ListPoliciesRequest": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "description": "Page number for pagination",
+            "default": 0
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Number of items per page",
+            "default": 100
+          }
+        }
+      },
+      "GetApprovalRequestsRequest": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "description": "Page number for pagination",
+            "default": 0
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Number of items per page",
+            "default": 100
+          },
+          "marketplace": {
+            "type": "string",
+            "description": "Optional filter by marketplace",
+            "enum": [
+              "chrome",
+              "edge",
+              "vs",
+              "vsc",
+              "jet",
+              "office",
+              "koi",
+              "firefox",
+              "homebrew",
+              "huggingface",
+              "npp",
+              "npm",
+              "openvsx",
+              "windsurf",
+              "cursor",
+              "unknown",
+              "pypi",
+              "software_mac",
+              "software_windows",
+              "software_linux"
+            ]
+          },
+          "approvalStatus": {
+            "type": "string",
+            "description": "Optional filter by approval status",
+            "enum": [
+              "PENDING",
+              "APPROVED",
+              "REJECTED"
+            ]
+          },
+          "requesterEmail": {
+            "type": "string",
+            "description": "Optional filter by requester email",
+            "example": "john.doe@example.com"
+          },
+          "requestedFrom": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Optional filter by request date from",
+            "example": "2025-04-23 17:22:24.023Z"
+          },
+          "requestedTo": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Optional filter by request date to",
+            "example": "2025-04-23 17:22:24.023Z"
+          }
+        }
+      },
+      "ApproveApprovalRequestRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the approval request"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "RejectApprovalRequestRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the approval request"
+          },
+          "reason": {
+            "type": "string",
+            "description": "The reason for rejecting the approval request"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "RequestApprovalRequestRequest": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "description": "The ID of the item"
+          },
+          "marketplace": {
+            "type": "string",
+            "description": "The marketplace of the item",
+            "enum": [
+              "chrome",
+              "edge",
+              "vs",
+              "vsc",
+              "jet",
+              "office",
+              "koi",
+              "firefox",
+              "homebrew",
+              "huggingface",
+              "npp",
+              "npm",
+              "openvsx",
+              "windsurf",
+              "cursor",
+              "unknown",
+              "pypi",
+              "software_mac",
+              "software_windows",
+              "software_linux"
+            ],
+            "example": "vsc"
+          },
+          "version": {
+            "type": "string",
+            "description": "The version of the item",
+            "example": "1.0.0"
+          },
+          "justification": {
+            "type": "string",
+            "description": "The justification for the approval request"
+          },
+          "requesterEmail": {
+            "type": "string",
+            "description": "The email of the requester"
+          }
+        },
+        "required": [
+          "itemId",
+          "marketplace",
+          "justification",
+          "requesterEmail"
+        ]
+      },
+      "CreateCustomerRequest": {
+        "type": "object",
+        "properties": {}
+      },
+      "GenerateCsrRequest": {
+        "type": "object",
+        "properties": {}
+      },
+      "GeneratePacRequest": {
+        "type": "object",
+        "properties": {}
+      },
+      "StoreSignedCsr": {
+        "type": "object",
+        "properties": {}
+      },
+      "SignAndUpload": {
+        "type": "object",
+        "properties": {}
+      },
+      "GetCertDetails": {
+        "type": "object",
+        "properties": {}
+      },
+      "GetCsrDetails": {
+        "type": "object",
+        "properties": {}
+      },
+      "GetPacDetails": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateFalconIntegrationRequest": {
+        "type": "object",
+        "properties": {}
+      },
+      "CustomHostFileComment": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  }
+}
