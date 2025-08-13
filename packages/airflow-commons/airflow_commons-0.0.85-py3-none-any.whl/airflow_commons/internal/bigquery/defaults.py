@@ -1,0 +1,4 @@
+TIMEOUT = 1800
+LOCATION = "US"
+SELECT_RETURN_TYPE = "dataframe"
+STATE_FILTER = "running"
