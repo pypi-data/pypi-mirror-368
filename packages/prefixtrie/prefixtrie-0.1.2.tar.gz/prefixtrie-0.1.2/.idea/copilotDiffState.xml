@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CopilotDiffPersistence">
+    <option name="pendingDiffs">
+      <map>
+        <entry key="$PROJECT_DIR$/.github/workflows/ci.yml">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/.github/workflows/ci.yml" />
+              <option name="originalContent" value="name: CI&#10;&#10;on:&#10;  push:&#10;    branches: [ master, main ]&#10;  pull_request:&#10;  workflow_dispatch:&#10;&#10;jobs:&#10;  test:&#10;    strategy:&#10;      matrix:&#10;        os: [ubuntu-latest, macos-latest, windows-latest]&#10;        python-version: ['3.10', '3.11', '3.12', '3.x']&#10;      fail-fast: false&#10;    runs-on: ${{ matrix.os }}&#10;    steps:&#10;      - uses: actions/checkout@v4&#10;        with:&#10;          fetch-depth: 0  # Needed for setuptools-scm&#10;      - uses: actions/setup-python@v5&#10;        with:&#10;          python-version: ${{ matrix.python-version }}&#10;      - name: Install dependencies&#10;        env:&#10;          CFLAGS: &quot;-O3&quot;&#10;          CXXFLAGS: &quot;-O3&quot;&#10;        run: |&#10;          python -m pip install --upgrade pip&#10;          pip install -e .[test]&#10;      - name: Run tests&#10;        run: pytest" />
+              <option name="updatedContent" value="name: CI&#10;&#10;on:&#10;  push:&#10;    branches: [ master, main ]&#10;  pull_request:&#10;  workflow_dispatch:&#10;&#10;jobs:&#10;  test:&#10;    strategy:&#10;      matrix:&#10;        os: [ubuntu-latest, macos-latest, windows-latest]&#10;        python-version: ['3.10', '3.11', '3.12', '3.x']&#10;      fail-fast: false&#10;    runs-on: ${{ matrix.os }}&#10;    steps:&#10;      - uses: actions/checkout@v4&#10;        with:&#10;          fetch-depth: 0  # Needed for setuptools-scm&#10;      - uses: actions/setup-python@v5&#10;        with:&#10;          python-version: ${{ matrix.python-version }}&#10;      - name: Install dependencies&#10;        env:&#10;          CFLAGS: &quot;-O3&quot;&#10;          CXXFLAGS: &quot;-O3&quot;&#10;        run: |&#10;          python -m pip install --upgrade pip&#10;          pip install -e .[test]&#10;      - name: Run tests&#10;        run: pytest" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/.github/workflows/release.yml">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/.github/workflows/release.yml" />
+              <option name="originalContent" value="name: Build and Publish&#10;&#10;on:&#10;  release:&#10;    types: [published]&#10;  workflow_dispatch:&#10;&#10;jobs:&#10;  build-wheels:&#10;    name: Build wheels on ${{ matrix.os }}&#10;    runs-on: ${{ matrix.os }}&#10;    strategy:&#10;      matrix:&#10;        os: [ubuntu-latest, macos-latest, windows-latest]&#10;        include:&#10;          - os: ubuntu-latest&#10;            cflags: &quot;-O3&quot;&#10;          - os: macos-latest&#10;            cflags: &quot;-O3&quot;&#10;          - os: windows-latest&#10;            cflags: &quot;/O2&quot;&#10;    steps:&#10;      - uses: actions/checkout@v4&#10;        with:&#10;          fetch-depth: 0  # Needed for setuptools-scm to get proper version&#10;      - uses: actions/setup-python@v5&#10;        with:&#10;          python-version: '3.x'&#10;      - name: Install cibuildwheel&#10;        run: |&#10;          python -m pip install --upgrade pip&#10;          pip install cibuildwheel&#10;      - name: Build wheels&#10;        env:&#10;          CIBW_SKIP: cp36-* cp37-* cp38-* cp39-*&#10;          CIBW_ENVIRONMENT: &quot;CFLAGS='${{ matrix.cflags }}' CXXFLAGS='${{ matrix.cflags }}'&quot;&#10;        run: cibuildwheel --output-dir dist&#10;      - uses: actions/upload-artifact@v4&#10;        with:&#10;          name: wheels-${{ matrix.os }}&#10;          path: dist/*.whl&#10;&#10;  build-sdist:&#10;    runs-on: ubuntu-latest&#10;    steps:&#10;      - uses: actions/checkout@v4&#10;      - uses: actions/setup-python@v5&#10;        with:&#10;          python-version: '3.x'&#10;      - name: Build sdist&#10;        run: |&#10;          python -m pip install --upgrade build&#10;          python -m build --sdist --outdir dist&#10;      - uses: actions/upload-artifact@v4&#10;        with:&#10;          name: sdist&#10;          path: dist/*.tar.gz&#10;&#10;  publish:&#10;    needs: [build-wheels, build-sdist]&#10;    runs-on: ubuntu-latest&#10;    steps:&#10;      - uses: actions/checkout@v4&#10;      - uses: actions/download-artifact@v4&#10;        with:&#10;          pattern: '*'&#10;          path: dist&#10;          merge-multiple: true&#10;      - name: Publish to PyPI&#10;        uses: pypa/gh-action-pypi-publish@release/v1&#10;        with:&#10;          user: __token__&#10;          password: ${{ secrets.PYPI_API_TOKEN }}&#10;          packages_dir: dist&#10;          skip_existing: true" />
+              <option name="updatedContent" value="name: Build and Publish&#10;&#10;on:&#10;  release:&#10;    types: [published]&#10;  workflow_dispatch:&#10;&#10;jobs:&#10;  build-wheels:&#10;    name: Build wheels on ${{ matrix.os }}&#10;    runs-on: ${{ matrix.os }}&#10;    strategy:&#10;      matrix:&#10;        os: [ubuntu-latest, macos-latest, windows-latest]&#10;        include:&#10;          - os: ubuntu-latest&#10;            cflags: &quot;-O3&quot;&#10;          - os: macos-latest&#10;            cflags: &quot;-O3&quot;&#10;          - os: windows-latest&#10;            cflags: &quot;/O2&quot;&#10;    steps:&#10;      - uses: actions/checkout@v4&#10;        with:&#10;          fetch-depth: 0  # Needed for setuptools-scm to get proper version&#10;      - uses: actions/setup-python@v5&#10;        with:&#10;          python-version: '3.x'&#10;      - name: Install cibuildwheel&#10;        run: |&#10;          python -m pip install --upgrade pip&#10;          pip install cibuildwheel&#10;      - name: Build wheels&#10;        env:&#10;          CIBW_SKIP: cp36-* cp37-* cp38-* cp39-*&#10;          CIBW_ENVIRONMENT: &quot;CFLAGS='${{ matrix.cflags }}' CXXFLAGS='${{ matrix.cflags }}'&quot;&#10;        run: cibuildwheel --output-dir dist&#10;      - uses: actions/upload-artifact@v4&#10;        with:&#10;          name: wheels-${{ matrix.os }}&#10;          path: dist/*.whl&#10;&#10;  build-sdist:&#10;    runs-on: ubuntu-latest&#10;    steps:&#10;      - uses: actions/checkout@v4&#10;        with:&#10;          fetch-depth: 0  # Needed for setuptools-scm&#10;      - uses: actions/setup-python@v5&#10;        with:&#10;          python-version: '3.x'&#10;      - name: Build sdist&#10;        run: |&#10;          python -m pip install --upgrade build&#10;          python -m build --sdist --outdir dist&#10;      - uses: actions/upload-artifact@v4&#10;        with:&#10;          name: sdist&#10;          path: dist/*.tar.gz&#10;&#10;  publish:&#10;    needs: [build-wheels, build-sdist]&#10;    runs-on: ubuntu-latest&#10;    environment: &#10;      name: pypi&#10;      url: https://pypi.org/p/prefixtrie&#10;    permissions:&#10;      id-token: write  # For trusted publishing&#10;    steps:&#10;      - uses: actions/checkout@v4&#10;      - uses: actions/download-artifact@v4&#10;        with:&#10;          pattern: '*'&#10;          path: dist&#10;          merge-multiple: true&#10;      - name: Publish to PyPI&#10;        uses: pypa/gh-action-pypi-publish@release/v1&#10;        with:&#10;          packages-dir: dist&#10;          skip-existing: true" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/.pre-commit-config.yaml">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/.pre-commit-config.yaml" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/CHANGELOG.md">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/CHANGELOG.md" />
+              <option name="updatedContent" value="# Changelog&#10;### Features&#10;- Efficient exact and approximate string matching&#10;- Configurable maximum substitutions&#10;- Optional indel (insertion/deletion) support&#10;- Optimized for read-only use cases&#10;- Aggressive caching for performance&#10;- C++ backend for speed&#10;&#10;[Unreleased]: https://github.com/austinv11/PrefixTrie/compare/v0.1.0...HEAD&#10;[0.1.0]: https://github.com/austinv11/PrefixTrie/releases/tag/v0.1.0" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/CONTRIBUTING.md">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/CONTRIBUTING.md" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/debug_exact.py">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/debug_exact.py" />
+              <option name="updatedContent" value="import pyximport&#10;pyximport.install()&#10;from prefixtrie._impl import cPrefixTrie&#10;&#10;# Test the exact flag issue&#10;print(&quot;=== Testing exact flag behavior ===&quot;)&#10;&#10;entries = [&quot;hello&quot;, &quot;help&quot;, &quot;helicopter&quot;]&#10;trie = cPrefixTrie(entries, allow_indels=True)&#10;&#10;# Test the failing case&#10;result, exact = trie.search(&quot;helllo&quot;, correction_budget=1)&#10;print(f&quot;'helllo' -&gt; '{result}', exact={exact} (should be exact=False)&quot;)&#10;&#10;# Test some other cases for comparison&#10;result, exact = trie.search(&quot;hello&quot;, correction_budget=1)&#10;print(f&quot;'hello' -&gt; '{result}', exact={exact} (should be exact=True)&quot;)&#10;&#10;result, exact = trie.search(&quot;hallo&quot;, correction_budget=1)&#10;print(f&quot;'hallo' -&gt; '{result}', exact={exact} (should be exact=False)&quot;)&#10;&#10;# Test without budget (should only find exact matches)&#10;result, exact = trie.search(&quot;helllo&quot;, correction_budget=0)&#10;print(f&quot;'helllo' (budget=0) -&gt; '{result}', exact={exact} (should be None)&quot;)&#10;&#10;# Test if it's actually the same string&#10;print(f&quot;\nString comparison: 'helllo' == 'hello': {'helllo' == 'hello'}&quot;)&#10;print(f&quot;Lengths: 'helllo'={len('helllo')}, 'hello'={len('hello')}&quot;)" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/debug_insertion.py">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/debug_insertion.py" />
+              <option name="updatedContent" value="import pyximport&#10;pyximport.install()&#10;from prefixtrie._impl import cPrefixTrie&#10;&#10;# Test the specific insertion issue&#10;print(&quot;=== Testing insertion logic ===&quot;)&#10;&#10;# Simple case: &quot;hel&quot; should find &quot;help&quot; with 1 insertion&#10;trie = cPrefixTrie([&quot;help&quot;], allow_indels=True)&#10;result, exact = trie.search(&quot;hel&quot;, correction_budget=1)&#10;print(f&quot;'hel' -&gt; 'help': {result} (should be 'help')&quot;)&#10;&#10;# Even simpler case: &quot;he&quot; should find &quot;help&quot; with 2 insertions&#10;result, exact = trie.search(&quot;he&quot;, correction_budget=2)&#10;print(f&quot;'he' -&gt; 'help': {result} (should be 'help')&quot;)&#10;&#10;# Test at trie boundary: &quot;h&quot; should find &quot;help&quot; with 3 insertions&#10;result, exact = trie.search(&quot;h&quot;, correction_budget=3)&#10;print(f&quot;'h' -&gt; 'help': {result} (should be 'help')&quot;)&#10;&#10;# Test empty string should find &quot;help&quot; with 4 insertions&#10;result, exact = trie.search(&quot;&quot;, correction_budget=4)&#10;print(f&quot;'' -&gt; 'help': {result} (should be 'help')&quot;)" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/debug_test.py">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/debug_test.py" />
+              <option name="originalContent" value="&#10;&#10;" />
+              <option name="updatedContent" value="import pyximport&#10;pyximport.install()&#10;from prefixtrie._impl import cPrefixTrie&#10;&#10;# Debug the failing test case&#10;print(&quot;=== Debugging insertion/deletion behavior ===&quot;)&#10;&#10;entries = [&quot;hello&quot;, &quot;help&quot;, &quot;helicopter&quot;]&#10;trie = cPrefixTrie(entries, allow_indels=True)&#10;&#10;# Test the failing case&#10;query = &quot;helo&quot;&#10;result, exact = trie.search(query, correction_budget=1)&#10;print(f&quot;Query: '{query}' -&gt; Result: '{result}', Exact: {exact}&quot;)&#10;print(f&quot;Expected: 'hello' (insertion of 'l')&quot;)&#10;print(f&quot;Actual result needs: {len(query)} -&gt; {len(result)} chars&quot;)&#10;&#10;# Let's test what happens with different queries&#10;test_cases = [&#10;    (&quot;helo&quot;, 1),    # missing 'l' - should be &quot;hello&quot;&#10;    (&quot;hel&quot;, 1),     # missing 'p' - should be &quot;help&quot;&#10;    (&quot;helllo&quot;, 1),  # extra 'l' - should be &quot;hello&quot;&#10;    (&quot;helpx&quot;, 1),   # extra 'x' - should be &quot;help&quot;&#10;]&#10;&#10;print(&quot;\n=== Testing various edit scenarios ===&quot;)&#10;for query, budget in test_cases:&#10;    result, exact = trie.search(query, correction_budget=budget)&#10;    print(f&quot;'{query}' (budget={budget}) -&gt; '{result}' (exact={exact})&quot;)&#10;&#10;# Test with each entry individually to see algorithm preference&#10;print(&quot;\n=== Testing with individual entries ===&quot;)&#10;for entry in entries:&#10;    single_trie = cPrefixTrie([entry], allow_indels=True)&#10;    result, exact = single_trie.search(&quot;helo&quot;, correction_budget=1)&#10;    print(f&quot;Single entry '{entry}': 'helo' -&gt; '{result}' (exact={exact})&quot;)&#10;&#10;# Test edit distances manually&#10;print(&quot;\n=== Manual edit distance analysis ===&quot;)&#10;print(&quot;'helo' -&gt; 'hello': 1 insertion (insert 'l' at position 2)&quot;)&#10;print(&quot;'helo' -&gt; 'help': 1 substitution ('o' -&gt; 'p') + 1 deletion (remove 'o')&quot;)&#10;print(&quot;Wait, that's wrong. Let me recalculate:&quot;)&#10;print(&quot;'helo' -&gt; 'help': actually needs 2 edits (substitute 'o'-&gt;'p', then what?)&quot;)&#10;print()&#10;print(&quot;Let's check character by character:&quot;)&#10;print(&quot;helo -&gt; hello: h=h, e=e, l=l, o-&gt;l (substitute), +o (insert) = 2 edits&quot;)&#10;print(&quot;helo -&gt; help:  h=h, e=e, l=l, o-&gt;p (substitute) = 1 edit&quot;)&#10;print()&#10;print(&quot;Actually, I think 'help' IS the correct answer for 'helo' with 1 edit!&quot;)&#10;&#10;# Debug another failing case&#10;print(&quot;\n=== Debugging 'hell' case ===&quot;)&#10;query = &quot;hell&quot;&#10;result, exact = trie.search(query, correction_budget=1)&#10;print(f&quot;Query: '{query}' -&gt; Result: '{result}', Exact: {exact}&quot;)&#10;&#10;print(&quot;\nEdit distance analysis:&quot;)&#10;print(&quot;'hell' -&gt; 'hello': insert 'o' at end = 1 edit&quot;)&#10;print(&quot;'hell' -&gt; 'help': substitute 'l'-&gt;'p' at position 3 = 1 edit&quot;)&#10;print(&quot;Both require exactly 1 edit, so either could be valid!&quot;)&#10;&#10;# Debug the &quot;hel&quot; case&#10;print(&quot;\n=== Debugging 'hel' case ===&quot;)&#10;query = &quot;hel&quot;&#10;result, exact = trie.search(query, correction_budget=1)&#10;print(f&quot;Query: '{query}' -&gt; Result: '{result}', Exact: {exact}&quot;)&#10;&#10;print(&quot;\nEdit distance analysis:&quot;)&#10;print(&quot;'hel' -&gt; 'hello': insert 'l' at pos 3, insert 'o' at pos 4 = 2 edits&quot;)&#10;print(&quot;'hel' -&gt; 'help': insert 'p' at pos 3 = 1 edit&quot;)&#10;print(&quot;'hel' -&gt; 'helicopter': insert many chars = many edits&quot;)&#10;&#10;# Test with individual entries&#10;print(&quot;\n=== Testing 'hel' with individual entries ===&quot;)&#10;for entry in entries:&#10;    single_trie = cPrefixTrie([entry], allow_indels=True)&#10;    result, exact = single_trie.search(&quot;hel&quot;, correction_budget=1)&#10;    print(f&quot;Single entry '{entry}': 'hel' -&gt; '{result}' (exact={exact})&quot;)&#10;&#10;# Test what happens with budget 2&#10;result, exact = trie.search(&quot;hel&quot;, correction_budget=2)&#10;print(f&quot;\nWith budget 2: 'hel' -&gt; '{result}' (exact={exact})&quot;)" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/pyproject.toml">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/pyproject.toml" />
+              <option name="originalContent" value="&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;[project.optional-dependencies]&#10;dev = [&#10;    &quot;cython&gt;=3.0&quot;,&#10;    &quot;pytest&gt;=8.4.1&quot;,&#10;    &quot;build&gt;=1.0.0&quot;,&#10;    &quot;twine&gt;=5.0.0&quot;,&#10;]&#10;test = [&#10;    &quot;pytest&gt;=8.4.1&quot;,&#10;]&#10;" />
+              <option name="updatedContent" value="&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/setup.cfg">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/setup.cfg" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>
