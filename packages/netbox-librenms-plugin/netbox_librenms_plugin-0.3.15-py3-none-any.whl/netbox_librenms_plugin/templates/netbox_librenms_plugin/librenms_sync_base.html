@@ -1,0 +1,320 @@
+{% extends 'generic/object.html' %}
+{% load buttons %}
+{% load helpers %}
+{% load plugins %}
+{% load static %}
+{% load i18n %}
+{% load render_table from django_tables2 %}
+
+{% block javascript %}
+{{ block.super }}
+<script src="{% static 'netbox_librenms_plugin/js/librenms_sync.js' %}"></script>
+{% endblock %}
+
+{% block breadcrumbs %}
+{{ block.super }}
+{% with model_name=object|meta:"model_name" %}
+{% if model_name == "device" %}
+<li class="breadcrumb-item">
+    <a href="{% url 'dcim:site' pk=object.site.pk %}">{{ object.site }}</a>
+</li>
+{% elif model_name == "virtualmachine" %}
+<li class="breadcrumb-item">
+    <a href="{% url 'virtualization:virtualmachine_list' %}?cluster_id={{ object.cluster.pk }}">{{ object.cluster }}</a>
+</li>
+{% endif %}
+{% endwith %}
+{% endblock %}
+
+{% block content %}
+
+<!-- LibreNMS Server Information -->
+{% if librenms_server_info %}
+<div class="alert alert-info mb-3" role="alert">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <i class="mdi mdi-server-network"></i>
+            <strong>Active LibreNMS Server:</strong>
+            {% if librenms_server_info.is_legacy %}
+            {{ librenms_server_info.url }}
+            {% else %}
+            {{ librenms_server_info.display_name }} ({{ librenms_server_info.url }})
+            {% endif %}
+        </div>
+        {% if not librenms_server_info.is_legacy %}
+        <a href="{% url 'plugins:netbox_librenms_plugin:settings' %}" class="btn btn-sm btn-outline-primary">
+            <i class="mdi mdi-cog"></i> Change Server
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Device Status and LibreNMS Information -->
+<div class="d-flex justify-content-between align-items-center mb-1">
+    <div class="card">
+        <h5 class="card-header">Device Status</h5>
+        <div class="card-body">
+            <table class="table table-hover attr-table">
+                <tbody>
+                    <tr>
+                        <th scope="row">Status</th>
+                        <td>
+                            <span class="{% if has_librenms_id %}text-success{% else %}text-danger{% endif %}">
+                                {% if found_in_librenms %}
+                                <a href="{{ librenms_device_url }}" target="_blank">Found in LibreNMS</a>
+                                {% else %}
+                                Not found in LibreNMS
+                                <div class="m-2"><button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                                        data-bs-target="#add-device-modal">
+                                        Add to LibreNMS
+                                    </button>
+                                </div>
+                                {% endif %}
+                            </span>
+                        </td>
+                    </tr>
+                    {% if found_in_librenms %}
+                    <tr>
+                        <th scope="row">LibreNMS ID</th>
+                        <td>{{ librenms_device_id }}</td>
+                    </tr>
+                    {% with model_name=object|meta:"model_name" %}
+                    {% if model_name == "device" %}
+                    <tr>
+                        <th scope="row">Device Type</th>
+                        <td>{{ librenms_device_hardware }}</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">LibreNMS Location</th>
+                        <td>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>{{ librenms_device_location }}</span>
+                                <form method="post"
+                                    action="{% url 'plugins:netbox_librenms_plugin:update_device_location' pk=object.pk %}">
+                                    {% csrf_token %}
+                                    {% if librenms_device_location != object.site.name %}
+                                    <button type="submit" class="btn btn-primary"
+                                        title="Sync LibreNMS location with NetBox Site: {{ object.site.name }}">
+                                        <i class="mdi mdi-sync"></i>
+                                    </button>
+                                    {% else %}
+                                    <span class="text-success" title="LibreNMS location matches NetBox site">
+                                        <i class="ms-1 mdi mdi-check-circle"></i>
+                                    </span>
+                                    {% endif %}
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endwith %}
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div> <!-- End Device LibreNMS Status -->
+
+
+<!-- Last Updated Information and Cache Countdown -->
+{% if last_fetched %}
+<span class="fs-5 mt-2 text-muted">Last data updated: {{ last_fetched|date:"Y-m-d H:i" }}</span>
+{% endif %}
+
+{% if librenms_device_id %}
+{% if found_in_librenms %}
+<!-- Tab Navigation -->
+<div class="d-flex justify-content-between align-items-center">
+    <ul class="nav nav-tabs mt-3" id="librenmsSync" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="interfaces-tab" data-tab="interfaces" data-bs-toggle="tab"
+                data-bs-target="#interfaces" type="button" role="tab" aria-controls="interfaces">
+                Interfaces
+            </button>
+        </li>
+        {% if cable_sync %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="cables-tab" data-tab="cables" data-bs-toggle="tab" data-bs-target="#cables"
+                type="button" role="tab" aria-controls="cables">
+                Cables
+            </button>
+        </li>
+        {% endif %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="ipaddresses-tab" data-tab="ipaddresses" data-bs-toggle="tab"
+                data-bs-target="#ipaddresses" type="button" role="tab" aria-controls="ipaddresses">
+                IP Addresses
+            </button>
+        </li>
+    </ul>
+    <div class="btn-group btn-group-sm mt-3" role="group" data-bs-toggle="tooltip" data-bs-placement="top"
+        title="Select preferred interface name field">
+        <input type="radio" class="btn-check interface-name-field" name="interface_name_field" value="ifDescr"
+            id="ifDescr" {% if interface_name_field == 'ifDescr' %}checked{% endif %}>
+        <label class="btn btn-outline-primary" for="ifDescr">ifDescr</label>
+
+        <input type="radio" class="btn-check interface-name-field" name="interface_name_field" value="ifName"
+            id="ifName" {% if interface_name_field == 'ifName' %}checked{% endif %}>
+        <label class="btn btn-outline-primary" for="ifName">ifName</label>
+    </div>
+</div>
+<!-- Tab Content -->
+<div class="tab-content mt-3" id="librenmsTabContent">
+    <div class="tab-pane fade" id="interfaces" role="tabpanel" aria-labelledby="interfaces-tab"
+        data-tab-id="interfaces">
+        {% include 'netbox_librenms_plugin/_interface_sync.html' %}
+    </div>
+
+    <div class="tab-pane fade" id="cables" role="tabpanel" aria-labelledby="cables-tab" data-tab-id="cables">
+        {% include 'netbox_librenms_plugin/_cable_sync.html' %}
+    </div>
+
+    <div class="tab-pane fade" id="ipaddresses" role="tabpanel" aria-labelledby="ipaddresses-tab"
+        data-tab-id="ipaddresses">
+        {% include 'netbox_librenms_plugin/_ipaddress_sync.html' %}
+    </div>
+</div>
+
+
+{% elif mismatched_device %}
+<div>
+    <div class="alert alert-warning d-flex align-items-center">
+        <i class="mdi mdi-alert me-2"></i>
+        <div>
+            <strong>Device Mismatch:</strong>
+            The LibreNMS device with ID <code>{{ librenms_device_id }}</code> does not match the NetBox device.
+            <hr class="my-2">
+            <span class="text-muted">
+                Netbox Device Details:
+                <ul class="mb-1">
+                    <li>NetBox Name: {{ object.name }}</li>
+                    <li>Primary IP: {{ object.primary_ip.address.ip|default:'-' }}</li>
+                    <li>Primary IP DNS Name: {{ object.primary_ip.dns_name|default:'-' }}</li>
+
+                </ul>
+                LibreNMS Device with ID <code>{{ librenms_device_id }}</code>:
+                <ul class="mb-1">
+                    <li>LibreNMS Name: {{ sysName|default:'-' }}</li>
+                    <li>Hardware: {{ librenms_device_hardware }}</li>
+                    <li>IP Address: {{ librenms_device_ip }}</li>
+                </ul>
+                Options:
+                <ul class="mb-0">
+                    <li>Remove custom field value and let LibreNMS plugin try to find it</li>
+                    <li>Manually enter the correct LibreNMS device ID</li>
+                </ul>
+            </span>
+        </div>
+    </div>
+</div>
+{% else %}
+<div>
+    <div class="alert alert-warning d-flex align-items-center">
+        <i class="mdi mdi-alert me-2"></i>
+        <div>
+            <strong>Device not found:</strong>
+            Device has custom field 'librenms_id' set to <code>{{ librenms_device_id }}</code> but was not found in
+            LibreNMS.
+            <hr class="my-2">
+            <span class="text-muted">
+                Options:
+                <ul class="mb-0">
+                    <li>Remove custom field value and let LibreNMS plugin try to find it</li>
+                    <li>Manually enter the correct LibreNMS device ID</li>
+                </ul>
+            </span>
+        </div>
+    </div>
+
+</div>
+{% endif %}
+{% else %}
+{% if is_vc_member and not has_vc_primary_ip %}
+<div class="alert alert-warning">
+    Virtual chassis primary device <a href="{{ vc_primary_device.get_absolute_url }}">{{ vc_primary_device }}</a>
+    requires a primary IP for LibreNMS sync
+</div>
+{% elif is_vc_member and has_vc_primary_ip %}
+<div class="alert alert-info">
+    LibreNMS sync is managed by virtual chassis member <a href="{{ vc_primary_device.get_absolute_url }}">{{
+        vc_primary_device }}</a>
+</div>
+{% elif not found_in_librenms %}
+<div class="alert alert-warning">
+    To match a device with LibreNMS, one of these identifiers must match the LibreNMS hostname/IP:
+    <ul>
+        <li>Primary IP address</li>
+        <li>Primary IP DNS name (FQDN)</li>
+        <li>Device name</li>
+    </ul>
+</div>
+
+{% endif %}
+{% endif %}
+<!-- End Tab Content -->
+
+
+<!-- Add to LibreNMS Modal Placeholder-->
+<div id="modal-div"></div>
+
+
+<!-- Add to LibreNMS Modal -->
+<div class="modal fade" id="add-device-modal" tabindex="-1" aria-labelledby="addDeviceModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addDeviceModalLabel">Add Device to LibreNMS</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- SNMP Version Selector -->
+                <div class="mb-3">
+                    <label class="form-label">SNMP Version</label>
+                    <select class="form-select" onchange="toggleSNMPForms(this.value)">
+                        <option value="v2c">SNMPv2c</option>
+                        <option value="v3">SNMPv3</option>
+                    </select>
+                </div>
+
+                <!-- SNMPv2c form -->
+                <form method="post" action="{% url 'plugins:netbox_librenms_plugin:add_device_to_librenms' object.id %}"
+                    id="snmpv2-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="snmp_version" value="v2c">
+                    <div class="mb-3">
+                        {{ v2form.hostname.label_tag }}
+                        {{ v2form.hostname }}
+                    </div>
+                    <div class="mb-3">
+                        {{ v2form.community.label_tag }}
+                        {{ v2form.community }}
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Device</button>
+                </form>
+
+                <!-- SNMPv3 form -->
+                <form method="post" action="{% url 'plugins:netbox_librenms_plugin:add_device_to_librenms' object.id %}"
+                    id="snmpv3-form" style="display: none;">
+                    {% csrf_token %}
+                    <input type="hidden" name="snmp_version" value="v3">
+                    <div class="mb-3">
+                        {{ v3form.hostname.label_tag }}
+                        {{ v3form.hostname }}
+                    </div>
+                    {% for field in v3form %}
+                    {% if field.name != 'hostname' %}
+                    <div class="mb-3">
+                        {{ field.label_tag }}
+                        {{ field }}
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary">Add Device</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %} <!-- End content -->
